@@ -127,7 +127,8 @@
                     "max_value": "55",
                     "HMI": {
                         "label_long": "Seuil",
-                        "visual_type": "doubleSlider"
+                        "visual_type": "doubleSlider",
+                        "unit": "°C"
                     }
                 }
             }
@@ -165,7 +166,8 @@
                     "max_value": "100",
                     "HMI": {
                         "label_long": "Seuil",
-                        "visual_type": "doubleSlider"
+                        "visual_type": "doubleSlider",
+                        "unit": "%"
                     }
                 }
             }
@@ -203,7 +205,8 @@
                     "max_value": "4000",
                     "HMI": {
                         "label_long": "Seuil",
-                        "visual_type": "doubleSlider"
+                        "visual_type": "doubleSlider",
+                        "unit": "mV"
                     }
                 }
             }

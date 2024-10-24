@@ -119,17 +119,18 @@
                   />
 
                   <!-- Double Slider (Seuils) -->
-                  <ion-range v-if="param.HMI?.visual_type === 'doubleSlider'"
+                  <double-slider
+                    v-if="param.HMI?.visual_type === 'doubleSlider'"
+                    :label="param.HMI?.label_long"
+                    :unit="param.HMI?.unit"
                     :min="param.min_value"
                     :max="param.max_value"
-                    :value="{ lower: param.default_value.split(' ')[0], upper: param.default_value.split(' ')[1] }"
+                    :value="{ lower: param.selectedValue.split(' ')[0], upper: param.selectedValue.split(' ')[1] }"
                     :step="calculateSteps(param.min_value, param.max_value)"
-                    pin="true"
-                    snaps="true"
-                    color="primary"
-                    dual-knobs="true"
-                    @ionChange="onParamChange($event, 'standard_params', groupName, paramName)">
-                  </ion-range>
+                    :groupName="groupName"
+                    :paramName="paramName"
+                    @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
+                  />
 
                   <!-- Checkbox -->
                   <ion-checkbox v-if="param.HMI?.visual_type === 'Checkbox'"
@@ -156,6 +157,7 @@
 import { ref, onMounted } from 'vue';
 import AvailableProductList from '@/config/AvailableProductList.json'; // Import the JSON file
 import TimeSlider from '@/components/TimeSlider.vue';
+import DoubleSlider from '@/components/DoubleSlider.vue';
 import { computed } from 'vue';
 
 // Variables réactives
@@ -207,6 +209,7 @@ const loadSensorConfig = (sensorFile) => {
 // Fonction pour charger les produits disponibles depuis le JSON
 const loadAvailableProducts = () => {
   availableProducts.value = AvailableProductList.products;
+  document.getElementById("outputStuff").innerHTML = "Sélectionnez un capteur pour commencer";
 };
 
 // Initialiser les valeurs par défaut pour chaque paramètre
@@ -230,6 +233,7 @@ const initParams = () => {
       }
     }
   }
+  updateOutput();
   //console.log(outputVals);
 };
 
@@ -268,6 +272,9 @@ const updateOutput = () => {
       }
     });
   });
+  if (!batchChecked.value && !standardChecked.value) {
+    outputFrameTxt = "Veuillez sélectionner au moins un mode";
+  }
   document.getElementById("outputStuff").innerHTML = outputFrameTxt;
 }
 
@@ -315,7 +322,6 @@ const convertToHexFrameValue = (value: string, param: { type: string; isHours: b
   //console.log(output);
   return (output);
 }
-
 // Fonction pour gérer le changement de case à cocher
 const onCategoryCheckedChange = (event: CustomEvent, category: string) => {
   if(sensorConfig.value[category].global_params) {
@@ -355,7 +361,7 @@ const onParamGroupCheckedChange = (event: CustomEvent, groupName: string, bigGro
 
 const onParamChange = (event: { newValue: number; detail: { value: { lower: number; upper: number; }; }; }, bigGroupName: string, groupName: string, paramName: string) => {
   // Check if groupName exists in sensorConfig
-  //console.log(event);
+  console.log(event);
   if (sensorConfig.value[bigGroupName][groupName]) {
     // Check if the paramName exists within the group
     if (sensorConfig.value[bigGroupName][groupName].fields[paramName]) {
