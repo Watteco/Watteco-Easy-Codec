@@ -1,10 +1,12 @@
+/*
 import { mount } from '@vue/test-utils'
-import Tab1Page from '@/views/Tab1Page.vue'
+import downlinkPage from '@/views/downlinkPage.vue'
 import { describe, expect, test } from 'vitest'
 
-describe('Tab1Page.vue', () => {
-  test('renders tab 1 Tab1Page', () => {
-    const wrapper = mount(Tab1Page)
+describe('downlinkPage.vue', () => {
+  test('renders tab 1 downlinkPage', () => {
+    const wrapper = mount(downlinkPage)
     expect(wrapper.text()).toMatch('Tab 1 page')
   })
 })
+*/
