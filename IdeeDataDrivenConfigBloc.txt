@@ -1,0 +1,159 @@
+
+
+***********************************************************************
+TH
+***********************************************************************
+
+General params
+	11 50 00 50 02 03
+	
+Confirmed
+	Params
+	  1  ==> Echant/Enregistrement / Type champ / Valeur défaut (0) / HMI[ Label long, Tooltip, type visu  (Slider Time| champ num | check ...), range]
+	Cfg Block
+	 11 05 8004 0000 08 <1>
+	
+Batch params:
+	T params
+	  1  ==> Echant/Enregistrement / Type champ / Valeur défaut (10 mn) / HMI[ Label long, Tooltip, type visu  Slider Time| champ num | range]
+	  2  ==> Emission        / Valeur défaut (60 mn) / HMI[ Label long, Tooltip, type visu  Slider Time| champ num
+
+	H params
+	  3  ==> Echant/Enregistrement / Valeur défaut (10 mn) [ Label long, Tooltip, type visu  Slider Time| champ num]
+	  4  ==> Emission        / Valeur défaut (60 mn) [ Label long, Tooltip, type visu  Slider Time| champ num]
+	  
+	Battery params
+	  5  ==> Echant/Enregistrement 24h
+	  6  ==> Emission 24h
+	
+	Cfg Block
+		11 50 00 50 02 03
+		11 05 8004 0000 08 00
+		11 06 04 02 15 00 00 00 <1> <2> 00 00 00 0A 02
+		11 06 04 05 15 00 00 00 <3> <4> 00 00 00 64 0A
+		11 06 00 50 15 00 06 04 <5> <6> 00 00 00 01 12
+		11 06 00 0F 00 00 55 10 00 01 FF FF 01
+
+Standard params:
+	T Batch  params
+	  1  ==> Echant     / Type champ / Valeur défaut (10 mn) / HMI[ Label long, Tooltip, type visu  Slider Time| champ num | range]
+	  2  ==> Emission        / Valeur défaut (60 mn) / HMI[ Label long, Tooltip, type visu  Slider Time| champ num]
+
+	H Batch  params
+	  3  ==> Echant / Valeur défaut (10 mn) [ Label long, Tooltip, type visu  Slider Time| champ num]
+	  4  ==> Emission        / Valeur défaut (60 mn) [ Label long, Tooltip, type visu  Slider Time| champ num]
+	  
+	Battery batch params
+	  5  ==> Echant/Enregistrement 24h
+	  6  ==> Emission 24h
+
+	Cfg block
+		11 05 8004 0000 08 00
+		11 50 0050 02 03
+		11 06 0402 80 0000 29 <1> <2> 48 0028
+		11 06 0405 80 0000 21 8001 801E 48 0190
+		11 06 0050 00 0006 41 800a 85a0 05 00 04 01f4 00
+		11 06 000f 00 0055 10 0001 85a0 01
+
+
+
+Relecture de config (plus tard ...)
+11 50 00 50 02 03
+11 05 8004 0000 08 00
+11 06 04 02 15 00 00 00 80 0A 80 3C 00 00 00 0A 02
+11 06 04 05 15 00 00 00 80 0A 80 3C 00 00 00 64 0A
+11 06 00 50 15 00 06 04 85 A0 85 A0 00 00 00 01 12
+11 06 00 0F 00 00 55 10 00 01 FF FF 01
+
+***********************************************************************
+MODBUS
+***********************************************************************
+
+General params
+	11 50 00 50 02 03
+	
+Confirmed
+	Params
+	  1  ==> Echant/Enregistrement / Type champ / Valeur défaut (0) / HMI[ Label long, Tooltip, type visu  (Slider Time| champ num | check ...), range
+	Cfg Block
+	 11 05 8004 0000 08 <1>
+	 
+Serial params:
+	 BAudRate / Type champ / Valeur défaut (0) / HMI[ Label long, Tooltip, type visu  , range
+	 Parity ...
+	 Nb bits ...
+	 Stobits ...
+	 
+DALKIA SHARKY AVANT 2018:
+---------------
+#vitesse série 19200 
+0A 11 05 80 06 00 00 22 <SerialsParams/BaudRate>
+#nombre de bits 8
+08 11 05 80 06 00 01 20 <nbBits>
+#parité: even (00: none, 01: odd, 02: even)
+08 11 05 80 06 00 02 20 <Parity>
+#stopbit: 1
+08 11 05 80 06 00 03 20 01
+#lecture index energy sur esclave 01
+0E 11 05 80 07 00 00 41 06 01 03 00 05 00 02
+#lecture volume sur esclave 01
+0E 31 05 80 07 00 00 41 06 01 03 00 0c 00 02
+#lecture puissance sur esclave 01
+0E 51 05 80 07 00 00 41 06 01 03 00 13 00 02
+#lecture débit sur esclave 01
+0E 71 05 80 07 00 00 41 06 01 03 00 1a 00 02
+#lecture T°C départ sur esclave 01
+0E 91 05 80 07 00 00 41 06 01 03 00 1d 00 02
+#lecture T°C arrivé sur esclave 01
+0E B1 05 80 07 00 00 41 06 01 03 00 20 00 02
+#lecture delta T°C sur esclave 01
+0E D1 05 80 07 00 00 41 06 01 03 00 24 00 02
+#report multiserial à l'heure:
+0E 11 06 80 09 00 00 00 41 <1> <1> 01 00
+#retire l'entête modbus
+08 11 05 80 09 00 01 10 00
+
+
+Modbus general
+==============
+
+General params
+	11 50 00 50 02 03
+	
+Confirmed
+	Params
+	  1  ==> Echant/Enregistrement / Type champ / Valeur défaut (0) / HMI[ Label long, Tooltip, type visu  (Slider Time| champ num | check ...), range
+	Cfg Block
+	 11 05 8004 0000 08 <1>
+	 
+Serial params:
+	 BAudRate / Type champ / Valeur défaut (0) / HMI[ Label long, Tooltip, type visu  , range
+	 Parity
+	 Nb bits
+	 Stobits
+	 
+Requests:
+	Req1 Echant/Enregistrement / Type champ / Valeur défaut ("") / HMI[ Label long, Tooltip, type visu  (Slider Time| champ num | check ...), range
+	Req2
+	 
+Cfg block:
+---------------
+#vitesse série 19200 
+0A 11 05 80 06 00 00 22 <SerialsParams/BaudRate>
+#nombre de bits 8
+08 11 05 80 06 00 01 20 <nbBits>
+#parité: even (00: none, 01: odd, 02: even)
+08 11 05 80 06 00 02 20 <Parity>
+#stopbit: 1
+08 11 05 80 06 00 03 20 01
+# Req modbus 1
+0E 11 05 80 07 00 00 41 06 <Req1>
+# Req modbus 2
+...
+# Req modbus 10
+0E 31 05 80 07 00 00 41 06 <Req10>
+
+#report multiserial à l'heure:
+0E 11 06 80 09 00 00 00 41 <1> <1> 01 00
+#retire l'entête modbus
+08 11 05 80 09 00 01 10 00

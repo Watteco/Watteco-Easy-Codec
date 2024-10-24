@@ -12,14 +12,18 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@capacitor/android": "6.1.1",
     "@capacitor/app": "6.0.0",
     "@capacitor/core": "6.1.1",
     "@capacitor/haptics": "6.0.0",
     "@capacitor/keyboard": "6.0.1",
     "@capacitor/status-bar": "6.0.0",
+    "@ionic-native/core": "^5.36.0",
+    "@ionic-native/nfc": "^5.36.0",
     "@ionic/vue": "^8.0.0",
     "@ionic/vue-router": "^8.0.0",
     "ionicons": "^7.0.0",
+    "phonegap-nfc": "^1.2.0",
     "vue": "^3.3.0",
     "vue-router": "^4.2.0"
   },

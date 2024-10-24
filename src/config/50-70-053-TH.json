@@ -1,0 +1,219 @@
+{
+    "general_params": {
+        "cfg_block": [
+            "11 50 00 50 02 03"
+        ]
+    },
+    "confirmed": {
+        "params": {
+            "confirmed": {
+                "description": "Confirmé",
+                "type": "Bool",
+                "default_value": "0",
+                "HMI": {
+                    "label_long": "Confirmé",
+                    "visual_type": "Checkbox"
+                }
+            }
+        },
+        "cfg_block": [
+            "11 05 8004 0000 08 (confirmed)"
+        ]
+    },
+    "batch_params": {
+        "label": "Historisation",
+        "batch_T_params": {
+            "label": "Température",
+            "fields": {
+                "tBatchEchant": {
+                    "description": "Échantillonage",
+                    "type": "timeInt32",
+                    "default_value": "30",
+                    "min_value": "0",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'échantillonage",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "batch_H_params": {
+            "label": "Humidité",
+            "fields": {
+                "hBatchEchant": {
+                    "description": "Échantillonage",
+                    "type": "timeInt32",
+                    "default_value": "10",
+                    "min_value": "0",
+                    "max_value": "100",
+                    "HMI": {
+                        "label_long": "Période d'échantillonage",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "batch_B_params": {
+            "label": "Batterie",
+            "fields": {
+                "bBatchEchant": {
+                    "description": "Échantillonage",
+                    "type": "timeInt32",
+                    "default_value": "24",
+                    "min_value": "1",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'échantillonage",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "global_params": {
+            "fields": {
+                "gBatchEmission": {
+                    "description": "Émission",
+                    "type": "timeInt32",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'émission",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+            "11 06 04 02 15 00 00 00 (tBatchEchant) (gBatchEmission) 00 00 00 0A 02",
+            "11 06 04 05 15 00 00 00 (hBatchEchant) (gBatchEmission) 00 00 00 64 0A",
+            "11 06 00 50 15 00 06 04 (bBatchEchant) (gBatchEmission) 00 00 00 01 12",
+            "11 06 00 0F 00 00 55 10 00 01 FF FF 01"
+        ]
+    },
+    "standard_params": {
+        "label": "Seuil",
+        "standard_T_params": {
+            "label": "Température",
+            "fields": {
+                "tStandEchant": {
+                    "description": "Échantillonage",
+                    "type": "timeInt32",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'échantillonage",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "tStandEmission": {
+                    "description": "Émission max",
+                    "type": "timeInt32",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'émission maximale",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "tSeuil": {
+                    "description": "Seuil",
+                    "type": "int32",
+                    "default_value": "15 30",
+                    "min_value": "0",
+                    "max_value": "55",
+                    "HMI": {
+                        "label_long": "Seuil",
+                        "visual_type": "doubleSlider"
+                    }
+                }
+            }
+        },
+        "standard_H_params": {
+            "label": "Humidité",
+            "fields": {
+                "hStandEchant": {
+                    "description": "Échantillonage",
+                    "type": "timeInt32",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'échantillonage",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "hStandEmission": {
+                    "description": "Émission max",
+                    "type": "timeInt32",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'émission maximale",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "hSeuil": {
+                    "description": "Seuil",
+                    "type": "int32",
+                    "default_value": "25 75",
+                    "min_value": "0",
+                    "max_value": "100",
+                    "HMI": {
+                        "label_long": "Seuil",
+                        "visual_type": "doubleSlider"
+                    }
+                }
+            }
+        },
+        "standard_B_params": {
+            "label": "Batterie",
+            "fields": {
+                "bStandEchant": {
+                    "description": "Échantillonage",
+                    "type": "timeInt32",
+                    "default_value": "24",
+                    "min_value": "1",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'échantillonage",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "bStandEmission": {
+                    "description": "Émission max",
+                    "type": "timeInt32",
+                    "default_value": "24",
+                    "min_value": "1",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'émission maximale",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "bSeuil": {
+                    "description": "Seuil",
+                    "type": "int32",
+                    "default_value": "3000 3700",
+                    "min_value": "0",
+                    "max_value": "4000",
+                    "HMI": {
+                        "label_long": "Seuil",
+                        "visual_type": "doubleSlider"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+            "11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tSeuil1) 0171 (tSeuil2) 01",
+            "11 06 0405 80 0000 29 (hStandEchant) (hStandEmission) 70 (hSeuil1) 0171 (hSeuil2) 01",
+            "11 06 0050 80 0000 29 (bStandEchant) (bStandEmission) 70 (bSeuil1) 0171 (bSeuil2) 01",
+            "11 06 0050 00 0006 41 800a 85a0 05 00 04 01f4 00",
+            "11 06 000f 00 0055 10 0001 85a0 01"
+        ]
+    }
+}

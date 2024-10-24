@@ -1,0 +1,178 @@
+{
+	"products": [
+		{
+			"name": "Acceler'O (50-70-197) [beta]",
+			"file": "50-70-197-Accelero"
+		},
+		{
+			"name": "Atm'O (50-70-099)",
+			"file": "50-70-099-Atmo",
+			"BatchUncompressParams": "3 0,1,7,Temperature 1,1,6,RelativeHumidity 2,1,7,Pressure 3,1,10,Index1 4,1,10,Index2 5,1,6,BatteryLevel"
+		},
+		{
+			"name": "Cels'O (50-70-049)",
+			"file": "50-70-049-Celso",
+			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel"
+		},
+		{
+			"name": "Flash'O (50-70-071)",
+			"file": "50-70-071-Flasho",
+			"BatchUncompressParams": "1 0,1,10,Index 1,100,6,BatteryLevel"
+		},	
+		{
+			"name": "Flash'O 3 probes (50-70-206)",
+			"file": "50-70-206-Flash'O-3-probes",
+			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,100,6,BatteryLevel 7,1,6,MultiState"
+		},
+		{
+			"name": "HygroTemp'O (50-70-[205/232])",
+			"file": "50-70-205-232-HygroTemp'O",
+			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel 3,1,1,OpenCase"
+		},
+		{
+			"name": "In'O (50-70-016-005)",
+			"file": "50-70-016-Ino"
+		},
+		{
+			"name": "Inclin'O (50-70-201)",
+			"file": "50-70-201-Inclino",
+			"BatchUncompressParams": "3 0,1,6,ACCmg 1,0.1,12,Deg"
+		},
+		{
+			"name": "Intens'O (50-70-098)",
+			"file": "50-70-098-Intenso",
+			"BatchUncompressParams": "2 0,0.1,12,Current 1,100,6,BatteryLevel"
+		},
+		{
+			"name": "Modbus (50-70-[080/109])",
+			"file": "50-70-080-Modbus"
+		},		
+		{
+			"name": "Monit'O (50-70-141)",
+			"file": "50-70-141-Batto",
+			"BatchUncompressParams": "3 0,0.02,12,0-100mV 1,17,12,0-70V 2,100,6,BatteryLevel 3,100,6,ExternalLevel"
+		},
+		{
+			"name": "Move'O (50-70-220)",
+			"file": "50-70-220-000-Move'o",
+			"BatchUncompressParams": "3 0,1,4,OCC 1,10,7,T 2,100,6,H 5,10,6,LUX"
+		},
+		{
+			"name": "Outdoor Temperature (50-70-164)",
+			"file": "50-70-164-RT",
+			"BatchUncompressParams": "3 0,10,7,Temperature 5,100,6,BatteryLevel"
+		},
+		{
+			"name": ["Pilot wire (50-70-027)","Fil pilote (50-70-027)"],
+			"file": "50-70-027-PW"
+		},
+		{
+			"name": "Press'O (50-70-017-004)",
+			"file": "50-70-017-004-Presso",
+			"BatchUncompressParams": "3 0,0.004,12,4-20mA 1,1,12,0-10V 2,100,6,BatteryLevel 3,100,6,ExtPowerLevel 4,1,10,Index"
+		},
+		{
+			"name": "Press'O (50-70-017-005)",
+			"file": "50-70-017-005-Presso",
+			"BatchUncompressParams": "3 0,0.004,12,4-20mA 1,1,12,0-10V 2,100,6,BatteryLevel 3,100,6,ExtPowerLevel 4,1,10,Index"
+		},
+		{
+			"name": "Press'O 0-10V 2CTN (50-70-130)",
+			"file": "50-70-130-000-Presso-0-10V-2CTN",
+			"BatchUncompressParams": "3 0,0.004,12,4-20mA 1,1,12,0-10V 2,100,6,BatteryLevel 3,100,6,ExtPowerLevel 4,1,10,Index"
+		},
+		{
+			"name": "Pulse Sens'O Atex zone 1 (50-70-123)",
+			"file": "50-70-123-PulseSenso",
+			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,100,6,BatteryLevel 7,1,6,MultiState"
+		},
+		{
+			"name": "Pulse Sens'O (50-70-[014/072/039/051/160])",
+			"file": "50-70-014-PulseSenso",
+			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,100,6,BatteryLevel 7,1,6,MultiState"
+		},
+		{
+			"name": "Remote temperature (50-70-043-002)",
+			"file": "50-70-043-002-RT",
+			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel"
+		},
+		{
+			"name": "Remote temperature 1CTN (50-70-043-003)",
+			"file": "50-70-043-003-RT",
+			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel"
+		},
+		{
+			"name": "Remote temperature 2CTN (50-70-[139/163/184])",
+			"file": "50-70-139-000-RT2CTN",
+			"BatchUncompressParams": "3 0,10,7,Temperature1 1,10,7,Temperature2 5,100,6,BatteryLevel"
+		},
+		{
+			"name": "Remote temperature humidity (50-70-200)",
+			"file": "50-70-200-RTH",
+			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel"
+		},
+		{
+			"name": "SkyDome (50-70-143)",
+			"file": "50-70-143-SkyDome"
+		},
+		{
+			"name": "SmartPlug (50-70-003)",
+			"file": "50-70-003-SmartPlug",
+			"BatchUncompressParams": "1 0,1,9,ActiveEnergy"
+		},
+		{
+			"name": "S0 (50-70-001)",
+			"file": "50-70-001-S0",
+			"BatchUncompressParams": "1 0,1,10,Index1 1,100,6,BatteryLevel"
+		},
+		{
+			"name": "T (50-70-[085/167])",
+			"file": "50-70-085-T",
+			"BatchUncompressParams": "2 0,10,7,Temperature  2,1,6,BatteryLevel 3,1,1,OpenCase"
+		},
+		{
+			"name": "Temp'O (50-70-231)",
+			"file": "50-70-231-Temp'O",
+			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel 3,1,1,OpenCase"
+		},
+		{
+			"name": "TH (50-70-[053/162])",
+			"file": "50-70-053-TH",
+			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel 3,1,1,OpenCase"
+		},
+		{
+			"name": "THr (50-70-007 [deprecated])",
+			"file": "50-70-007-THr",
+			"BatchUncompressParams": "3 0,10,7,Temperature 1,100,6,RelativeHumidity 2,10,12,Luminosity 3,100,6,Disposable_BatteryLevel 4,100,6,Rechargeable_BatteryLevel"
+		},
+		{
+			"name": "TICs'O (50-70-045) [beta]",
+			"file": "50-70-045-TIC-PMEPMI"
+		},
+		{
+			"name": "Toran'O Atex zone 1(50-70-124)",
+			"file": "50-70-124-Torano",
+			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,0.004,12,4-20mA 7,1,12,0-5V[Measure-1] 8,1,12,0-5V[Measure-2] 9,1,12,ratio[Measure-1] 10,1,12,ratio[Measure-1] 11,100,6,BatteryLevel"
+		},
+		{
+			"name": "Triphas'O (50-70-[105/145/146])",
+			"file": "50-70-105-Triphaso"
+		},
+		{
+			"name": "Vaqa'O + Plus (50-70-074)",
+			"file": "50-70-074-VAQAO+Plus",
+			"BatchUncompressParams": "3 0,1,4,OCC 1,10,7,T 2,100,6,H 3,10,6,CO2 4,10,6,COV 5,10,6,LUX 6,10,6,P"
+		},
+		{
+			"name": "Vaqa'O (50-70-168)",
+			"file": "50-70-168-VAQAO",
+			"BatchUncompressParams": "3 1,10,7,T 2,100,6,H 3,10,6,CO2 4,10,6,COV"
+		},
+		{
+			"name": "Ventil'O (50-70-[064/101/166])",
+			"file": "50-70-064-Ventil'o",
+			"BatchUncompressParams": "3 0,1,7,Mean_differential_pressure_since_last_report 1,1,7,Minimal_differential_pressure_since_last_report 2,1,7,Maximal_differential_pressure_since_last_report  3,1,6,BatteryLevel 4,10,7,Temperature 5,1,7,DifferentialPressure 6,1,10,Index 7,1,1,State"
+		}
+
+	]
+}

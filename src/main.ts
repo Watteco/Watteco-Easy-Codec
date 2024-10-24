@@ -3,6 +3,8 @@ import App from './App.vue'
 import router from './router';
 
 import { IonicVue } from '@ionic/vue';
+import { isPlatform } from '@ionic/vue';
+import { Capacitor } from '@capacitor/core';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/vue/css/core.css';
@@ -23,7 +25,7 @@ import '@ionic/vue/css/display.css';
 /**
  * Ionic Dark Mode
  * -----------------------------------------------------
- * For more info, please see:
+ * For more info, please see:That's how it works here, why are you looking at me that way
  * https://ionicframework.com/docs/theming/dark-mode
  */
 
