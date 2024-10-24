@@ -4,7 +4,7 @@
       <ion-router-outlet></ion-router-outlet>
       <ion-header>
         <ion-toolbar>
-          <ion-title size="large">Watteco Codec</ion-title>
+          <ion-title size="large">Watteco Easy Codec</ion-title>
         </ion-toolbar>
       </ion-header>
       <ion-tab-bar slot="bottom">
@@ -12,11 +12,11 @@
           <ion-icon :icon="arrowDownCircleOutline" />
         </ion-tab-button>
 
-        <ion-tab-button tab="uplink" href="/tabs/uplink">
+        <ion-tab-button tab="uplink" href="/tabs/uplink" disabled="true">
           <ion-icon :icon="arrowUpCircleOutline" />
         </ion-tab-button>
 
-        <ion-tab-button tab="battery" href="/tabs/battery">
+        <ion-tab-button tab="battery" href="/tabs/battery" disabled="true">
           <ion-icon :icon="batteryHalfOutline" />
         </ion-tab-button>
       </ion-tab-bar>

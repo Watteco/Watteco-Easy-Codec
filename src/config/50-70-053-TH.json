@@ -126,9 +126,10 @@
                     "min_value": "0",
                     "max_value": "55",
                     "HMI": {
-                        "label_long": "Seuil",
+                        "label_long": "Seuils",
                         "visual_type": "doubleSlider",
-                        "unit": "°C"
+                        "unit": "°C",
+                        "multiplier": "100"
                     }
                 }
             }
@@ -165,9 +166,10 @@
                     "min_value": "0",
                     "max_value": "100",
                     "HMI": {
-                        "label_long": "Seuil",
+                        "label_long": "Seuils",
                         "visual_type": "doubleSlider",
-                        "unit": "%"
+                        "unit": "%",
+                        "multiplier": "100"
                     }
                 }
             }
@@ -200,11 +202,11 @@
                 "bSeuil": {
                     "description": "Seuil",
                     "type": "int32",
-                    "default_value": "3000 3700",
-                    "min_value": "0",
-                    "max_value": "4000",
+                    "default_value": "3000 3600",
+                    "min_value": "2000",
+                    "max_value": "3700",
                     "HMI": {
-                        "label_long": "Seuil",
+                        "label_long": "Seuils",
                         "visual_type": "doubleSlider",
                         "unit": "mV"
                     }
@@ -212,9 +214,9 @@
             }
         },
         "cfg_block": [
-            "11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tSeuil1) 0171 (tSeuil2) 01",
-            "11 06 0405 80 0000 29 (hStandEchant) (hStandEmission) 70 (hSeuil1) 0171 (hSeuil2) 01",
-            "11 06 0050 80 0000 29 (bStandEchant) (bStandEmission) 70 (bSeuil1) 0171 (bSeuil2) 01",
+            "11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tSeuil1) 0000 0171 (tSeuil2) 0000 01",
+            "11 06 0405 80 0000 29 (hStandEchant) (hStandEmission) 70 (hSeuil1) 0000 0171 (hSeuil2) 0000 01",
+            "11 06 0050 80 0000 29 (bStandEchant) (bStandEmission) 70 (bSeuil1) 0000 0171 (bSeuil2) 0000 01",
             "11 06 0050 00 0006 41 800a 85a0 05 00 04 01f4 00",
             "11 06 000f 00 0055 10 0001 85a0 01"
         ]
