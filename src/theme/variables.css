@@ -23,8 +23,10 @@ http://ionicframework.com/docs/theming/ */
 	--ion-color-tertiary-shade: #e0bc98;
 	--ion-color-tertiary-tint: #ffdab5;
 
-    --knob-size: 30px;
-    --ion-text-color-rgb: #FFFFFF;
-  }
+	--knob-size: 30px;
+	--ion-text-color-rgb: #FFFFFF;
+}
 
-  
+ion-popover {
+    --width: fit-content;
+}

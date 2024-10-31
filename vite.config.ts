@@ -16,8 +16,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  base: process.env.VITE_BASE_URL || '/',
   test: {
     globals: true,
     environment: 'jsdom'
   }
 })
+console.log(process.env.VITE_BASE_URL)

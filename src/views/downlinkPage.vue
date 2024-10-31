@@ -27,7 +27,7 @@
         <ion-card v-if="sensorConfig && sensorConfig.batch_params" class="category-card">
           <ion-item class="config-item">
             <ion-label>{{ sensorConfig.batch_params.label }}</ion-label>
-            <ion-checkbox @ionChange="onBatchCheckedChange"></ion-checkbox>
+            <ion-checkbox :checked="batchChecked" @ionChange="onBatchCheckedChange"></ion-checkbox>
           </ion-item>
 
           <!-- Temperature, Humidity, Battery (batch_params) -->
@@ -37,7 +37,12 @@
                     class="subcategory-card">
             <ion-item class="config-item">
               <ion-label>{{ paramGroup.label }}</ion-label>
-              <ion-checkbox @ionChange="onParamGroupCheckedChange($event, groupName, 'batch_params')"></ion-checkbox>
+
+              <ion-checkbox 
+                :checked="paramGroupChecked[groupName] || false"
+                @ionChange="onParamGroupCheckedChange($event, groupName, 'batch_params')"
+              ></ion-checkbox>
+
             </ion-item>
 
             <!-- Dynamic fields -->
@@ -85,7 +90,7 @@
         <ion-card v-if="sensorConfig && sensorConfig.standard_params" class="category-card">
           <ion-item class="config-item">
             <ion-label>{{ sensorConfig.standard_params.label }}</ion-label>
-            <ion-checkbox @ionChange="onStandardCheckedChange" disabled="false"></ion-checkbox>
+            <ion-checkbox :checked="standardChecked" @ionChange="onStandardCheckedChange"></ion-checkbox>
           </ion-item>
 
           <!-- Temperature, Humidity, Battery (standard_params) -->
@@ -95,7 +100,12 @@
                     class="subcategory-card">
             <ion-item class="config-item">
               <ion-label>{{ paramGroup.label }}</ion-label>
-              <ion-checkbox @ionChange="onParamGroupCheckedChange($event, groupName, 'standard_params')"></ion-checkbox>
+
+              <ion-checkbox 
+                :checked="paramGroupChecked[groupName] || false"
+                @ionChange="onParamGroupCheckedChange($event, groupName, 'standard_params')"
+              ></ion-checkbox>
+
             </ion-item>
 
             <!-- Dynamic fileds -->
@@ -152,9 +162,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import AvailableProductList from '@/config/AvailableProductList.json'; // Import the JSON file
 import TimeSlider from '@/components/TimeSlider.vue';
 import DoubleSlider from '@/components/DoubleSlider.vue';
+import axios from 'axios';
 
 // Reactive variables
 const availableProducts = ref([]); // For storing the list of products
@@ -168,27 +178,54 @@ const outputVals: never[] = [];
 const paramGroupList: never[] = [];
 const currentErrors: never[] = [];
 
-// Function to load available sensors from the JSON
-const loadAvailableProducts = () => {
-  availableProducts.value = AvailableProductList.products;
-  document.getElementById("outputArea").innerHTML = "Sélectionnez un capteur pour commencer";
+const loadAvailableProducts = async () => {
+  try {
+    const response = await axios.get(`${import.meta.env.BASE_URL}config/AvailableProductList.json`);
+    availableProducts.value = response.data.products.filter(product => 
+      product.apps && product.apps.includes("EasyCodec")
+    );
+    document.getElementById("outputArea").innerHTML = "Sélectionnez un capteur pour commencer";
+  } catch (error) {
+    console.error("Erreur lors du chargement de AvailableProductList:", error);
+  }
 };
 
 // Function to generate sensor change
 const onSensorChange = (event: CustomEvent) => {
   const selected = event.detail.value;
+  resetCheckboxes(); // Reset all checkboxes on sensor change
   loadSensorConfig(selected); // Load sensor config based on the selected sensor
 };
 
-// Function to load selected sensors JSON
-const loadSensorConfig = (sensorFile: any) => {
-  import(`@/config/${sensorFile}.json`).then((module) => {
-    sensorConfig.value = module.default;
-    initParams();
-  }).catch((err) => {
-    console.error("Failed to load sensor config:", err);
+const resetCheckboxes = () => {
+  batchChecked.value = false;
+  standardChecked.value = false;
+  
+  Object.keys(outputData).forEach(data => {
+    outputData[data] = false;
   });
+  Object.keys(paramGroupList).forEach(data => {
+    paramGroupList[data] = false;
+  });
+  
+  // Reset all checkboxes in paramGroupChecked
+  for (const group in paramGroupChecked.value) {
+    paramGroupChecked.value[group] = false;
+  }
 };
+
+// Function to load selected sensors JSON
+const loadSensorConfig = (sensorFile: string) => {
+  axios.get(`${import.meta.env.BASE_URL}config/${sensorFile}.json`)
+    .then((response) => {
+      sensorConfig.value = response.data;
+      initParams();
+    })
+    .catch((err) => {
+      console.error("Failed to load sensor config:", err);
+    });
+};
+
 
 // Initialisation of default values for each parameter
 const initParams = () => {
@@ -395,7 +432,7 @@ const calculateSteps = (min: number, max: number) => {
 <style scoped>
 .toolbar-title {
 	background-color: var(--ion-color-primary);
-  }
+}
   
 .card-holder {
   display: flex;
