@@ -1,4 +1,5 @@
 # Watteco Easy Codec
+[→ En Français](/localizedReadme/README-fr.md)
 
 <p align="center">
     <a href="https://ionicframework.com/" target="_blank">
@@ -22,69 +23,67 @@
     <img alt="Platforms badge" title="Available on Web, Android, and iOS" src="https://img.shields.io/badge/platforms-Web%20|%20Android%20|%20iOS-orange?style=for-the-badge&logo=ionic"/>
 </p>
 
+**Watteco Easy Codec** (working title) is an intuitive application designed to simplify the configuration and usage of Watteco IoT sensors. The main objective of this project is to offer a lightweight and user-friendly alternative to the existing online codec, focusing on essential features while modernizing the user interface.
 
-**Watteco Easy Codec** (nom provisoire) est une application intuitive conçue pour simplifier la configuration et l'utilisation des capteurs IoT de Watteco. L'objectif principal de ce projet est de proposer une alternative allégée et user-friendly au codec en ligne existant, en se concentrant sur les fonctionnalités essentielles, tout en modernisant l'interface utilisateur.
+## Project Goals
 
-## Objectifs du Projet
+1. **Simplification**: Reduce configuration complexity by focusing on the most commonly used core functionalities for standard users.
+2. **Accessibility**: Provide a modern and intuitive user interface, suitable for users of all technical levels.
+3. **Portability**:
+   - A web application accessible via a browser.
+   - Standalone versions for Windows and macOS built with [Electron](https://www.electronjs.org/).
+   - Mobile applications for Android and iOS.
+4. **Advanced Support**:
+   - Integration of **FOTA (Firmware Over-The-Air)** configuration for the PC version.
+   - Support for **NFC (Near Field Communication)** configuration on mobile versions.
 
-1. **Simplification** : Réduire la complexité des configurations en ne conservant que les fonctions principales les plus fréquemment utilisées par les utilisateurs lambda.
-2. **Accessibilité** : Proposer une interface utilisateur moderne et intuitive, adaptée à tous les types d'utilisateurs, indépendamment de leur expertise technique.
-3. **Portabilité** :
-   - Une application web accessible via navigateur.
-   - Des versions standalone pour Windows et macOS grâce à [Electron](https://www.electronjs.org/).
-   - Des applications mobiles pour Android et iOS.
-4. **Support Avancé** :
-   - Intégration de la configuration **par FOTA (Firmware Over-The-Air)** pour la version PC.
-   - Support de la configuration **par NFC (Near Field Communication)** pour les versions mobiles.
+## Current Features
 
-## Fonctionnalités Actuelles
+### Web Version
+The project is currently hosted at: [Watteco Easy Codec](https://lora.watteco.fr/EasyCodec/).
 
-### Version Web
-Le projet est actuellement hébergé à l'adresse suivante : [Watteco Easy Codec](https://lora.watteco.fr/EasyCodec/).
+#### Implemented Features:
+- **Simplified Interface**: A modern UI with dynamic sensor management.
+- **Configuration Loading**:
+  - Management of parameters via JSON files.
+  - Display of sensor-specific configurations.
+- **Support for Multiple Sensors**: While not exhaustive yet, the main Watteco sensors are supported.
 
-#### Fonctionnalités Implémentées :
-- **Interface Simplifiée** : Une UI modernisée avec une gestion dynamique des capteurs.
-- **Chargement des Configurations** : 
-  - Gestion des paramètres depuis des fichiers JSON.
-  - Affichage des configurations spécifiques à chaque capteur.
-- **Support de Plusieurs Capteurs** : Bien que non exhaustif pour le moment, les principaux capteurs de Watteco sont pris en charge.
+## Technical Stack
 
-## Stack Technique
+### Frameworks and Technologies
+- **Ionic**: Used to develop a modern and responsive interface.
+- **Vue.js**: JavaScript framework for managing state and reactive components.
+- **Electron**: Planned for the standalone (offline) version.
+- **Android/iOS**: Mobile versions will be built using Ionic Capacitor.
+- **FOTA**: For firmware updates and sensor configuration on the PC version.
+- **NFC**: For sensor configuration on mobile versions.
 
-### Frameworks et Technologies
-- **Ionic** : Utilisé pour développer une interface moderne et responsive.
-- **Vue.js** : Framework JavaScript pour la gestion des états et composants réactifs.
-- **Electron** : Prévu pour la version standalone (hors ligne).
-- **Android/iOS** : Les versions mobiles seront construites à partir du projet Ionic.
-- **FOTA** : Pour la mise à jour et la configuration des capteurs sur la version PC.
-- **NFC** : Pour la configuration des capteurs sur les versions mobiles.
+### File Organization
+- **Front-End**: Built with Ionic and Vue.js, following a modular architecture.
+- **Assets**: Configuration JSON files are stored in the `config` directory for an easy "adding a sensor" experience, without the need to rebuild the project.
 
-### Organisation des Fichiers
-- **Front-End** : Basé sur Ionic et Vue.js, avec une architecture modulaire.
-- **Assets** : Les fichiers JSON de configuration nécessaires sont stockés dans un répertoire `config`.
+## Current State
 
-## État Actuel
+### Development Version
+The development version can be launched locally using `ionic serve` and currently supports:
+- Core configuration features.
+- Dynamic parameter loading.
 
-### Version Développement
-La version de développement peut être lancée localement avec `ionic serve` et prend en charge :
-- Les fonctionnalités principales de configuration.
-- Le chargement dynamique des paramètres.
+### Production Version
+The functional web version is available at: [https://lora.watteco.fr/EasyCodec/](https://lora.watteco.fr/EasyCodec/). It is currently being tested with limited sensor support.
 
-### Version Production
-La version web fonctionnelle est accessible via : [https://lora.watteco.fr/EasyCodec/](https://lora.watteco.fr/EasyCodec/). Elle est actuellement en cours de tests avec une prise en charge limitée de capteurs.
+## Future Development
 
-## Développement Futur
-
-Les prochaines étapes de développement incluent :
-1. **Support Complet des Capteurs** : Intégrer la totalité des capteurs Watteco et leurs configurations.
-2. **Versions Mobiles et PC** : 
-   - Packager l'application avec Electron pour Windows/macOS.
-   - Générer des applications Android et iOS via Ionic Capacitor.
-3. **FOTA et NFC** :
-   - Intégrer la configuration FOTA dans la version standalone PC.
-   - Activer la configuration NFC dans les versions mobiles.
+The next development steps include:
+1. **Complete Sensor Support**: Integration of all Watteco sensors and their configurations.
+2. **Mobile and PC Versions**:
+   - Packaging the application with Electron for Windows/macOS.
+   - Generating Android and iOS apps using Ionic Capacitor.
+3. **FOTA and NFC**:
+   - Integrating FOTA configuration into the PC standalone version.
+   - Activating NFC configuration for mobile versions.
 
 ---
 
-Ce README a pour but de fournir une vue d'ensemble du projet **Watteco Easy Codec**. Bien que ce projet soit hébergé sur un dépôt GitHub, il ne vise pas actuellement à accueillir des contributions externes.
-
+This README aims to provide an overview of the **Watteco Easy Codec** project. While this project is hosted on GitHub, it is not currently open to external contributions.
