@@ -20,7 +20,6 @@
 <p align="center">
     <img alt="Browser Support badge" title="Works in all modern browsers" src="https://img.shields.io/badge/browser-modern-brightgreen?style=for-the-badge&logo=googlechrome&logoColor=white"/>
     <img alt="Platforms badge" title="Available on Web, Android, and iOS" src="https://img.shields.io/badge/platforms-Web%20|%20Android%20|%20iOS-orange?style=for-the-badge&logo=ionic"/>
-    <img alt="Version badge" title="Version 1.0.0" src="https://img.shields.io/badge/version-1.0.0-blue?style=for-the-badge"/>
 </p>
 
 
