@@ -23,7 +23,20 @@
     <img alt="Platforms badge" title="Available on Web, Android, and iOS" src="https://img.shields.io/badge/platforms-Web%20|%20Android%20|%20iOS-orange?style=for-the-badge&logo=ionic"/>
 </p>
 
-**Watteco Easy Codec** (working title) is an intuitive application designed to simplify the configuration and usage of Watteco IoT sensors. The main objective of this project is to offer a lightweight and user-friendly alternative to the existing online codec, focusing on essential features while modernizing the user interface.
+**Watteco Easy Codec** (working title) is an intuitive application designed to simplify the configuration and usage of Watteco IoT sensors. The main objective of this project is to offer a lightweight and user-friendly alternative to the existing online codec, focusing on essential features while modernizing the user interface.  
+  
+## Table of Contents
+
+- [Project Goals](#project-goals)
+- [Current Features](#current-features)
+  - [Web Version](#web-version)
+- [Technical Stack](#technical-stack)
+  - [Frameworks and Technologies](#frameworks-and-technologies)
+  - [File Organization](#file-organization)
+- [Current State](#current-state)
+  - [Development Version](#development-version)
+  - [Production Version](#production-version)
+- [Future Development](#future-development)
 
 ## Project Goals
 

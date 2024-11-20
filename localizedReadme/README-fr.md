@@ -24,7 +24,20 @@
 </p>
 
 
-**Watteco Easy Codec** (nom provisoire) est une application intuitive conçue pour simplifier la configuration et l'utilisation des capteurs IoT de Watteco. L'objectif principal de ce projet est de proposer une alternative allégée et user-friendly au codec en ligne existant, en se concentrant sur les fonctionnalités essentielles, tout en modernisant l'interface utilisateur.
+**Watteco Easy Codec** (nom provisoire) est une application intuitive conçue pour simplifier la configuration et l'utilisation des capteurs IoT de Watteco. L'objectif principal de ce projet est de proposer une alternative allégée et user-friendly au codec en ligne existant, en se concentrant sur les fonctionnalités essentielles, tout en modernisant l'interface utilisateur.  
+  
+## Table of Contents
+
+- [Objectifs du Projet](#objectifs-du-projet)
+- [Fonctionnalités Actuelles](#fonctionnalités-actuelles)
+  - [Version Web](#version-web)
+- [Stack Technique](#stack-technique)
+  - [Frameworks et Technologies](#frameworks-et-technologies)
+  - [Organisation des Fichiers](#organisation-des-fichiers)
+- [État Actuel](#état-actuel)
+  - [Version Développement](#version-développement)
+  - [Version Production](#version-production)
+- [Développement Futur](#développement-futur)
 
 ## Objectifs du Projet
 
