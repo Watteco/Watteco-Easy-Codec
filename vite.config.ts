@@ -11,12 +11,19 @@ export default defineConfig({
     vue(),
     legacy()
   ],
+  css: {
+    preprocessorOptions: {
+      css: {
+        additionalData: `@import "@/theme/variables.css";`,
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
-  base: process.env.VITE_BASE_URL || '/',
+  base: '/EasyCodec/',
   test: {
     globals: true,
     environment: 'jsdom'

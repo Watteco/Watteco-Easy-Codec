@@ -1,18 +1,24 @@
 <template>
   <ion-page>
+
     <ion-content :fullscreen="true">
       <div class="card-holder">
+      <ion-card v-show="false">
+        <ion-range></ion-range>
+        <ion-chip></ion-chip>
+        <ion-toggle></ion-toggle>
+      </ion-card>
         
         <!-- Sensor selection -->
         <ion-card id="sensor-card">
           <ion-card-content class="sensor-select">
             <ion-select
-              class="always-flip"
-              interface="popover"
-              label="Capteur"
-              placeholder="Sélectionner un capteur"
-              @ionChange="onSensorChange"
-            >
+                class="always-flip"
+                interface="popover"
+                label="Capteur"
+                placeholder="Sélectionner un capteur"
+                @ionChange="onSensorChange"
+              >
               <!-- Loop through products from JSON file -->
               <ion-select-option v-for="(product, index) in availableProducts" 
                   :key="index" 
@@ -64,6 +70,7 @@
                     @update:value="onParamChange($event, 'batch_params', groupName, paramName)"
                     @update:units="onToggleChange($event, 'batch_params', groupName, paramName)"
                   />
+
                 </ion-item>
               </ion-card>
             </ul>
@@ -162,6 +169,28 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { 
+  IonTabBar, 
+  IonTabButton, 
+  IonTabs, 
+  IonIcon, 
+  IonPage, 
+  IonRouterOutlet,
+  IonHeader, 
+  IonToolbar, 
+  IonTitle, 
+  IonRange,
+  IonToggle,
+  IonChip,
+  IonContent, 
+  IonSelect, 
+  IonSelectOption, 
+  IonCard, 
+  IonCardContent, 
+  IonLabel, 
+  IonCheckbox, 
+  IonItem 
+} from '@ionic/vue';
 import TimeSlider from '@/components/TimeSlider.vue';
 import DoubleSlider from '@/components/DoubleSlider.vue';
 import axios from 'axios';

@@ -4,7 +4,16 @@
       <ion-router-outlet></ion-router-outlet>
       <ion-header>
         <ion-toolbar>
-          <ion-title size="large">Watteco Easy Codec</ion-title>
+          <ion-img 
+            id="watteco-logo" 
+            :src="logoSrc" 
+            style="width: 150px; height: auto; position: absolute; top: 15px; left: 15px;">
+          </ion-img>
+          <ion-title 
+            size="large" 
+            style="position: relative; left: 150px;">
+              Watteco Easy Codec
+          </ion-title>
         </ion-toolbar>
       </ion-header>
       <ion-tab-bar slot="bottom">
@@ -25,8 +34,45 @@
 </template>
 
 <script setup lang="ts">
-import { IonTabBar, IonTabButton, IonTabs, IonIcon, IonPage, IonRouterOutlet } from '@ionic/vue';
+import { ref, onMounted } from 'vue';
+import { 
+  IonTabBar, 
+  IonTabButton, 
+  IonTabs, 
+  IonIcon, 
+  IonPage, 
+  IonRouterOutlet,
+  IonHeader, 
+  IonToolbar, 
+  IonTitle, 
+  IonImg, 
+  IonContent, 
+  IonSelect, 
+  IonSelectOption, 
+  IonCard, 
+  IonCardContent, 
+  IonLabel, 
+  IonCheckbox, 
+  IonItem 
+} from '@ionic/vue';
 import { arrowDownCircleOutline, arrowUpCircleOutline, batteryHalfOutline } from 'ionicons/icons';
+
+// Define a reactive variable for the logo's src
+const logoSrc = ref('');
+
+onMounted(() => {
+  loadImage();
+});
+
+const loadImage = async () => {
+  try {
+    // Dynamically load the image URL based on your environment setup
+    logoSrc.value = `${import.meta.env.BASE_URL}img/LOGO-WATTECO_v2021_wbg_ctr.png`;
+    console.log("Image loaded:", logoSrc.value);
+  } catch (error) {
+    console.error("Erreur lors du chargement de l'image :", error);
+  }
+};
 </script>
 
 <style>
