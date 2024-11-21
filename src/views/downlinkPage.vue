@@ -71,6 +71,30 @@
                     @update:units="onToggleChange($event, 'batch_params', groupName, paramName)"
                   />
 
+                  <!-- Using the DoubleSlider component -->
+                  <double-slider
+                    v-if="param.HMI?.visual_type === 'doubleSlider'"
+                    :label="param.HMI?.label_long"
+                    :unit="param.HMI?.unit"
+                    :min="param.min_value"
+                    :max="param.max_value"
+                    :value="{ lower: param.selectedValue.split(' ')[0], upper: param.selectedValue.split(' ')[1] }"
+                    :step="calculateSteps(param.min_value, param.max_value)"
+                    :groupName="groupName"
+                    :paramName="paramName"
+                    @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
+                  />
+
+                  <!-- Using the CheckBox component -->
+                  <check-box
+                    v-if="param.HMI?.visual_type === 'checkbox'"
+                    :label="param.HMI?.label_long"
+                    :value="param.selectedValue"
+                    :groupName="groupName"
+                    :paramName="paramName"
+                    @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
+                  />
+
                 </ion-item>
               </ion-card>
             </ul>
@@ -492,6 +516,11 @@ const calculateSteps = (min: number, max: number) => {
 
 #sensor-card {
   width: 70%;
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  box-shadow: 0px 8px 20px 0px white;
 }
 
 #config-card {
