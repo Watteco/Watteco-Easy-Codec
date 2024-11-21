@@ -297,7 +297,7 @@
 		{
 			"name": "Vaqa'O + Lite (50-70-251)",
 			"file": "50-70-251-VAQAO+Lt",
-			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
+			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"BatchUncompressParams": "3 0,1,4,OCC 1,10,7,T 2,100,6,H 3,10,6,CO2 5,10,6,LUX ",
 			"category": "Environnemental sensors",
 			"comment": ["Temperature, Hygrometry, CO2, luminosity and occupancy measurement + break-in detection", 

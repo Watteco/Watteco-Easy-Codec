@@ -150,6 +150,16 @@
                     @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
                   />
 
+                  <!-- Using the CheckBox component -->
+                  <check-box
+                    v-if="param.HMI?.visual_type === 'checkbox'"
+                    :label="param.HMI?.label_long"
+                    :value="param.selectedValue"
+                    :groupName="groupName"
+                    :paramName="paramName"
+                    @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
+                  />
+
                 </ion-item>
               </ion-card>
             </ul>
@@ -193,6 +203,7 @@ import {
 } from '@ionic/vue';
 import TimeSlider from '@/components/TimeSlider.vue';
 import DoubleSlider from '@/components/DoubleSlider.vue';
+import CheckBox from '@/components/CheckBox.vue';
 import axios from 'axios';
 
 // Reactive variables
@@ -359,6 +370,8 @@ const convertToHexFrameValue = (value: string, param: {
       output = (parseInt(value) + 32768).toString(16).padStart(4, '0');
     } else if (param.type == "int32") {
       output = parseInt(value).toString(16).padStart(4, '0');
+    } else if (param.type == "bool") {
+      output = (value == "true")?"01":"00"
     } else {
       output = `-Error: ${value} is ${param.type}, not supported-`;
     }
@@ -403,13 +416,13 @@ const onParamGroupCheckedChange = (event: CustomEvent, groupName: string | numbe
 };
 
 // Function to manage parameter change
-const onParamChange = (event: { newValue: number; detail: { value: { lower: number; upper: number; }; }; }, bigGroupName: string, groupName: string | number, paramName: string | number) => {
+const onParamChange = (event: { newValue: number | boolean; detail: { value: { lower: number; upper: number; }; }; }, bigGroupName: string, groupName: string | number, paramName: string | number) => {
   // Check if groupName exists in sensorConfig
   if (sensorConfig.value[bigGroupName][groupName]) {
     // Check if the paramName exists within the group
     if (sensorConfig.value[bigGroupName][groupName].fields[paramName]) {
       let newVal = "0";
-      if (event.newValue) {
+      if (event.newValue || event.newValue === false) {
         newVal = event.newValue.toString();
       } else if (event.detail.value) {
         newVal = `${event.detail.value.lower} ${event.detail.value.upper}`;
