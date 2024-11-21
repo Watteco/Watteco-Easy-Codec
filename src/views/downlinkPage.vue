@@ -317,40 +317,53 @@ const initParams = () => {
 // Function to update the output area with the frames
 const updateOutput = () => {
   let outputFrameTxt = "";
-
+  
   outputData.general_params = true;
   outputData.confirmed = true;
   outputVals.confirmed = "00";
-  sensorConfig.value.confirmed.params.confirmed.enabled = true
+  sensorConfig.value.confirmed.params.confirmed.enabled = true;
   paramGroupList.confirmed = sensorConfig.value.confirmed.params.confirmed;
-
-
-  Object.keys(sensorConfig.value).forEach(bigGroupName => {
+  
+  Object.keys(sensorConfig.value).forEach((bigGroupName) => {
+    const cfgBlocks = sensorConfig.value[bigGroupName]?.cfg_block || [];
     
-    // Loop through each configuration block within the bigGroupName
-    Object.keys(sensorConfig.value[bigGroupName].cfg_block).forEach(key => {
-
-      // Get the current config block
-      let thisFrame = sensorConfig.value[bigGroupName].cfg_block[key] + "<br>";
-
-      // Replace the placeholders with actual values from outputVals
-      Object.keys(outputVals).forEach(valKey => {
-        const enabled = paramGroupList[valKey]?.enabled
-        if ((outputVals[valKey]).toString().includes(" ")) {
-          thisFrame = replaceInFrame(thisFrame, valKey + '1', outputVals[valKey].toString().split(" ")[0], enabled);
-          thisFrame = replaceInFrame(thisFrame, valKey + '2', outputVals[valKey].toString().split(" ")[1], enabled);
+    cfgBlocks.forEach((cfgEntry) => {
+      let frame = "";
+      let tooltip = "";
+      
+      // Check if the cfgEntry is an array [frame, tooltip]
+      if (Array.isArray(cfgEntry) && cfgEntry.length === 2) {
+        frame = cfgEntry[0];
+        tooltip = cfgEntry[1];
+      } else if (typeof cfgEntry === "string") {
+        frame = cfgEntry; // Fallback to string if no tooltip provided
+      } else {
+        console.warn("Unexpected cfg_block entry format:", cfgEntry);
+        return; // Skip invalid entries
+      }
+      
+      // Replace placeholders with actual values from outputVals
+      Object.keys(outputVals).forEach((valKey) => {
+        const enabled = paramGroupList[valKey]?.enabled;
+        if (outputVals[valKey]?.toString().includes(" ")) {
+          frame = replaceInFrame(frame, `${valKey}1`, outputVals[valKey].toString().split(" ")[0], enabled);
+          frame = replaceInFrame(frame, `${valKey}2`, outputVals[valKey].toString().split(" ")[1], enabled);
         } else {
-          thisFrame = replaceInFrame(thisFrame, valKey, outputVals[valKey], enabled);
+          frame = replaceInFrame(frame, valKey, outputVals[valKey], enabled);
         }
       });
-      if (outputData[bigGroupName]) {
-        outputFrameTxt = outputFrameTxt + thisFrame;
+      
+      // Add only non-empty frames to the output
+      if (frame.trim()) {
+        outputFrameTxt += `<span title="${tooltip || "No tooltip provided"}">${frame}</span><br>`;
       }
     });
   });
+  
   if (!batchChecked.value && !standardChecked.value) {
     outputFrameTxt = "Veuillez sélectionner au moins un mode";
   }
+  
   document.getElementById("outputArea").innerHTML = outputFrameTxt;
 }
 
