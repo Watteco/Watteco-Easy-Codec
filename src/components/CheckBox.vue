@@ -2,15 +2,16 @@
   <ion-label>{{ label }}</ion-label>
   <ion-toggle v-show="false"></ion-toggle>
 
+<div class="separator"></div>
+
   <!-- Checkbox -->
   <ion-checkbox
     label-placement="fixed"
+    alignment="center"
     :value="value"
     color="primary"
     @ionChange="onCheckChange"
-  > </ion-checkbox>
-
-  <div class="separator"></div>
+  > </ion-checkbox>
 <!-- Display unit based on toggle state -->
 <ion-chip v-if="enabled">On</ion-chip>
 <ion-chip v-if="!enabled">Off</ion-chip>
