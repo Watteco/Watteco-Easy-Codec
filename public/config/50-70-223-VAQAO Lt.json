@@ -110,7 +110,7 @@
         ]
     },
     "standard_params": {
-        "label": "Seuil",
+        "label": "Notification",
         "standard_T_params": {
             "label": "Température",
             "fields": {
@@ -136,14 +136,14 @@
                         "visual_type": "timeSlider"
                     }
                 },
-                "tSeuil": {
-                    "description": "Seuil",
+                "tNotification": {
+                    "description": "Notification",
                     "type": "int32",
                     "default_value": "15 30",
                     "min_value": "0",
                     "max_value": "55",
                     "HMI": {
-                        "label_long": "Seuils",
+                        "label_long": "Notifications",
                         "visual_type": "doubleSlider",
                         "unit": "°C",
                         "multiplier": "100"
@@ -176,14 +176,14 @@
                         "visual_type": "timeSlider"
                     }
                 },
-                "hSeuil": {
-                    "description": "Seuil",
+                "hNotification": {
+                    "description": "Notification",
                     "type": "int32",
                     "default_value": "25 75",
                     "min_value": "0",
                     "max_value": "100",
                     "HMI": {
-                        "label_long": "Seuils",
+                        "label_long": "Notifications",
                         "visual_type": "doubleSlider",
                         "unit": "%",
                         "multiplier": "100"
@@ -216,14 +216,14 @@
                         "visual_type": "timeSlider"
                     }
                 },
-                "cSeuil": {
-                    "description": "Seuil",
+                "cNotification": {
+                    "description": "Notification",
                     "type": "int32",
                     "default_value": "450 1000",
                     "min_value": "0",
                     "max_value": "5000",
                     "HMI": {
-                        "label_long": "Seuils",
+                        "label_long": "Notifications",
                         "visual_type": "doubleSlider",
                         "unit": "ppm"
                     }
@@ -255,14 +255,14 @@
                         "visual_type": "timeSlider"
                     }
                 },
-                "bSeuil": {
-                    "description": "Seuil",
+                "bNotification": {
+                    "description": "Notification",
                     "type": "int32",
                     "default_value": "3000 3600",
                     "min_value": "2000",
                     "max_value": "3700",
                     "HMI": {
-                        "label_long": "Seuils",
+                        "label_long": "Notifications",
                         "visual_type": "doubleSlider",
                         "unit": "mV"
                     }
@@ -270,10 +270,10 @@
             }
         },
         "cfg_block": [
-            ["11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tSeuil1) 0000 0171 (tSeuil2) 0000 01", "Configure les seuils de température"],
-            ["11 06 0405 80 0000 29 (hStandEchant) (hStandEmission) 70 (hSeuil1) 0000 0171 (hSeuil2) 0000 01", "Configure les seuils d'humidité"],
-            ["31 06 800c 80 0000 21 (cStandEchant) (cStandEmission) 70 (cSeuil1) 0000 0171 (cSeuil2) 0000 01","Configure les seuils de CO2"],
-            ["11 06 0050 80 0006 41 (bStandEchant) (bStandEmission) 0e 70 04 (bSeuil1) 0000 0171 04 (bSeuil2) 0000 01", "Configure les seuils de batterie"]
+            ["11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tNotification1) 0000 0171 (tNotification2) 0000 01", "Configure les notifications de température"],
+            ["11 06 0405 80 0000 29 (hStandEchant) (hStandEmission) 70 (hNotification1) 0000 0171 (hNotification2) 0000 01", "Configure les notifications d'humidité"],
+            ["31 06 800c 80 0000 21 (cStandEchant) (cStandEmission) 70 (cNotification1) 0000 0171 (cNotification2) 0000 01","Configure les notifications de CO2"],
+            ["11 06 0050 80 0006 41 (bStandEchant) (bStandEmission) 0e 70 04 (bNotification1) 0000 0171 04 (bNotification2) 0000 01", "Configure les notifications de batterie"]
         ]
     }
 }

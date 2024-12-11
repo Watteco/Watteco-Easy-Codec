@@ -232,7 +232,7 @@
 		{
 			"name": "[Deprecated] T (50-70-[085/167])",
 			"file": "50-70-085-T",
-			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
+			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
 			"BatchUncompressParams": "2 0,10,7,Temperature  2,1,6,BatteryLevel 3,1,1,OpenCase",
 			"category": "TH sensors",
 			"comment": ["Indoor temperature measurement", "Mesure de température intérieure"]
@@ -250,7 +250,7 @@
 		{
 			"name": "[Deprecated] TH (50-70-[053/162])",
 			"file": "50-70-053-TH",
-			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
+			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
 			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel 3,1,1,OpenCase",
 			"category": "TH sensors",
 			"comment": ["Temperature, hygrometry measurement + break in alarm",
