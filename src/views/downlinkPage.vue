@@ -355,7 +355,7 @@ const updateOutput = () => {
       
       // Add only non-empty frames to the output
       if (frame.trim()) {
-        outputFrameTxt += `<span title="${tooltip || "No tooltip provided"}">${frame}</span><br>`;
+        outputFrameTxt += `<span title="${tooltip || ""}">${frame}</span><br>`;
       }
     });
   });
@@ -459,7 +459,7 @@ const onParamChange = (event: { newValue: number | boolean; detail: { value: { l
     // Check if the paramName exists within the group
     if (sensorConfig.value[bigGroupName][groupName].fields[paramName]) {
       let newVal = "0";
-      if (event.newValue || event.newValue === false) {
+      if (event.newValue || event.newValue === false|| event.newValue === 0) {
         newVal = event.newValue.toString();
       } else if (event.detail.value) {
         newVal = `${event.detail.value.lower} ${event.detail.value.upper}`;
@@ -548,7 +548,7 @@ ion-card {
 }
 
 ion-card-content {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
 }
 
 ion-select.always-flip::part(icon) {

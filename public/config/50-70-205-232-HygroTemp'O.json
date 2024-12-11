@@ -29,8 +29,8 @@
                 "tBatchEchant": {
                     "description": "Échantillonage",
                     "type": "timeInt32",
-                    "default_value": "30",
-                    "min_value": "0",
+                    "default_value": "10",
+                    "min_value": "1",
                     "max_value": "72",
                     "HMI": {
                         "label_long": "Période d'échantillonage",
@@ -46,7 +46,7 @@
                     "description": "Échantillonage",
                     "type": "timeInt32",
                     "default_value": "30",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "72",
                     "HMI": {
                         "label_long": "Période d'échantillonage",
@@ -89,7 +89,7 @@
         "cfg_block": [
             ["11 06 04 02 15 00 00 00 (tBatchEchant) (gBatchEmission) 00 00 00 0A 02", "Configure l'historisation de la température"],
             ["11 06 04 05 15 00 00 00 (hBatchEchant) (gBatchEmission) 00 00 00 64 0a", "Configure l'historisation de l'humidité"],
-            ["11 06 00 50 15 00 06 04 (bBatchEchant) (gBatchEmission) 00 00 00 01 12", "Configure l'historisation de la batterie"]
+            ["11 06 00 50 15 00 06 04 (bBatchEchant) 85 A0 00 00 00 01 12", "Configure l'historisation de la batterie"]
         ]
     },
     "standard_params": {

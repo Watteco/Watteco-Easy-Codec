@@ -30,7 +30,7 @@
                     "description": "Échantillonage",
                     "type": "timeInt32",
                     "default_value": "30",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "72",
                     "HMI": {
                         "label_long": "Période d'échantillonage",
@@ -46,7 +46,7 @@
                     "description": "Échantillonage",
                     "type": "timeInt32",
                     "default_value": "30",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "72",
                     "HMI": {
                         "label_long": "Période d'échantillonage",
@@ -62,7 +62,7 @@
                     "description": "Échantillonage",
                     "type": "timeInt32",
                     "default_value": "30",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "72",
                     "HMI": {
                         "label_long": "Période d'échantillonage",
