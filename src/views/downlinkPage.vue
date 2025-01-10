@@ -230,7 +230,9 @@ import {
   IonCardContent, 
   IonLabel, 
   IonCheckbox, 
-  IonItem 
+  IonItem,
+  IonSegment,
+  IonSegmentButton
 } from '@ionic/vue';
 import TimeSlider from '@/components/TimeSlider.vue';
 import DoubleSlider from '@/components/DoubleSlider.vue';
