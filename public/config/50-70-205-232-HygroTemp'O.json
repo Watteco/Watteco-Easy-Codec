@@ -40,7 +40,7 @@
             }
         },
         "batch_B_params": {
-            "label": "Batterie",
+            "label": "Batterie [période d'émission fixé à 24h]",
             "fields": {
                 "bBatchEchant": {
                     "description": "Échantillonage",
@@ -111,7 +111,7 @@
                     "min_value": "0",
                     "max_value": "55",
                     "HMI": {
-                        "label_long": "Notifications",
+                        "label_long": "Seuils",
                         "visual_type": "doubleSlider",
                         "unit": "°C",
                         "multiplier": "100"
@@ -151,7 +151,7 @@
                     "min_value": "0",
                     "max_value": "100",
                     "HMI": {
-                        "label_long": "Notifications",
+                        "label_long": "Seuils",
                         "visual_type": "doubleSlider",
                         "unit": "%",
                         "multiplier": "100"
@@ -191,7 +191,7 @@
                     "min_value": "2000",
                     "max_value": "3700",
                     "HMI": {
-                        "label_long": "Notifications",
+                        "label_long": "seuils",
                         "visual_type": "doubleSlider",
                         "unit": "mV"
                     }
@@ -199,9 +199,9 @@
             }
         },
         "cfg_block": [
-            ["11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tNotification1) 0000 0171 (tNotification2) 0000 01", "Configure les notifications de température"],
-            ["11 06 0405 80 0000 29 (hStandEchant) (hStandEmission) 70 (hNotification1) 0000 0171 (hNotification2) 0000 01", "Configure les notifications d'humidité"],
-            ["11 06 0050 80 0006 41 (bStandEchant) (bStandEmission) 0e 70 04 (bNotification1) 0000 0171 04 (bNotification2) 0000 01", "Configure les notifications de batterie"]
+            ["11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tNotification1) 0000 0171 (tNotification2) 0000 01", "Configure les seuils de température"],
+            ["11 06 0405 80 0000 29 (hStandEchant) (hStandEmission) 70 (hNotification1) 0000 0171 (hNotification2) 0000 01", "Configure les seuils d'humidité"],
+            ["11 06 0050 80 0006 41 (bStandEchant) (bStandEmission) 0e 70 04 (bNotification1) 0000 0171 04 (bNotification2) 0000 01", "Configure les seuils de batterie"]
         ]
     }
 }

@@ -23,13 +23,29 @@
     },
     "batch_params": {
         "label": "Historisation",
-        "batch_T_params": {
-            "label": "Température",
+        "batch_THI_params": {
+            "label": "Température + Humidité + Illuminance",
             "fields": {
-                "tBatchEchant": {
+                "thiBatchEchant": {
                     "description": "Échantillonage",
                     "type": "timeInt32",
-                    "default_value": "10",
+                    "default_value": "30",
+                    "min_value": "1",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'échantillonage",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "batch_O_params": {
+            "label": "Occupancy",
+            "fields": {
+                "oBatchEchant": {
+                    "description": "Échantillonage",
+                    "type": "timeInt32",
+                    "default_value": "30",
                     "min_value": "1",
                     "max_value": "72",
                     "HMI": {
@@ -46,7 +62,6 @@
                     "description": "Échantillonage",
                     "type": "timeInt32",
                     "default_value": "24",
-                    "default_unit": "1",
                     "min_value": "1",
                     "max_value": "72",
                     "HMI": {
@@ -72,7 +87,10 @@
             }
         },
         "cfg_block": [
-            ["11 06 04 02 15 00 00 00 (tBatchEchant) (gBatchEmission) 00 00 00 0A 02", "Configure l'historisation de la température"],
+            ["11 06 0402 15 00 00 00 (thiBatchEchant) (gBatchEmission) 00 00 00 0a 02", "Configure l'historisation de la température"],
+            ["11 06 0405 15 00 00 00 (thiBatchEchant) (gBatchEmission) 00 00 00 64 0a", "Configure l'historisation de l'humidité"],
+            ["11 06 0400 15 00 00 00 (thiBatchEchant) (gBatchEmission) 0000 000a 2b","Configure l'historisation de la luminosité"],
+            ["11 06 0406 11 00 00 00 (oBatchEchant) (gBatchEmission) 0001 03","Configure l'historisation de l'occupation"],
             ["11 06 00 50 15 00 06 04 (bBatchEchant) 85a0 00 00 00 01 12", "Configure l'historisation de la batterie"]
         ]
     },
@@ -110,10 +128,114 @@
                     "min_value": "0",
                     "max_value": "55",
                     "HMI": {
-                        "label_long": "seuils",
+                        "label_long": "Seuils",
                         "visual_type": "doubleSlider",
                         "unit": "°C",
                         "multiplier": "100"
+                    }
+                }
+            }
+        },
+        "standard_H_params": {
+            "label": "Humidité",
+            "fields": {
+                "hStandEchant": {
+                    "description": "Échantillonage",
+                    "type": "timeInt32",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'échantillonage",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "hStandEmission": {
+                    "description": "Émission max",
+                    "type": "timeInt32",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'émission maximale",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "hNotification": {
+                    "description": "Notification",
+                    "type": "int32",
+                    "default_value": "25 75",
+                    "min_value": "0",
+                    "max_value": "100",
+                    "HMI": {
+                        "label_long": "Seuils",
+                        "visual_type": "doubleSlider",
+                        "unit": "%",
+                        "multiplier": "100"
+                    }
+                }
+            }
+        },
+        "standard_I_params": {
+            "label": "Illuminance",
+            "fields": {
+                "iStandEchant": {
+                    "description": "Échantillonage",
+                    "type": "timeInt32",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'échantillonage",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "iStandEmission": {
+                    "description": "Émission max",
+                    "type": "timeInt32",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'émission maximale",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "iNotification": {
+                    "description": "Notification",
+                    "type": "int32",
+                    "default_value": "100 2000",
+                    "min_value": "0",
+                    "max_value": "60000",
+                    "HMI": {
+                        "label_long": "Seuils",
+                        "visual_type": "doubleSlider",
+                        "unit": "lx"
+                    }
+                }
+            }
+        },
+        "standard_O_params": {
+            "label": "Occupancy",
+            "fields": {
+                "oStandEmission": {
+                    "description": "Émission max",
+                    "type": "timeInt32",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "72",
+                    "HMI": {
+                        "label_long": "Période d'émission maximale",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "oStateVariation": {
+                    "description": "Variation d'état",
+                    "type": "bool",
+                    "default_value": "false",
+                    "HMI": {
+                        "label_long": "Report sur variation d'état",
+                        "visual_type": "checkbox"
                     }
                 }
             }
@@ -150,7 +272,7 @@
                     "min_value": "2000",
                     "max_value": "3700",
                     "HMI": {
-                        "label_long": "seuils",
+                        "label_long": "Seuils",
                         "visual_type": "doubleSlider",
                         "unit": "mV"
                     }
@@ -159,6 +281,9 @@
         },
         "cfg_block": [
             ["11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tNotification1) 0000 0171 (tNotification2) 0000 01", "Configure les seuils de température"],
+            ["11 06 0405 80 0000 29 (hStandEchant) (hStandEmission) 70 (hNotification1) 0000 0171 (hNotification2) 0000 01", "Configure les seuils d'humidité"],
+            ["11 06 0400 80 0000 21 (iStandEchant) (iStandEmission) 70 (iNotification1) 0000 0171 (iNotification2) 0000 01","Configure les seuils de luminosité"],
+            ["11 06 0406 00 0000 18 0000 (oStandEmission) (oStateVariation)","Configure les notifications d'occupation"],
             ["11 06 0050 80 0006 41 (bStandEchant) (bStandEmission) 0e 70 04 (bNotification1) 0000 0171 04 (bNotification2) 0000 01", "Configure les seuils de batterie"]
         ]
     }

@@ -230,18 +230,19 @@ import DoubleSlider from '@/components/DoubleSlider.vue';
 import CheckBox from '@/components/CheckBox.vue';
 import axios from 'axios';
 
-// Reactive variables
-const availableProducts = ref([]); // For storing the list of products
-const selectedSensor = ref('');
-const sensorConfig = ref<any | null>(null); // Dynamic sensor data
-const batchChecked = ref(false);
-const standardChecked = ref(false);
-const paramGroupChecked = ref<Record<string, boolean>>({}); // Checkboxes states (Temperature, Humidity, Battery)
-const outputData: never[] = [];
-const outputVals: never[] = [];
-const paramGroupList: never[] = [];
-const currentErrors: never[] = [];
+// Reactive variables to store application state
+const availableProducts = ref([]); // Stores the list of available products
+const selectedSensor = ref(''); // Stores the currently selected sensor
+const sensorConfig = ref<any | null>(null); // Dynamic configuration for the selected sensor
+const batchChecked = ref(false); // State of the batch mode checkbox
+const standardChecked = ref(false); // State of the standard mode checkbox
+const paramGroupChecked = ref<Record<string, boolean>>({}); // Tracks the state of group checkboxes
+const outputData: never[] = []; // Output data for rendering
+const outputVals: never[] = []; // Output values derived from parameters
+const paramGroupList: never[] = []; // List of parameter groups
+const currentErrors: never[] = []; // Tracks current errors
 
+// Load available products from a remote JSON file
 const loadAvailableProducts = async () => {
   try {
     const response = await axios.get(`${import.meta.env.BASE_URL}config/AvailableProductList.json`);
@@ -254,13 +255,14 @@ const loadAvailableProducts = async () => {
   }
 };
 
-// Function to generate sensor change
+// Triggered when a new sensor is selected
 const onSensorChange = (event: CustomEvent) => {
   const selected = event.detail.value;
-  resetCheckboxes(); // Reset all checkboxes on sensor change
-  loadSensorConfig(selected); // Load sensor config based on the selected sensor
+  resetCheckboxes(); // Reset all checkbox states
+  loadSensorConfig(selected); // Load configuration for the selected sensor
 };
 
+// Reset all checkboxes to their default states
 const resetCheckboxes = () => {
   batchChecked.value = false;
   standardChecked.value = false;
@@ -272,38 +274,36 @@ const resetCheckboxes = () => {
     paramGroupList[data] = false;
   });
   
-  // Reset all checkboxes in paramGroupChecked
   for (const group in paramGroupChecked.value) {
     paramGroupChecked.value[group] = false;
   }
 };
 
-// Function to load selected sensors JSON
+// Load configuration for a specific sensor
 const loadSensorConfig = (sensorFile: string) => {
   axios.get(`${import.meta.env.BASE_URL}config/${sensorFile}.json`)
     .then((response) => {
-      sensorConfig.value = response.data;
-      initParams();
+      sensorConfig.value = response.data; // Store sensor configuration
+      initParams(); // Initialize default parameter values
     })
     .catch((err) => {
       console.error("Failed to load sensor config:", err);
     });
 };
 
-
-// Initialisation of default values for each parameter
+// Initialize default values for sensor parameters
 const initParams = () => {
   if (sensorConfig.value) {
     for (const section of [sensorConfig.value.batch_params, sensorConfig.value.standard_params]) {
       for (const groupName in section) {
         if (section[groupName] && (section[groupName].label || groupName === "global_params")) {
-          paramGroupChecked.value[groupName] = false; // Initialisation of group checkboxes
+          paramGroupChecked.value[groupName] = false;
           outputVals[groupName] = [section[groupName].fields];
           for (const paramName in section[groupName].fields) {
             const param = section[groupName].fields[paramName];
             if (param && param.HMI) {
               param.selectedValue = param.default_value;
-              param.isHours = false; // Add isHours state for each parameter
+              param.isHours = false; // Default time state
               outputVals[paramName] = convertToHexFrameValue(param.selectedValue, param);
             }
           }
@@ -311,10 +311,10 @@ const initParams = () => {
       }
     }
   }
-  updateOutput();
+  updateOutput(); // Refresh the output display
 };
 
-// Function to update the output area with the frames
+// Update the output display with the generated frames
 const updateOutput = () => {
   let outputFrameTxt = "";
   
@@ -331,18 +331,16 @@ const updateOutput = () => {
       let frame = "";
       let tooltip = "";
       
-      // Check if the cfgEntry is an array [frame, tooltip]
       if (Array.isArray(cfgEntry) && cfgEntry.length === 2) {
         frame = cfgEntry[0];
         tooltip = cfgEntry[1];
       } else if (typeof cfgEntry === "string") {
-        frame = cfgEntry; // Fallback to string if no tooltip provided
+        frame = cfgEntry;
       } else {
         console.warn("Unexpected cfg_block entry format:", cfgEntry);
-        return; // Skip invalid entries
+        return;
       }
       
-      // Replace placeholders with actual values from outputVals
       Object.keys(outputVals).forEach((valKey) => {
         const enabled = paramGroupList[valKey]?.enabled;
         if (outputVals[valKey]?.toString().includes(" ")) {
@@ -353,7 +351,6 @@ const updateOutput = () => {
         }
       });
       
-      // Add only non-empty frames to the output
       if (frame.trim()) {
         outputFrameTxt += `<span title="${tooltip || ""}">${frame}</span><br>`;
       }
@@ -365,23 +362,23 @@ const updateOutput = () => {
   }
   
   document.getElementById("outputArea").innerHTML = outputFrameTxt;
-}
+};
 
-// Function to replace variable ID with corresponding value in a given frame
+// Replace placeholders in frame templates with actual values
 const replaceInFrame = (frame: string, key: string, value: string, enabled: string) => {
   if (value !== undefined && value !== null) {
     if (frame.includes(key)) {
       frame = frame.replace(RegExp(`\\(${key}\\)`, 'g'), `${value}`);
-    
+      
       if (!enabled) {
         frame = '';
       }
     }
   }
   return frame;
-}
+};
 
-// Function to convert decimal values to hex ready for the frame
+// Convert a parameter value to a hex format for frames
 const convertToHexFrameValue = (value: string, param: {
   HMI: any; type: string; isHours: boolean; 
 }) => {
@@ -389,16 +386,16 @@ const convertToHexFrameValue = (value: string, param: {
   let output = '';
 
   if (value.includes(" ")) {
-    output = ""
+    output = "";
     value.split(" ").forEach(function(item) {
       const val = parseInt(item);
       const out = convertToHexFrameValue(val.toString(), param);
-      output = `${output} ${out}`
+      output = `${output} ${out}`;
     });
     output = output.trim();
   } else {
     if (param.HMI.multiplier) {
-      value = (parseInt(value)*param.HMI.multiplier).toString()
+      value = (parseInt(value) * param.HMI.multiplier).toString();
     }
     if (param.type == "timeInt32") {
       if (param.isHours) {
@@ -408,17 +405,17 @@ const convertToHexFrameValue = (value: string, param: {
     } else if (param.type == "int32") {
       output = parseInt(value).toString(16).padStart(4, '0');
     } else if (param.type == "bool") {
-      output = (value == "true")?"01":"00"
+      output = (value == "true") ? "01" : "00";
     } else {
       output = `-Error: ${value} is ${param.type}, not supported-`;
     }
   }
-  return (output);
-}
+  return output;
+};
 
-// Function to manage category checkboxes
+// Update checkbox states and propagate changes to output
 const onCategoryCheckedChange = (event: CustomEvent, category: string) => {
-  if(sensorConfig.value[category].global_params) {
+  if (sensorConfig.value[category].global_params) {
     Object.keys(sensorConfig.value[category].global_params.fields).forEach(field => {
       sensorConfig.value[category].global_params.fields[field].enabled = event.detail.checked;
       paramGroupList[field] = sensorConfig.value[category].global_params.fields[field];
@@ -428,38 +425,35 @@ const onCategoryCheckedChange = (event: CustomEvent, category: string) => {
   updateOutput();
 };
 
-// Function to manage batch checkbox
+// Update batch mode state
 const onBatchCheckedChange = (event: CustomEvent) => {
   batchChecked.value = event.detail.checked;
   onCategoryCheckedChange(event, "batch_params");
 };
 
-// Function to manage standard checkbox
+// Update standard mode state
 const onStandardCheckedChange = (event: CustomEvent) => {
   standardChecked.value = event.detail.checked;
   onCategoryCheckedChange(event, "standard_params");
 };
 
-// Function to manage group checkboxes
+// Handle group checkbox changes
 const onParamGroupCheckedChange = (event: CustomEvent, groupName: string | number, bigGroupName: string) => {
   paramGroupChecked.value[groupName] = event.detail.checked;
   Object.keys(sensorConfig.value[bigGroupName][groupName].fields).forEach(field => {
     sensorConfig.value[bigGroupName][groupName].fields[field].enabled = event.detail.checked;
     paramGroupList[field] = sensorConfig.value[bigGroupName][groupName].fields[field];
   });
-  sensorConfig.value[bigGroupName][groupName].fields
   outputData[groupName] = event.detail.checked;
   updateOutput();
 };
 
-// Function to manage parameter change
+// Handle parameter value changes
 const onParamChange = (event: { newValue: number | boolean; detail: { value: { lower: number; upper: number; }; }; }, bigGroupName: string, groupName: string | number, paramName: string | number) => {
-  // Check if groupName exists in sensorConfig
   if (sensorConfig.value[bigGroupName][groupName]) {
-    // Check if the paramName exists within the group
     if (sensorConfig.value[bigGroupName][groupName].fields[paramName]) {
       let newVal = "0";
-      if (event.newValue || event.newValue === false|| event.newValue === 0) {
+      if (event.newValue || event.newValue === false || event.newValue === 0) {
         newVal = event.newValue.toString();
       } else if (event.detail.value) {
         newVal = `${event.detail.value.lower} ${event.detail.value.upper}`;
@@ -475,10 +469,10 @@ const onParamChange = (event: { newValue: number | boolean; detail: { value: { l
   updateOutput();
 };
 
-// Function to manage toggles
+// Handle toggle changes (e.g., hours vs. minutes)
 const onToggleChange = (event: { isHours: boolean; }, bigGroupName: string, groupName: string | number, paramName: string | number) => {
   if (sensorConfig.value[bigGroupName][groupName] && sensorConfig.value[bigGroupName][groupName].fields[paramName]) {
-    const param = sensorConfig.value[bigGroupName][groupName].fields[paramName]
+    const param = sensorConfig.value[bigGroupName][groupName].fields[paramName];
     param.isHours = event.isHours;
     outputVals[paramName] = convertToHexFrameValue(param.selectedValue, param);
   } else {
@@ -489,10 +483,10 @@ const onToggleChange = (event: { isHours: boolean; }, bigGroupName: string, grou
 
 // Load available products when the component is mounted
 onMounted(() => {
-  loadAvailableProducts(); // Load the products into availableProducts
+  loadAvailableProducts();
 });
 
-// Function to calculate slider steps
+// Calculate appropriate slider step sizes
 const calculateSteps = (min: number, max: number) => {
   const difference = max - min;
   if (difference < 100) {
@@ -505,7 +499,7 @@ const calculateSteps = (min: number, max: number) => {
     roundedStep = 20;
   }
   return roundedStep;
-}
+};
 </script>
 
 <style scoped>

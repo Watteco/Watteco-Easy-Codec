@@ -121,7 +121,7 @@
 		{
 			"name": "Move'O (50-70-225)",
 			"file": "50-70-225-Move'o",
-			"apps": ["LoraEncoder","Decoder","LoraEncoderConfiguration"],
+			"apps": ["LoraEncoder","Decoder","LoraEncoderConfiguration","EasyCodec"],
 			"BatchUncompressParams": "3 0,1,4,OCC 1,10,7,T 2,100,6,H 5,10,6,LUX",
 			"category": "Environnemental sensors",
 			"comment": ["Occupancy, Temperature, Hygrometry and Illuminance measurement + break-in detection",
