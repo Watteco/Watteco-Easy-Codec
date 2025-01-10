@@ -49,7 +49,7 @@ const onRangeChange = (event) => {
 }
 
 .separator {
-  flex: 1 1 0px;
+  flex: 0.3 1 0px;
   width: 100%;
   height: 100%;
 }

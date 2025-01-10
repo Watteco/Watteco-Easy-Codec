@@ -13,36 +13,28 @@
     @ionChange="onRangeChange"
   ></ion-range>
 
-  <!-- Toggle to switch between minutes and hours -->
-  <ion-toggle
-    label-placement="end"
-    @ionChange="onToggleChange"
-  ></ion-toggle>
+  <div class="separator"></div>
 
-  <!-- Display unit based on toggle state -->
-  <ion-chip v-if="!isHours">Minutes</ion-chip>
-  <ion-chip v-if="isHours">Heures</ion-chip>
+  <!-- Display value in hours and minutes -->
+  <ion-chip>{{ valueHours }}</ion-chip>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch, computed } from 'vue';
 
-// Props to pass values from parent component
+// Props
 const props = defineProps({
   label: String,
   min: Number,
   max: Number,
   value: Number,
   step: Number,
-  groupName: String,   // new prop for groupName
-  paramName: String    // new prop for paramName
+  groupName: String,
+  paramName: String,
 });
 
-// Local state to manage hours/minutes toggle
-const isHours = ref(false);
-
 // Emit changes back to parent component
-const emit = defineEmits(['update:value', 'update:units']);
+const emit = defineEmits(['update:value']);
 
 // Handle changes in the ion-range (slider)
 const onRangeChange = (event) => {
@@ -50,11 +42,21 @@ const onRangeChange = (event) => {
   emit('update:value', { newValue, groupName: props.groupName, paramName: props.paramName });
 };
 
-// Handle toggle switch change
-const onToggleChange = (event) => {
-  isHours.value = event.detail.checked;
-  emit('update:units', { isHours: isHours.value, groupName: props.groupName, paramName: props.paramName });
-};
+// Computed property to calculate time in "hours and minutes"
+const valueHours = computed(() => {
+  const days = Math.floor(props.value / 1440);
+  const hours = Math.floor((props.value % 1440) / 60);
+  const minutes = props.value % 60;
+
+  let result = '';
+  if (days > 0) result += `${days}d `;
+  if (hours > 0) result += `${hours}h`;
+  if (minutes > 0) {
+    result += `${hours > 0 && minutes < 10 ? '0' : ''}${minutes}${hours > 0 ? '' : 'm'}`;
+  }
+  
+  return result.trim();
+});
 </script>
 
 <style scoped>
@@ -63,6 +65,12 @@ const onToggleChange = (event) => {
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+}
+
+.separator {
+  flex: 0.3 1 0px;
+  width: 1%;
+  height: 100%;
 }
 
 ion-toggle {
