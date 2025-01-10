@@ -15,8 +15,8 @@
             <ion-select
                 class="always-flip"
                 interface="popover"
-                label="Capteur"
-                placeholder="Sélectionner un capteur"
+                :label="localize('@sensor')"
+                :placeholder="localize('@sensorSelect')"
                 @ionChange="onSensorChange"
               >
               <!-- Loop through products from JSON file -->
@@ -30,9 +30,9 @@
         </ion-card>
 
         <!-- Batch (batch_params) -->
-        <ion-card v-if="sensorConfig && sensorConfig.batch_params" class="category-card">
+        <ion-card v-if="sensorConfig && sensorConfig.batch_params" class="category-card" :key="`config-${currentLanguage}`">
           <ion-item class="config-item">
-            <ion-label>{{ sensorConfig.batch_params.label }}</ion-label>
+            <ion-label>{{ localize("@batchLabel") }}</ion-label>
             <ion-checkbox :checked="batchChecked" @ionChange="onBatchCheckedChange"></ion-checkbox>
           </ion-item>
 
@@ -64,7 +64,7 @@
                     :min="param.min_value"
                     :max="param.max_value"
                     :value="param.selectedValue"
-                    :step="calculateSteps(param.min_value, param.max_value)"
+                    :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
                     :groupName="groupName"
                     :paramName="paramName"
                     @update:value="onParamChange($event, 'batch_params', groupName, paramName)"
@@ -79,7 +79,7 @@
                     :min="param.min_value"
                     :max="param.max_value"
                     :value="{ lower: param.selectedValue.split(' ')[0], upper: param.selectedValue.split(' ')[1] }"
-                    :step="calculateSteps(param.min_value, param.max_value)"
+                    :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
                     :groupName="groupName"
                     :paramName="paramName"
                     @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
@@ -108,7 +108,7 @@
                 :min="param.min_value"
                 :max="param.max_value"
                 :value="param.selectedValue"
-                :step="calculateSteps(param.min_value, param.max_value)"
+                :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
                 @update:value="onParamChange($event, 'batch_params', 'global_params', paramName)"
                 @update:units="onToggleChange($event, 'batch_params', 'global_params', paramName)"
               />
@@ -118,9 +118,9 @@
         </ion-card>
 
         <!-- Standard (standard_params) -->
-        <ion-card v-if="sensorConfig && sensorConfig.standard_params" class="category-card">
+        <ion-card v-if="sensorConfig && sensorConfig.standard_params" class="category-card" :key="`config-${currentLanguage}`">
           <ion-item class="config-item">
-            <ion-label>{{ sensorConfig.standard_params.label }}</ion-label>
+            <ion-label>{{ localize("@standLabel") }}</ion-label>
             <ion-checkbox :checked="standardChecked" @ionChange="onStandardCheckedChange"></ion-checkbox>
           </ion-item>
 
@@ -153,7 +153,7 @@
                     :min="param.min_value"
                     :max="param.max_value"
                     :value="param.selectedValue"
-                    :step="calculateSteps(param.min_value, param.max_value)"
+                    :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
                     :groupName="groupName"
                     :paramName="paramName"
                     @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
@@ -168,7 +168,7 @@
                     :min="param.min_value"
                     :max="param.max_value"
                     :value="{ lower: param.selectedValue.split(' ')[0], upper: param.selectedValue.split(' ')[1] }"
-                    :step="calculateSteps(param.min_value, param.max_value)"
+                    :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
                     :groupName="groupName"
                     :paramName="paramName"
                     @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
@@ -198,11 +198,18 @@
         </ion-card>
       </div>
     </ion-content>
+  <div>
+    <!-- Language Switcher -->
+    <ion-segment @ionChange="changeLanguage($event.detail.value)">
+      <ion-segment-button value="en" :checked="currentLanguage === 'en'">English</ion-segment-button>
+      <ion-segment-button value="fr" :checked="currentLanguage === 'fr'">Français</ion-segment-button>
+    </ion-segment>
+  </div>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { 
   IonTabBar, 
   IonTabButton, 
@@ -230,6 +237,10 @@ import DoubleSlider from '@/components/DoubleSlider.vue';
 import CheckBox from '@/components/CheckBox.vue';
 import axios from 'axios';
 
+// Import language files
+import enUS from '@/localisation/en_US.json';
+import frFR from '@/localisation/fr_FR.json';
+
 // Reactive variables to store application state
 const availableProducts = ref([]); // Stores the list of available products
 const selectedSensor = ref(''); // Stores the currently selected sensor
@@ -241,6 +252,62 @@ const outputData: never[] = []; // Output data for rendering
 const outputVals: never[] = []; // Output values derived from parameters
 const paramGroupList: never[] = []; // List of parameter groups
 const currentErrors: never[] = []; // Tracks current errors
+const currentLanguage = ref('en'); // Reactive variable to store the current language
+
+// Language files map
+const languages = {
+  en: enUS,
+  fr: frFR,
+};
+
+// Computed property to get the current localization file
+const localization = computed(() => languages[currentLanguage.value]);
+
+import { currentLanguage } from './localization'; // Import the reactive language state
+
+// Function to change the language
+const changeLanguage = (language) => {
+  console.log(`Changing language to: ${language}`);
+  currentLanguage.value = language;
+  console.log(`Current language is now: ${currentLanguage.value}`);
+};
+
+const localize = (key: string): string => {
+  if (key.startsWith('@')) {
+    const localizedValue = localization.value[key.substring(1)];
+    if (localizedValue) {
+      return localizedValue;
+    } else {
+      console.warn(`Localization key not found: ${key}`);
+      return key; // Return the key itself if no match is found
+    }
+  }
+  return key; // Return as-is if not a localization key
+};
+
+const applyLocalization = (config: any): any => {
+  if (typeof config === 'string') {
+    return localize(config);
+  } else if (Array.isArray(config)) {
+    return config.map((item) => applyLocalization(item));
+  } else if (typeof config === 'object' && config !== null) {
+    const localizedConfig: any = {};
+    for (const key in config) {
+      localizedConfig[key] = applyLocalization(config[key]);
+    }
+    return localizedConfig;
+  }
+  return config;
+};
+
+watch(currentLanguage, (newLang, oldLang) => {
+  console.log(`Language changed from ${oldLang} to ${newLang}`);
+  console.log(selectedSensor, selectedSensor.value);
+  if (selectedSensor.value) { //ChatGPT: Why this line ? Nothing happens because it seems to never be true
+    updateOutput();
+    onSensorChange({ detail: { value: selectedSensor.value } });
+  }
+});
 
 // Load available products from a remote JSON file
 const loadAvailableProducts = async () => {
@@ -249,17 +316,19 @@ const loadAvailableProducts = async () => {
     availableProducts.value = response.data.products.filter(product => 
       product.apps && product.apps.includes("EasyCodec")
     );
-    document.getElementById("outputArea").innerHTML = "Sélectionnez un capteur pour commencer";
+    document.getElementById("outputArea").innerHTML = localize("@selectToStart");
   } catch (error) {
     console.error("Erreur lors du chargement de AvailableProductList:", error);
   }
 };
 
 // Triggered when a new sensor is selected
-const onSensorChange = (event: CustomEvent) => {
+const onSensorChange = (event) => {
   const selected = event.detail.value;
-  resetCheckboxes(); // Reset all checkbox states
-  loadSensorConfig(selected); // Load configuration for the selected sensor
+  selectedSensor.value = event.detail.value
+  console.log(`Sensor selected: ${selected}`);
+  resetCheckboxes();
+  loadSensorConfig(selected);
 };
 
 // Reset all checkboxes to their default states
@@ -280,15 +349,18 @@ const resetCheckboxes = () => {
 };
 
 // Load configuration for a specific sensor
-const loadSensorConfig = (sensorFile: string) => {
-  axios.get(`${import.meta.env.BASE_URL}config/${sensorFile}.json`)
-    .then((response) => {
-      sensorConfig.value = response.data; // Store sensor configuration
-      initParams(); // Initialize default parameter values
-    })
-    .catch((err) => {
-      console.error("Failed to load sensor config:", err);
-    });
+const loadSensorConfig = async (sensorFile: string) => {
+  try {
+    const response = await axios.get(`${import.meta.env.BASE_URL}config/${sensorFile}.json`);
+    const rawConfig = response.data;
+
+    // Apply localization to the configuration
+    sensorConfig.value = applyLocalization(rawConfig);
+
+    initParams(); // Initialize parameters
+  } catch (error) {
+    console.error('Failed to load sensor config:', error);
+  }
 };
 
 // Initialize default values for sensor parameters
@@ -352,13 +424,13 @@ const updateOutput = () => {
       });
       
       if (frame.trim()) {
-        outputFrameTxt += `<span title="${tooltip || ""}">${frame}</span><br>`;
+        outputFrameTxt += `<span title="${localize(tooltip) || ""}">${frame}</span><br>`;
       }
     });
   });
   
   if (!batchChecked.value && !standardChecked.value) {
-    outputFrameTxt = "Veuillez sélectionner au moins un mode";
+    outputFrameTxt = localize("@selectAtLeastOneMode");
   }
   
   document.getElementById("outputArea").innerHTML = outputFrameTxt;
@@ -535,6 +607,10 @@ const calculateSteps = (min: number, max: number) => {
   background-color: #555555;
 }
 
+.item > ion-label {
+  margin: 0;
+}
+
 ion-card {
   --background: #555555;
   --color: #ffffff;
@@ -551,6 +627,11 @@ ion-select.always-flip::part(icon) {
 
 ion-select.always-flip.select-expanded::part(icon) {
   transform: rotate(180deg);
+}
+
+ion-segment {
+  background-color: white;
+  border-top: solid 1px rgb(0 0 0 / 7%);
 }
 
 .category-card {
