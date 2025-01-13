@@ -270,9 +270,7 @@ import { currentLanguage } from './localization'; // Import the reactive languag
 
 // Function to change the language
 const changeLanguage = (language) => {
-  console.log(`Changing language to: ${language}`);
   currentLanguage.value = language;
-  console.log(`Current language is now: ${currentLanguage.value}`);
 };
 
 const localize = (key: string): string => {
@@ -306,9 +304,7 @@ const applyLocalization = (config: any): any => {
 };
 
 watch(currentLanguage, (newLang, oldLang) => {
-  console.log(`Language changed from ${oldLang} to ${newLang}`);
-  console.log(selectedSensor, selectedSensor.value);
-  if (selectedSensor.value) { //ChatGPT: Why this line ? Nothing happens because it seems to never be true
+  if (selectedSensor.value) {
     updateOutput();
     onSensorChange({ detail: { value: selectedSensor.value } });
   }
@@ -331,7 +327,6 @@ const loadAvailableProducts = async () => {
 const onSensorChange = (event) => {
   const selected = event.detail.value;
   selectedSensor.value = event.detail.value
-  console.log(`Sensor selected: ${selected}`);
   loadSensorConfig(selected);
   resetCheckboxes();
 };
@@ -569,7 +564,6 @@ const onCategoryCheckedChange = (event: CustomEvent, category: string) => {
 
   Object.keys(sensorConfig.value[category]).forEach(group => {
     if (group !== "global_params") {
-      console.log(paramGroupChecked.value[group]);
       if (paramGroupChecked.value[group]) {
         Object.keys(sensorConfig.value[category][group].fields).forEach(field => {
           sensorConfig.value[category][group].fields[field].enabled = event.detail.checked;
