@@ -6,13 +6,12 @@
         <ion-toolbar>
           <ion-img 
             id="watteco-logo" 
-            :src="logoSrc" 
-            style="width: 150px; height: auto; position: absolute; top: 15px; left: 15px;">
+            :src="logoSrc">
           </ion-img>
           <ion-title 
-            size="large" 
-            style="position: relative; left: 150px;">
-              Watteco Easy Codec - BETA v0.5.5
+            size="large"
+            id="watteco-title">
+              Watteco Easy Codec - BETA v0.5.6
           </ion-title>
         </ion-toolbar>
       </ion-header>
@@ -103,5 +102,43 @@ ion-toolbar {
 
 ion-range {
   padding-top: 5px;
+}
+
+#watteco-logo {
+  width: 150px;
+  height: auto;
+  position: absolute;
+  top: 15px;
+  left: 15px;
+}
+
+#watteco-title {
+  font-size: 1.5rem;
+  position: relative;
+  left: 150px;
+}
+
+/* Add responsive styles for smartphones */
+@media (max-width: 600px) {
+  ion-toolbar {
+    --min-height: 60px;
+    --padding-top: 10px;
+    --padding-bottom: 10px;
+  }
+
+  #watteco-title {
+    font-size: 1.2rem;
+    left: 70px;
+  }
+
+  #watteco-logo {
+    width: 70px;
+    top: 18px;
+    left: 10px;
+  }
+
+  ion-tab-button {
+    font-size: 0.8rem;
+  }
 }
 </style>

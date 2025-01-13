@@ -82,4 +82,16 @@ ion-range::part(pin) {
 ion-range::part(pin)::before {
   content: none;
 }
+
+/* Add responsive styles for smartphones */
+@media (max-width: 600px) {
+  ion-chip {
+    width: 60px;
+    font-size: 0.8rem;
+  }
+
+  ion-label {
+    font-size: 0.9rem;
+  }
+}
 </style>

@@ -643,7 +643,6 @@ const onToggleChange = (event: { isHours: boolean; }, bigGroupName: string, grou
 
 // Load available products when the component is mounted
 onMounted(() => {
-  console.log(currentLanguage.value)
   loadAvailableProducts();
   currentLanguage.value = 'en';
 });
@@ -796,5 +795,46 @@ ion-range::part(pin) {
 
 ion-range::part(pin)::before {
   content: none;
+}
+
+/* Add responsive styles for smartphones */
+@media (max-width: 600px) {
+  .sensor-select {
+    margin: 10px 20px;
+  }
+
+  #sensor-card {
+    width: -webkit-fill-available;
+  }
+
+  #config-card {
+    width: 100%;
+  }
+
+  ion-card-content {
+    font-size: 1rem;
+  }
+
+  ion-card ul {
+    padding-left: 0;
+  }
+
+  .config-item {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  ion-chip {
+    width: 60px;
+    font-size: 0.8rem;
+  }
+
+  ion-label {
+    font-size: 0.9rem;
+  }
+
+  #outputArea {
+    font-size: xx-small;
+  }
 }
 </style>
