@@ -9,6 +9,7 @@
     "cfgCommentConfirmed": "Configure si le capteur envoie des trames confirmées ou non",
     "cfgCommentRemoveConfig": "Retire toutes les configurations précédentes",
     "cfgCommentPullOut": "Configure la détection d'arrachement",
+    "copyFrames": "Copier toutes les trames vers le presse papier",
     "batchLabel": "Historisation",
     "standLabel": "Notification",
     "echantDesc": "Échantillonage",

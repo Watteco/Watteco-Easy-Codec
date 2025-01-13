@@ -9,6 +9,7 @@
     "cfgCommentConfirmed": "Configures if the sensor sends confirmed frames",
     "cfgCommentRemoveConfig": "Removes all previous config",
     "cfgCommentPullOut": "Configures pullout detection",
+    "copyFrames": "Copy all frames to clipboard",
     "batchLabel": "Batch History",
     "standLabel": "Notification",
     "echantDesc": "Sampling",

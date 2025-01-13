@@ -29,6 +29,43 @@
           </ion-card-content>
         </ion-card>
 
+        <!-- Global (general_param) -->
+        <ion-card v-if="sensorConfig && sensorConfig.general_param" class="category-card" :key="`config-${currentLanguage}`">
+          <ion-item class="config-item">
+            <ion-label>{{ localize("@globalLabel") }}</ion-label>
+            <ion-checkbox :checked="globalChecked" @ionChange="onGlobalCheckedChange"></ion-checkbox>
+          </ion-item>
+
+          <!-- Global parameters -->
+          <ion-card v-for="(param, paramName) in sensorConfig.general_param.fields" 
+                    :key="paramName" 
+                    v-show="globalChecked" 
+                    class="config-card">
+            <ion-item class="config-item">
+              <!-- Using the TimeSlider component -->
+              <time-slider
+                v-if="param.HMI?.visual_type === 'timeSlider'"
+                :label="param.HMI?.label_long"
+                :min="param.min_value"
+                :max="param.max_value"
+                :value="param.selectedValue"
+                :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                :paramName="paramName"
+                @update:value="onParamChange($event, 'general_param', 'global', paramName)"
+                @update:units="onToggleChange($event, 'general_param', 'global', paramName)"
+              />
+              <!-- Using the CheckBox component -->
+              <check-box
+                v-if="param.HMI?.visual_type === 'checkbox'"
+                :label="param.HMI?.label_long"
+                :value="param.selectedValue"
+                :paramName="paramName"
+                @update:value="onParamChange($event, 'general_param', 'global', paramName)"
+              />
+            </ion-item>
+          </ion-card>
+        </ion-card>
+
         <!-- Batch (batch_params) -->
         <ion-card v-if="sensorConfig && sensorConfig.batch_params" class="category-card" :key="`config-${currentLanguage}`">
           <ion-item class="config-item">
@@ -194,6 +231,7 @@
           <ion-card-content class="sensor-select">
           <ion-label id="outputTitle">{{ localize("@port125") }}</ion-label>
           <ion-label id="outputArea">  </ion-label> 
+          <ion-button v-if="framesAvailable" @click="copyFrames">{{ localize("@copyFrames") }}</ion-button>
           </ion-card-content>
         </ion-card>
       </div>
@@ -233,7 +271,8 @@ import {
   IonCheckbox, 
   IonItem,
   IonSegment,
-  IonSegmentButton
+  IonSegmentButton,
+  IonButton
 } from '@ionic/vue';
 import TimeSlider from '@/components/TimeSlider.vue';
 import DoubleSlider from '@/components/DoubleSlider.vue';
@@ -256,6 +295,8 @@ const outputVals: never[] = []; // Output values derived from parameters
 const paramGroupList: never[] = []; // List of parameter groups
 const currentErrors: never[] = []; // Tracks current errors
 const currentLanguage = ref('en'); // Reactive variable to store the current language
+const framesAvailable = ref(false);
+const globalChecked = ref(false); // State of the global mode checkbox
 
 // Language files map
 const languages = {
@@ -336,6 +377,7 @@ const onSensorChange = (event) => {
 
 // Reset all checkboxes to their default states
 const resetCheckboxes = () => {
+  globalChecked.value = false;
   batchChecked.value = false;
   standardChecked.value = false;
 
@@ -448,6 +490,7 @@ const updateOutput = () => {
       delete paramGroupList[key];
     });
     document.getElementById("outputArea").innerHTML = localize("@selectAtLeastOneMode");
+    framesAvailable.value = false;
     return;
   }
 
@@ -505,6 +548,7 @@ const updateOutput = () => {
   });
   
   document.getElementById("outputArea").innerHTML = outputFrameTxt;
+  framesAvailable.value = outputFrameTxt.trim() !== "";
 };
 
 // Replace placeholders in frame templates with actual values
@@ -578,6 +622,12 @@ const onCategoryCheckedChange = (event: CustomEvent, category: string) => {
   
   outputData[category] = event.detail.checked;
   updateOutput();
+};
+
+// Update global mode state
+const onGlobalCheckedChange = (event: CustomEvent) => {
+  globalChecked.value = event.detail.checked;
+  onCategoryCheckedChange(event, "general_param");
 };
 
 // Update batch mode state
@@ -656,6 +706,18 @@ const calculateSteps = (min: number, max: number) => {
     roundedStep = 20;
   }
   return roundedStep;
+};
+
+const copyFrames = () => {
+  const outputArea = document.getElementById("outputArea");
+  if (outputArea) {
+    const range = document.createRange();
+    range.selectNode(outputArea);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    document.execCommand("copy");
+    window.getSelection()?.removeAllRanges();
+  }
 };
 </script>
 

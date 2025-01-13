@@ -12,7 +12,7 @@
           <ion-title 
             size="large" 
             style="position: relative; left: 150px;">
-              Watteco Easy Codec - BETA v0.5.3
+              Watteco Easy Codec - BETA v0.5.4
           </ion-title>
         </ion-toolbar>
       </ion-header>
@@ -55,7 +55,8 @@ import {
   IonCheckbox, 
   IonItem,
   IonSegment,
-  IonSegmentButton
+  IonSegmentButton,
+  IonButton
 } from '@ionic/vue';
 import { arrowDownCircleOutline, arrowUpCircleOutline, batteryHalfOutline } from 'ionicons/icons';
 
