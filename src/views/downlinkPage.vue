@@ -34,7 +34,7 @@
           <ion-item class="config-item">
             <ion-label>{{ localize("@batchLabel") }}</ion-label>
             <ion-checkbox :checked="batchChecked" @ionChange="onBatchCheckedChange"></ion-checkbox>
-            <ion-button @click="toggleVisibility('batch_params')">{{ batchVisible ? '-' : '+' }}</ion-button>
+            <ion-button class="visibility-button" @click="toggleVisibility('batch_params')">{{ batchVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
           <div v-show="batchVisible">
@@ -50,7 +50,7 @@
                   :checked="paramGroupChecked[groupName] || false"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'batch_params')"
                 ></ion-checkbox>
-                <ion-button @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '-' : '+' }}</ion-button>
+                <ion-button class="visibility-button" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
               </ion-item>
 
               <!-- Dynamic fields -->
@@ -125,7 +125,7 @@
           <ion-item class="config-item">
             <ion-label>{{ localize("@standLabel") }}</ion-label>
             <ion-checkbox :checked="standardChecked" @ionChange="onStandardCheckedChange"></ion-checkbox>
-            <ion-button @click="toggleVisibility('standard_params')">{{ standardVisible ? '-' : '+' }}</ion-button>
+            <ion-button class="visibility-button" @click="toggleVisibility('standard_params')">{{ standardVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
           <div v-show="standardVisible">
@@ -141,7 +141,7 @@
                   :checked="paramGroupChecked[groupName] || false"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'standard_params')"
                 ></ion-checkbox>
-                <ion-button @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '-' : '+' }}</ion-button>
+                <ion-button class="visibility-button" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
               </ion-item>
 
               <!-- Dynamic fileds -->
@@ -828,6 +828,17 @@ ion-range::part(pin) {
 
 ion-range::part(pin)::before {
   content: none;
+}
+
+.visibility-button {
+  --background: none;
+  --box-shadow: none;
+  --padding-start: 10px;
+  --padding-end: 3px;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --border-radius: 0;
+  --color: var(--ion-color-primary);
 }
 
 /* Add responsive styles for smartphones */

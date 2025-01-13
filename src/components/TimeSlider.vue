@@ -44,15 +44,13 @@ const onRangeChange = (event) => {
 
 // Computed property to calculate time in "hours and minutes"
 const valueHours = computed(() => {
-  const days = Math.floor(props.value / 1440);
-  const hours = Math.floor((props.value % 1440) / 60);
+  const hours = Math.floor((props.value) / 60);
   const minutes = props.value % 60;
 
   let result = '';
-  if (days > 0) result += `${days}d `;
-  if (hours > 0) result += `${hours}h`;
+  result += `${hours}h`;
   if (minutes > 0) {
-    result += `${hours > 0 && minutes < 10 ? '0' : ''}${minutes}${hours > 0 ? '' : 'm'}`;
+    result += `${minutes < 10 ? '0' : ''}${minutes}`;
   }
   
   return result.trim();
