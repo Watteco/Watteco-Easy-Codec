@@ -29,43 +29,6 @@
           </ion-card-content>
         </ion-card>
 
-        <!-- Global (general_param) -->
-        <ion-card v-if="sensorConfig && sensorConfig.general_param" class="category-card" :key="`config-${currentLanguage}`">
-          <ion-item class="config-item">
-            <ion-label>{{ localize("@globalLabel") }}</ion-label>
-            <ion-checkbox :checked="globalChecked" @ionChange="onGlobalCheckedChange"></ion-checkbox>
-          </ion-item>
-
-          <!-- Global parameters -->
-          <ion-card v-for="(param, paramName) in sensorConfig.general_param.fields" 
-                    :key="paramName" 
-                    v-show="globalChecked" 
-                    class="config-card">
-            <ion-item class="config-item">
-              <!-- Using the TimeSlider component -->
-              <time-slider
-                v-if="param.HMI?.visual_type === 'timeSlider'"
-                :label="param.HMI?.label_long"
-                :min="param.min_value"
-                :max="param.max_value"
-                :value="param.selectedValue"
-                :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
-                :paramName="paramName"
-                @update:value="onParamChange($event, 'general_param', 'global', paramName)"
-                @update:units="onToggleChange($event, 'general_param', 'global', paramName)"
-              />
-              <!-- Using the CheckBox component -->
-              <check-box
-                v-if="param.HMI?.visual_type === 'checkbox'"
-                :label="param.HMI?.label_long"
-                :value="param.selectedValue"
-                :paramName="paramName"
-                @update:value="onParamChange($event, 'general_param', 'global', paramName)"
-              />
-            </ion-item>
-          </ion-card>
-        </ion-card>
-
         <!-- Batch (batch_params) -->
         <ion-card v-if="sensorConfig && sensorConfig.batch_params" class="category-card" :key="`config-${currentLanguage}`">
           <ion-item class="config-item">
@@ -296,7 +259,6 @@ const paramGroupList: never[] = []; // List of parameter groups
 const currentErrors: never[] = []; // Tracks current errors
 const currentLanguage = ref('en'); // Reactive variable to store the current language
 const framesAvailable = ref(false);
-const globalChecked = ref(false); // State of the global mode checkbox
 
 // Language files map
 const languages = {
@@ -377,7 +339,6 @@ const onSensorChange = (event) => {
 
 // Reset all checkboxes to their default states
 const resetCheckboxes = () => {
-  globalChecked.value = false;
   batchChecked.value = false;
   standardChecked.value = false;
 
@@ -622,12 +583,6 @@ const onCategoryCheckedChange = (event: CustomEvent, category: string) => {
   
   outputData[category] = event.detail.checked;
   updateOutput();
-};
-
-// Update global mode state
-const onGlobalCheckedChange = (event: CustomEvent) => {
-  globalChecked.value = event.detail.checked;
-  onCategoryCheckedChange(event, "general_param");
 };
 
 // Update batch mode state
