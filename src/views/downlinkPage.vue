@@ -189,14 +189,15 @@
             </ul>
           </ion-card>
         </ion-card>
-      
+
         <ion-card> 
           <ion-card-content class="sensor-select">
-            
+          <ion-label id="outputTitle">{{ localize("@port125") }}</ion-label>
           <ion-label id="outputArea">  </ion-label> 
           </ion-card-content>
         </ion-card>
       </div>
+
     </ion-content>
   <div>
     <!-- Language Switcher -->
@@ -275,16 +276,18 @@ const changeLanguage = (language) => {
 };
 
 const localize = (key: string): string => {
-  if (key.startsWith('@')) {
-    const localizedValue = localization.value[key.substring(1)];
-    if (localizedValue) {
-      return localizedValue;
-    } else {
-      console.warn(`Localization key not found: ${key}`);
-      return key; // Return the key itself if no match is found
+  return key.split(' ').map(word => {
+    if (word.startsWith('@')) {
+      const localizedValue = localization.value[word.substring(1)];
+      if (localizedValue) {
+        return localizedValue;
+      } else {
+        console.warn(`Localization key not found: ${word}`);
+        return word; // Return the key itself if no match is found
+      }
     }
-  }
-  return key; // Return as-is if not a localization key
+    return word; // Return as-is if not a localization key
+  }).join(' ');
 };
 
 const applyLocalization = (config: any): any => {
@@ -329,15 +332,15 @@ const onSensorChange = (event) => {
   const selected = event.detail.value;
   selectedSensor.value = event.detail.value
   console.log(`Sensor selected: ${selected}`);
-  resetCheckboxes();
   loadSensorConfig(selected);
+  resetCheckboxes();
 };
 
 // Reset all checkboxes to their default states
 const resetCheckboxes = () => {
   batchChecked.value = false;
   standardChecked.value = false;
-  
+
   Object.keys(outputData).forEach(data => {
     outputData[data] = false;
   });
@@ -350,6 +353,51 @@ const resetCheckboxes = () => {
   }
 };
 
+// Reset all checkboxes to their default states // WIP
+const initializeStates = (config) => {
+  const setParentAndChildStates = (parentGroup, groupName, bigGroupName) => {
+    // Check parent default_state
+    if (parentGroup.default_state === "true") {
+      if (bigGroupName === "batch_params") {
+        batchChecked.value = true;
+        onBatchCheckedChange({ detail: { checked: true } });
+      } else if (bigGroupName === "standard_params") {
+        standardChecked.value = true;
+        onStandardCheckedChange({ detail: { checked: true } });
+      }
+      paramGroupChecked.value[groupName] = true;
+      onParamGroupCheckedChange({ detail: { checked: true } }, groupName, bigGroupName);
+    }
+
+    // Check children default_state
+    if (parentGroup.fields) {
+      Object.keys(parentGroup.fields).forEach((fieldName) => {
+        const field = parentGroup.fields[fieldName];
+        if (field.HMI && field.default_value) {
+          // Initialize field value
+          field.selectedValue = field.default_value;
+          outputVals[fieldName] = convertToHexFrameValue(field.default_value, field);
+
+          // Check individual default_state (if applicable)
+          if (parentGroup.default_state === "true") {
+            paramGroupList[fieldName] = parentGroup.fields[fieldName];
+          }
+        }
+      });
+    }
+  };
+
+  // Iterate over batch_params and standard_params
+  ["batch_params", "standard_params"].forEach((bigGroupName) => {
+    if (config[bigGroupName]) {
+      Object.keys(config[bigGroupName]).forEach((groupName) => {
+        const parentGroup = config[bigGroupName][groupName];
+        setParentAndChildStates(parentGroup, groupName, bigGroupName);
+      });
+    }
+  });
+};
+
 // Load configuration for a specific sensor
 const loadSensorConfig = async (sensorFile: string) => {
   try {
@@ -359,7 +407,10 @@ const loadSensorConfig = async (sensorFile: string) => {
     // Apply localization to the configuration
     sensorConfig.value = applyLocalization(rawConfig);
 
-    initParams(); // Initialize parameters
+    // Initialize states for checkboxes and fields
+    initializeStates(sensorConfig.value);
+
+    initParams(); // Initialize other parameters
   } catch (error) {
     console.error('Failed to load sensor config:', error);
   }
@@ -370,13 +421,13 @@ const initParams = () => {
   if (sensorConfig.value) {
     for (const section of [sensorConfig.value.batch_params, sensorConfig.value.standard_params]) {
       for (const groupName in section) {
-        if (section[groupName] && (section[groupName].label || groupName === "global_params")) {
-          paramGroupChecked.value[groupName] = false;
-          outputVals[groupName] = [section[groupName].fields];
-          for (const paramName in section[groupName].fields) {
-            const param = section[groupName].fields[paramName];
+        const group = section[groupName];
+        if (group && group.fields) {
+          for (const paramName in group.fields) {
+            const param = group.fields[paramName];
             if (param && param.HMI) {
-              param.selectedValue = param.default_value;
+              // Respect the default values and states set by initializeStates
+              param.selectedValue = param.selectedValue || param.default_value;
               param.isHours = false; // Default time state
               outputVals[paramName] = convertToHexFrameValue(param.selectedValue, param);
             }
@@ -392,6 +443,17 @@ const initParams = () => {
 const updateOutput = () => {
   let outputFrameTxt = "";
   
+  // Reset all output data and param group list when no category is selected
+  if (!batchChecked.value && !standardChecked.value) {
+    outputData.general_params = false;
+    Object.keys(paramGroupList).forEach(key => {
+      delete paramGroupList[key];
+    });
+    document.getElementById("outputArea").innerHTML = localize("@selectAtLeastOneMode");
+    return;
+  }
+
+  // Set general params
   outputData.general_params = true;
   outputData.confirmed = true;
   outputVals.confirmed = "00";
@@ -399,6 +461,22 @@ const updateOutput = () => {
   paramGroupList.confirmed = sensorConfig.value.confirmed.params.confirmed;
   
   Object.keys(sensorConfig.value).forEach((bigGroupName) => {
+    // Skip processing if the category is unchecked
+    if ((bigGroupName === 'batch_params' && !batchChecked.value) || 
+        (bigGroupName === 'standard_params' && !standardChecked.value)) {
+      // Clear all parameter groups for this category
+      if (sensorConfig.value[bigGroupName]) {
+        Object.keys(sensorConfig.value[bigGroupName]).forEach(groupName => {
+          if (sensorConfig.value[bigGroupName][groupName]?.fields) {
+            Object.keys(sensorConfig.value[bigGroupName][groupName].fields).forEach(fieldName => {
+              delete paramGroupList[fieldName];
+            });
+          }
+        });
+      }
+      return;
+    }
+
     const cfgBlocks = sensorConfig.value[bigGroupName]?.cfg_block || [];
     
     cfgBlocks.forEach((cfgEntry) => {
@@ -410,9 +488,6 @@ const updateOutput = () => {
         tooltip = cfgEntry[1];
       } else if (typeof cfgEntry === "string") {
         frame = cfgEntry;
-      } else {
-        console.warn("Unexpected cfg_block entry format:", cfgEntry);
-        return;
       }
       
       Object.keys(outputVals).forEach((valKey) => {
@@ -430,10 +505,6 @@ const updateOutput = () => {
       }
     });
   });
-  
-  if (!batchChecked.value && !standardChecked.value) {
-    outputFrameTxt = localize("@selectAtLeastOneMode");
-  }
   
   document.getElementById("outputArea").innerHTML = outputFrameTxt;
 };
@@ -495,6 +566,19 @@ const onCategoryCheckedChange = (event: CustomEvent, category: string) => {
       paramGroupList[field] = sensorConfig.value[category].global_params.fields[field];
     });
   }
+
+  Object.keys(sensorConfig.value[category]).forEach(group => {
+    if (group !== "global_params") {
+      console.log(paramGroupChecked.value[group]);
+      if (paramGroupChecked.value[group]) {
+        Object.keys(sensorConfig.value[category][group].fields).forEach(field => {
+          sensorConfig.value[category][group].fields[field].enabled = event.detail.checked;
+          paramGroupList[field] = sensorConfig.value[category][group].fields[field];
+        });
+      }
+    }
+  });
+  
   outputData[category] = event.detail.checked;
   updateOutput();
 };
@@ -593,6 +677,7 @@ const calculateSteps = (min: number, max: number) => {
   display: flex;
   justify-content: space-between;
   margin: 10px 100px;
+  flex-direction: column;
 }
 
 #sensor-card {
@@ -667,6 +752,14 @@ ion-segment {
 
 .config-item {
   color: white;
+}
+
+#outputTitle {
+  margin-bottom: 10px;
+}
+
+#outputArea {
+  font-size: smaller;
 }
 
 ion-range::part(pin) {

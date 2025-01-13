@@ -89,7 +89,7 @@ ion-item {
 ion-chip {
   --background: var(--ion-color-primary);
   --color: white;
-  width: 75px;
+  width: 90px;
   justify-content: space-around;
 }
 

@@ -24,6 +24,7 @@
     "batch_params": {
         "batch_T_params": {
             "label": "@tempLabel",
+            "default_state": "true",
             "fields": {
                 "tBatchEchant": {
                     "description": "@echantDesc",
@@ -45,11 +46,11 @@
                 "bBatchEchant": {
                     "description": "@echantDesc",
                     "type": "timeInt32",
-                    "default_value": "24",
+                    "default_value": "720",
                     "default_unit": "1",
-                    "min_value": "1",
-                    "max_value": "120",
-                    "step": "1",
+                    "min_value": "0",
+                    "max_value": "1440",
+                    "step": "10",
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
@@ -120,6 +121,7 @@
         },
         "standard_B_params": {
             "label": "@battLabel",
+            "default_state": "true",
             "fields": {
                 "bStandEchant": {
                     "description": "@echantDesc",

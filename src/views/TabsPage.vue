@@ -12,7 +12,7 @@
           <ion-title 
             size="large" 
             style="position: relative; left: 150px;">
-              Watteco Easy Codec - BETA v0.5.1
+              Watteco Easy Codec - BETA v0.5.2
           </ion-title>
         </ion-toolbar>
       </ion-header>
