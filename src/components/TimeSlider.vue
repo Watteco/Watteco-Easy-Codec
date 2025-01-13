@@ -38,7 +38,10 @@ const emit = defineEmits(['update:value']);
 
 // Handle changes in the ion-range (slider)
 const onRangeChange = (event) => {
-  const newValue = event.detail.value;
+  let newValue = event.detail.value;
+  if (newValue > props.max) {
+    newValue = props.max;
+  }
   emit('update:value', { newValue, groupName: props.groupName, paramName: props.paramName });
 };
 
@@ -54,6 +57,13 @@ const valueHours = computed(() => {
   }
   
   return result.trim();
+});
+
+// Watch for changes in max value and adjust the slider value if necessary
+watch(() => props.max, (newMax) => {
+  if (props.value > newMax) {
+    emit('update:value', { newValue: newMax, groupName: props.groupName, paramName: props.paramName });
+  }
 });
 </script>
 

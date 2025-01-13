@@ -452,6 +452,7 @@ const initParams = () => {
               param.selectedValue = param.selectedValue || param.default_value;
               param.isHours = false; // Default time state
               outputVals[paramName] = convertToHexFrameValue(param.selectedValue, param);
+              updateMaxValues(section, groupName, paramName);
             }
           }
         }
@@ -630,7 +631,7 @@ const onParamGroupCheckedChange = (event: CustomEvent, groupName: string | numbe
 };
 
 // Handle parameter value changes
-const onParamChange = (event: { newValue: number | boolean; detail: { value: { lower: number; upper: number; }; }; }, bigGroupName: string, groupName: string | number, paramName: string | number) => {
+const onParamChange = (event, bigGroupName, groupName, paramName) => {
   if (sensorConfig.value[bigGroupName][groupName]) {
     if (sensorConfig.value[bigGroupName][groupName].fields[paramName]) {
       let newVal = "0";
@@ -641,6 +642,15 @@ const onParamChange = (event: { newValue: number | boolean; detail: { value: { l
       }
       sensorConfig.value[bigGroupName][groupName].fields[paramName].selectedValue = newVal;
       outputVals[paramName] = convertToHexFrameValue(newVal, sensorConfig.value[bigGroupName][groupName].fields[paramName]);
+      
+      // Update max values for dependent sliders
+      if (sensorConfig.value[bigGroupName][groupName].fields[paramName].HMI.visual_type === 'timeSlider') {
+        Object.keys(sensorConfig.value[bigGroupName]).forEach(group => {
+          Object.keys(sensorConfig.value[bigGroupName][group].fields).forEach(field => {
+            updateMaxValues(bigGroupName, group, field);
+          });
+        });
+      }
     } else {
       console.error('Invalid paramName:', paramName, 'in group:', groupName);
     }
@@ -705,6 +715,33 @@ const toggleVisibility = (category) => {
 
 const toggleSubcategoryVisibility = (groupName) => {
   subcategoryVisible.value[groupName] = !subcategoryVisible.value[groupName];
+};
+
+const updateMaxValues = (bigGroupName, groupName, paramName) => {
+  const param = sensorConfig.value[bigGroupName][groupName].fields[paramName];
+  if (param.HMI.visual_type === 'timeSlider' && param.depends_on) {
+    let emissionParam;
+    if (bigGroupName === 'batch_params') {
+      emissionParam = Object.keys(sensorConfig.value[bigGroupName].global_params.fields).find(key => 
+        key === param.depends_on
+      );
+    } else {
+      emissionParam = Object.keys(sensorConfig.value[bigGroupName][groupName].fields).find(key => 
+        key === param.depends_on
+      );
+    }
+    if (emissionParam) {
+      const emissionValue = bigGroupName === 'batch_params' 
+        ? parseInt(sensorConfig.value[bigGroupName].global_params.fields[emissionParam].selectedValue, 10)
+        : parseInt(sensorConfig.value[bigGroupName][groupName].fields[emissionParam].selectedValue, 10);
+      param.max_value = emissionValue;
+      if (parseInt(param.selectedValue, 10) > emissionValue) {
+        param.selectedValue = emissionValue.toString();
+        outputVals[paramName] = convertToHexFrameValue(emissionValue.toString(), param);
+        updateOutput();
+      }
+    }
+  }
 };
 </script>
 

@@ -33,6 +33,7 @@
                     "min_value": "1",
                     "max_value": "120",
                     "step": "1",
+                    "depends_on": "gBatchEmission",
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
@@ -41,7 +42,7 @@
             }
         },
         "batch_B_params": {
-            "label": "@battLabel",
+            "label": "@batt24h",
             "fields": {
                 "bBatchEchant": {
                     "description": "@echantDesc",
@@ -88,6 +89,7 @@
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "72",
+                    "depends_on": "tStandEmission",
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
