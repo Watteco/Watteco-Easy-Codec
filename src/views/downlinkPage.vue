@@ -28,92 +28,95 @@
             </ion-select>
           </ion-card-content>
         </ion-card>
-
+        
         <!-- Batch (batch_params) -->
         <ion-card v-if="sensorConfig && sensorConfig.batch_params" class="category-card" :key="`config-${currentLanguage}`">
           <ion-item class="config-item">
             <ion-label>{{ localize("@batchLabel") }}</ion-label>
             <ion-checkbox :checked="batchChecked" @ionChange="onBatchCheckedChange"></ion-checkbox>
+            <ion-button @click="toggleVisibility('batch_params')">{{ batchVisible ? '-' : '+' }}</ion-button>
           </ion-item>
 
-          <!-- Temperature, Humidity, Battery (batch_params) -->
-          <ion-card v-for="(paramGroup, groupName) in sensorConfig.batch_params" 
-                    :key="groupName" 
-                    v-show="batchChecked && paramGroup.label" 
-                    class="subcategory-card">
-            <ion-item class="config-item">
-              <ion-label>{{ paramGroup.label }}</ion-label>
+          <div v-show="batchVisible">
+            <!-- Temperature, Humidity, Battery (batch_params) -->
+            <ion-card v-for="(paramGroup, groupName) in sensorConfig.batch_params" 
+                      :key="groupName" 
+                      v-show="batchChecked && paramGroup.label" 
+                      class="subcategory-card">
+              <ion-item class="config-item">
+                <ion-label>{{ paramGroup.label }}</ion-label>
 
-              <ion-checkbox 
-                :checked="paramGroupChecked[groupName] || false"
-                @ionChange="onParamGroupCheckedChange($event, groupName, 'batch_params')"
-              ></ion-checkbox>
+                <ion-checkbox 
+                  :checked="paramGroupChecked[groupName] || false"
+                  @ionChange="onParamGroupCheckedChange($event, groupName, 'batch_params')"
+                ></ion-checkbox>
+                <ion-button @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '-' : '+' }}</ion-button>
+              </ion-item>
 
-            </ion-item>
+              <!-- Dynamic fields -->
+              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName]">
+                <ion-card v-for="(param, paramName) in paramGroup.fields" 
+                          :key="paramName" 
+                          class="config-card">
+                  <ion-item class="config-item">
+                    <!-- Using the TimeSlider component -->
+                    <time-slider
+                      v-if="param.HMI?.visual_type === 'timeSlider'"
+                      :label="param.HMI?.label_long"
+                      :min="param.min_value"
+                      :max="param.max_value"
+                      :value="param.selectedValue"
+                      :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      @update:value="onParamChange($event, 'batch_params', groupName, paramName)"
+                      @update:units="onToggleChange($event, 'batch_params', groupName, paramName)"
+                    />
 
-            <!-- Dynamic fields -->
-            <ul v-if="paramGroupChecked[groupName]">
-              <ion-card v-for="(param, paramName) in paramGroup.fields" 
-                        :key="paramName" 
-                        class="config-card">
-                <ion-item class="config-item">
-                  <!-- Using the TimeSlider component -->
-                  <time-slider
-                    v-if="param.HMI?.visual_type === 'timeSlider'"
-                    :label="param.HMI?.label_long"
-                    :min="param.min_value"
-                    :max="param.max_value"
-                    :value="param.selectedValue"
-                    :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
-                    :groupName="groupName"
-                    :paramName="paramName"
-                    @update:value="onParamChange($event, 'batch_params', groupName, paramName)"
-                    @update:units="onToggleChange($event, 'batch_params', groupName, paramName)"
-                  />
+                    <!-- Using the DoubleSlider component -->
+                    <double-slider
+                      v-if="param.HMI?.visual_type === 'doubleSlider'"
+                      :label="param.HMI?.label_long"
+                      :unit="param.HMI?.unit"
+                      :min="param.min_value"
+                      :max="param.max_value"
+                      :value="{ lower: param.selectedValue.split(' ')[0], upper: param.selectedValue.split(' ')[1] }"
+                      :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
+                    />
 
-                  <!-- Using the DoubleSlider component -->
-                  <double-slider
-                    v-if="param.HMI?.visual_type === 'doubleSlider'"
-                    :label="param.HMI?.label_long"
-                    :unit="param.HMI?.unit"
-                    :min="param.min_value"
-                    :max="param.max_value"
-                    :value="{ lower: param.selectedValue.split(' ')[0], upper: param.selectedValue.split(' ')[1] }"
-                    :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
-                    :groupName="groupName"
-                    :paramName="paramName"
-                    @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
-                  />
+                    <!-- Using the CheckBox component -->
+                    <check-box
+                      v-if="param.HMI?.visual_type === 'checkbox'"
+                      :label="param.HMI?.label_long"
+                      :value="param.selectedValue"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
+                    />
 
-                  <!-- Using the CheckBox component -->
-                  <check-box
-                    v-if="param.HMI?.visual_type === 'checkbox'"
-                    :label="param.HMI?.label_long"
-                    :value="param.selectedValue"
-                    :groupName="groupName"
-                    :paramName="paramName"
-                    @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
-                  />
-
-                </ion-item>
-              </ion-card>
-            </ul>
-          </ion-card>
-          <ion-card v-for="(param, paramName) in sensorConfig.batch_params.global_params.fields" 
-                    :key="paramName"
-                    v-if="batchChecked">
-            <ion-item class="config-item">
-              <time-slider
-                :label="param.HMI.label_long"
-                :min="param.min_value"
-                :max="param.max_value"
-                :value="param.selectedValue"
-                :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
-                @update:value="onParamChange($event, 'batch_params', 'global_params', paramName)"
-                @update:units="onToggleChange($event, 'batch_params', 'global_params', paramName)"
-              />
-            </ion-item>
-          </ion-card>
+                  </ion-item>
+                </ion-card>
+              </ul>
+            </ion-card>
+            <ion-card v-for="(param, paramName) in sensorConfig.batch_params.global_params.fields" 
+                      :key="paramName"
+                      v-if="batchChecked">
+              <ion-item class="config-item">
+                <time-slider
+                  :label="param.HMI.label_long"
+                  :min="param.min_value"
+                  :max="param.max_value"
+                  :value="param.selectedValue"
+                  :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                  @update:value="onParamChange($event, 'batch_params', 'global_params', paramName)"
+                  @update:units="onToggleChange($event, 'batch_params', 'global_params', paramName)"
+                />
+              </ion-item>
+            </ion-card>
+          </div>
           
         </ion-card>
 
@@ -122,72 +125,75 @@
           <ion-item class="config-item">
             <ion-label>{{ localize("@standLabel") }}</ion-label>
             <ion-checkbox :checked="standardChecked" @ionChange="onStandardCheckedChange"></ion-checkbox>
+            <ion-button @click="toggleVisibility('standard_params')">{{ standardVisible ? '-' : '+' }}</ion-button>
           </ion-item>
 
-          <!-- Temperature, Humidity, Battery (standard_params) -->
-          <ion-card v-for="(paramGroup, groupName) in sensorConfig.standard_params" 
-                    :key="groupName" 
-                    v-show="standardChecked && paramGroup.label" 
-                    class="subcategory-card">
-            <ion-item class="config-item">
-              <ion-label>{{ paramGroup.label }}</ion-label>
+          <div v-show="standardVisible">
+            <!-- Temperature, Humidity, Battery (standard_params) -->
+            <ion-card v-for="(paramGroup, groupName) in sensorConfig.standard_params" 
+                      :key="groupName" 
+                      v-show="standardChecked && paramGroup.label" 
+                      class="subcategory-card">
+              <ion-item class="config-item">
+                <ion-label>{{ paramGroup.label }}</ion-label>
 
-              <ion-checkbox 
-                :checked="paramGroupChecked[groupName] || false"
-                @ionChange="onParamGroupCheckedChange($event, groupName, 'standard_params')"
-              ></ion-checkbox>
+                <ion-checkbox 
+                  :checked="paramGroupChecked[groupName] || false"
+                  @ionChange="onParamGroupCheckedChange($event, groupName, 'standard_params')"
+                ></ion-checkbox>
+                <ion-button @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '-' : '+' }}</ion-button>
+              </ion-item>
 
-            </ion-item>
+              <!-- Dynamic fileds -->
+              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName]">
+                <ion-card v-for="(param, paramName) in paramGroup.fields" 
+                          :key="paramName" 
+                          class="config-card">
+                  <ion-item class="config-item">
+                    
+                    <!-- Using the TimeSlider component -->
+                    <time-slider
+                      v-if="param.HMI?.visual_type === 'timeSlider'"
+                      :label="param.HMI?.label_long"
+                      :min="param.min_value"
+                      :max="param.max_value"
+                      :value="param.selectedValue"
+                      :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
+                      @update:units="onToggleChange($event, 'standard_params', groupName, paramName)"
+                    />
 
-            <!-- Dynamic fileds -->
-            <ul v-if="paramGroupChecked[groupName]">
-              <ion-card v-for="(param, paramName) in paramGroup.fields" 
-                        :key="paramName" 
-                        class="config-card">
-                <ion-item class="config-item">
-                  
-                  <!-- Using the TimeSlider component -->
-                  <time-slider
-                    v-if="param.HMI?.visual_type === 'timeSlider'"
-                    :label="param.HMI?.label_long"
-                    :min="param.min_value"
-                    :max="param.max_value"
-                    :value="param.selectedValue"
-                    :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
-                    :groupName="groupName"
-                    :paramName="paramName"
-                    @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
-                    @update:units="onToggleChange($event, 'standard_params', groupName, paramName)"
-                  />
+                    <!-- Using the DoubleSlider component -->
+                    <double-slider
+                      v-if="param.HMI?.visual_type === 'doubleSlider'"
+                      :label="param.HMI?.label_long"
+                      :unit="param.HMI?.unit"
+                      :min="param.min_value"
+                      :max="param.max_value"
+                      :value="{ lower: param.selectedValue.split(' ')[0], upper: param.selectedValue.split(' ')[1] }"
+                      :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
+                    />
 
-                  <!-- Using the DoubleSlider component -->
-                  <double-slider
-                    v-if="param.HMI?.visual_type === 'doubleSlider'"
-                    :label="param.HMI?.label_long"
-                    :unit="param.HMI?.unit"
-                    :min="param.min_value"
-                    :max="param.max_value"
-                    :value="{ lower: param.selectedValue.split(' ')[0], upper: param.selectedValue.split(' ')[1] }"
-                    :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
-                    :groupName="groupName"
-                    :paramName="paramName"
-                    @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
-                  />
+                    <!-- Using the CheckBox component -->
+                    <check-box
+                      v-if="param.HMI?.visual_type === 'checkbox'"
+                      :label="param.HMI?.label_long"
+                      :value="param.selectedValue"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
+                    />
 
-                  <!-- Using the CheckBox component -->
-                  <check-box
-                    v-if="param.HMI?.visual_type === 'checkbox'"
-                    :label="param.HMI?.label_long"
-                    :value="param.selectedValue"
-                    :groupName="groupName"
-                    :paramName="paramName"
-                    @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
-                  />
-
-                </ion-item>
-              </ion-card>
-            </ul>
-          </ion-card>
+                  </ion-item>
+                </ion-card>
+              </ul>
+            </ion-card>
+          </div>
         </ion-card>
 
         <ion-card> 
@@ -259,6 +265,21 @@ const paramGroupList: never[] = []; // List of parameter groups
 const currentErrors: never[] = []; // Tracks current errors
 const currentLanguage = ref('en'); // Reactive variable to store the current language
 const framesAvailable = ref(false);
+const batchVisible = ref(true);
+const standardVisible = ref(true);
+const subcategoryVisible = ref<Record<string, boolean>>({});
+
+// Initialize subcategoryVisible to show all subcategories by default
+watch(sensorConfig, (newConfig) => {
+  if (newConfig) {
+    Object.keys(newConfig.batch_params || {}).forEach(groupName => {
+      subcategoryVisible.value[groupName] = true;
+    });
+    Object.keys(newConfig.standard_params || {}).forEach(groupName => {
+      subcategoryVisible.value[groupName] = true;
+    });
+  }
+});
 
 // Language files map
 const languages = {
@@ -672,6 +693,18 @@ const copyFrames = () => {
     document.execCommand("copy");
     window.getSelection()?.removeAllRanges();
   }
+};
+
+const toggleVisibility = (category) => {
+  if (category === 'batch_params') {
+    batchVisible.value = !batchVisible.value;
+  } else if (category === 'standard_params') {
+    standardVisible.value = !standardVisible.value;
+  }
+};
+
+const toggleSubcategoryVisibility = (groupName) => {
+  subcategoryVisible.value[groupName] = !subcategoryVisible.value[groupName];
 };
 </script>
 
