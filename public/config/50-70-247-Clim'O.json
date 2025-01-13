@@ -31,6 +31,7 @@
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "72",
+                    "depends_on": "gBatchEmission",
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
@@ -86,6 +87,7 @@
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "72",
+                    "depends_on": "tStandEmission",
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
@@ -126,6 +128,7 @@
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "72",
+                    "depends_on": "hStandEmission",
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
@@ -166,6 +169,7 @@
                     "default_value": "24",
                     "min_value": "1",
                     "max_value": "72",
+                    "depends_on": "bStandEmission",
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"

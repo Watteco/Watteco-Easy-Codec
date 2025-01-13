@@ -131,6 +131,7 @@
                     "default_value": "24",
                     "min_value": "1",
                     "max_value": "72",
+                    "depends_on": "bStandEmission",
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"

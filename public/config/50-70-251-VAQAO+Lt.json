@@ -34,7 +34,8 @@
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
-                    }
+                    },
+                    "depends_on": "gBatchEmission"
                 }
             }
         },
@@ -50,7 +51,8 @@
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
-                    }
+                    },
+                    "depends_on": "gBatchEmission"
                 }
             }
         },
@@ -66,7 +68,8 @@
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
-                    }
+                    },
+                    "depends_on": "gBatchEmission"
                 }
             }
         },
@@ -82,7 +85,8 @@
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
-                    }
+                    },
+                    "depends_on": "gBatchEmission"
                 }
             }
         },
@@ -98,12 +102,13 @@
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
-                    }
+                    },
+                    "depends_on": "gBatchEmission"
                 }
             }
         },
         "batch_B_params": {
-            "label": "@battLabel",
+            "label": "@batt24h",
             "fields": {
                 "bBatchEchant": {
                     "description": "@echantDesc",
@@ -114,7 +119,8 @@
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
-                    }
+                    },
+                    "depends_on": "gBatchEmission"
                 }
             }
         },
@@ -139,7 +145,7 @@
             ["31 06 800c 15 00 00 00 (cBatchEchant) (gBatchEmission) 0000 006a 23", "@cfgCommentBatchCO2"],
             ["11 06 0400 15 00 00 00 (iBatchEchant) (gBatchEmission) 0000 000a 2b", "@cfgCommentBatchIlluminance"],
             ["11 06 0406 11 00 00 00 (oBatchEchant) (gBatchEmission) 0001 03", "@cfgCommentBatchOccupancy"],
-            ["11 06 0050 15 00 06 04 (bBatchEchant) (gBatchEmission) 00 00 00 01 12", "@cfgCommentBatchBatt"]
+            ["11 06 0050 15 00 06 04 (bBatchEchant) 85a0 00 00 00 01 12", "@cfgCommentBatchBatt"]
         ]
     },
     "standard_params": {
@@ -155,7 +161,8 @@
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
-                    }
+                    },
+                    "depends_on": "tStandEmission"
                 },
                 "tStandEmission": {
                     "description": "@emitMaxDesc",
@@ -195,7 +202,8 @@
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
-                    }
+                    },
+                    "depends_on": "hStandEmission"
                 },
                 "hStandEmission": {
                     "description": "@emitMaxDesc",
@@ -235,7 +243,8 @@
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
-                    }
+                    },
+                    "depends_on": "cStandEmission"
                 },
                 "cStandEmission": {
                     "description": "@emitMaxDesc",
@@ -274,7 +283,8 @@
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
-                    }
+                    },
+                    "depends_on": "iStandEmission"
                 },
                 "iStandEmission": {
                     "description": "@emitMaxDesc",
@@ -313,7 +323,8 @@
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
-                    }
+                    },
+                    "depends_on": "oStandEmission"
                 },
                 "oStandEmission": {
                     "description": "@emitMaxDesc",
@@ -349,7 +360,8 @@
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
-                    }
+                    },
+                    "depends_on": "bStandEmission"
                 },
                 "bStandEmission": {
                     "description": "@emitMaxDesc",
