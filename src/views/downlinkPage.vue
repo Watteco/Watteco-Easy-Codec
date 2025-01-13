@@ -201,9 +201,9 @@
     </ion-content>
   <div>
     <!-- Language Switcher -->
-    <ion-segment @ionChange="changeLanguage($event.detail.value)">
-      <ion-segment-button value="en" :checked="currentLanguage === 'en'">English</ion-segment-button>
-      <ion-segment-button value="fr" :checked="currentLanguage === 'fr'">Français</ion-segment-button>
+    <ion-segment v-model="currentLanguage" @ionChange="changeLanguage($event.detail.value)">
+      <ion-segment-button value="en">English</ion-segment-button>
+      <ion-segment-button value="fr">Français</ion-segment-button>
     </ion-segment>
   </div>
   </ion-page>
@@ -271,6 +271,9 @@ import { currentLanguage } from './localization'; // Import the reactive languag
 // Function to change the language
 const changeLanguage = (language) => {
   currentLanguage.value = language;
+  if (selectedSensor.value == '') {
+    document.getElementById("outputArea").innerHTML = localize("@selectToStart");
+  }
 };
 
 const localize = (key: string): string => {
@@ -635,7 +638,9 @@ const onToggleChange = (event: { isHours: boolean; }, bigGroupName: string, grou
 
 // Load available products when the component is mounted
 onMounted(() => {
+  console.log(currentLanguage.value)
   loadAvailableProducts();
+  currentLanguage.value = 'en';
 });
 
 // Calculate appropriate slider step sizes
