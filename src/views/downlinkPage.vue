@@ -814,6 +814,7 @@ ion-select.always-flip.select-expanded::part(icon) {
 ion-segment {
   background-color: white;
   border-top: solid 1px rgb(0 0 0 / 7%);
+  color: black;
 }
 
 .category-card {
