@@ -179,7 +179,7 @@
                     "description": "@thresholdDesc",
                     "type": "int32",
                     "default_value": "15 30",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "55",
                     "HMI": {
                         "label_long": "@thresholdLabelLong",
@@ -220,7 +220,7 @@
                     "description": "@thresholdDesc",
                     "type": "int32",
                     "default_value": "25 75",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "100",
                     "HMI": {
                         "label_long": "@thresholdLabelLong",
@@ -261,7 +261,7 @@
                     "description": "@thresholdDesc",
                     "type": "int32",
                     "default_value": "450 1000",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "5000",
                     "HMI": {
                         "label_long": "@thresholdLabelLong",
@@ -301,7 +301,7 @@
                     "description": "@thresholdDesc",
                     "type": "int32",
                     "default_value": "100 2000",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "60000",
                     "HMI": {
                         "label_long": "@thresholdLabelLong",

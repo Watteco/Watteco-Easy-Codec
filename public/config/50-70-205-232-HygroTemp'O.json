@@ -50,7 +50,7 @@
                     "type": "timeInt32",
                     "default_value": "1440",
                     "default_unit": "1",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "1440",
                     "step": "30",
                     "HMI": {
@@ -66,7 +66,7 @@
                     "description": "@emitDesc",
                     "type": "timeInt32",
                     "default_value": "60",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
                         "label_long": "@emitLabelLong",
@@ -89,7 +89,7 @@
                     "description": "@echantDesc",
                     "type": "timeInt32",
                     "default_value": "10",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "60",
                     "depends_on": "tStandEmission",
                     "HMI": {
@@ -101,7 +101,7 @@
                     "description": "@emitMaxDesc",
                     "type": "timeInt32",
                     "default_value": "60",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
                         "label_long": "@emitMaxLabelLong",
@@ -112,7 +112,7 @@
                     "description": "@thresholdDesc",
                     "type": "int32",
                     "default_value": "15 30",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "55",
                     "HMI": {
                         "label_long": "@thresholdLabelLong",
@@ -130,7 +130,7 @@
                     "description": "@echantDesc",
                     "type": "timeInt32",
                     "default_value": "10",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "60",
                     "depends_on": "hStandEmission",
                     "HMI": {
@@ -142,7 +142,7 @@
                     "description": "@emitMaxDesc",
                     "type": "timeInt32",
                     "default_value": "60",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
                         "label_long": "@emitMaxLabelLong",
@@ -153,7 +153,7 @@
                     "description": "@thresholdDesc",
                     "type": "int32",
                     "default_value": "25 75",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "100",
                     "HMI": {
                         "label_long": "@thresholdLabelLong",
@@ -171,7 +171,7 @@
                     "description": "@echantDesc",
                     "type": "timeInt32",
                     "default_value": "10",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "1440",
                     "depends_on": "bStandEmission",
                     "HMI": {
@@ -183,7 +183,7 @@
                     "description": "@emitMaxDesc",
                     "type": "timeInt32",
                     "default_value": "1440",
-                    "min_value": "0",
+                    "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
                         "label_long": "@emitMaxLabelLong",
