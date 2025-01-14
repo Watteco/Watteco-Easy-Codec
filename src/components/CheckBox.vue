@@ -2,23 +2,23 @@
   <ion-label>{{ label }}</ion-label>
   <ion-toggle v-show="false"></ion-toggle>
 
-<div class="separator"></div>
+  <div class="separator"></div>
 
   <!-- Checkbox -->
   <ion-checkbox
     label-placement="fixed"
     alignment="center"
-    :value="value"
+    :checked="enabled"
     color="primary"
     @ionChange="onCheckChange"
   > </ion-checkbox>
-<!-- Display unit based on toggle state -->
-<ion-chip v-if="enabled">On</ion-chip>
-<ion-chip v-if="!enabled">Off</ion-chip>
+  <!-- Display unit based on toggle state -->
+  <ion-chip v-if="enabled === 'true'">On</ion-chip>
+  <ion-chip v-if="enabled === 'false'">Off</ion-chip>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 // Props to pass values from parent component
 const props = defineProps({
@@ -28,8 +28,8 @@ const props = defineProps({
   paramName: String    // new prop for paramName
 });
 
-// Local state to manage hours/minutes toggle
-const enabled = ref(false);
+// Local state to manage checkbox state
+const enabled = ref(props.value);
 
 // Emit changes back to parent component
 const emit = defineEmits(['update:value']);
@@ -40,6 +40,11 @@ const onCheckChange = (event) => {
   enabled.value = newValue;
   emit('update:value', { newValue, groupName: props.groupName, paramName: props.paramName });
 };
+
+// Watch for changes in the value prop to update the local state
+watch(() => props.value, (newValue) => {
+  enabled.value = newValue;
+});
 </script>
 
 <style scoped>
