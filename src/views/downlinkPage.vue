@@ -400,6 +400,9 @@ const initializeStates = (config) => {
           field.selectedValue = field.default_value;
           outputVals[fieldName] = convertToHexFrameValue(field.default_value, field);
 
+          // Store the original max_value
+          field.originalMaxValue = field.max_value;
+
           // Check individual default_state (if applicable)
           if (parentGroup.default_state === "true") {
             paramGroupList[fieldName] = parentGroup.fields[fieldName];
@@ -737,10 +740,14 @@ const updateMaxValues = (bigGroupName, groupName, paramName) => {
       const emissionValue = bigGroupName === 'batch_params' 
         ? parseInt(sensorConfig.value[bigGroupName].global_params.fields[emissionParam].selectedValue, 10)
         : parseInt(sensorConfig.value[bigGroupName][groupName].fields[emissionParam].selectedValue, 10);
-      param.max_value = emissionValue;
-      if (parseInt(param.selectedValue, 10) > emissionValue) {
-        param.selectedValue = emissionValue.toString();
-        outputVals[paramName] = convertToHexFrameValue(emissionValue.toString(), param);
+      
+      // Ensure the max_value does not exceed the originally set max_value
+      const originalMaxValue = parseInt(param.originalMaxValue, 10);
+      param.max_value = Math.min(emissionValue, originalMaxValue);
+
+      if (parseInt(param.selectedValue, 10) > param.max_value) {
+        param.selectedValue = param.max_value.toString();
+        outputVals[paramName] = convertToHexFrameValue(param.max_value.toString(), param);
         updateOutput();
       }
     }
