@@ -24,13 +24,15 @@
     "batch_params": {
         "batch_TH_params": {
             "label": "@tempLabel + @humLabel",
+            "default_state": "true",
             "fields": {
                 "thBatchEchant": {
                     "description": "@echantDesc",
                     "type": "timeInt32",
                     "default_value": "10",
                     "min_value": "1",
-                    "max_value": "72",
+                    "max_value": "60",
+                    "step": "1",
                     "depends_on": "gBatchEmission",
                     "HMI": {
                         "label_long": "@echantLabelLong",
@@ -41,14 +43,16 @@
         },
         "batch_B_params": {
             "label": "@batt24h",
+            "default_state": "true",
             "fields": {
                 "bBatchEchant": {
                     "description": "@echantDesc",
                     "type": "timeInt32",
-                    "default_value": "24",
+                    "default_value": "1440",
                     "default_unit": "1",
-                    "min_value": "1",
-                    "max_value": "72",
+                    "min_value": "0",
+                    "max_value": "1440",
+                    "step": "30",
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
@@ -62,8 +66,8 @@
                     "description": "@emitDesc",
                     "type": "timeInt32",
                     "default_value": "60",
-                    "min_value": "1",
-                    "max_value": "72",
+                    "min_value": "0",
+                    "max_value": "1440",
                     "HMI": {
                         "label_long": "@emitLabelLong",
                         "visual_type": "timeSlider"
@@ -85,8 +89,8 @@
                     "description": "@echantDesc",
                     "type": "timeInt32",
                     "default_value": "10",
-                    "min_value": "1",
-                    "max_value": "72",
+                    "min_value": "0",
+                    "max_value": "60",
                     "depends_on": "tStandEmission",
                     "HMI": {
                         "label_long": "@echantLabelLong",
@@ -97,8 +101,8 @@
                     "description": "@emitMaxDesc",
                     "type": "timeInt32",
                     "default_value": "60",
-                    "min_value": "1",
-                    "max_value": "72",
+                    "min_value": "0",
+                    "max_value": "1440",
                     "HMI": {
                         "label_long": "@emitMaxLabelLong",
                         "visual_type": "timeSlider"
@@ -126,8 +130,8 @@
                     "description": "@echantDesc",
                     "type": "timeInt32",
                     "default_value": "10",
-                    "min_value": "1",
-                    "max_value": "72",
+                    "min_value": "0",
+                    "max_value": "60",
                     "depends_on": "hStandEmission",
                     "HMI": {
                         "label_long": "@echantLabelLong",
@@ -138,8 +142,8 @@
                     "description": "@emitMaxDesc",
                     "type": "timeInt32",
                     "default_value": "60",
-                    "min_value": "1",
-                    "max_value": "72",
+                    "min_value": "0",
+                    "max_value": "1440",
                     "HMI": {
                         "label_long": "@emitMaxLabelLong",
                         "visual_type": "timeSlider"
@@ -166,9 +170,9 @@
                 "bStandEchant": {
                     "description": "@echantDesc",
                     "type": "timeInt32",
-                    "default_value": "24",
-                    "min_value": "1",
-                    "max_value": "72",
+                    "default_value": "10",
+                    "min_value": "0",
+                    "max_value": "1440",
                     "depends_on": "bStandEmission",
                     "HMI": {
                         "label_long": "@echantLabelLong",
@@ -178,9 +182,9 @@
                 "bStandEmission": {
                     "description": "@emitMaxDesc",
                     "type": "timeInt32",
-                    "default_value": "24",
-                    "min_value": "1",
-                    "max_value": "72",
+                    "default_value": "1440",
+                    "min_value": "0",
+                    "max_value": "1440",
                     "HMI": {
                         "label_long": "@emitMaxLabelLong",
                         "visual_type": "timeSlider"
@@ -189,7 +193,7 @@
                 "bNotification": {
                     "description": "@thresholdDesc",
                     "type": "int32",
-                    "default_value": "3000 3600",
+                    "default_value": "2900 3300",
                     "min_value": "2000",
                     "max_value": "3700",
                     "HMI": {
