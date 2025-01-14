@@ -43,9 +43,20 @@ const emit = defineEmits(['update:value']);
 // Handle changes in the ion-range (slider)
 const onRangeChange = (event) => {
   let newValue = event.detail.value;
-  if (newValue > props.max) {
+
+  // Snap the value to the nearest step
+  const snappedValue = Math.max(
+    props.min,
+    Math.round(newValue / props.step) * props.step
+  );
+
+  // Ensure it does not exceed the max
+  if (snappedValue > props.max) {
     newValue = props.max;
+  } else {
+    newValue = snappedValue;
   }
+
   currentValue.value = newValue;
   emit('update:value', { newValue, groupName: props.groupName, paramName: props.paramName });
 };
@@ -53,19 +64,35 @@ const onRangeChange = (event) => {
 // Handle input in the ion-range (slider) to update the chip while moving
 const onRangeInput = (event) => {
   let newValue = event.detail.value;
-  if (newValue > props.max) {
+
+  // Snap the value to the nearest step
+  const snappedValue = Math.max(
+    props.min,
+    Math.round(newValue / props.step) * props.step
+  );
+
+  // Ensure it does not exceed the max
+  if (snappedValue > props.max) {
     newValue = props.max;
+  } else {
+    newValue = snappedValue;
   }
+
   currentValue.value = newValue;
 };
 
 // Computed property to calculate time in "hours and minutes"
 const valueHours = computed(() => {
-  const hours = Math.floor((currentValue.value) / 60);
-  const minutes = currentValue.value % 60;
+  if (props.min === props.max) {
+    return '0h00';
+  }
+
+  const validValue = currentValue.value || props.value;
+  const hours = Math.floor((validValue) / 60);
+  const minutes = validValue % 60;
 
   let result = `${hours}h${minutes < 10 ? '0' : ''}${minutes}`;
-  
+
   return result.trim();
 });
 

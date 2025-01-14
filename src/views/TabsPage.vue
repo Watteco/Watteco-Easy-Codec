@@ -11,7 +11,7 @@
           <ion-title 
             size="large"
             id="watteco-title">
-              Watteco Easy Codec - BETA v0.6.6
+              Watteco Easy Codec - BETA v0.6.7
           </ion-title>
         </ion-toolbar>
       </ion-header>
