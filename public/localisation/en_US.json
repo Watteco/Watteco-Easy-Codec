@@ -38,5 +38,7 @@
     "cfgCommentStandIlluminance": "Configures illuminance thresholds",
     "occupancyLabel": "Occupancy",
     "cfgCommentBatchOccupancy": "Configures occupancy logging",
-    "cfgCommentStandOccupancy": "Configures occupancy thresholds"
+    "cfgCommentStandOccupancy": "Configures occupancy thresholds",
+    "cfgCommentOccToUnocc": "Occupied to unoccupied without move delay",
+    "cfgCommentUnoccToOcc": "Unoccupied to occupied delay"
 }

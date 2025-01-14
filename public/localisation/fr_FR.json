@@ -38,5 +38,7 @@
     "cfgCommentStandIlluminance": "Configure les seuils de luminosité",
     "occupancyLabel": "Occupation",
     "cfgCommentBatchOccupancy": "Configure l'historisation de l'occupation",
-    "cfgCommentStandOccupancy": "Configure les seuils d'occupation"
+    "cfgCommentStandOccupancy": "Configure les seuils d'occupation",
+    "cfgCommentOccToUnocc": "Délai de passage de occupé à inoccupé sans mouvement",
+    "cfgCommentUnoccToOcc": "Délai de passage de inoccupé à occupé"
 }
