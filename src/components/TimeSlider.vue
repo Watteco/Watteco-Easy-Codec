@@ -5,12 +5,13 @@
   <ion-range
     :min="min"
     :max="max"
-    :value="value"
+    :value="currentValue"
     :step="step"
-    pin="true"
+    pin="false"
     snaps="true"
     color="primary"
     @ionChange="onRangeChange"
+    @ionInput="onRangeInput"
   ></ion-range>
 
   <div class="separator"></div>
@@ -33,6 +34,9 @@ const props = defineProps({
   paramName: String,
 });
 
+// Reactive variable to store the current value of the slider
+const currentValue = ref(props.value);
+
 // Emit changes back to parent component
 const emit = defineEmits(['update:value']);
 
@@ -42,28 +46,40 @@ const onRangeChange = (event) => {
   if (newValue > props.max) {
     newValue = props.max;
   }
+  currentValue.value = newValue;
   emit('update:value', { newValue, groupName: props.groupName, paramName: props.paramName });
+};
+
+// Handle input in the ion-range (slider) to update the chip while moving
+const onRangeInput = (event) => {
+  let newValue = event.detail.value;
+  if (newValue > props.max) {
+    newValue = props.max;
+  }
+  currentValue.value = newValue;
 };
 
 // Computed property to calculate time in "hours and minutes"
 const valueHours = computed(() => {
-  const hours = Math.floor((props.value) / 60);
-  const minutes = props.value % 60;
+  const hours = Math.floor((currentValue.value) / 60);
+  const minutes = currentValue.value % 60;
 
-  let result = '';
-  result += `${hours}h`;
-  if (minutes > 0) {
-    result += `${minutes < 10 ? '0' : ''}${minutes}`;
-  }
+  let result = `${hours}h${minutes < 10 ? '0' : ''}${minutes}`;
   
   return result.trim();
 });
 
 // Watch for changes in max value and adjust the slider value if necessary
 watch(() => props.max, (newMax) => {
-  if (props.value > newMax) {
+  if (currentValue.value > newMax) {
+    currentValue.value = newMax;
     emit('update:value', { newValue: newMax, groupName: props.groupName, paramName: props.paramName });
   }
+});
+
+// Watch for changes in the initial value prop and update the current value
+watch(() => props.value, (newValue) => {
+  currentValue.value = newValue;
 });
 </script>
 

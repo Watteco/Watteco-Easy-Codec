@@ -65,7 +65,19 @@ ion-item {
 ion-chip {
   --background: var(--ion-color-primary);
   --color: white;
-  width: 75px;
+  width: 90px;
   justify-content: space-around;
+}
+
+/* Add responsive styles for smartphones */
+@media (max-width: 600px) {
+  ion-chip {
+    width: 70px;
+    font-size: 0.8rem;
+  }
+
+  ion-label {
+    font-size: 0.9rem;
+  }
 }
 </style>

@@ -920,7 +920,7 @@ ion-range::part(pin)::before {
   }
 
   ion-chip {
-    width: 60px;
+    width: 90px;
     font-size: 0.8rem;
   }
 
