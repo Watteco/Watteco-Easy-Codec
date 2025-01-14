@@ -43,15 +43,16 @@
         },
         "batch_B_params": {
             "label": "@batt24h",
+            "default_state": "true",
             "fields": {
                 "bBatchEchant": {
                     "description": "@echantDesc",
                     "type": "timeInt32",
-                    "default_value": "720",
+                    "default_value": "1440",
                     "default_unit": "1",
                     "min_value": "0",
-                    "max_value": "1440",
-                    "step": "10",
+                    "max_value": "2880",
+                    "step": "30",
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "timeSlider"
@@ -123,14 +124,13 @@
         },
         "standard_B_params": {
             "label": "@battLabel",
-            "default_state": "true",
             "fields": {
                 "bStandEchant": {
                     "description": "@echantDesc",
                     "type": "timeInt32",
-                    "default_value": "24",
+                    "default_value": "10",
                     "min_value": "1",
-                    "max_value": "72",
+                    "max_value": "1440",
                     "depends_on": "bStandEmission",
                     "HMI": {
                         "label_long": "@echantLabelLong",
@@ -140,9 +140,9 @@
                 "bStandEmission": {
                     "description": "@emitMaxDesc",
                     "type": "timeInt32",
-                    "default_value": "24",
+                    "default_value": "1440",
                     "min_value": "1",
-                    "max_value": "72",
+                    "max_value": "1440",
                     "HMI": {
                         "label_long": "@emitMaxLabelLong",
                         "visual_type": "timeSlider"
@@ -151,7 +151,7 @@
                 "bNotification": {
                     "description": "@thresholdDesc",
                     "type": "int32",
-                    "default_value": "3000 3600",
+                    "default_value": "2900 3300",
                     "min_value": "2000",
                     "max_value": "3700",
                     "HMI": {

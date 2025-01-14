@@ -441,7 +441,8 @@ const loadSensorConfig = async (sensorFile: string) => {
 // Initialize default values for sensor parameters
 const initParams = () => {
   if (sensorConfig.value) {
-    for (const section of [sensorConfig.value.batch_params, sensorConfig.value.standard_params]) {
+    for (const bigGroupName of ['batch_params', 'standard_params']) {
+      const section = sensorConfig.value[bigGroupName];
       for (const groupName in section) {
         const group = section[groupName];
         if (group && group.fields) {
@@ -452,7 +453,7 @@ const initParams = () => {
               param.selectedValue = param.selectedValue || param.default_value;
               param.isHours = false; // Default time state
               outputVals[paramName] = convertToHexFrameValue(param.selectedValue, param);
-              updateMaxValues(section, groupName, paramName);
+              updateMaxValues(bigGroupName, groupName, paramName);
             }
           }
         }
@@ -646,9 +647,11 @@ const onParamChange = (event, bigGroupName, groupName, paramName) => {
       // Update max values for dependent sliders
       if (sensorConfig.value[bigGroupName][groupName].fields[paramName].HMI.visual_type === 'timeSlider') {
         Object.keys(sensorConfig.value[bigGroupName]).forEach(group => {
-          Object.keys(sensorConfig.value[bigGroupName][group].fields).forEach(field => {
-            updateMaxValues(bigGroupName, group, field);
-          });
+          if (sensorConfig.value[bigGroupName][group].fields) {
+            Object.keys(sensorConfig.value[bigGroupName][group].fields).forEach(field => {
+              updateMaxValues(bigGroupName, group, field);
+            });
+          }
         });
       }
     } else {
