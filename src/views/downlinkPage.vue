@@ -249,8 +249,8 @@ import CheckBox from '@/components/CheckBox.vue';
 import axios from 'axios';
 
 // Import language files
-import enUS from '@/localisation/en_US.json';
-import frFR from '@/localisation/fr_FR.json';
+import enUS from '/localisation/en_US.json?url';
+import frFR from '/localisation/fr_FR.json?url';
 
 // Reactive variables to store application state
 const availableProducts = ref([]); // Stores the list of available products
@@ -282,13 +282,28 @@ watch(sensorConfig, (newConfig) => {
 });
 
 // Language files map
-const languages = {
-  en: enUS,
-  fr: frFR,
+const languages = ref({ en: {}, fr: {} });
+
+// Load localization files dynamically
+const loadLocalizationFiles = async () => {
+  try {
+    const enResponse = await axios.get(enUS);
+    const frResponse = await axios.get(frFR);
+    languages.value.en = enResponse.data;
+    languages.value.fr = frResponse.data;
+
+    // Set initial content of outputArea after localization files are loaded
+    const selectToStartText = localize("@selectToStart");
+    document.getElementById("outputArea").innerHTML = selectToStartText;
+  } catch (error) {
+    console.error('Failed to load localization files:', error);
+  }
 };
 
 // Computed property to get the current localization file
-const localization = computed(() => languages[currentLanguage.value]);
+const localization = computed(() => {
+  return languages.value[currentLanguage.value];
+});
 
 import { currentLanguage } from './localization'; // Import the reactive language state
 
@@ -344,7 +359,8 @@ const loadAvailableProducts = async () => {
     availableProducts.value = response.data.products.filter(product => 
       product.apps && product.apps.includes("EasyCodec")
     );
-    document.getElementById("outputArea").innerHTML = localize("@selectToStart");
+    const selectToStartText = localize("@selectToStart");
+    document.getElementById("outputArea").innerHTML = selectToStartText;
   } catch (error) {
     console.error("Erreur lors du chargement de AvailableProductList:", error);
   }
@@ -681,7 +697,9 @@ const onToggleChange = (event: { isHours: boolean; }, bigGroupName: string, grou
 // Load available products when the component is mounted
 onMounted(() => {
   loadAvailableProducts();
-  currentLanguage.value = 'en';
+  loadLocalizationFiles().then(() => {
+    currentLanguage.value = 'en';
+  });
 });
 
 // Calculate appropriate slider step sizes
