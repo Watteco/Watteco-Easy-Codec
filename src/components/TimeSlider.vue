@@ -83,11 +83,12 @@ const onRangeInput = (event) => {
 
 // Computed property to calculate time in "hours and minutes"
 const valueHours = computed(() => {
+  let validValue = currentValue.value || props.value;
+
   if (props.min === props.max) {
-    return '0h00';
+    validValue = props.min;
   }
 
-  const validValue = currentValue.value || props.value;
   const hours = Math.floor((validValue) / 60);
   const minutes = validValue % 60;
 

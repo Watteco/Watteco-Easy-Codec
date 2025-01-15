@@ -57,6 +57,7 @@
               <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName]">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
+                          v-show="param.hidden !== 'true'"
                           class="config-card">
                   <ion-item class="config-item">
                     <!-- Using the TimeSlider component -->
@@ -103,7 +104,8 @@
             </ion-card>
             <ion-card v-for="(param, paramName) in sensorConfig.batch_params.global_params.fields" 
                       :key="paramName"
-                      v-if="batchChecked">
+                      v-if="batchChecked"
+                      v-show="param.hidden !== 'true'">
               <ion-item class="config-item">
                 <time-slider
                   :label="param.HMI.label_long"
@@ -148,6 +150,7 @@
               <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName]">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
+                          v-show="param.hidden !== 'true'"
                           class="config-card">
                   <ion-item class="config-item">
                     

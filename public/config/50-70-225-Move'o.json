@@ -43,6 +43,24 @@
                 }
             }
         },
+        "batch_O_params": {
+            "label": "@occupancyLabel",
+            "default_state": "true",
+            "fields": {
+                "oBatchEchant": {
+                    "description": "@echantDesc",
+                    "type": "timeInt32",
+                    "default_value": "1",
+                    "min_value": "1",
+                    "max_value": "1",
+                    "hidden": "true",
+                    "HMI": {
+                        "label_long": "@echantLabelLong",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
         "global_params": {
             "fields": {
                 "gBatchEmission": {
@@ -62,7 +80,7 @@
             ["11 06 0402 15 00 00 00 (thiBatchEchant) (gBatchEmission) 00 0a 00 0a 0b", "@cfgCommentBatchTemp"],
             ["11 06 0405 15 00 00 00 (thiBatchEchant) (gBatchEmission) 00 64 00 64 13", "@cfgCommentBatchHum"],
             ["11 06 0400 15 00 00 00 (thiBatchEchant) (gBatchEmission) 000a 000a 2b", "@cfgCommentBatchIlluminance"],
-            ["11 06 0406 11 00 00 00 0001 (gBatchEmission) 01 01 03", "@cfgCommentBatchOccupancy"]
+            ["11 06 0406 11 00 00 00 (oBatchEchant) (gBatchEmission) 01 01 03", "@cfgCommentBatchOccupancy"]
         ]
     },
     "standard_params": {
@@ -192,18 +210,6 @@
             "label": "@occupancyLabel",
 			"default_state": "true",
             "fields": {
-                "oStandEchant": {
-                    "description": "@echantDesc",
-                    "type": "timeInt32",
-                    "default_value": "10",
-                    "min_value": "1",
-                    "max_value": "60",
-                    "depends_on": "oStandEmission",
-                    "HMI": {
-                        "label_long": "@echantLabelLong",
-                        "visual_type": "timeSlider"
-                    }
-                },
                 "oStandEmission": {
                     "description": "@emitMaxDesc",
                     "type": "timeInt32",
