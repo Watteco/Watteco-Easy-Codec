@@ -19,12 +19,15 @@
                 :placeholder="localize('@sensorSelect')"
                 @ionChange="onSensorChange"
               >
-              <!-- Loop through products from JSON file -->
-              <ion-select-option v-for="(product, index) in availableProducts" 
-                  :key="index" 
-                  :value="product.file">
-                {{ product.name }}
-              </ion-select-option>
+              <!-- Loop through categories and products -->
+              <template v-for="(products, category) in categorizedProducts" :key="category">
+                <ion-select-option disabled>
+                  {{ category }}
+                </ion-select-option>
+                <ion-select-option v-for="product in products" :key="product.file" :value="product.file">
+                  {{ product.name }}
+                </ion-select-option>
+              </template>
             </ion-select>
           </ion-card-content>
         </ion-card>
@@ -257,6 +260,16 @@ import frFR from '/localisation/fr_FR.json?url';
 
 // Reactive variables to store application state
 const availableProducts = ref([]); // Stores the list of available products
+const categorizedProducts = computed(() => {
+  const categories = {};
+  availableProducts.value.forEach(product => {
+    if (!categories[product.category]) {
+      categories[product.category] = [];
+    }
+    categories[product.category].push(product);
+  });
+  return categories;
+});
 const selectedSensor = ref(''); // Stores the currently selected sensor
 const sensorConfig = ref<any | null>(null); // Dynamic configuration for the selected sensor
 const batchChecked = ref(false); // State of the batch mode checkbox
