@@ -49,14 +49,12 @@
             "fields": {
                 "oBatchEchant": {
                     "description": "@echantDesc",
-                    "type": "timeInt32",
-                    "default_value": "1",
-                    "min_value": "1",
-                    "max_value": "1",
+                    "type": "string",
+                    "default_value": "0001",
                     "hidden": "true",
                     "HMI": {
                         "label_long": "@echantLabelLong",
-                        "visual_type": "timeSlider"
+                        "visual_type": "customValue"
                     }
                 }
             }

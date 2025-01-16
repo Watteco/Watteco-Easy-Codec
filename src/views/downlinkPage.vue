@@ -101,6 +101,14 @@
                       @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
                     />
 
+                    <!-- Using the CustomValue component -->
+                    <custom-value
+                      v-if="param.HMI?.visual_type === 'customValue'"
+                      :value="param.value"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                    />
+
                   </ion-item>
                 </ion-card>
               </ul>
@@ -193,6 +201,14 @@
                       :groupName="groupName"
                       :paramName="paramName"
                       @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
+                    />
+
+                    <!-- Using the CustomValue component -->
+                    <custom-value
+                      v-if="param.HMI?.visual_type === 'customValue'"
+                      :value="param.value"
+                      :groupName="groupName"
+                      :paramName="paramName"
                     />
 
                   </ion-item>
@@ -596,8 +612,11 @@ const replaceInFrame = (frame: string, key: string, value: string, enabled: stri
 const convertToHexFrameValue = (value: string, param: {
   HMI: any; type: string; isHours: boolean; 
 }) => {
+  console.log(param, value);
   if (!value || !param) return 1;
   let output = '';
+
+  if (param.type === 'string') return value;
 
   if (value.includes(" ")) {
     output = "";
