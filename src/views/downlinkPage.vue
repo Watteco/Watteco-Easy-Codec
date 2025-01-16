@@ -215,8 +215,16 @@
   <div>
     <!-- Language Switcher -->
     <ion-segment v-model="currentLanguage" @ionChange="changeLanguage($event.detail.value)">
-      <ion-segment-button value="en">English</ion-segment-button>
-      <ion-segment-button value="fr">Français</ion-segment-button>
+      <ion-segment-button value="en" class="language-button">
+        <span class="language-content">
+          <img src="@/assets/img/flags/gb.png" alt="English" class="flag-icon" /> English
+        </span>
+      </ion-segment-button>
+      <ion-segment-button value="fr" class="language-button">
+        <span class="language-content">
+          <img src="@/assets/img/flags/fr.png" alt="Français" class="flag-icon" /> Français
+        </span>
+      </ion-segment-button>
     </ion-segment>
   </div>
   </ion-page>

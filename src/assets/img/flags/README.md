@@ -1,0 +1,1 @@
+If needed to add flags, flags are the "h20" (the png 20px height) version of the [flagpedia.net](https://flagpedia.net/download/icons) flags.
