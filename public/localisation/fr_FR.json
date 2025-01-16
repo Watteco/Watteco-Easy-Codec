@@ -4,6 +4,7 @@
     "sensorSelect": "Sélectionner un capteur",
     "selectToStart": "Sélectionnez un capteur pour commencer",
     "selectAtLeastOneMode": "Veuillez sélectionner au moins un mode",
+    "reportOnStateVarLabelLong": "Report sur variation d'état",
     "confirmedDesc": "Confirmé",
     "confirmedLabelLong": "Confirmé",
     "cfgCommentConfirmed": "Configure si le capteur envoie des trames confirmées ou non",

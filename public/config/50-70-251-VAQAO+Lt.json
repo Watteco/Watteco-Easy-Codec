@@ -239,7 +239,7 @@
                     "type": "bool",
                     "default_value": "true",
                     "HMI": {
-                        "label_long": "Report sur variation d'état",
+                        "label_long": "reportOnStateVarLabelLong",
                         "visual_type": "checkbox"
                     }
                 }

@@ -4,6 +4,7 @@
     "sensorSelect": "Select a sensor",
     "selectToStart": "Select a sensor to start",
     "selectAtLeastOneMode": "Please select at least one mode",
+    "reportOnStateVarLabelLong": "Report on state variation",
     "confirmedDesc": "Confirmed",
     "confirmedLabelLong": "Confirmed",
     "cfgCommentConfirmed": "Configures if the sensor sends confirmed frames",
