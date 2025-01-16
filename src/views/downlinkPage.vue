@@ -37,7 +37,7 @@
           <ion-item class="config-item">
             <ion-label>{{ localize("@batchLabel") }}</ion-label>
             <ion-checkbox :checked="batchChecked" @ionChange="onBatchCheckedChange"></ion-checkbox>
-            <ion-button v-if="batchChecked" class="visibility-button" @click="toggleVisibility('batch_params')">{{ batchVisible ? '–' : '+' }}</ion-button>
+            <ion-button class="visibility-button" :class="{ invisible: !batchChecked }" @click="toggleVisibility('batch_params')">{{ batchVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
           <div v-show="batchVisible">
@@ -53,7 +53,7 @@
                   :checked="paramGroupChecked[groupName] || false"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'batch_params')"
                 ></ion-checkbox>
-                <ion-button v-if="paramGroupChecked[groupName]" class="visibility-button" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
+                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
               </ion-item>
 
               <!-- Dynamic fields -->
@@ -130,7 +130,7 @@
           <ion-item class="config-item">
             <ion-label>{{ localize("@standLabel") }}</ion-label>
             <ion-checkbox :checked="standardChecked" @ionChange="onStandardCheckedChange"></ion-checkbox>
-            <ion-button v-if="standardChecked" class="visibility-button" @click="toggleVisibility('standard_params')">{{ standardVisible ? '–' : '+' }}</ion-button>
+            <ion-button class="visibility-button" :class="{ invisible: !standardChecked }" @click="toggleVisibility('standard_params')">{{ standardVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
           <div v-show="standardVisible">
@@ -146,7 +146,7 @@
                   :checked="paramGroupChecked[groupName] || false"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'standard_params')"
                 ></ion-checkbox>
-                <ion-button v-if="paramGroupChecked[groupName]" class="visibility-button" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
+                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
               </ion-item>
 
               <!-- Dynamic fileds -->
@@ -932,6 +932,26 @@ ion-range::part(pin)::before {
   font-size: x-large;
   font-weight: bolder;
   color: black;
+}
+
+.visibility-button.invisible {
+  visibility: hidden;
+}
+
+.flag-icon {
+  height: 20px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.language-button {
+  display: inline-flex;
+  align-items: center;
+}
+
+.language-content {
+  display: inline-flex;
+  align-items: center;
 }
 
 /* Add responsive styles for smartphones */

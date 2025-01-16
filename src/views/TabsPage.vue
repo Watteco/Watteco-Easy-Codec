@@ -11,7 +11,7 @@
           <ion-title 
             size="large"
             id="watteco-title">
-              Watteco Easy Codec - BETA v0.6.9
+              Watteco Easy Codec - BETA v0.6.10
           </ion-title>
         </ion-toolbar>
       </ion-header>
@@ -20,11 +20,11 @@
           <ion-icon :icon="arrowDownCircleOutline" />
         </ion-tab-button>
 
-        <ion-tab-button tab="uplink" href="/tabs/uplink" disabled="true">
+        <ion-tab-button tab="uplink" href="/tabs/uplink" :disabled="true">
           <ion-icon :icon="arrowUpCircleOutline" />
         </ion-tab-button>
 
-        <ion-tab-button tab="battery" href="/tabs/battery" disabled="true">
+        <ion-tab-button tab="battery" href="/tabs/battery" :disabled="true">
           <ion-icon :icon="batteryHalfOutline" />
         </ion-tab-button>
       </ion-tab-bar>

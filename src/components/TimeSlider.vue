@@ -92,7 +92,7 @@ const valueHours = computed(() => {
   const hours = Math.floor((validValue) / 60);
   const minutes = validValue % 60;
 
-  let result = `${hours}h${minutes < 10 ? '0' : ''}${minutes}`;
+  const result = `${hours}h${minutes < 10 ? '0' : ''}${minutes}`;
 
   return result.trim();
 });
