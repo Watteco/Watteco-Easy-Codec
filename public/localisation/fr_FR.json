@@ -1,6 +1,6 @@
 {
     "sensor": "Capteur",
-    "probe": "Sonde",
+    "probe": "sonde",
     "port125": "Cette liste de trames est à envoyer sur le port 125 :",
     "sensorSelect": "Sélectionner un capteur",
     "selectToStart": "Sélectionnez un capteur pour commencer",
