@@ -1,10 +1,7 @@
 {
     "general_params": {
         "cfg_block": [
-            ["11 50 00 50 02 03", "@cfgCommentRemoveConfig"],
-            ["11 06 00 0F 00 00 55 10 00 01 ff ff 01", "@cfgCommentPullOut"],
-            ["11 05 0406 0010 21 0708","@cfgCommentOccToUnocc"],
-            ["11 05 0406 0011 21 0000","@cfgCommentUnoccToOcc"]
+            ["11 50 00 50 02 03", "@cfgCommentRemoveConfig"]
         ]
     },
     "confirmed": {
@@ -24,11 +21,10 @@
         ]
     },
     "batch_params": {
-        "batch_THI_params": {
-            "label": "@tempLabel + @humLabel + @illuminanceLabel",
-            "default_state": "true",
+        "batch_TH_params": {
+            "label": "@tempLabel + @humLabel",
             "fields": {
-                "thiBatchEchant": {
+                "thBatchEchant": {
                     "description": "@echantDesc",
                     "type": "timeInt32",
                     "default_value": "10",
@@ -43,17 +39,20 @@
                 }
             }
         },
-        "batch_O_params": {
-            "label": "@occupancyLabel",
-            "default_state": "true",
+        "batch_B_params": {
+            "label": "@batt24h",
             "fields": {
-                "oBatchEchant": {
+                "bBatchEchant": {
                     "description": "@echantDesc",
-                    "type": "string",
-                    "default_value": "0001",
+                    "type": "timeInt32",
+                    "default_value": "1440",
+                    "default_unit": "1",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "30",
                     "HMI": {
                         "label_long": "@echantLabelLong",
-                        "visual_type": "customValue"
+                        "visual_type": "timeSlider"
                     }
                 }
             }
@@ -74,15 +73,15 @@
             }
         },
         "cfg_block": [
-            ["11 06 0402 15 00 00 00 (thiBatchEchant) (gBatchEmission) 00 0a 00 0a 0b", "@cfgCommentBatchTemp"],
-            ["11 06 0405 15 00 00 00 (thiBatchEchant) (gBatchEmission) 00 64 00 64 13", "@cfgCommentBatchHum"],
-            ["11 06 0400 15 00 00 00 (thiBatchEchant) (gBatchEmission) 000a 000a 2b", "@cfgCommentBatchIlluminance"],
-            ["11 06 0406 11 00 00 00 (oBatchEchant) (gBatchEmission) 01 01 03", "@cfgCommentBatchOccupancy"]
+            ["11 06 04 02 15 00 00 00 (thBatchEchant) (gBatchEmission) 00 00 00 0A 02", "@cfgCommentBatchTemp"],
+            ["11 06 04 05 15 00 00 00 (thBatchEchant) (gBatchEmission) 00 00 00 64 0a", "@cfgCommentBatchHum"],
+            ["11 06 00 50 15 00 06 04 (bBatchEchant) 85a0 00 00 00 01 12", "@cfgCommentBatchBatt"]
         ]
     },
     "standard_params": {
         "standard_T_params": {
             "label": "@tempLabel",
+			"default_state": "true",
             "fields": {
                 "tStandEchant": {
                     "description": "@echantDesc",
@@ -99,7 +98,7 @@
                 "tStandEmission": {
                     "description": "@emitMaxDesc",
                     "type": "timeInt32",
-                    "default_value": "60",
+                    "default_value": "240",
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
@@ -110,7 +109,7 @@
                 "tNotification": {
                     "description": "@thresholdDesc",
                     "type": "int32",
-                    "default_value": "15 30",
+                    "default_value": "15.1 29.9",
                     "min_value": "1",
                     "max_value": "55",
                     "HMI": {
@@ -124,6 +123,7 @@
         },
         "standard_H_params": {
             "label": "@humLabel",
+			"default_state": "true",
             "fields": {
                 "hStandEchant": {
                     "description": "@echantDesc",
@@ -140,7 +140,7 @@
                 "hStandEmission": {
                     "description": "@emitMaxDesc",
                     "type": "timeInt32",
-                    "default_value": "60",
+                    "default_value": "240",
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
@@ -151,7 +151,7 @@
                 "hNotification": {
                     "description": "@thresholdDesc",
                     "type": "int32",
-                    "default_value": "25 75",
+                    "default_value": "35 59.9",
                     "min_value": "1",
                     "max_value": "100",
                     "HMI": {
@@ -163,80 +163,14 @@
                 }
             }
         },
-        "standard_I_params": {
-            "label": "@illuminanceLabel",
-            "fields": {
-                "iStandEchant": {
-                    "description": "@echantDesc",
-                    "type": "timeInt32",
-                    "default_value": "10",
-                    "min_value": "1",
-                    "max_value": "60",
-                    "depends_on": "iStandEmission",
-                    "HMI": {
-                        "label_long": "@echantLabelLong",
-                        "visual_type": "timeSlider"
-                    }
-                },
-                "iStandEmission": {
-                    "description": "@emitMaxDesc",
-                    "type": "timeInt32",
-                    "default_value": "60",
-                    "min_value": "1",
-                    "max_value": "1440",
-                    "HMI": {
-                        "label_long": "@emitMaxLabelLong",
-                        "visual_type": "timeSlider"
-                    }
-                },
-                "iNotification": {
-                    "description": "@thresholdDesc",
-                    "type": "int32",
-                    "default_value": "100 2000",
-                    "min_value": "1",
-                    "max_value": "60000",
-                    "HMI": {
-                        "label_long": "@thresholdLabelLong",
-                        "visual_type": "doubleSlider",
-                        "unit": "lx"
-                    }
-                }
-            }
-        },
-        "standard_O_params": {
-            "label": "@occupancyLabel",
-			"default_state": "true",
-            "fields": {
-                "oStandEmission": {
-                    "description": "@emitMaxDesc",
-                    "type": "timeInt32",
-                    "default_value": "720",
-                    "min_value": "1",
-                    "max_value": "1440",
-                    "HMI": {
-                        "label_long": "@emitMaxLabelLong",
-                        "visual_type": "timeSlider"
-                    }
-                },
-                "oStateVariation": {
-                    "description": "Variation d'état",
-                    "type": "bool",
-                    "default_value": "true",
-                    "HMI": {
-                        "label_long": "@reportOnStateVarLabelLong",
-                        "visual_type": "checkbox"
-                    }
-                }
-            }
-        },
         "standard_B_params": {
             "label": "@battLabel",
-            "default_state": "true",
+			"default_state": "true",	
             "fields": {
                 "bStandEchant": {
                     "description": "@echantDesc",
                     "type": "timeInt32",
-                    "default_value": "10",
+                    "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
                     "depends_on": "bStandEmission",
@@ -271,11 +205,9 @@
             }
         },
         "cfg_block": [
-            ["11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tNotification1) 0000 0171 (tNotification2) 0000 01", "@cfgCommentStandTemp"],
-            ["11 06 0405 80 0000 29 (hStandEchant) (hStandEmission) 70 (hNotification1) 0000 0171 (hNotification2) 0000 01", "@cfgCommentStandHum"],
-            ["11 06 0400 80 0000 21 (iStandEchant) (iStandEmission) 70 (iNotification1) 0000 0171 (iNotification2) 0000 01", "@cfgCommentStandIlluminance"],
-            ["11 06 0406 00 0000 18 0001 (oStandEmission) (oStateVariation)", "@cfgCommentStandOccupancy"],
-            ["11 06 0050 88 0006 41 (bStandEchant) (bStandEmission) 0e f0 04 (bNotification1) 0064 02 f1 04 (bNotification2) 0064 02", "@cfgCommentStandBatt"]
+            ["11 06 0402 90 0000 29 (tStandEchant) (tStandEmission) f0 (tNotification1) 000a 02 f1 (tNotification2) 000a 02", "@cfgCommentStandTemp"],
+            ["11 06 0405 90 0000 29 (hStandEchant) (hStandEmission) f0 (hNotification1) 000a 02 f1 (hNotification2) 000a 02", "@cfgCommentStandHum"],
+            ["11 06 0050 80 0006 41 (bStandEchant) (bStandEmission) 0e 70 04 (bNotification1) 0000 0171 04 (bNotification2) 0000 01", "@cfgCommentStandBatt"]
         ]
     }
 }

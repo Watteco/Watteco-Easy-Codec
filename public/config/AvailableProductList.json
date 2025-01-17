@@ -129,9 +129,9 @@
 			"docLink": "https://support.watteco.com/moveo/"
 		},
 		{
-			"name": "Outdoor Temperature (50-70-164)",
+			"name": "Temp'O Outdoor (50-70-164)",
 			"file": "50-70-164-RT",
-			"apps": ["LoraEncoder","Decoder","LoraEncoderConfiguration"],
+			"apps": ["LoraEncoder","Decoder","LoraEncoderConfiguration","EasyCodec"],
 			"BatchUncompressParams": "3 0,10,7,Temperature 5,100,6,BatteryLevel",
 			"category": "TH sensors (Outdoor)",
 			"comment": ["Outdoor (IP66) temperature measurement","Mesure de température extérieure (IP66)"],
@@ -191,9 +191,9 @@
 			"docLink": "https://support.watteco.com/remote-temperature-old/"
 		},
 		{
-			"name": "Remote temperature 1CTN (50-70-043-003)",
-			"file": "50-70-043-003-RT",
-			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
+			"name": "Temp'O - 1 remote probe (50-70-043-003)",
+			"file": "50-70-043-003-RT1CTN",
+			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel",
 			"category": "TH sensors (Remote)",
 			"comment": ["1 channel remote temperature measurement (more accurate and thresholds management)",
@@ -201,9 +201,9 @@
 			"docLink": "https://support.watteco.com/remote-temperature/"
 		},
 		{
-			"name": "Remote temperature 2CTN (50-70-[139/163/184])",
+			"name": "Temp'O - 2 remote probes (50-70-[139/163/184])",
 			"file": "50-70-139-000-RT2CTN",
-			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
+			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"BatchUncompressParams": "3 0,10,7,Temperature1 1,10,7,Temperature2 5,100,6,BatteryLevel",
 			"category": "TH sensors (Remote)",
 			"comment": ["2 channels remote temperature measurement",
@@ -211,9 +211,9 @@
 			"docLink": "https://support.watteco.com/remote-temperature-2/"
 		},
 		{
-			"name": "Remote temperature hygrometry (50-70-200)",
+			"name": "HygroTemp'O - remote probe 1m (50-70-200)",
 			"file": "50-70-200-RTH",
-			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
+			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel",
 			"category": "TH sensors (Remote)",
 			"comment": ["Remote temperature and hygrometry measurement", 

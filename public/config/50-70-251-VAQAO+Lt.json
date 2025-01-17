@@ -52,7 +52,6 @@
                     "description": "@echantDesc",
                     "type": "string",
                     "default_value": "0001",
-                    "hidden": "true",
                     "HMI": {
                         "label_long": "@echantLabelLong",
                         "visual_type": "customValue"
