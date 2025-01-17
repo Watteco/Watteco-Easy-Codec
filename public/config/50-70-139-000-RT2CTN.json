@@ -77,8 +77,8 @@
             }
         },
         "cfg_block": [
-            ["11 06 04 02 15 00 00 00 (tBatchEchant) (gBatchEmission) 00 00 00 0A 03", "@cfgCommentBatchTemp"],
-			["31 06 04 02 15 00 00 00 (tBatchEchant) (gBatchEmission) 00 00 00 0A 0B", "@cfgCommentBatchTemp"],
+            ["11 06 04 02 15 00 00 00 (tBatchEchant) (gBatchEmission) 00 00 00 0A 03", "@cfgCommentBatchTemp - @probe 1"],
+			["31 06 04 02 15 00 00 00 (tBatchEchant) (gBatchEmission) 00 00 00 0A 0B", "@cfgCommentBatchTemp - @probe 2"],
             ["11 06 00 50 15 00 06 04 (bBatchEchant) 85a0 00 00 00 64 2b", "@cfgCommentBatchBatt"]
         ]
     },
@@ -206,8 +206,8 @@
             }
         },
         "cfg_block": [
-            ["11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tNotification1) 0000 0171 (tNotification2) 0000 01", "@cfgCommentStandTemp"],
-			["31 06 0402 80 0000 29 (t2StandEchant) (t2StandEmission) 70 (t2Notification1) 0000 0171 (t2Notification2) 0000 01", "@cfgCommentStandTemp"],
+            ["11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tNotification1) 0000 0171 (tNotification2) 0000 01", "@cfgCommentStandTemp - @probe 1"],
+			["31 06 0402 80 0000 29 (t2StandEchant) (t2StandEmission) 70 (t2Notification1) 0000 0171 (t2Notification2) 0000 01", "@cfgCommentStandTemp - @probe 2"],
             ["11 06 0050 80 0006 41 (bStandEchant) (bStandEmission) 0e 70 04 (bNotification1) 0000 0171 04 (bNotification2) 0000 01", "@cfgCommentStandBatt"]
         ]
     }
