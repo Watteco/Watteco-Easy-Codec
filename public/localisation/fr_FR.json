@@ -1,10 +1,15 @@
 {
     "sensor": "Capteur",
+    "probe": "Sonde",
     "port125": "Cette liste de trames est à envoyer sur le port 125 :",
     "sensorSelect": "Sélectionner un capteur",
     "selectToStart": "Sélectionnez un capteur pour commencer",
     "selectAtLeastOneMode": "Veuillez sélectionner au moins un mode",
     "reportOnStateVarLabelLong": "Report sur variation d'état",
+    "showFrames": "Afficher les trames",
+    "showFrame": "Afficher la trame",
+    "hideFrames": "Masquer les trames",
+    "hideFrame": "Masquer la trame",
     "confirmedDesc": "Confirmé",
     "confirmedLabelLong": "Confirmé",
     "cfgCommentConfirmed": "Configure si le capteur envoie des trames confirmées ou non",
@@ -41,5 +46,6 @@
     "cfgCommentBatchOccupancy": "Configure l'historisation de l'occupation",
     "cfgCommentStandOccupancy": "Configure les seuils d'occupation",
     "cfgCommentOccToUnocc": "Délai de passage de occupé à inoccupé sans mouvement",
-    "cfgCommentUnoccToOcc": "Délai de passage de inoccupé à occupé"
+    "cfgCommentUnoccToOcc": "Délai de passage de inoccupé à occupé",
+	"cfgCommentCTNConfiguration": "Configure les coefficients de la CTN"
 }

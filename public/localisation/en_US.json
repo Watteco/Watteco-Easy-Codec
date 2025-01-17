@@ -1,10 +1,15 @@
 {
     "sensor": "Sensor",
+    "probe": "Probe",
     "port125": "This list of frames is to send on port 125:",
     "sensorSelect": "Select a sensor",
     "selectToStart": "Select a sensor to start",
     "selectAtLeastOneMode": "Please select at least one mode",
     "reportOnStateVarLabelLong": "Report on state variation",
+    "showFrames": "Show frames",
+    "showFrame": "Show frame",
+    "hideFrames": "Hide frames",
+    "hideFrame": "Hide frame",
     "confirmedDesc": "Confirmed",
     "confirmedLabelLong": "Confirmed",
     "cfgCommentConfirmed": "Configures if the sensor sends confirmed frames",
@@ -41,5 +46,6 @@
     "cfgCommentBatchOccupancy": "Configures occupancy logging",
     "cfgCommentStandOccupancy": "Configures occupancy thresholds",
     "cfgCommentOccToUnocc": "Occupied to unoccupied without move delay",
-    "cfgCommentUnoccToOcc": "Unoccupied to occupied delay"
+    "cfgCommentUnoccToOcc": "Unoccupied to occupied delay",
+	"cfgCommentCTNConfiguration": "Configures NTC coefficient"
 }

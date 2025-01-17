@@ -112,6 +112,13 @@
                   </ion-item>
                 </ion-card>
               </ul>
+              <!-- Add frames display at the bottom of each paramGroup card -->
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]">                
+                <ion-button @click="toggleFramesVisibility(groupName)" class="small-button">
+                  {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
+                </ion-button>
+                <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('batch_params', groupName)"></div>
+              </ion-card-content>
             </ion-card>
             <ion-card v-for="(param, paramName) in sensorConfig.batch_params.global_params.fields" 
                       :key="paramName"
@@ -214,6 +221,13 @@
                   </ion-item>
                 </ion-card>
               </ul>
+              <!-- Add frames display at the bottom of each paramGroup card -->
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]">
+                <ion-button @click="toggleFramesVisibility(groupName)" class="small-button">
+                  {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
+                </ion-button>
+                <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('standard_params', groupName)"></div>
+              </ion-card-content>
             </ion-card>
           </div>
         </ion-card>
@@ -308,6 +322,8 @@ const framesAvailable = ref(false);
 const batchVisible = ref(true);
 const standardVisible = ref(true);
 const subcategoryVisible = ref<Record<string, boolean>>({});
+const framesVisible = ref<Record<string, boolean>>({});
+const framesCount = ref<Record<string, number>>({});
 
 // Initialize subcategoryVisible to show all subcategories by default
 watch(sensorConfig, (newConfig) => {
@@ -379,6 +395,10 @@ const applyLocalization = (config: any): any => {
     const localizedConfig: any = {};
     for (const key in config) {
       localizedConfig[key] = applyLocalization(config[key]);
+      // Add "hidden" property to customValue fields
+      if (config[key]?.HMI?.visual_type === 'customValue') {
+        localizedConfig[key].hidden = 'true';
+      }
     }
     return localizedConfig;
   }
@@ -612,7 +632,6 @@ const replaceInFrame = (frame: string, key: string, value: string, enabled: stri
 const convertToHexFrameValue = (value: string, param: {
   HMI: any; type: string; isHours: boolean; 
 }) => {
-  console.log(param, value);
   if (!value || !param) return 1;
   let output = '';
 
@@ -814,6 +833,61 @@ const updateMaxValues = (bigGroupName, groupName, paramName) => {
     }
   }
 };
+
+// Function to generate frames for a specific paramGroup
+const generateFramesForGroup = (bigGroupName, groupName) => {
+  let frames = '';
+  const paramGroup = sensorConfig.value[bigGroupName][groupName];
+  const globalParams = sensorConfig.value[bigGroupName]?.global_params?.fields || {};
+  let frameCount = 0;
+  if (paramGroup && paramGroup.fields) {
+    const cfgBlocks = sensorConfig.value[bigGroupName]?.cfg_block || [];
+    cfgBlocks.forEach((cfgEntry) => {
+      let frame = cfgEntry[0];
+      let frameDesc= cfgEntry[1];
+      let includeFrame = false;
+      Object.keys(paramGroup.fields).forEach(paramName => {
+        const param = paramGroup.fields[paramName];
+        if (param.selectedValue) {
+          if (frame.includes(`(${paramName}1)`) || frame.includes(`(${paramName}2)`)) {
+            const frameValues = param.selectedValue.split(' ').map(value => convertToHexFrameValue(value, param));
+            frame = replaceInFrame(frame, `${paramName}1`, frameValues[0], param.enabled);
+            frame = replaceInFrame(frame, `${paramName}2`, frameValues[1], param.enabled);
+            includeFrame = true;
+          } else if (frame.includes(`(${paramName})`)) {
+            const frameValue = convertToHexFrameValue(param.selectedValue, param);
+            frame = replaceInFrame(frame, paramName, frameValue, param.enabled);
+            includeFrame = true;
+          }
+        }
+      });
+      Object.keys(globalParams).forEach(globalParamName => {
+        const globalParam = globalParams[globalParamName];
+        if (globalParam.selectedValue) {
+          if (frame.includes(`(${globalParamName}1)`) || frame.includes(`(${globalParamName}2)`)) {
+            const frameValues = globalParam.selectedValue.split(' ').map(value => convertToHexFrameValue(value, globalParam));
+            frame = replaceInFrame(frame, `${globalParamName}1`, frameValues[0], globalParam.enabled);
+            frame = replaceInFrame(frame, `${globalParamName}2`, frameValues[1], globalParam.enabled);
+          } else if (frame.includes(`(${globalParamName})`)) {
+            const frameValue = convertToHexFrameValue(globalParam.selectedValue, globalParam);
+            frame = replaceInFrame(frame, globalParamName, frameValue, globalParam.enabled);
+          }
+        }
+      });
+      if (includeFrame) {
+        frames += `<span class="frameArea"><span class="frame">${frame}</span>&nbsp;&nbsp;&nbsp;&nbsp;(${frameDesc})</span><br>`;
+        frameCount++;
+      }
+    });
+  }
+  framesCount.value[groupName] = frameCount;
+  return frames;
+};
+
+// Function to toggle the visibility of frames
+const toggleFramesVisibility = (groupName) => {
+  framesVisible.value[groupName] = !framesVisible.value[groupName];
+};
 </script>
 
 <style scoped>
@@ -917,6 +991,8 @@ ion-segment {
 
 #outputArea {
   font-size: smaller;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
 }
 
 ion-range::part(pin) {
@@ -1012,5 +1088,26 @@ ion-range::part(pin)::before {
   #outputArea {
     font-size: xx-small;
   }
+}
+
+.small-button {
+  --padding-start: 5px;
+  --padding-end: 5px;
+  --padding-top: 2px;
+  --padding-bottom: 2px;
+  --border-radius: 5px;
+  --height: 24px;
+  font-size: x-small;
+}
+</style>
+
+<style>
+.frame {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+}
+
+.frameArea {
+  font-size: small;
 }
 </style>
