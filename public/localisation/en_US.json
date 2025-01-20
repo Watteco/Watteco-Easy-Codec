@@ -14,6 +14,7 @@
     "hideFrames": "Hide frames",
     "hideFrame": "Hide frame",
     "valueFixed": "Value fixed to ",
+    "customFixed": "fixed to ",
     "confirmedDesc": "Confirmed",
     "confirmedLabelLong": "Confirmed",
     "cfgCommentConfirmed": "Configures if the sensor sends confirmed frames",

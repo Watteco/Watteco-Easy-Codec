@@ -104,7 +104,7 @@
                     <!-- Using the CustomValue component -->
                     <custom-value
                       v-if="param.HMI?.visual_type === 'customValue'"
-                      :label="localize('@valueFixed') + ' ' + param.valueText"
+                      :label="localize(`${param.HMI?.label_long} @customFixed `) + param.valueText"
                       :value="param.value"
                       :groupName="groupName"
                       :paramName="paramName"
@@ -214,7 +214,7 @@
                     <!-- Using the CustomValue component -->
                     <custom-value
                       v-if="param.HMI?.visual_type === 'customValue'"
-                      :label="localize('@valueFixed') + ' ' + param.valueText"
+                      :label="localize(`${param.HMI?.label_long} @customFixed `) + param.valueText"
                       :value="param.value"
                       :groupName="groupName"
                       :paramName="paramName"
@@ -364,7 +364,7 @@ const localization = computed(() => {
   return languages.value[currentLanguage.value];
 });
 
-import { currentLanguage } from './localization'; // Import the reactive language state
+// import { currentLanguage } from './localization'; // Import the reactive language state
 
 // Function to change the language
 const changeLanguage = (language) => {

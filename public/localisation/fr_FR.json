@@ -14,6 +14,7 @@
     "hideFrames": "Masquer les trames",
     "hideFrame": "Masquer la trame",
     "valueFixed": "Valeur fixée à ",
+    "customFixed": "fixé(e) à ",
     "confirmedDesc": "Confirmé",
     "confirmedLabelLong": "Confirmé",
     "cfgCommentConfirmed": "Configure si le capteur envoie des trames confirmées ou non",
