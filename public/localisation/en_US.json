@@ -1,6 +1,9 @@
 {
     "sensor": "Sensor",
     "probe": "probe",
+    "second": "second",
+    "minute": "minute",
+    "hour": "hour",
     "port125": "This list of frames is to send on port 125:",
     "sensorSelect": "Select a sensor",
     "selectToStart": "Select a sensor to start",
@@ -10,6 +13,7 @@
     "showFrame": "Show frame",
     "hideFrames": "Hide frames",
     "hideFrame": "Hide frame",
+    "valueFixed": "Value fixed to ",
     "confirmedDesc": "Confirmed",
     "confirmedLabelLong": "Confirmed",
     "cfgCommentConfirmed": "Configures if the sensor sends confirmed frames",

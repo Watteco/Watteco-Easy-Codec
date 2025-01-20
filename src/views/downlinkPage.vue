@@ -104,6 +104,7 @@
                     <!-- Using the CustomValue component -->
                     <custom-value
                       v-if="param.HMI?.visual_type === 'customValue'"
+                      :label="localize('@valueFixed') + ' ' + param.valueText"
                       :value="param.value"
                       :groupName="groupName"
                       :paramName="paramName"
@@ -213,6 +214,7 @@
                     <!-- Using the CustomValue component -->
                     <custom-value
                       v-if="param.HMI?.visual_type === 'customValue'"
+                      :label="localize('@valueFixed') + ' ' + param.valueText"
                       :value="param.value"
                       :groupName="groupName"
                       :paramName="paramName"
@@ -290,6 +292,7 @@ import {
 import TimeSlider from '@/components/TimeSlider.vue';
 import DoubleSlider from '@/components/DoubleSlider.vue';
 import CheckBox from '@/components/CheckBox.vue';
+import CustomValue from '@/components/CustomValue.vue';
 import axios from 'axios';
 
 // Import language files
@@ -395,10 +398,6 @@ const applyLocalization = (config: any): any => {
     const localizedConfig: any = {};
     for (const key in config) {
       localizedConfig[key] = applyLocalization(config[key]);
-      // Add "hidden" property to customValue fields
-      if (config[key]?.HMI?.visual_type === 'customValue') {
-        localizedConfig[key].hidden = 'true';
-      }
     }
     return localizedConfig;
   }

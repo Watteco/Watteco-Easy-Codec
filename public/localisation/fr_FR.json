@@ -1,6 +1,9 @@
 {
     "sensor": "Capteur",
     "probe": "sonde",
+    "second": "seconde",
+    "minute": "minute",
+    "hour": "heure",
     "port125": "Cette liste de trames est à envoyer sur le port 125 :",
     "sensorSelect": "Sélectionner un capteur",
     "selectToStart": "Sélectionnez un capteur pour commencer",
@@ -10,6 +13,7 @@
     "showFrame": "Afficher la trame",
     "hideFrames": "Masquer les trames",
     "hideFrame": "Masquer la trame",
+    "valueFixed": "Valeur fixée à ",
     "confirmedDesc": "Confirmé",
     "confirmedLabelLong": "Confirmé",
     "cfgCommentConfirmed": "Configure si le capteur envoie des trames confirmées ou non",

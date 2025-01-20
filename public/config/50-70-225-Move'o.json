@@ -50,6 +50,7 @@
                 "oBatchEchant": {
                     "description": "@echantDesc",
                     "type": "string",
+                    "valueText": "1 @second",
                     "default_value": "0001",
                     "HMI": {
                         "label_long": "@echantLabelLong",

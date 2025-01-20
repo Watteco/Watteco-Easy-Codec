@@ -1,9 +1,10 @@
 <template>
-  <div style="display: none;">{{ value }}</div>
+  <ion-label>{{ label }}</ion-label>
 </template>
 
 <script setup>
 const props = defineProps({
+  label: String,
   value: String,
   groupName: String,
   paramName: String,
