@@ -8,7 +8,7 @@
     "confirmed": {
         "params": {
             "confirmed": {
-                                "type": "bool",
+                "type": "bool",
                 "default_value": "0",
                 "HMI": {
                     "label": "@confirmedLabel",
@@ -26,7 +26,7 @@
             "default_state": "true",
             "fields": {
                 "tBatchEchant": {
-                "type": "timeInt32",
+                    "type": "timeInt32",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "60",
@@ -44,7 +44,7 @@
             "default_state": "true",
             "fields": {
                 "bBatchEchant": {
-                "type": "timeInt32",
+                    "type": "timeInt32",
                     "default_value": "1440",
                     "default_unit": "1",
                     "min_value": "1",
@@ -60,7 +60,7 @@
         "global_params": {
             "fields": {
                 "gBatchEmission": {
-                "type": "timeInt32",
+                    "type": "timeInt32",
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
@@ -81,7 +81,7 @@
             "label": "@tempLabel",
             "fields": {
                 "tStandEchant": {
-                "type": "timeInt32",
+                    "type": "timeInt32",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "60",
@@ -92,7 +92,7 @@
                     }
                 },
                 "tStandEmission": {
-                "type": "timeInt32",
+                    "type": "timeInt32",
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
@@ -102,7 +102,7 @@
                     }
                 },
                 "tNotification": {
-                "type": "int32",
+                    "type": "int32",
                     "default_value": "15 30",
                     "min_value": "1",
                     "max_value": "55",
@@ -119,7 +119,7 @@
             "label": "@battLabel",
             "fields": {
                 "bStandEchant": {
-                "type": "timeInt32",
+                    "type": "timeInt32",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "1440",
@@ -130,7 +130,7 @@
                     }
                 },
                 "bStandEmission": {
-                "type": "timeInt32",
+                    "type": "timeInt32",
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
@@ -140,7 +140,7 @@
                     }
                 },
                 "bNotification": {
-                "type": "int32",
+                    "type": "int32",
                     "default_value": "2900 3300",
                     "min_value": "2000",
                     "max_value": "3700",

@@ -51,9 +51,10 @@
     "cfgCommentOccToUnocc": "Occupied to unoccupied without move delay",
     "cfgCommentUnoccToOcc": "Unoccupied to occupied delay",
 	"cfgCommentCTNConfiguration": "Configures NTC coefficient",
-	"cfgCommentBatchPulse": "Configures index logging",
-	"cfgCommentStandPulse" : "Configures the periodicity of sending of index",
-	"PulseLabel": "Index",
+	"cfgCommentBatchIndex": "Configures index logging",
+	"cfgCommentStandIndex" : "Configures the periodicity of sending of index",
+	"IndexLabel": "Index",
 	"PulseStateLabel": "State",
-	"InputLabel": "Input"
+	"InputLabel": "Input",
+	"reportOnVariationState": "On State variation"
 }

@@ -165,8 +165,8 @@
 		},
 		{
 			"name": "Pulse Sens'O ATEX zone 1 (50-70-[123,228])",
-			"file": "50-70-123-PulseSenso",
-			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
+			"file": "50-70-014-PulseSenso",
+			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,100,6,BatteryLevel 7,1,6,MultiState",
 			"category": "Digital input sensors",
 			"comment": ["3 digital inputs for state or count monitoring (ATEX)","3 entrées binaires de suivi d'état ou de comptage (ATEX)"],

@@ -28,7 +28,7 @@
 			"default_state": "true",
             "fields": {
                 "thcBatchEchant": {
-                "type": "timeInt32",
+                    "type": "timeInt32",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "60",
@@ -44,7 +44,7 @@
         "global_params": {
             "fields": {
                 "gBatchEmission": {
-                "type": "timeInt32",
+                    "type": "timeInt32",
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
@@ -67,7 +67,7 @@
 			"default_state": "true",
             "fields": {
                 "tStandEchant": {
-                "type": "timeInt32",
+                    "type": "timeInt32",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "60",
@@ -78,7 +78,7 @@
                     "depends_on": "tStandEmission"
                 },
                 "tNotification": {
-                "type": "int32",
+                    "type": "int32",
                     "default_value": "14 28",
                     "min_value": "1",
                     "max_value": "55",
@@ -96,7 +96,7 @@
 			"default_state": "true",
             "fields": {
                 "hStandEchant": {
-                "type": "timeInt32",
+                    "type": "timeInt32",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "60",
@@ -107,7 +107,7 @@
                     "depends_on": "hStandEmission"
                 },
                 "hNotification": {
-                "type": "int32",
+                    "type": "int32",
                     "default_value": "35 65",
                     "min_value": "1",
                     "max_value": "100",
@@ -125,7 +125,7 @@
 			"default_state": "true",
             "fields": {
                 "cStandEchant": {
-                "type": "timeInt32",
+                    "type": "timeInt32",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "60",
@@ -136,7 +136,7 @@
                     "depends_on": "cStandEmission"
                 },
                 "cNotification": {
-                "type": "int32",
+                    "type": "int32",
                     "default_value": "800 1500",
                     "min_value": "100",
                     "max_value": "5000",
@@ -153,7 +153,7 @@
             "default_state": "true",
             "fields": {
                 "bStandEchant": {
-                "type": "timeInt32",
+                    "type": "timeInt32",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "1440",
@@ -164,7 +164,7 @@
                     }
                 },
                 "bStandEmission": {
-                "type": "timeInt32",
+                    "type": "timeInt32",
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
@@ -174,7 +174,7 @@
                     }
                 },
                 "bNotification": {
-                "type": "int32",
+                    "type": "int32",
                     "default_value": "2900 3300",
                     "min_value": "2000",
                     "max_value": "3700",

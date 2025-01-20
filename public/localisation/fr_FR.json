@@ -51,9 +51,10 @@
     "cfgCommentOccToUnocc": "Délai de passage de occupé à inoccupé sans mouvement",
     "cfgCommentUnoccToOcc": "Délai de passage de inoccupé à occupé",
 	"cfgCommentCTNConfiguration": "Configure les coefficients de la CTN",
-	"cfgCommentBatchPulse": "Configure l'historisation de l'index",
-	"cfgCommentStandPulse" : "Configure la périodicité d'émission de l'index",
-	"PulseLabel": "Index",
+	"cfgCommentBatchIndex": "Configure l'historisation de l'index",
+	"cfgCommentStandIndex" : "Configure la périodicité d'émission de l'index",
+	"IndexLabel": "Index",
 	"PulseStateLabel": "Etat",
-	"InputLabel": "Entrée"
+	"InputLabel": "Entrée",
+	"reportOnVariationState": "Sur variation d'état"
 }
