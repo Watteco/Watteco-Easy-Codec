@@ -238,7 +238,10 @@
           <ion-card-content class="sensor-select">
           <ion-label id="outputTitle">{{ localize("@port125") }}</ion-label>
           <ion-label id="outputArea">  </ion-label> 
-          <ion-button v-if="framesAvailable" @click="copyFrames">{{ localize("@copyFrames") }}</ion-button>
+          <div class="button-group">
+            <ion-button v-if="framesAvailable" @click="copyFrames" class="half-width">{{ localize("@copyFrames") }}</ion-button>
+            <ion-button v-if="framesAvailable" @click="copyFramesNoSpaces" class="half-width">{{ localize("@copyFrameNoSpaces") }}</ion-button>
+          </div>
           </ion-card-content>
         </ion-card>
       </div>
@@ -808,6 +811,19 @@ const copyFrames = () => {
   }
 };
 
+const copyFramesNoSpaces = () => {
+  const outputArea = document.getElementById("outputArea");
+  if (outputArea) {
+    let text = outputArea.innerText || outputArea.textContent;
+    text = text.replace(/ /g, '');
+    navigator.clipboard.writeText(text).then(() => {
+      console.log('Frames copied to clipboard without spaces');
+    }).catch(err => {
+      console.error('Failed to copy frames:', err);
+    });
+  }
+};
+
 const toggleVisibility = (category) => {
   if (category === 'batch_params') {
     batchVisible.value = !batchVisible.value;
@@ -1144,6 +1160,15 @@ ion-range::part(pin)::before {
   --border-radius: 5px;
   --height: 24px;
   font-size: x-small;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+}
+
+.half-width {
+  flex: 1;
 }
 </style>
 
