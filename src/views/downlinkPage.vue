@@ -764,7 +764,14 @@ const onToggleChange = (event: { isHours: boolean; }, bigGroupName: string, grou
 onMounted(() => {
   loadAvailableProducts();
   loadLocalizationFiles().then(() => {
-    currentLanguage.value = 'en';
+    const browserLanguage = navigator.language.split('-')[0]; // Get the browser language
+    if (languages.value[browserLanguage]) {
+      currentLanguage.value = browserLanguage;
+    } else {
+      currentLanguage.value = 'en';
+    }
+    const selectToStartText = localize("@selectToStart");
+    document.getElementById("outputArea").innerHTML = selectToStartText;
   });
 });
 
