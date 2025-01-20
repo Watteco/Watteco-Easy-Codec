@@ -263,7 +263,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
 import { 
   IonTabBar, 
   IonTabButton, 
@@ -762,6 +762,7 @@ const onToggleChange = (event: { isHours: boolean; }, bigGroupName: string, grou
 
 // Load available products when the component is mounted
 onMounted(() => {
+  document.addEventListener('click', handleCopyButtonClick);
   loadAvailableProducts();
   loadLocalizationFiles().then(() => {
     const browserLanguage = navigator.language.split('-')[0]; // Get the browser language
@@ -773,6 +774,11 @@ onMounted(() => {
     const selectToStartText = localize("@selectToStart");
     document.getElementById("outputArea").innerHTML = selectToStartText;
   });
+});
+
+// Remove the event listener when the component is unmounted
+onUnmounted(() => {
+  document.removeEventListener('click', handleCopyButtonClick);
 });
 
 // Calculate appropriate slider step sizes
@@ -845,7 +851,7 @@ const updateMaxValues = (bigGroupName, groupName, paramName) => {
   }
 };
 
-// Function to generate frames for a specific paramGroup
+// Update the generateFramesForGroup function to use localized strings for the buttons
 const generateFramesForGroup = (bigGroupName, groupName) => {
   let frames = '';
   const paramGroup = sensorConfig.value[bigGroupName][groupName];
@@ -853,7 +859,7 @@ const generateFramesForGroup = (bigGroupName, groupName) => {
   let frameCount = 0;
   if (paramGroup && paramGroup.fields) {
     const cfgBlocks = sensorConfig.value[bigGroupName]?.cfg_block || [];
-    cfgBlocks.forEach((cfgEntry) => {
+    cfgBlocks.forEach((cfgEntry, index) => {
       let frame = cfgEntry[0];
       let frameDesc= cfgEntry[1];
       let includeFrame = false;
@@ -886,13 +892,42 @@ const generateFramesForGroup = (bigGroupName, groupName) => {
         }
       });
       if (includeFrame) {
-        frames += `<span class="frameArea"><span class="frame">${frame}</span>&nbsp;&nbsp;&nbsp;&nbsp;(${frameDesc})</span><br>`;
+        const frameId = `frame-${bigGroupName}-${groupName}-${index}`;
+        frames += `<span class="frameArea" id="${frameId}"><span class="frame">${frame}</span>&nbsp;&nbsp;&nbsp;&nbsp;(${frameDesc}) <button class="copy-button" data-frame-id="${frameId}">${localize('@copyFrame')}</button> <button class="copy-button copy-nospace-button" data-frame-id="${frameId}" data-no-spaces="true">${localize('@copyFrameNoSpaces')}</button></span><br>`;
         frameCount++;
       }
     });
   }
   framesCount.value[groupName] = frameCount;
   return frames;
+};
+
+// Update the copyFrame function to handle copying without spaces
+const copyFrame = (frameId, noSpaces = false) => {
+  const frameElement = document.getElementById(frameId)?.querySelector('.frame');
+  if (frameElement) {
+    let frameText = frameElement.textContent || frameElement.innerText;
+    if (noSpaces) {
+      frameText = frameText.replace(/\s+/g, '');
+    }
+    navigator.clipboard.writeText(frameText).then(() => {
+      console.log('Frame copied to clipboard:', frameText);
+    }).catch(err => {
+      console.error('Failed to copy frame:', err);
+    });
+  }
+};
+
+// Update the handleCopyButtonClick function to handle the new button
+const handleCopyButtonClick = (event) => {
+  const button = event.target.closest('.copy-button');
+  if (button) {
+    const frameId = button.getAttribute('data-frame-id');
+    const noSpaces = button.getAttribute('data-no-spaces') === 'true';
+    if (frameId) {
+      copyFrame(frameId, noSpaces);
+    }
+  }
 };
 
 // Function to toggle the visibility of frames
@@ -1116,9 +1151,39 @@ ion-range::part(pin)::before {
 .frame {
   font-family: 'Courier New', Courier, monospace;
   font-weight: bold;
+  user-select: text; /* Ensure the frame part is selectable */
 }
 
 .frameArea {
   font-size: small;
+  user-select: none; /* Prevent selection of the entire line */
+}
+
+.frameArea .frame {
+  user-select: text; /* Allow selection of the frame part */
+}
+
+.copy-button {
+  background: var(--ion-color-primary);
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: small;
+  margin-left: 5px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  text-decoration: none;
+}
+
+.copy-nospace-button {
+  background: var(--ion-color-dark-tint);
+}
+
+.copy-button:hover {
+  background: var(--ion-color-primary-shade);
+}
+
+.copy-nospace-button:hover {
+  background: var(--ion-color-dark-shade);
 }
 </style>

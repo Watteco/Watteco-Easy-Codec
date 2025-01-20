@@ -21,6 +21,8 @@
     "cfgCommentRemoveConfig": "Removes all previous config",
     "cfgCommentPullOut": "Configures pullout detection",
     "copyFrames": "Copy all frames to clipboard",
+    "copyFrame": "Copy",
+    "copyFrameNoSpaces": "Copy without spaces",
     "batchLabel": "Logging",
     "standLabel": "Notification",
     "echantDesc": "Recording",

@@ -21,6 +21,8 @@
     "cfgCommentRemoveConfig": "Retire toutes les configurations précédentes",
     "cfgCommentPullOut": "Configure la détection d'arrachement",
     "copyFrames": "Copier toutes les trames vers le presse papier",
+    "copyFrame": "Copier",
+    "copyFrameNoSpaces": "Copier sans espaces",
     "batchLabel": "Historisation",
     "standLabel": "Notification",
     "echantDesc": "Enregistrement",
