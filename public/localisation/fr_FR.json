@@ -56,5 +56,6 @@
 	"IndexLabel": "Index",
 	"PulseStateLabel": "Etat",
 	"InputLabel": "Entrée",
-	"reportOnVariationState": "Sur variation d'état"
+	"reportOnVariationState": "Sur variation d'état",
+	"cfgCommentStandState": "Configure le report d'état sur "
 }

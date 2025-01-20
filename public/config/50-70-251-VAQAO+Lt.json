@@ -266,13 +266,12 @@
             }
         },
         "cfg_block": [
-		
             ["31 06 0402 98 0000 29 (tStandEchant) FFFF F0 (tNotification1) 0014 01 F1 (tNotification2) 0014 01", "@cfgCommentStandTemp"],
             ["31 06 0405 98 0000 21 (hStandEchant) FFFF F0 (hNotification1) 0064 01 F1 (hNotification2) 0064 01", "@cfgCommentStandHum"],
             ["31 06 800c 98 0000 21 (cStandEchant) FFFF F0 (cNotification2) 0064 02 F1 (cNotification1) 0064 02", "@cfgCommentStandCO2"],
-	        ["11 06 0400 80 0000 21 (iStandEchant) (iStandEmission) 70 (iNotification1) 0000 0171 (iNotification2) 0000 01", "@cfgCommentStandIlluminance"],
-	        ["11 06 0406 00 0000 18 0001 (oStandEmission) (oStateVariation)", "@cfgCommentStandOccupancy"],
-	        ["11 06 0050 88 0006 41 (bStandEchant) (bStandEmission) 0e f0 04 (bNotification1) 0064 02 f1 04 (bNotification2) 0064 02", "@cfgCommentStandBatt"]
+            ["11 06 0400 80 0000 21 (iStandEchant) (iStandEmission) 70 (iNotification1) 0000 0171 (iNotification2) 0000 01", "@cfgCommentStandIlluminance"],
+            ["11 06 0406 00 0000 18 0001 (oStandEmission) (oStateVariation)", "@cfgCommentStandOccupancy"],
+            ["11 06 0050 88 0006 41 (bStandEchant) (bStandEmission) 0e f0 04 (bNotification1) 0064 02 f1 04 (bNotification2) 0064 02", "@cfgCommentStandBatt"]
         ]
     }
 }
