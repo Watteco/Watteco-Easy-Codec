@@ -88,7 +88,7 @@
                     "max_value": "60",
                     "depends_on": "tStandEmission",
                     "HMI": {
-                        "label": "@echantLabel",
+                        "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     }
                 },
@@ -126,7 +126,7 @@
                     "max_value": "60",
                     "depends_on": "hStandEmission",
                     "HMI": {
-                        "label": "@echantLabel",
+                        "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     }
                 },
@@ -164,7 +164,7 @@
                     "max_value": "60",
                     "depends_on": "iStandEmission",
                     "HMI": {
-                        "label": "@echantLabel",
+                        "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     }
                 },
@@ -193,7 +193,7 @@
         },
         "standard_O_params": {
             "label": "@occupancyLabel",
-			"default_state": "true",
+            "default_state": "true",
             "fields": {
                 "oStandEmission": {
                     "type": "timeInt32",
@@ -226,7 +226,7 @@
                     "max_value": "1440",
                     "depends_on": "bStandEmission",
                     "HMI": {
-                        "label": "@echantLabel",
+                        "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     }
                 },

@@ -3,8 +3,8 @@
         "cfg_block": [
             ["11 50 00 50 02 03", "@cfgCommentRemoveConfig"],
             ["11 06 00 0F 00 00 55 10 00 01 ff ff 01", "@cfgCommentPullOut"],
-			["31 06 800C 98 0000 21 800A FFFF B9 0168 0005 02 82 0000","@cfgCommentAutoFreshAirCalibration"],
-			["31 06 800C 98 8000 41 000A FFFF 06 C8 01 00000001","@cfgCommentAutoReportCalibrationStatus"]		
+            ["31 06 800C 98 0000 21 800A FFFF B9 0168 0005 02 82 0000","@cfgCommentAutoFreshAirCalibration"],
+            ["31 06 800C 98 8000 41 000A FFFF 06 C8 01 00000001","@cfgCommentAutoReportCalibrationStatus"]
         ]
     },
     "confirmed": {
@@ -25,7 +25,7 @@
     "batch_params": {
         "batch_THC_params": {
             "label": "@tempLabel + @humLabel + @co2Label",
-			"default_state": "true",
+            "default_state": "true",
             "fields": {
                 "thcBatchEchant": {
                     "type": "timeInt32",
@@ -40,7 +40,6 @@
                 }
             }
         },
-		
         "global_params": {
             "fields": {
                 "gBatchEmission": {
@@ -64,7 +63,7 @@
     "standard_params": {
         "standard_T_params": {
             "label": "@tempLabel",
-			"default_state": "true",
+            "default_state": "true",
             "fields": {
                 "tStandEchant": {
                     "type": "timeInt32",
@@ -72,7 +71,7 @@
                     "min_value": "1",
                     "max_value": "60",
                     "HMI": {
-                        "label": "@echantLabel",
+                        "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     },
                     "depends_on": "tStandEmission"
@@ -93,7 +92,7 @@
         },
         "standard_H_params": {
             "label": "@humLabel",
-			"default_state": "true",
+            "default_state": "true",
             "fields": {
                 "hStandEchant": {
                     "type": "timeInt32",
@@ -101,7 +100,7 @@
                     "min_value": "1",
                     "max_value": "60",
                     "HMI": {
-                        "label": "@echantLabel",
+                        "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     },
                     "depends_on": "hStandEmission"
@@ -122,7 +121,7 @@
         },
         "standard_C_params": {
             "label": "@co2Label",
-			"default_state": "true",
+            "default_state": "true",
             "fields": {
                 "cStandEchant": {
                     "type": "timeInt32",
@@ -130,7 +129,7 @@
                     "min_value": "1",
                     "max_value": "60",
                     "HMI": {
-                        "label": "@echantLabel",
+                        "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     },
                     "depends_on": "cStandEmission"
@@ -159,7 +158,7 @@
                     "max_value": "1440",
                     "depends_on": "bStandEmission",
                     "HMI": {
-                        "label": "@echantLabel",
+                        "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     }
                 },
@@ -187,11 +186,10 @@
             }
         },
         "cfg_block": [
-		
             ["31 06 0402 98 0000 29 (tStandEchant) FFFF F0 (tNotification1) 0014 01 F1 (tNotification2) 0014 01", "@cfgCommentStandTemp"],
             ["31 06 0405 98 0000 21 (hStandEchant) FFFF F0 (hNotification1) 0064 01 F1 (hNotification2) 0064 01", "@cfgCommentStandHum"],
             ["31 06 800c 98 0000 21 (cStandEchant) FFFF F0 (cNotification2) 0064 02 F1 (cNotification1) 0064 02", "@cfgCommentStandCO2"],
-			["11 06 0050 88 0006 41 (bStandEchant) (bStandEmission) 0e f0 04 (bNotification1) 0064 02 f1 04 (bNotification2) 0064 02", "@cfgCommentStandBatt"]
+            ["11 06 0050 88 0006 41 (bStandEchant) (bStandEmission) 0e f0 04 (bNotification1) 0064 02 f1 04 (bNotification2) 0064 02", "@cfgCommentStandBatt"]
         ]
     }
 }

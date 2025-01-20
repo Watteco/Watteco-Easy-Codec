@@ -86,7 +86,7 @@
                     "max_value": "60",
                     "depends_on": "tStandEmission",
                     "HMI": {
-                        "label": "@echantLabel",
+                        "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     }
                 },
@@ -125,7 +125,7 @@
                     "max_value": "60",
                     "depends_on": "hStandEmission",
                     "HMI": {
-                        "label": "@echantLabel",
+                        "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     }
                 },
@@ -164,7 +164,7 @@
                     "max_value": "1440",
                     "depends_on": "bStandEmission",
                     "HMI": {
-                        "label": "@echantLabel",
+                        "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     }
                 },
