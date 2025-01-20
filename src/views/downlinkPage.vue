@@ -66,7 +66,7 @@
                     <!-- Using the TimeSlider component -->
                     <time-slider
                       v-if="param.HMI?.visual_type === 'timeSlider'"
-                      :label="param.HMI?.label_long"
+                      :label="param.HMI?.label"
                       :min="param.min_value"
                       :max="param.max_value"
                       :value="param.selectedValue"
@@ -80,7 +80,7 @@
                     <!-- Using the DoubleSlider component -->
                     <double-slider
                       v-if="param.HMI?.visual_type === 'doubleSlider'"
-                      :label="param.HMI?.label_long"
+                      :label="param.HMI?.label"
                       :unit="param.HMI?.unit"
                       :min="param.min_value"
                       :max="param.max_value"
@@ -94,7 +94,7 @@
                     <!-- Using the CheckBox component -->
                     <check-box
                       v-if="param.HMI?.visual_type === 'checkbox'"
-                      :label="param.HMI?.label_long"
+                      :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :groupName="groupName"
                       :paramName="paramName"
@@ -104,7 +104,7 @@
                     <!-- Using the CustomValue component -->
                     <custom-value
                       v-if="param.HMI?.visual_type === 'customValue'"
-                      :label="localize(`${param.HMI?.label_long} @customFixed `) + param.valueText"
+                      :label="localize(`${param.HMI?.label} @customFixed `) + param.valueText"
                       :value="param.value"
                       :groupName="groupName"
                       :paramName="paramName"
@@ -121,13 +121,12 @@
                 <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('batch_params', groupName)"></div>
               </ion-card-content>
             </ion-card>
-            <ion-card v-for="(param, paramName) in sensorConfig.batch_params.global_params.fields" 
+            <ion-card v-if="batchChecked" v-for="(param, paramName) in sensorConfig.batch_params.global_params.fields" 
                       :key="paramName"
-                      v-if="batchChecked"
                       v-show="param.hidden !== 'true'">
               <ion-item class="config-item">
                 <time-slider
-                  :label="param.HMI.label_long"
+                  :label="param.HMI.label"
                   :min="param.min_value"
                   :max="param.max_value"
                   :value="param.selectedValue"
@@ -176,7 +175,7 @@
                     <!-- Using the TimeSlider component -->
                     <time-slider
                       v-if="param.HMI?.visual_type === 'timeSlider'"
-                      :label="param.HMI?.label_long"
+                      :label="param.HMI?.label"
                       :min="param.min_value"
                       :max="param.max_value"
                       :value="param.selectedValue"
@@ -190,7 +189,7 @@
                     <!-- Using the DoubleSlider component -->
                     <double-slider
                       v-if="param.HMI?.visual_type === 'doubleSlider'"
-                      :label="param.HMI?.label_long"
+                      :label="param.HMI?.label"
                       :unit="param.HMI?.unit"
                       :min="param.min_value"
                       :max="param.max_value"
@@ -204,7 +203,7 @@
                     <!-- Using the CheckBox component -->
                     <check-box
                       v-if="param.HMI?.visual_type === 'checkbox'"
-                      :label="param.HMI?.label_long"
+                      :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :groupName="groupName"
                       :paramName="paramName"
@@ -214,7 +213,7 @@
                     <!-- Using the CustomValue component -->
                     <custom-value
                       v-if="param.HMI?.visual_type === 'customValue'"
-                      :label="localize(`${param.HMI?.label_long} @customFixed `) + param.valueText"
+                      :label="localize(`${param.HMI?.label} @customFixed `) + param.valueText"
                       :value="param.value"
                       :groupName="groupName"
                       :paramName="paramName"
@@ -815,16 +814,18 @@ const copyFramesNoSpaces = () => {
   const outputArea = document.getElementById("outputArea");
   if (outputArea) {
     let text = outputArea.innerText || outputArea.textContent;
-    text = text.replace(/ /g, '');
-    navigator.clipboard.writeText(text).then(() => {
-      console.log('Frames copied to clipboard without spaces');
-    }).catch(err => {
-      console.error('Failed to copy frames:', err);
-    });
+    if (text) {
+      text = text.replace(/ /g, '');
+      navigator.clipboard.writeText(text).then(() => {
+        console.log('Frames copied to clipboard without spaces');
+      }).catch(err => {
+        console.error('Failed to copy frames:', err);
+      });
+    }
   }
 };
 
-const toggleVisibility = (category) => {
+const toggleVisibility = (category: string) => {
   if (category === 'batch_params') {
     batchVisible.value = !batchVisible.value;
   } else if (category === 'standard_params') {

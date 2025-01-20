@@ -7,11 +7,10 @@
     "confirmed": {
         "params": {
             "confirmed": {
-                "description": "@confirmedDesc",
-                "type": "Bool",
+                "type": "bool",
                 "default_value": "0",
                 "HMI": {
-                    "label_long": "@confirmedLabelLong",
+                    "label": "@confirmedLabel",
                     "visual_type": "Checkbox"
                 }
             }
@@ -26,15 +25,14 @@
             "default_state": "true",
             "fields": {
                 "thBatchEchant": {
-                    "description": "@echantDesc",
-                    "type": "timeInt32",
+                "type": "timeInt32",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "60",
                     "step": "1",
                     "depends_on": "gBatchEmission",
                     "HMI": {
-                        "label_long": "@echantLabelLong",
+                        "label": "@echantLabel",
                         "visual_type": "timeSlider"
                     }
                 }
@@ -45,15 +43,14 @@
             "default_state": "true",
             "fields": {
                 "bBatchEchant": {
-                    "description": "@echantDesc",
-                    "type": "timeInt32",
+                "type": "timeInt32",
                     "default_value": "1440",
                     "default_unit": "1",
                     "min_value": "1",
                     "max_value": "1440",
                     "step": "30",
                     "HMI": {
-                        "label_long": "@echantLabelLong",
+                        "label": "@echantLabel",
                         "visual_type": "timeSlider"
                     }
                 }
@@ -62,13 +59,12 @@
         "global_params": {
             "fields": {
                 "gBatchEmission": {
-                    "description": "@emitDesc",
-                    "type": "timeInt32",
+                "type": "timeInt32",
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
-                        "label_long": "@emitLabelLong",
+                        "label": "@emitLabel",
                         "visual_type": "timeSlider"
                     }
                 }
@@ -85,36 +81,33 @@
             "label": "@tempLabel",
             "fields": {
                 "tStandEchant": {
-                    "description": "@echantDesc",
-                    "type": "timeInt32",
+                "type": "timeInt32",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "60",
                     "depends_on": "tStandEmission",
                     "HMI": {
-                        "label_long": "@echantLabelLong",
+                        "label": "@echantLabel",
                         "visual_type": "timeSlider"
                     }
                 },
                 "tStandEmission": {
-                    "description": "@emitMaxDesc",
-                    "type": "timeInt32",
+                "type": "timeInt32",
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
-                        "label_long": "@emitMaxLabelLong",
+                        "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
                     }
                 },
                 "tNotification": {
-                    "description": "@thresholdDesc",
-                    "type": "int32",
+                "type": "int32",
                     "default_value": "15 30",
                     "min_value": "1",
                     "max_value": "55",
                     "HMI": {
-                        "label_long": "@thresholdLabelLong",
+                        "label": "@thresholdLabel",
                         "visual_type": "doubleSlider",
                         "unit": "°C",
                         "multiplier": "100"
@@ -126,36 +119,33 @@
             "label": "@humLabel",
             "fields": {
                 "hStandEchant": {
-                    "description": "@echantDesc",
-                    "type": "timeInt32",
+                "type": "timeInt32",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "60",
                     "depends_on": "hStandEmission",
                     "HMI": {
-                        "label_long": "@echantLabelLong",
+                        "label": "@echantLabel",
                         "visual_type": "timeSlider"
                     }
                 },
                 "hStandEmission": {
-                    "description": "@emitMaxDesc",
-                    "type": "timeInt32",
+                "type": "timeInt32",
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
-                        "label_long": "@emitMaxLabelLong",
+                        "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
                     }
                 },
                 "hNotification": {
-                    "description": "@thresholdDesc",
-                    "type": "int32",
+                "type": "int32",
                     "default_value": "25 75",
                     "min_value": "1",
                     "max_value": "100",
                     "HMI": {
-                        "label_long": "@thresholdLabelLong",
+                        "label": "@thresholdLabel",
                         "visual_type": "doubleSlider",
                         "unit": "%",
                         "multiplier": "100"
@@ -167,36 +157,33 @@
             "label": "@battLabel",
             "fields": {
                 "bStandEchant": {
-                    "description": "@echantDesc",
-                    "type": "timeInt32",
+                "type": "timeInt32",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "1440",
                     "depends_on": "bStandEmission",
                     "HMI": {
-                        "label_long": "@echantLabelLong",
+                        "label": "@echantLabel",
                         "visual_type": "timeSlider"
                     }
                 },
                 "bStandEmission": {
-                    "description": "@emitMaxDesc",
-                    "type": "timeInt32",
+                "type": "timeInt32",
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
-                        "label_long": "@emitMaxLabelLong",
+                        "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
                     }
                 },
                 "bNotification": {
-                    "description": "@thresholdDesc",
-                    "type": "int32",
+                "type": "int32",
                     "default_value": "2900 3300",
                     "min_value": "2000",
                     "max_value": "3700",
                     "HMI": {
-                        "label_long": "@thresholdLabelLong",
+                        "label": "@thresholdLabel",
                         "visual_type": "doubleSlider",
                         "unit": "mV"
                     }
