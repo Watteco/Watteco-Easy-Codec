@@ -343,11 +343,16 @@ watch(sensorConfig, (newConfig) => {
 // Language files map
 const languages = ref({ en: {}, fr: {} });
 
+// Function to generate a cache-busting query parameter
+const generateCacheBuster = () => {
+  return `?v=${new Date().getTime()}`;
+};
+
 // Load localization files dynamically
 const loadLocalizationFiles = async () => {
   try {
-    const enResponse = await axios.get(enUS);
-    const frResponse = await axios.get(frFR);
+    const enResponse = await axios.get(enUS + generateCacheBuster());
+    const frResponse = await axios.get(frFR + generateCacheBuster());
     languages.value.en = enResponse.data;
     languages.value.fr = frResponse.data;
 
@@ -414,7 +419,7 @@ watch(currentLanguage, (newLang, oldLang) => {
 // Load available products from a remote JSON file
 const loadAvailableProducts = async () => {
   try {
-    const response = await axios.get(`${import.meta.env.BASE_URL}config/AvailableProductList.json`);
+    const response = await axios.get(`${import.meta.env.BASE_URL}config/AvailableProductList.json` + generateCacheBuster());
     availableProducts.value = response.data.products.filter(product => 
       product.apps && product.apps.includes("EasyCodec")
     );
@@ -501,7 +506,7 @@ const initializeStates = (config) => {
 // Load configuration for a specific sensor
 const loadSensorConfig = async (sensorFile: string) => {
   try {
-    const response = await axios.get(`${import.meta.env.BASE_URL}config/${sensorFile}.json`);
+    const response = await axios.get(`${import.meta.env.BASE_URL}config/${sensorFile}.json` + generateCacheBuster());
     const rawConfig = response.data;
 
     // Apply localization to the configuration
