@@ -1026,6 +1026,10 @@ ion-segment {
   background-color: #a0a0a0e0;
 }
 
+ul {
+  padding-left: 0;
+}
+
 .config-card-content {
   display: flex;
   flex-wrap: wrap;
