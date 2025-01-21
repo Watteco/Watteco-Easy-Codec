@@ -482,7 +482,10 @@ const localization = computed(() => {
 const changeLanguage = (language) => {
   currentLanguage.value = language;
   if (selectedSensor.value == '') {
-    document.getElementById("outputArea").innerHTML = localize("@selectToStart");
+    const outputArea = document.getElementById("outputArea");
+    if (outputArea) {
+      outputArea.innerHTML = localize("@selectToStart");
+    }
   }
 };
 
@@ -531,7 +534,10 @@ const loadAvailableProducts = async () => {
       product.apps && product.apps.includes("EasyCodec")
     );
     const selectToStartText = localize("@selectToStart");
-    document.getElementById("outputArea").innerHTML = selectToStartText;
+    const outputArea = document.getElementById("outputArea");
+    if (outputArea) {
+      outputArea.innerHTML = selectToStartText;
+    }
   } catch (error) {
     console.error("Erreur lors du chargement de AvailableProductList:", error);
   }
@@ -585,10 +591,8 @@ const initializeStates = (config) => {
     if (parentGroup.fields) {
       Object.keys(parentGroup.fields).forEach((fieldName) => {
         const field = parentGroup.fields[fieldName];
-        console.log("field", field.type, field);
         if (field.HMI && field.default_value) {
           // Initialize field value
-          console.log("default_value", field.default_value);
           field.selectedValue = field.default_value;
           outputVals[fieldName] = convertToHexFrameValue(field.default_value, field);
 
@@ -1003,7 +1007,6 @@ const generateFramesForGroup = (bigGroupName: string, groupName: string) => {
       let includeFrame = false;
       Object.keys(paramGroup.fields).forEach(paramName => {
         const param = paramGroup.fields[paramName];
-        console.log("param", param.type, param);
         if (param.selectedValue) {
           if (frame.includes(`(${paramName}1)`) || frame.includes(`(${paramName}2)`)) {
             const frameValues = param.selectedValue.split(' ').map((value: string) => convertToHexFrameValue(value, param));
