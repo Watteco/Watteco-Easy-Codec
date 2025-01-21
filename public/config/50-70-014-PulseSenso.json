@@ -1,21 +1,48 @@
 {
     "general_params": {
-        "cfg_block": [
-            ["11 50 00 50 02 03", "@cfgCommentRemoveConfig"]
-        ]
-    },
-    "confirmed": {
-        "params": {
-            "confirmed": {
-                "type": "bool",
-                "default_value": "0",
-                "HMI": {
-                    "label": "@confirmedLabel",
-                    "visual_type": "checkbox"
+        "remove_config": {
+            "label": "@removeCurrentConfigLabel",
+            "default_state": "true",
+            "fields": {
+                "removeCurrentConfig": {
+                    "type": "frame",
+                    "HMI": {
+                        "label": "@removeCurrentConfigLabel",
+                        "visual_type": "customFrame"
+                    }
+                }
+            }
+        },
+        "pullout_config": {
+            "label": "@reportOnSensorPulloutLabel",
+            "default_state": "false",
+            "fields": {
+                "reportOnSensorPullout": {
+                    "type": "frame",
+                    "HMI": {
+                        "label": "@reportOnSensorPulloutLabel",
+                        "visual_type": "customFrame"
+                    }
+                }
+            }
+        },
+        "confirmed": {
+            "label": "@confirmedLabel",
+            "default_state": "true",
+            "fields": {
+                "confirmed": {
+                    "type": "bool",
+                    "default_value": "false",
+                    "HMI": {
+                        "label": "@confirmedLabel",
+                        "visual_type": "checkbox"
+                    }
                 }
             }
         },
         "cfg_block": [
+            ["11 50 00 50 02 03(removeCurrentConfig)", "@cfgCommentRemoveConfig"],
+            ["11 06 00 0F 00 00 55 10 00 01 ff ff 01(reportOnSensorPullout)", "@cfgCommentPullOut"],
             ["11 05 8004 0000 08 (confirmed)", "@cfgCommentConfirmed"]
         ]
     },
@@ -69,9 +96,9 @@
             }
         },
         "cfg_block": [
-            ["11 06 00 0F 1D 04 02 00 (pBatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 04", "@cfgCommentBatchPulse @InputLabel 1"],
-            ["31 06 00 0F 1D 04 02 00 (pBatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 0C", "@cfgCommentBatchPulse @InputLabel 2"],
-            ["51 06 00 0F 1D 04 02 00 (pBatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 14", "@cfgCommentBatchPulse @InputLabel 3"],
+            ["11 06 00 0F 1D 04 02 00 (pBatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 04", "@cfgCommentBatchIndex @InputLabel 1"],
+            ["31 06 00 0F 1D 04 02 00 (pBatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 0C", "@cfgCommentBatchIndex @InputLabel 2"],
+            ["51 06 00 0F 1D 04 02 00 (pBatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 14", "@cfgCommentBatchIndex @InputLabel 3"],
 			["11 06 00 50 15 00 06 04 (bBatchEchant) 85A0 00 00 00 64 34", "@cfgCommentBatchBatt"]
         ]
     },
@@ -92,7 +119,39 @@
                 }
             }
         },
-		"standard_P1State_params": {
+		"standard_P2_params": {
+            "label": "@IndexLabel @InputLabel 2",
+            "fields": {
+		
+                "p2StandEmission": {
+                    "type": "timeInt32",
+                    "default_value": "1440",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "HMI": {
+                        "label": "@emitMaxLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "standard_P3_params": {
+            "label": "@IndexLabel @InputLabel 3",
+            "fields": {
+		
+                "p3StandEmission": {
+                    "type": "timeInt32",
+                    "default_value": "1440",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "HMI": {
+                        "label": "@emitMaxLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+		"standard_PMultiState_params": {
             "label": "@PulseStateLabel @InputLabel 1 + @InputLabel 2 + @InputLabel 3",
             "fields": {
 				"pMultiStateStandEchant": {
@@ -168,6 +227,8 @@
         },
         "cfg_block": [
             ["11 06 000f 00 0402 23 (p1StandEmission) (p1StandEmission) 00000000", "@cfgCommentStandIndex @InputLabel 1"],
+			["31 06 000f 00 0402 23 (p2StandEmission) (p2StandEmission) 00000000", "@cfgCommentStandIndex @InputLabel 2"],
+			["51 06 000f 00 0402 23 (p3StandEmission) (p3StandEmission) 00000000", "@cfgCommentStandIndex @InputLabel 3"],
 			["11 06 8005 00 0000 19 (pMultiStateStandEchant) (pMultiStateStandEmission) 00(pMultiStateNotification)", "@cfgCommentStandState @InputLabel 1 + @InputLabel 2 + @InputLabel 3"],
             ["11 06 0050 80 0006 41 (bStandEchant) (bStandEmission) 0e 70 04 (bNotification1) 0000 0171 04 (bNotification2) 0000 01", "@cfgCommentStandBatt"]
         ]

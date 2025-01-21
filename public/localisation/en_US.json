@@ -24,6 +24,8 @@
     "copyFrameNoSpaces": "Copy without spaces",
     "batchLabel": "Logging",
     "standLabel": "Notification",
+    "generalLabel": "General parameters",
+    "generalGlobalParamsLabel": "Global parameters",
     "echantLabel": "Recording Period",
     "measureLabel": "Measurement Period",
     "emitLabel": "Emission Period",
@@ -57,5 +59,8 @@
 	"PulseStateLabel": "State",
 	"InputLabel": "Input",
 	"reportOnVariationState": "On State variation",
-	"cfgCommentStandState": "Configure state report on "
+	"cfgCommentStandState": "Configure state report on ",
+	"removeCurrentConfigLabel": "Remove current configuration",
+	"reportOnSensorPulloutLabel": "Report on sensor pullout",
+	"frameNotModifiable": "Frame not modifiable"
 }

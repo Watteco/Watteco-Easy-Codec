@@ -1,22 +1,48 @@
 {
     "general_params": {
-        "cfg_block": [
-            ["11 50 00 50 02 03", "@cfgCommentRemoveConfig"],
-            ["11 06 00 0F 00 00 55 10 00 01 ff ff 01", "@cfgCommentPullOut"]
-        ]
-    },
-    "confirmed": {
-        "params": {
-            "confirmed": {
-                "type": "bool",
-                "default_value": "0",
-                "HMI": {
-                    "label": "@confirmedLabel",
-                    "visual_type": "Checkbox"
+        "remove_config": {
+            "label": "@removeCurrentConfigLabel",
+            "default_state": "true",
+            "fields": {
+                "removeCurrentConfig": {
+                    "type": "frame",
+                    "HMI": {
+                        "label": "@removeCurrentConfigLabel",
+                        "visual_type": "customFrame"
+                    }
+                }
+            }
+        },
+        "pullout_config": {
+            "label": "@reportOnSensorPulloutLabel",
+            "default_state": "true",
+            "fields": {
+                "reportOnSensorPullout": {
+                    "type": "frame",
+                    "HMI": {
+                        "label": "@reportOnSensorPulloutLabel",
+                        "visual_type": "customFrame"
+                    }
+                }
+            }
+        },
+        "confirmed": {
+            "label": "@confirmedLabel",
+            "default_state": "true",
+            "fields": {
+                "confirmed": {
+                    "type": "bool",
+                    "default_value": "false",
+                    "HMI": {
+                        "label": "@confirmedLabel",
+                        "visual_type": "checkbox"
+                    }
                 }
             }
         },
         "cfg_block": [
+            ["11 50 00 50 02 03(removeCurrentConfig)", "@cfgCommentRemoveConfig"],
+            ["11 06 00 0F 00 00 55 10 00 01 ff ff 01(reportOnSensorPullout)", "@cfgCommentPullOut"],
             ["11 05 8004 0000 08 (confirmed)", "@cfgCommentConfirmed"]
         ]
     },

@@ -24,6 +24,8 @@
     "copyFrameNoSpaces": "Copier sans espaces",
     "batchLabel": "Historisation",
     "standLabel": "Notification",
+    "generalLabel": "Paramètres généraux",
+    "generalGlobalParamsLabel": "Paramètres globaux",
     "echantLabel": "Période d'enregistrement",
     "measureLabel": "Période de mesure",
     "emitLabel": "Période d'émission",
@@ -57,5 +59,8 @@
 	"PulseStateLabel": "Etat",
 	"InputLabel": "Entrée",
 	"reportOnVariationState": "Sur variation d'état",
-	"cfgCommentStandState": "Configure le report d'état sur "
+	"cfgCommentStandState": "Configure le report d'état sur ",
+	"removeCurrentConfigLabel": "Supprimer la configuration actuelle",
+	"reportOnSensorPulloutLabel": "Rapport sur l'arrachement du capteur",
+	"frameNotModifiable": "Trame non modifiable"
 }

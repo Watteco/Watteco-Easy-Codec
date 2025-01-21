@@ -1,33 +1,59 @@
 {
     "general_params": {
-        "cfg_block": [
-            ["11 50 00 50 02 03", "@cfgCommentRemoveConfig"],
-            ["11 06 00 0F 00 00 55 10 00 01 ff ff 01", "@cfgCommentPullOut"],
-			["11 05 0406 0010 21 0708","@cfgCommentOccToUnocc"],
-            ["11 05 0406 0011 21 0000","@cfgCommentUnoccToOcc"],
-			["31 06 800C 98 0000 21 800A FFFF B9 0168 0005 02 82 0000","@cfgCommentAutoFreshAirCalibration"],
-			["31 06 800C 98 8000 41 000A FFFF 06 C8 01 00000001","@cfgCommentAutoReportCalibrationStatus"]		
-        ]
-    },
-    "confirmed": {
-        "params": {
-            "confirmed": {
-                "type": "bool",
-                "default_value": "0",
-                "HMI": {
-                    "label": "@confirmedLabel",
-                    "visual_type": "Checkbox"
+        "remove_config": {
+            "label": "@removeCurrentConfigLabel",
+            "default_state": "true",
+            "fields": {
+                "removeCurrentConfig": {
+                    "type": "frame",
+                    "HMI": {
+                        "label": "@removeCurrentConfigLabel",
+                        "visual_type": "customFrame"
+                    }
+                }
+            }
+        },
+        "pullout_config": {
+            "label": "@reportOnSensorPulloutLabel",
+            "default_state": "true",
+            "fields": {
+                "reportOnSensorPullout": {
+                    "type": "frame",
+                    "HMI": {
+                        "label": "@reportOnSensorPulloutLabel",
+                        "visual_type": "customFrame"
+                    }
+                }
+            }
+        },
+        "confirmed": {
+            "label": "@confirmedLabel",
+            "default_state": "true",
+            "fields": {
+                "confirmed": {
+                    "type": "bool",
+                    "default_value": "false",
+                    "HMI": {
+                        "label": "@confirmedLabel",
+                        "visual_type": "checkbox"
+                    }
                 }
             }
         },
         "cfg_block": [
+            ["11 50 00 50 02 03(removeCurrentConfig)", "@cfgCommentRemoveConfig"],
+            ["11 06 00 0F 00 00 55 10 00 01 ff ff 01(reportOnSensorPullout)", "@cfgCommentPullOut"],
+            ["11 05 0406 0010 21 0708","@cfgCommentOccToUnocc"],
+            ["11 05 0406 0011 21 0000","@cfgCommentUnoccToOcc"],
+            ["31 06 800C 98 0000 21 800A FFFF B9 0168 0005 02 82 0000","@cfgCommentAutoFreshAirCalibration"],
+            ["31 06 800C 98 8000 41 000A FFFF 06 C8 01 00000001","@cfgCommentAutoReportCalibrationStatus"],
             ["11 05 8004 0000 08 (confirmed)", "@cfgCommentConfirmed"]
         ]
     },
     "batch_params": {
         "batch_THCI_params": {
             "label": "@tempLabel + @humLabel + @co2Label + @illuminanceLabel",
-			"default_state": "true",
+            "default_state": "true",
             "fields": {
                 "thciBatchEchant": {
                     "type": "timeInt32",
@@ -48,6 +74,7 @@
             "fields": {
                 "oBatchEchant": {
                     "type": "string",
+                    "valueText": "1 @second",
                     "default_value": "0001",
                     "HMI": {
                         "label": "@echantLabel",
@@ -56,7 +83,7 @@
                 }
             }
         },
-		
+        
         "global_params": {
             "fields": {
                 "gBatchEmission": {
@@ -75,14 +102,14 @@
             ["31 06 0402 15 00 00 00 (thciBatchEchant) (gBatchEmission) 00 0a 00 0a 0b", "@cfgCommentBatchTemp"],
             ["31 06 0405 15 00 00 00 (thciBatchEchant) (gBatchEmission) 00 64 00 64 13", "@cfgCommentBatchHum"],
             ["31 06 800c 15 00 00 00 (thciBatchEchant) (gBatchEmission) 000a 000a 1b", "@cfgCommentBatchCO2"],
-			["11 06 0400 15 00 00 00 (thciBatchEchant) (gBatchEmission) 000a 000a 2b", "@cfgCommentBatchIlluminance"],
-			["11 06 0406 11 00 00 00 (oBatchEchant)  (gBatchEmission) 01 01 03", "@cfgCommentBatchOccupancy"]
+            ["11 06 0400 15 00 00 00 (thciBatchEchant) (gBatchEmission) 000a 000a 2b", "@cfgCommentBatchIlluminance"],
+            ["11 06 0406 11 00 00 00 (oBatchEchant)  (gBatchEmission) 01 01 03", "@cfgCommentBatchOccupancy"]
         ]
     },
     "standard_params": {
         "standard_T_params": {
             "label": "@tempLabel",
-			"default_state": "true",
+            "default_state": "true",
             "fields": {
                 "tStandEchant": {
                     "type": "timeInt32",
@@ -111,7 +138,7 @@
         },
         "standard_H_params": {
             "label": "@humLabel",
-			"default_state": "true",
+            "default_state": "true",
             "fields": {
                 "hStandEchant": {
                     "type": "timeInt32",
@@ -140,7 +167,7 @@
         },
         "standard_C_params": {
             "label": "@co2Label",
-			"default_state": "true",
+            "default_state": "true",
             "fields": {
                 "cStandEchant": {
                     "type": "timeInt32",
@@ -159,7 +186,7 @@
                     "min_value": "100",
                     "max_value": "5000",
                     "HMI": {
-                        "label_long": "@thresholdLabelLong",
+                        "label": "@thresholdLabel",
                         "visual_type": "doubleSlider",
                         "unit": "ppm"
                     }
@@ -176,7 +203,7 @@
                     "max_value": "60",
                     "depends_on": "iStandEmission",
                     "HMI": {
-                        "label_long": "@measureLabel",
+                        "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     }
                 },
@@ -203,9 +230,9 @@
                 }
             }
         },
-		"standard_O_params": {
+        "standard_O_params": {
             "label": "@occupancyLabel",
-			"default_state": "true",
+            "default_state": "true",
             "fields": {
                 "oStandEmission": {
                     "type": "timeInt32",

@@ -1,23 +1,36 @@
 {
     "general_params": {
-        "cfg_block": [
-            ["11 50 00 50 02 03", "@cfgCommentRemoveConfig"],
-			["11 05 04 02 90 01 41 10 3A 76 B2 79 39 60 A2 64 33 A1 2E BF 46 1c 40 00","@cfgCommentCTNConfiguration"],
-			["31 05 04 02 90 01 41 10 3A 76 B2 79 39 60 A2 64 33 A1 2E BF 46 1c 40 00","@cfgCommentCTNConfiguration"]
-        ]
-    },
-    "confirmed": {
-        "params": {
-            "confirmed": {
-                "type": "bool",
-                "default_value": "0",
-                "HMI": {
-                    "label": "@confirmedLabel",
-                    "visual_type": "Checkbox"
+        "remove_config": {
+            "label": "@removeCurrentConfigLabel",
+            "default_state": "true",
+            "fields": {
+                "removeCurrentConfig": {
+                    "type": "frame",
+                    "HMI": {
+                        "label": "@removeCurrentConfigLabel",
+                        "visual_type": "customFrame"
+                    }
+                }
+            }
+        },
+        "confirmed": {
+            "label": "@confirmedLabel",
+            "default_state": "false",
+            "fields": {
+                "confirmed": {
+                    "type": "bool",
+                    "default_value": "false",
+                    "HMI": {
+                        "label": "@confirmedLabel",
+                        "visual_type": "checkbox"
+                    }
                 }
             }
         },
         "cfg_block": [
+            ["11 50 00 50 02 03(removeCurrentConfig)", "@cfgCommentRemoveConfig"],
+            ["11 05 04 02 90 01 41 10 3A 76 B2 79 39 60 A2 64 33 A1 2E BF 46 1c 40 00","@cfgCommentCTNConfiguration"],
+            ["31 05 04 02 90 01 41 10 3A 76 B2 79 39 60 A2 64 33 A1 2E BF 46 1c 40 00","@cfgCommentCTNConfiguration"],
             ["11 05 8004 0000 08 (confirmed)", "@cfgCommentConfirmed"]
         ]
     },
@@ -74,7 +87,7 @@
         },
         "cfg_block": [
             ["11 06 04 02 15 00 00 00 (tBatchEchant) (gBatchEmission) 00 00 00 0A 03", "@cfgCommentBatchTemp - @probe 1"],
-			["31 06 04 02 15 00 00 00 (tBatchEchant) (gBatchEmission) 00 00 00 0A 0B", "@cfgCommentBatchTemp - @probe 2"],
+            ["31 06 04 02 15 00 00 00 (tBatchEchant) (gBatchEmission) 00 00 00 0A 0B", "@cfgCommentBatchTemp - @probe 2"],
             ["11 06 00 50 15 00 06 04 (bBatchEchant) 85a0 00 00 00 64 2b", "@cfgCommentBatchBatt"]
         ]
     },
@@ -117,7 +130,7 @@
                 }
             }
         },
-		"standard_T2_params": {
+        "standard_T2_params": {
             "label": "@tempLabel @probe 2",
             "fields": {
                 "t2StandEchant": {
@@ -194,7 +207,7 @@
         },
         "cfg_block": [
             ["11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tNotification1) 0000 0171 (tNotification2) 0000 01", "@cfgCommentStandTemp - @probe 1"],
-			["31 06 0402 80 0000 29 (t2StandEchant) (t2StandEmission) 70 (t2Notification1) 0000 0171 (t2Notification2) 0000 01", "@cfgCommentStandTemp - @probe 2"],
+            ["31 06 0402 80 0000 29 (t2StandEchant) (t2StandEmission) 70 (t2Notification1) 0000 0171 (t2Notification2) 0000 01", "@cfgCommentStandTemp - @probe 2"],
             ["11 06 0050 80 0006 41 (bStandEchant) (bStandEmission) 0e 70 04 (bNotification1) 0000 0171 04 (bNotification2) 0000 01", "@cfgCommentStandBatt"]
         ]
     }

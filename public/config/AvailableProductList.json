@@ -30,7 +30,7 @@
 		{
 			"name": "Flash'O (50-70-071)",
 			"file": "50-70-071-Flasho",
-			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
+			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"BatchUncompressParams": "1 0,1,10,Index 1,100,6,BatteryLevel",
 			"category": "Digital input sensors",
 			"comment": ["Light pulse counting sensor (1 probe)","Compteur d'impulsions lumineuses (1 capteur)"],
@@ -39,7 +39,7 @@
 		{
 			"name": "Flash'O 3 probes (50-70-206)",
 			"file": "50-70-206-Flash'O-3-probes",
-			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
+			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,100,6,BatteryLevel 7,1,6,MultiState",
 			"category": "Digital input sensors",
 			"comment": ["Light pulse counting sensor (3 probes)","Compteur d'impulsions lumineuses (3 capteurs)"],
