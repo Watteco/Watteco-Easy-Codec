@@ -910,7 +910,7 @@ const generateFramesForGroup = (bigGroupName, groupName) => {
       });
       if (includeFrame) {
         const frameId = `frame-${bigGroupName}-${groupName}-${index}`;
-        frames += `<span class="frameArea" id="${frameId}"><span class="frame">${frame}</span>&nbsp;&nbsp;&nbsp;&nbsp;(${frameDesc}) <button class="copy-button" data-frame-id="${frameId}">${localize('@copyFrame')}</button> <button class="copy-button copy-nospace-button" data-frame-id="${frameId}" data-no-spaces="true">${localize('@copyFrameNoSpaces')}</button></span><br>`;
+        frames += `<span class="frameArea" id="${frameId}"><span class="frame">${frame}</span>&nbsp;&nbsp;&nbsp;&nbsp;(${frameDesc}) <button class="copy-button" data-frame-id="${frameId}" data-no-spaces="true">${localize('@copyFrame')}</button></span><br>`;
         frameCount++;
       }
     });
@@ -1023,7 +1023,7 @@ ion-segment {
 }
 
 .subcategory-card {
-  background-color: var(--ion-color-medium-tint);
+  background-color: #a0a0a0e0;
 }
 
 .config-card-content {
@@ -1181,6 +1181,7 @@ ion-range::part(pin)::before {
 }
 
 .frameArea {
+  color: black;
   font-size: small;
   user-select: none; /* Prevent selection of the entire line */
 }
