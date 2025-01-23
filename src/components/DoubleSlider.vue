@@ -41,12 +41,6 @@ const onRangeChange = (event) => {
 </script>
 
 <style scoped>
-.config-item {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-}
 
 .separator {
   flex: 0.3 1 0px;
@@ -54,16 +48,12 @@ const onRangeChange = (event) => {
   height: 100%;
 }
 
-ion-item {
-  --background: var(--ion-color-medium-tint);
-  border-radius: 15px;
-}
-
 ion-chip {
   --background: var(--ion-color-primary);
   --color: white;
   width: 90px;
   justify-content: space-around;
+  border-radius: 10px;
 }
 
 ion-range::part(pin) {

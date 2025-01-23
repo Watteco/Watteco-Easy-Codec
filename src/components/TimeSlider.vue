@@ -125,24 +125,12 @@ watch(() => props.value, (newValue) => {
   height: 100%;
 }
 
-ion-toggle {
-  --track-background: var(--ion-color-tertiary);
-  --track-background-checked: var(--ion-color-tertiary);
-
-  --handle-background: var(--ion-color-primary);
-  --handle-background-checked: var(--ion-color-primary);
-}
-
-ion-item {
-  --background: var(--ion-color-medium-tint);
-  border-radius: 15px;
-}
-
 ion-chip {
   --background: var(--ion-color-primary);
   --color: white;
   width: 90px;
   justify-content: space-around;
+  border-radius: 10px;
 }
 
 ion-range::part(pin) {

@@ -419,8 +419,8 @@ const standardChecked = ref(false); // State of the standard mode checkbox
 const generalChecked = ref(true); // State of the general mode checkbox
 const paramGroupChecked = ref<Record<string, boolean>>({}); // Tracks the state of group checkboxes
 const outputData: never[] = []; // Output data for rendering
-const outputVals: never[] = []; // Output values derived from parameters
-const paramGroupList: never[] = []; // List of parameter groups
+const outputVals: Record<string, string> = {}; // Output values derived from parameters
+const paramGroupList: Record<string, any> = {}; // List of parameter groups
 const currentErrors: never[] = []; // Tracks current errors
 const currentLanguage = ref('en'); // Reactive variable to store the current language
 const framesAvailable = ref(false);
@@ -1115,10 +1115,6 @@ const resetToDefault = () => {
 </script>
 
 <style scoped>
-.toolbar-title {
-	background-color: var(--ion-color-primary);
-}
-  
 .card-holder {
   display: block;
   width: 100%;
@@ -1152,7 +1148,7 @@ const resetToDefault = () => {
 ion-card {
   --background: #555555;
   --color: #ffffff;
-  border-radius: 25px;
+  border-radius: 10px;
 }
 
 ion-card-content {
@@ -1234,14 +1230,11 @@ ion-range::part(pin) {
   align-items: center;
   justify-content: center;
   color: #fff;
-
   border-radius: 50%;
   transform: scale(1.01);
-
   min-width: 28px;
   height: 28px;
   transition: transform 120ms ease, background 120ms ease;
-
   z-index: 10;
 }
 
@@ -1388,15 +1381,7 @@ ion-range::part(pin)::before {
   text-decoration: none;
 }
 
-.copy-nospace-button {
-  background: var(--ion-color-dark-tint);
-}
-
 .copy-button:hover {
-  background: var(--ion-color-primary-shade);
-}
-
-.copy-nospace-button:hover {
-  background: var(--ion-color-dark-shade);
+  background: var(--ion-color-primary-tint);
 }
 </style>

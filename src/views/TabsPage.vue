@@ -11,7 +11,7 @@
           <ion-title 
             size="large"
             id="watteco-title">
-              Watteco Easy Codec - BETA v0.9.3
+              Watteco Easy Codec - BETA v0.9.4
           </ion-title>
         </ion-toolbar>
       </ion-header>
@@ -90,13 +90,12 @@ ion-tab-bar {
 ion-toolbar {
   --background: var(--ion-color-primary);
   --color: white;
-
   --min-height: 80px;
   --padding-top: 20px;
   --padding-bottom: 20px;
 }
 
-#config-card ion-label{
+#config-card ion-label {
   color: white;
 }
 
@@ -115,7 +114,8 @@ ion-range {
 #watteco-title {
   font-size: 1.5rem;
   position: relative;
-  left: 150px;
+  left: 170px;
+  font-weight: bold;
 }
 
 /* Add responsive styles for smartphones */
@@ -128,7 +128,7 @@ ion-range {
 
   #watteco-title {
     font-size: 1.2rem;
-    left: 70px;
+    left: 90px;
   }
 
   #watteco-logo {
