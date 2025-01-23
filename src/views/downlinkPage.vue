@@ -123,14 +123,18 @@
                 </ion-card>
               </ul>
               <!-- Add frames display at the bottom of each paramGroup card -->
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]">
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" class="showFrameButton">
                 <ion-button @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
-                <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('general_params', groupName)"></div>
+                <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('general_params', groupName.toString())"></div>
               </ion-card-content>
             </ion-card>
           </div>
+          <!-- Add Reset to Default button -->
+          <ion-card-content class="showFrameButton">
+            <ion-button @click="resetToDefault" class="small-button">{{ localize("@resetToDefault") }}</ion-button>
+          </ion-card-content>
         </ion-card>
         
         <!-- Batch (batch_params) -->
@@ -215,7 +219,7 @@
                 </ion-card>
               </ul>
               <!-- Add frames display at the bottom of each paramGroup card -->
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]">                
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" class="showFrameButton">                
                 <ion-button @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
@@ -324,7 +328,7 @@
                 </ion-card>
               </ul>
               <!-- Add frames display at the bottom of each paramGroup card -->
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]">
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" class="showFrameButton">
                 <ion-button @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
@@ -672,7 +676,10 @@ const updateOutput = () => {
     Object.keys(paramGroupList).forEach(key => {
       delete paramGroupList[key];
     });
-    document.getElementById("outputArea").innerHTML = localize("@selectAtLeastOneMode");
+    const outputArea = document.getElementById("outputArea");
+    if (outputArea) {
+      outputArea.innerHTML = localize("@selectAtLeastOneMode");
+    }
     framesAvailable.value = false;
     return;
   }
@@ -731,7 +738,10 @@ const updateOutput = () => {
     });
   });
   
-  document.getElementById("outputArea").innerHTML = outputFrameTxt;
+  const outputArea = document.getElementById("outputArea");
+  if (outputArea) {
+    outputArea.innerHTML = outputFrameTxt;
+  }
   framesAvailable.value = outputFrameTxt.trim() !== "";
 };
 
@@ -1097,6 +1107,12 @@ const handleCopyButtonClick = (event) => {
 const toggleFramesVisibility = (groupName) => {
   framesVisible.value[groupName] = !framesVisible.value[groupName];
 };
+
+const resetToDefault = () => {
+  if (selectedSensor.value) {
+    onSensorChange({ detail: { value: selectedSensor.value } });
+  }
+};
 </script>
 
 <style scoped>
@@ -1260,6 +1276,10 @@ ion-range::part(pin)::before {
 .language-content {
   display: inline-flex;
   align-items: center;
+}
+
+.showFrameButton {
+  padding-top: 0px;
 }
 
 /* Add responsive styles for smartphones */

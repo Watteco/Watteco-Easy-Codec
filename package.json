@@ -44,5 +44,5 @@
     "vitest": "^0.34.6",
     "vue-tsc": "^2.0.22"
   },
-  "description": "An Ionic project"
+  "description": "An intuitive application designed to simplify the configuration and usage of Watteco IoT sensors"
 }

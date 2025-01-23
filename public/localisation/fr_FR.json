@@ -62,5 +62,6 @@
 	"cfgCommentStandState": "Configure le report d'état sur ",
 	"removeCurrentConfigLabel": "Supprimer la configuration actuelle",
 	"reportOnSensorPulloutLabel": "Rapport sur l'arrachement du capteur",
-	"frameNotModifiable": "Trame non modifiable"
+	"frameNotModifiable": "Trame non modifiable",
+    "resetToDefault": "Réinitialiser la configuration du capteur par défaut"
 }

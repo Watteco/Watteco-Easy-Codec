@@ -62,5 +62,6 @@
 	"cfgCommentStandState": "Configure state report on ",
 	"removeCurrentConfigLabel": "Remove current configuration",
 	"reportOnSensorPulloutLabel": "Report on sensor pullout",
-	"frameNotModifiable": "Frame not modifiable"
+	"frameNotModifiable": "Frame not modifiable",
+    "resetToDefault": "Reset sensor config to default"
 }
