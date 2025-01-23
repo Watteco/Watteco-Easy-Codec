@@ -2,7 +2,6 @@
   <ion-page>
 
     <ion-content :fullscreen="true">
-      <div class="card-holder">
       <ion-card v-show="false">
         <ion-range></ion-range>
         <ion-chip></ion-chip>
@@ -32,11 +31,13 @@
           </ion-card-content>
         </ion-card>
         
+      <div class="card-holder" v-show="sensorConfigLoaded">
         <!-- General (general_params) -->
         <ion-card v-if="sensorConfig && sensorConfig.general_params" class="category-card" :key="`config-${currentLanguage}`">
           <ion-item class="config-item">
             <ion-label>{{ localize("@generalLabel") }}</ion-label>
             <!-- <ion-checkbox :checked="generalChecked" @ionChange="onGeneralCheckedChange"></ion-checkbox> -->
+            <ion-button @click="resetToDefault" class="small-button">{{ localize("@resetToDefault") }}</ion-button>
             <ion-button class="visibility-button" :class="{ invisible: !generalChecked }" @click="toggleVisibility('general_params')">{{ generalVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
@@ -131,10 +132,6 @@
               </ion-card-content>
             </ion-card>
           </div>
-          <!-- Add Reset to Default button -->
-          <ion-card-content class="showFrameButton">
-            <ion-button @click="resetToDefault" class="small-button">{{ localize("@resetToDefault") }}</ion-button>
-          </ion-card-content>
         </ion-card>
         
         <!-- Batch (batch_params) -->
@@ -337,16 +334,15 @@
             </ion-card>
           </div>
         </ion-card>
-
-        <ion-card> 
-          <ion-card-content class="sensor-select">
-          <ion-label id="outputTitle">{{ localize("@port125") }}</ion-label>
-          <ion-label id="outputArea">  </ion-label> 
-          <ion-button v-if="framesAvailable" @click="copyFramesNoSpaces" class="half-width">{{ localize("@copyFrames") }}</ion-button>
-          </ion-card-content>
-        </ion-card>
       </div>
 
+      <ion-card class="outputCard">
+        <ion-card-content class="sensor-select">
+        <ion-label id="outputTitle">{{ localize("@port125") }}</ion-label>
+        <ion-label id="outputArea">  </ion-label> 
+        <ion-button v-if="framesAvailable" @click="copyFramesNoSpaces" class="half-width">{{ localize("@copyFrames") }}</ion-button>
+        </ion-card-content>
+      </ion-card>
     </ion-content>
   <div>
     <!-- Language Switcher -->
@@ -434,6 +430,7 @@ const generalVisible = ref(false);
 const subcategoryVisible = ref<Record<string, boolean>>({});
 const framesVisible = ref<Record<string, boolean>>({});
 const framesCount = ref<Record<string, number>>({});
+const sensorConfigLoaded = ref(false); // Add a new reactive variable to track the loading state
 
 // Initialize subcategoryVisible to show all subcategories by default
 watch(sensorConfig, (newConfig) => {
@@ -626,6 +623,7 @@ const initializeStates = (config) => {
 // Load configuration for a specific sensor
 const loadSensorConfig = async (sensorFile: string) => {
   try {
+    sensorConfigLoaded.value = false; // Set loading state to false before loading
     const response = await axios.get(`${import.meta.env.BASE_URL}config/${sensorFile}.json` + generateCacheBuster());
     const rawConfig = response.data;
 
@@ -636,6 +634,7 @@ const loadSensorConfig = async (sensorFile: string) => {
     initializeStates(sensorConfig.value);
 
     initParams(); // Initialize other parameters
+    sensorConfigLoaded.value = true; // Set loading state to true after loading
   } catch (error) {
     console.error('Failed to load sensor config:', error);
   }
@@ -1121,11 +1120,8 @@ const resetToDefault = () => {
 }
   
 .card-holder {
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: flex-start;
+  display: block;
+  width: 100%;
 }
 
 .sensor-select {
@@ -1177,11 +1173,20 @@ ion-segment {
   color: black;
 }
 
+.outputCard, #sensor-card, .category-card {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.category-card, .sensor-card, .outputCard {
+  width: 70%;
+}
+
 .category-card {
   background-color: var(--ion-color-tertiary);
 }
 .category-card > .config-item, .subcategory-card > .config-item{
-  color: black
+  color: black;
 }
 
 .subcategory-card {
@@ -1288,6 +1293,10 @@ ion-range::part(pin)::before {
     margin: 10px 20px;
   }
 
+  .category-card, .sensor-card, .outputCard {
+    width: 95%;
+  }
+
   #sensor-card {
     width: -webkit-fill-available;
   }
@@ -1340,6 +1349,13 @@ ion-range::part(pin)::before {
 
 .half-width {
   flex: 1;
+}
+
+.loading-message {
+  text-align: center;
+  font-size: 1.5rem;
+  color: var(--ion-color-primary);
+  margin-top: 20px;
 }
 </style>
 
