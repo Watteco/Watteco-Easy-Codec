@@ -41,12 +41,13 @@
             <ion-button class="visibility-button" :class="{ invisible: !generalChecked }" @click="toggleVisibility('general_params')">{{ generalVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
-          <div v-show="generalVisible">
+          <div class="subcategory-card-holder" v-show="generalVisible">
             <!-- General parameters (general_params) -->
             <ion-card v-for="(paramGroup, groupName) in sensorConfig.general_params" 
                       :key="groupName" 
                       v-show="generalChecked && paramGroup.label" 
-                      class="subcategory-card">
+                      :class="['subcategory-card', { 'full-width': hasIonRange(paramGroup.fields) }]"
+                      :style="getCardStyle(paramGroup.fields)">
               <ion-item class="config-item">
                 <ion-label>{{ paramGroup.label }}</ion-label>
 
@@ -58,10 +59,10 @@
               </ion-item>
 
               <!-- Dynamic fields -->
-              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName]">
+              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && !onlyCustomFrame(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
-                          v-show="param.hidden !== 'true'"
+                          v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
                           class="config-card">
                   <ion-item class="config-item">
                     <!-- Using the TimeSlider component -->
@@ -111,7 +112,7 @@
                       :paramName="paramName"
                     />
 
-                    <!-- Using the CustomValue component -->
+                    <!-- Using the CustomFrame component -->
                     <custom-frame
                       v-if="param.HMI?.visual_type === 'customFrame'"
                       :label="localize('@frameNotModifiable')"
@@ -142,12 +143,13 @@
             <ion-button class="visibility-button" :class="{ invisible: !batchChecked }" @click="toggleVisibility('batch_params')">{{ batchVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
-          <div v-show="batchVisible">
+          <div class="subcategory-card-holder" v-show="batchVisible">
             <!-- Temperature, Humidity, Battery (batch_params) -->
             <ion-card v-for="(paramGroup, groupName) in sensorConfig.batch_params" 
                       :key="groupName" 
                       v-show="batchChecked && paramGroup.label" 
-                      class="subcategory-card">
+                      :class="['subcategory-card', { 'full-width': hasIonRange(paramGroup.fields) }]"
+                      :style="getCardStyle(paramGroup.fields)">
               <ion-item class="config-item">
                 <ion-label>{{ paramGroup.label }}</ion-label>
 
@@ -159,10 +161,10 @@
               </ion-item>
 
               <!-- Dynamic fields -->
-              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName]">
+              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && !onlyCustomFrame(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
-                          v-show="param.hidden !== 'true'"
+                          v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
                           class="config-card">
                   <ion-item class="config-item">
                     <!-- Using the TimeSlider component -->
@@ -223,7 +225,7 @@
                 <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('batch_params', groupName)"></div>
               </ion-card-content>
             </ion-card>
-            <ion-card v-if="batchChecked" v-for="(param, paramName) in sensorConfig.batch_params.global_params.fields" 
+            <ion-card class="global-batch-settings" v-if="batchChecked" v-for="(param, paramName) in sensorConfig.batch_params.global_params.fields" 
                       :key="paramName"
                       v-show="param.hidden !== 'true'">
               <ion-item class="config-item">
@@ -250,12 +252,13 @@
             <ion-button class="visibility-button" :class="{ invisible: !standardChecked }" @click="toggleVisibility('standard_params')">{{ standardVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
-          <div v-show="standardVisible">
+          <div class="subcategory-card-holder" v-show="standardVisible">
             <!-- Temperature, Humidity, Battery (standard_params) -->
             <ion-card v-for="(paramGroup, groupName) in sensorConfig.standard_params" 
                       :key="groupName" 
                       v-show="standardChecked && paramGroup.label" 
-                      class="subcategory-card">
+                      :class="['subcategory-card', { 'full-width': hasIonRange(paramGroup.fields) }]"
+                      :style="getCardStyle(paramGroup.fields)">
               <ion-item class="config-item">
                 <ion-label>{{ paramGroup.label }}</ion-label>
 
@@ -267,10 +270,10 @@
               </ion-item>
 
               <!-- Dynamic fileds -->
-              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName]">
+              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && !onlyCustomFrame(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
-                          v-show="param.hidden !== 'true'"
+                          v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
                           class="config-card">
                   <ion-item class="config-item">
                     
@@ -363,7 +366,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
+import { ref, onMounted, computed, watch, onUnmounted, nextTick } from 'vue';
 import { 
   IonTabBar, 
   IonTabButton, 
@@ -1112,6 +1115,63 @@ const resetToDefault = () => {
     onSensorChange({ detail: { value: selectedSensor.value } });
   }
 };
+
+// Function to check if only custom-frame elements are present
+const onlyCustomFrame = (fields) => {
+  return Object.values(fields).every(field => field.HMI?.visual_type === 'customFrame');
+};
+
+// Function to check if a paramGroup has an ion-range component
+const hasIonRange = (fields) => {
+  if (!fields) return false;
+  return Object.values(fields).some(field => field.HMI?.visual_type === 'timeSlider' || field.HMI?.visual_type === 'doubleSlider');
+};
+
+const getCardStyle = (fields) => {
+  if (!fields) {
+    return { width: '100%', margin: '10px' };
+  }
+
+  if (hasIonRange(fields)) {
+    return { width: '100%', margin: '10px' };
+  }
+
+  // Get current card's container
+  const currentCard = Array.from(document.querySelectorAll('.subcategory-card'))
+    .find(card => {
+      return Object.values(fields).some(field => 
+        card.textContent?.includes(field.HMI?.label)
+      );
+    });
+
+  if (!currentCard) {
+    return { width: '100%', margin: '10px' };
+  }
+
+  const container = currentCard.parentElement;
+  if (!container?.classList.contains('subcategory-card-holder')) {
+    return { width: '100%', margin: '10px' };
+  }
+
+  // Count visible siblings with content
+  const visibleSiblings = Array.from(container.children)
+    .filter(el => {
+      if (!el.classList.contains('subcategory-card')) return false;
+      const style = window.getComputedStyle(el);
+      return style.display !== 'none' && 
+            !el.classList.contains('full-width') &&
+            !el.querySelector('ion-range') &&
+            el.querySelector('.config-item ion-label')?.textContent?.trim().length > 0;
+    });
+
+  if (visibleSiblings.length <= 1) {
+    return { width: '100%', margin: '10px' };
+  } else if (visibleSiblings.length === 2) {
+    return { width: 'calc(50% - 20px)', margin: '10px' };
+  } else {
+    return { width: 'calc(33.33% - 20px)', margin: '10px' };
+  }
+};
 </script>
 
 <style scoped>
@@ -1187,6 +1247,19 @@ ion-segment {
 
 .subcategory-card {
   background-color: #a0a0a0e0;
+  transition: width 0.3s ease;
+}
+
+.subcategory-card-holder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.global-batch-settings {
+  width: 100%;
 }
 
 ul {
@@ -1349,6 +1422,10 @@ ion-range::part(pin)::before {
   font-size: 1.5rem;
   color: var(--ion-color-primary);
   margin-top: 20px;
+}
+
+.subcategory-card.full-width {
+  width: 100% !important;
 }
 </style>
 
