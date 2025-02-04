@@ -1,0 +1,173 @@
+{
+    "general_params": {
+        "remove_config": {
+            "label": "@removeCurrentConfigLabel",
+            "default_state": "true",
+            "fields": {
+                "removeCurrentConfig": {
+                    "type": "frame",
+                    "HMI": {
+                        "label": "@removeCurrentConfigLabel",
+                        "visual_type": "customFrame"
+                    }
+                }
+            }
+        },
+        "confirmed": {
+            "label": "@confirmedLabel",
+            "default_state": "true",
+            "fields": {
+                "confirmed": {
+                    "type": "bool",
+                    "default_value": "false",
+                    "HMI": {
+                        "label": "@confirmedLabel",
+                        "visual_type": "checkbox"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+            ["11 50 00 50 02 03", "@cfgCommentRemoveConfig"],
+            ["11 05 8004 0000 08 (confirmed)", "@cfgCommentConfirmed"],
+			["11 05 04 02 90 01 41 10 3a 91 47 21 39 79 17 a6 33 9e 90 7c 46 1c 40 00","@cfgCommentCTNConfiguration"]
+        ]
+    },
+    "batch_params": {
+        "batch_T_params": {
+            "label": "@tempLabel",
+            "default_state": "true",
+            "fields": {
+                "tBatchEchant": {
+                    "type": "timeInt32",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "60",
+                    "step": "1",
+                    "depends_on": "gBatchEmission",
+                    "HMI": {
+                        "label": "@echantLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "batch_B_params": {
+            "label": "@batt24h",
+            "default_state": "true",
+            "fields": {
+                "bBatchEchant": {
+                    "type": "timeInt32",
+                    "default_value": "1440",
+                    "default_unit": "1",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "30",
+                    "HMI": {
+                        "label": "@echantLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "global_params": {
+            "fields": {
+                "gBatchEmission": {
+                    "type": "timeInt32",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "HMI": {
+                        "label": "@emitLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+            ["11 06 04 02 15 00 00 00 (tBatchEchant) (gBatchEmission) 00 00 00 0A 03", "@cfgCommentBatchTemp"],
+            ["11 06 00 50 15 00 06 04 (bBatchEchant) 85a0 00 00 00 64 2b", "@cfgCommentBatchBatt"]
+        ]
+    },
+    "standard_params": {
+        "standard_T_params": {
+            "label": "@tempLabel",
+            "fields": {
+                "tStandEchant": {
+                    "type": "timeInt32",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "60",
+                    "depends_on": "tStandEmission",
+                    "HMI": {
+                        "label": "@measureLabel",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "tStandEmission": {
+                    "type": "timeInt32",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "HMI": {
+                        "label": "@emitMaxLabel",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "tNotification": {
+                    "type": "int32",
+                    "default_value": "15 30",
+                    "min_value": "1",
+                    "max_value": "55",
+                    "HMI": {
+                        "label": "@thresholdLabel",
+                        "visual_type": "doubleSlider",
+                        "unit": "°C",
+                        "multiplier": "100"
+                    }
+                }
+            }
+        },
+        "standard_B_params": {
+            "label": "@battLabel",
+            "fields": {
+                "bStandEchant": {
+                    "type": "timeInt32",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "depends_on": "bStandEmission",
+                    "HMI": {
+                        "label": "@measureLabel",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "bStandEmission": {
+                    "type": "timeInt32",
+                    "default_value": "1440",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "HMI": {
+                        "label": "@emitMaxLabel",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "bNotification": {
+                    "type": "int32",
+                    "default_value": "2900 3300",
+                    "min_value": "2000",
+                    "max_value": "3700",
+                    "HMI": {
+                        "label": "@thresholdLabel",
+                        "visual_type": "doubleSlider",
+                        "unit": "mV"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+            ["11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tNotification1) 0000 0171 (tNotification2) 0000 01", "@cfgCommentStandTemp"],
+            ["11 06 0050 80 0006 41 (bStandEchant) (bStandEmission) 0e 70 04 (bNotification1) 0000 0171 04 (bNotification2) 0000 01", "@cfgCommentStandBatt"]
+        ]
+    }
+}
