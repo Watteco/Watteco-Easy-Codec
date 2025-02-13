@@ -16,12 +16,18 @@ http://ionicframework.com/docs/theming/ */
 	--ion-color-secondary-shade: #e09448;
 	--ion-color-secondary-tint: #ffb163;
 
-	--ion-color-tertiary: #ffd6ad;
+	--ion-color-tertiary: #fcd4a6;
 	--ion-color-tertiary-rgb: 255,214,173;
 	--ion-color-tertiary-contrast: #000000;
 	--ion-color-tertiary-contrast-rgb: 0,0,0;
 	--ion-color-tertiary-shade: #e0bc98;
 	--ion-color-tertiary-tint: #ffdab5;
+
+	--ion-color-darkGrey: #5B5044;
+	--ion-color-darkGrey-contrast: #FFF7EE;
+
+	--ion-color-lightGrey: #B8A498;
+	--ion-color-lightGrey-contrast: #000000;
 
 	--knob-size: 30px;
 	--ion-text-color-rgb: #FFFFFF;

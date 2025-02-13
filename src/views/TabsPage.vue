@@ -11,7 +11,7 @@
           <ion-title 
             size="large"
             id="watteco-title">
-              Watteco Easy Codec - BETA v0.9.5
+              Watteco Easy Codec - BETA v0.9.6
           </ion-title>
         </ion-toolbar>
       </ion-header>
@@ -81,6 +81,7 @@ const loadImage = async () => {
 :root {
   --ion-item-background: #00000000;
   --ion-item-border-color: #00000000;
+  --ion-background-color: #FFF7EE;
 }
 
 ion-tab-bar {

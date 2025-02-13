@@ -1193,12 +1193,13 @@ const getCardStyle = (fields) => {
   position: sticky;
   top: 0;
   z-index: 5;
-  box-shadow: 0px 8px 20px 0px white;
+  box-shadow: 0px 8px 20px 0px var(--ion-background-color);
 }
 
 #config-card {
   width: 33%;
-  background-color: #555555;
+  background-color: var(--ion-color-darkGrey);
+  color: var(--ion-color-darkGrey-contrast);
 }
 
 .item > ion-label {
@@ -1206,8 +1207,8 @@ const getCardStyle = (fields) => {
 }
 
 ion-card {
-  --background: #555555;
-  --color: #ffffff;
+  --background: var(--ion-color-darkGrey);
+  --color: var(--ion-color-darkGrey-contrast);
   border-radius: 10px;
 }
 
@@ -1224,7 +1225,7 @@ ion-select.always-flip.select-expanded::part(icon) {
 }
 
 ion-segment {
-  background-color: white;
+  background-color: var(--ion-background-color);
   border-top: solid 1px rgb(0 0 0 / 7%);
   color: black;
 }
@@ -1241,13 +1242,18 @@ ion-segment {
 .category-card {
   background-color: var(--ion-color-tertiary);
 }
-.category-card > .config-item, .subcategory-card > .config-item{
-  color: black;
+
+.category-card > .config-item {
+  color: var(--ion-color-tertiary-contrast);
 }
 
 .subcategory-card {
-  background-color: #a0a0a0e0;
+  background-color: var(--ion-color-lightGrey);
   transition: width 0.3s ease;
+}
+
+.subcategory-card > .config-item {
+  color: var(--ion-color-lightGrey-contrast);
 }
 
 .subcategory-card-holder {
@@ -1285,7 +1291,7 @@ ul {
 }
 
 .config-item {
-  color: white;
+  color: var(--ion-background-color);
 }
 
 #outputTitle {
@@ -1302,7 +1308,7 @@ ion-range::part(pin) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--ion-background-color);
   border-radius: 50%;
   transform: scale(1.01);
   min-width: 28px;
@@ -1449,7 +1455,7 @@ ion-range::part(pin)::before {
 .copy-button {
   background: var(--ion-color-primary);
   border: none;
-  color: white;
+  color: var(--ion-background-color);
   cursor: pointer;
   font-size: small;
   margin-left: 5px;
