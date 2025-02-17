@@ -24,6 +24,10 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/UplinkPage.vue')
       },
       {
+        path: 'modbus',
+        component: () => import('@/views/ModbusPage.vue')
+      },
+      {
         path: 'battery',
         component: () => import('@/views/BatteryPage.vue')
       }

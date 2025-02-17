@@ -11,7 +11,7 @@
           <ion-title 
             size="large"
             id="watteco-title">
-              Watteco Easy Codec - BETA v0.9.9
+              Watteco Easy Codec - BETA v0.9.10
           </ion-title>
         </ion-toolbar>
       </ion-header>
@@ -22,6 +22,10 @@
 
         <ion-tab-button tab="uplink" href="/tabs/uplink" :disabled="true">
           <ion-icon :icon="arrowUpCircleOutline" />
+        </ion-tab-button>
+
+        <ion-tab-button tab="modbus" href="/tabs/modbus">
+          <ion-icon :icon="serverOutline" />
         </ion-tab-button>
 
         <ion-tab-button tab="battery" href="/tabs/battery" :disabled="true">
@@ -57,7 +61,7 @@ import {
   IonSegmentButton,
   IonButton
 } from '@ionic/vue';
-import { arrowDownCircleOutline, arrowUpCircleOutline, batteryHalfOutline } from 'ionicons/icons';
+import { arrowDownCircleOutline, arrowUpCircleOutline, batteryHalfOutline, serverOutline } from 'ionicons/icons';
 
 // Define a reactive variable for the logo's src
 const logoSrc = ref('');
