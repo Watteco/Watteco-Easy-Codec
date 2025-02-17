@@ -347,20 +347,20 @@
         </ion-card-content>
       </ion-card>
     </ion-content>
-  <div>
-    <!-- Language Switcher -->
-    <ion-segment v-model="currentLanguage" @ionChange="changeLanguage($event.detail.value)">
-      <ion-segment-button value="en" class="language-button">
-        <span class="language-content">
-          <img src="@/assets/img/flags/gb.png" alt="English" class="flag-icon" /> English
-        </span>
-      </ion-segment-button>
-      <ion-segment-button value="fr" class="language-button">
-        <span class="language-content">
-          <img src="@/assets/img/flags/fr.png" alt="Français" class="flag-icon" /> Français
-        </span>
-      </ion-segment-button>
-    </ion-segment>
+  <div class="language-switcher">
+    <button 
+      v-for="lang in availableLanguages" 
+      :key="lang.code"
+      @click="changeLanguage(lang.code)"
+      class="flag-button"
+      :class="{ active: currentLanguage === lang.code }"
+    >
+      <img 
+        :src="lang.flag" 
+        :alt="lang.name" 
+        class="flag-icon" 
+      />
+    </button>
   </div>
   </ion-page>
 </template>
@@ -402,6 +402,17 @@ import axios from 'axios';
 // Import language files
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
+
+// Import flag images
+import gbFlag from '@/assets/img/flags/gb.png';
+import frFlag from '@/assets/img/flags/fr.png';
+
+// Language configuration
+const availableLanguages = [
+  { code: 'en', name: 'English', flag: gbFlag },
+  { code: 'fr', name: 'Français', flag: frFlag },
+  // Add more languages here following the same pattern
+];
 
 // Reactive variables to store application state
 const availableProducts = ref([]); // Stores the list of available products
@@ -1225,9 +1236,17 @@ ion-select.always-flip.select-expanded::part(icon) {
 }
 
 ion-segment {
-  background-color: var(--ion-background-color);
-  border-top: solid 1px rgb(0 0 0 / 7%);
-  color: black;
+  background: transparent;
+}
+
+ion-segment-button {
+  --color: var(--ion-color-medium);
+  --color-checked: var(--ion-color-primary);
+  min-width: 120px;
+}
+
+ion-segment-button::part(indicator-background) {
+  background: var(--ion-color-primary);
 }
 
 .outputCard, #sensor-card, .category-card {
@@ -1340,9 +1359,11 @@ ion-range::part(pin)::before {
 }
 
 .flag-icon {
-  height: 20px;
-  margin-right: 8px;
+  height: 16px;
+  width: auto;
+  margin: 0 5px;
   vertical-align: middle;
+  display: inline-block;
 }
 
 .language-button {
@@ -1402,6 +1423,11 @@ ion-range::part(pin)::before {
   #outputArea {
     font-size: xx-small;
   }
+
+  .language-switcher {
+    bottom: 8px;
+    right: 8px;
+  }
 }
 
 .small-button {
@@ -1432,6 +1458,60 @@ ion-range::part(pin)::before {
 
 .subcategory-card.full-width {
   width: 100% !important;
+}
+
+.language-switcher {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  gap: 4px;
+  background: var(--ion-color-darkGrey);
+  padding: 4px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+.flag-button {
+  background: none;
+  border: none;
+  padding: 2px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  opacity: 0.6;
+}
+
+.flag-button:hover {
+  transform: scale(1.1);
+  opacity: 0.8;
+}
+
+.flag-button.active {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.flag-icon {
+  width: 24px;
+  height: 18px;
+  object-fit: cover;
+  border-radius: 2px;
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .language-switcher {
+    bottom: 8px;
+    right: 8px;
+    padding: 2px;
+  }
+
+  .flag-icon {
+    width: 20px;
+    height: 15px;
+  }
 }
 </style>
 
