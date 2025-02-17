@@ -348,19 +348,10 @@
       </ion-card>
     </ion-content>
   <div class="language-switcher">
-    <button 
-      v-for="lang in availableLanguages" 
-      :key="lang.code"
-      @click="changeLanguage(lang.code)"
-      class="flag-button"
-      :class="{ active: currentLanguage === lang.code }"
-    >
-      <img 
-        :src="lang.flag" 
-        :alt="lang.name" 
-        class="flag-icon" 
-      />
-    </button>
+    <LanguageSwitcher 
+      :current-language="currentLanguage"
+      @update:language="changeLanguage"
+    />
   </div>
   </ion-page>
 </template>
@@ -398,6 +389,7 @@ import CheckBox from '@/components/CheckBox.vue';
 import CustomValue from '@/components/CustomValue.vue';
 import CustomFrame from '@/components/CustomFrame.vue';
 import axios from 'axios';
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'; // Import the new component
 
 // Import language files
 import enUS from '/localisation/en_US.json?url';
@@ -1358,24 +1350,6 @@ ion-range::part(pin)::before {
   visibility: hidden;
 }
 
-.flag-icon {
-  height: 16px;
-  width: auto;
-  margin: 0 5px;
-  vertical-align: middle;
-  display: inline-block;
-}
-
-.language-button {
-  display: inline-flex;
-  align-items: center;
-}
-
-.language-content {
-  display: inline-flex;
-  align-items: center;
-}
-
 .showFrameButton {
   padding-top: 0px;
 }
@@ -1458,60 +1432,6 @@ ion-range::part(pin)::before {
 
 .subcategory-card.full-width {
   width: 100% !important;
-}
-
-.language-switcher {
-  position: fixed;
-  bottom: 16px;
-  right: 16px;
-  display: flex;
-  gap: 4px;
-  background: var(--ion-color-darkGrey);
-  padding: 4px;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-}
-
-.flag-button {
-  background: none;
-  border: none;
-  padding: 2px;
-  border-radius: 2px;
-  cursor: pointer;
-  transition: transform 0.2s;
-  opacity: 0.6;
-}
-
-.flag-button:hover {
-  transform: scale(1.1);
-  opacity: 0.8;
-}
-
-.flag-button.active {
-  opacity: 1;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.flag-icon {
-  width: 24px;
-  height: 18px;
-  object-fit: cover;
-  border-radius: 2px;
-  display: block;
-}
-
-@media (max-width: 600px) {
-  .language-switcher {
-    bottom: 8px;
-    right: 8px;
-    padding: 2px;
-  }
-
-  .flag-icon {
-    width: 20px;
-    height: 15px;
-  }
 }
 </style>
 
