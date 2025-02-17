@@ -17,15 +17,15 @@ const routes: Array<RouteRecordRaw> = [
       },
       {
         path: 'downlink',
-        component: () => import('@/views/downlinkPage.vue')
+        component: () => import('@/views/DownlinkPage.vue')
       },
       {
         path: 'uplink',
-        component: () => import('@/views/uplinkPage.vue')
+        component: () => import('@/views/UplinkPage.vue')
       },
       {
         path: 'battery',
-        component: () => import('@/views/batteryPage.vue')
+        component: () => import('@/views/BatteryPage.vue')
       }
     ]
   }
