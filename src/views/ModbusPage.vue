@@ -101,7 +101,10 @@
         </div>
 
         <!-- Data to Write Card -->
-        <ion-card class="field-card write-data-card">
+        <ion-card 
+          class="field-card write-data-card" 
+          v-if="isWriteOperation"
+        >
           <ion-card-content>
             <ion-item class="write-data-item">
               <ion-label position="stacked" color="dark">{{ localize('@dataToWrite') }}</ion-label>
@@ -283,6 +286,10 @@ const functionCodeOptions = computed(() => [
 const selectedFunctionCodeLabel = computed(() => {
   const option = functionCodeOptions.value.find(opt => opt.value === functionCode.value);
   return option ? option.label : '';
+});
+
+const isWriteOperation = computed(() => {
+  return ['0x06', '0x10'].includes(functionCode.value);
 });
 </script>
 

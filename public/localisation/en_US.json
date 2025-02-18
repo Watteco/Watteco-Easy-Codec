@@ -69,7 +69,7 @@
     "functionCode": "Function Code",
     "startAddress": "Register/Coil Start Address",
     "numRegisters": "Number of Registers/Coils",
-    "dataToWrite": "Data to Write (if applicable)",
+    "dataToWrite": "Data to Write",
     "littleEndian": "Little Endian",
     "generateFrame": "Generate Frame",
     "generatedFrame": "Generated Modbus Frame",

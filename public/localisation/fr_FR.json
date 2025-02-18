@@ -69,7 +69,7 @@
     "functionCode": "Code Fonction",
     "startAddress": "Adresse de Début Registre/Bobine",
     "numRegisters": "Nombre de Registres/Bobines",
-    "dataToWrite": "Données à Écrire (si applicable)",
+    "dataToWrite": "Données à Écrire",
     "littleEndian": "Little Endian",
     "generateFrame": "Générer la Trame",
     "generatedFrame": "Trame Modbus Générée",

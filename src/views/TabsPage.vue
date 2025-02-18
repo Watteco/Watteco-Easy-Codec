@@ -11,7 +11,7 @@
           <ion-title 
             size="large"
             id="watteco-title">
-              Watteco Easy Codec - BETA v0.9.10
+              Watteco Easy Codec - BETA v0.10.0
           </ion-title>
         </ion-toolbar>
       </ion-header>
@@ -89,7 +89,7 @@ const loadImage = async () => {
 }
 
 ion-tab-bar {
-  display: none; /* Tabs are not used yet */
+  /*display: none;  Tabs are not used yet */
 }
 
 ion-toolbar {
