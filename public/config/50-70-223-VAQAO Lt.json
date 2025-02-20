@@ -92,6 +92,7 @@
         "standard_T_params": {
             "label": "@tempLabel",
             "default_state": "true",
+            "folded": "true",
             "fields": {
                 "tStandEchant": {
                     "type": "timeVal",
@@ -121,6 +122,7 @@
         "standard_H_params": {
             "label": "@humLabel",
             "default_state": "true",
+            "folded": "true",
             "fields": {
                 "hStandEchant": {
                     "type": "timeVal",
@@ -150,6 +152,7 @@
         "standard_C_params": {
             "label": "@co2Label",
             "default_state": "true",
+            "folded": "true",
             "fields": {
                 "cStandEchant": {
                     "type": "timeVal",
@@ -178,6 +181,7 @@
         "standard_B_params": {
             "label": "@battLabel",
             "default_state": "true",
+            "folded": "true",
             "fields": {
                 "bStandEchant": {
                     "type": "timeVal",

@@ -92,6 +92,7 @@
         "standard_T_params": {
             "label": "@tempLabel",
 			"default_state": "true",
+            "folded": "true",
             "fields": {
                 "tStandEchant": {
                     "type": "timeVal",
@@ -131,6 +132,7 @@
         "standard_H_params": {
             "label": "@humLabel",
 			"default_state": "true",
+            "folded": "true",
             "fields": {
                 "hStandEchant": {
                     "type": "timeVal",
@@ -169,7 +171,8 @@
         },
         "standard_B_params": {
             "label": "@battLabel",
-			"default_state": "true",	
+			"default_state": "true",
+            "folded": "true",
             "fields": {
                 "bStandEchant": {
                     "type": "timeVal",

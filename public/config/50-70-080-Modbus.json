@@ -51,6 +51,7 @@
         "serial_interface": {
             "label": "@serialInterfaceLabel",
             "default_state": "true",
+            "folded": true,
             "fields": {
                 "baudRate": {
                     "type": "hex3B",

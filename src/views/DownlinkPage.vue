@@ -690,7 +690,9 @@ watch(sensorConfig, async (newConfig) => {
     ["batch_params", "modbus_params", "standard_params", "general_params"].forEach(section => {
       if (newConfig[section]) {
         Object.keys(newConfig[section]).forEach(groupName => {
-          subcategoryVisible.value[groupName] = true;
+          // Initialize subcategoryVisible based on the folded property
+          const group = newConfig[section][groupName];
+          subcategoryVisible.value[groupName] = group.folded ? false : true;
           framesVisible.value[groupName] = false;
         });
       }
@@ -809,6 +811,7 @@ const onSensorChange = async (event) => {
   
   const selected = event.detail.value;
   selectedSensor.value = event.detail.value;
+  resetCheckboxes();
   await loadSensorConfig(selected);
 };
 
