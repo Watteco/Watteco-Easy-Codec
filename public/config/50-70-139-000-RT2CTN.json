@@ -40,7 +40,7 @@
             "default_state": "true",
             "fields": {
                 "tBatchEchant": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "60",
@@ -58,7 +58,7 @@
             "default_state": "true",
             "fields": {
                 "bBatchEchant": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "1440",
                     "default_unit": "1",
                     "min_value": "1",
@@ -74,10 +74,11 @@
         "global_params": {
             "fields": {
                 "gBatchEmission": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
+                    "step": "1",
                     "HMI": {
                         "label": "@emitLabel",
                         "visual_type": "timeSlider"
@@ -96,7 +97,7 @@
             "label": "@tempLabel @probe 1",
             "fields": {
                 "tStandEchant": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "60",
@@ -107,7 +108,7 @@
                     }
                 },
                 "tStandEmission": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
@@ -117,7 +118,7 @@
                     }
                 },
                 "tNotification": {
-                    "type": "int32",
+                    "type": "hex2B",
                     "default_value": "15 30",
                     "min_value": "1",
                     "max_value": "55",
@@ -134,7 +135,7 @@
             "label": "@tempLabel @probe 2",
             "fields": {
                 "t2StandEchant": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "60",
@@ -145,7 +146,7 @@
                     }
                 },
                 "t2StandEmission": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
@@ -155,7 +156,7 @@
                     }
                 },
                 "t2Notification": {
-                    "type": "int32",
+                    "type": "hex2B",
                     "default_value": "15 30",
                     "min_value": "1",
                     "max_value": "55",
@@ -172,7 +173,7 @@
             "label": "@battLabel",
             "fields": {
                 "bStandEchant": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "1440",
@@ -183,7 +184,7 @@
                     }
                 },
                 "bStandEmission": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
@@ -193,7 +194,7 @@
                     }
                 },
                 "bNotification": {
-                    "type": "int32",
+                    "type": "hex2B",
                     "default_value": "2900 3300",
                     "min_value": "2000",
                     "max_value": "3700",

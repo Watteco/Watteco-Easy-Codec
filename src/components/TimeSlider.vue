@@ -1,5 +1,5 @@
 <template>
-  <ion-label>{{ label }}</ion-label>
+  <ion-label position="stacked">{{ label }}</ion-label>
 
   <!-- Slider (ion-range) -->
   <ion-range

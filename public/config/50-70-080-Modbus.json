@@ -1,0 +1,787 @@
+{
+    "general_params": {
+        "remove_config": {
+            "label": "@removeCurrentConfigLabel",
+            "default_state": "true",
+            "fields": {
+                "removeCurrentConfig": {
+                    "type": "frame",
+                    "HMI": {
+                        "label": "@removeCurrentConfigLabel",
+                        "visual_type": "customFrame"
+                    }
+                }
+            }
+        },
+        "confirmed": {
+            "label": "@confirmedLabel",
+            "default_state": "true",
+            "fields": {
+                "confirmed": {
+                    "type": "bool",
+                    "default_value": "false",
+                    "HMI": {
+                        "label": "@confirmedLabel",
+                        "visual_type": "checkbox"
+                    }
+                }
+            }
+        },
+        "remove_header": {
+            "label": "@removeHeaderLabel",
+            "default_state": "true",
+            "fields": {
+                "remove": {
+                    "type": "bool",
+                    "default_value": "false",
+                    "HMI": {
+                        "label": "@removeHeaderLabel",
+                        "visual_type": "checkbox"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+            ["11 50 00 50 02 03 (removeCurrentConfig)", "@cfgCommentRemoveConfig"],
+            ["11 05 8004 0000 08 (confirmed)", "@cfgCommentConfirmed"],
+            ["11 05 8009 0001 10 (remove)", "@cfgCommentRemoveHeader"]
+        ]
+    },
+    "modbus_params": {
+        "serial_interface": {
+            "label": "@serialInterfaceLabel",
+            "default_state": "true",
+            "fields": {
+                "baudRate": {
+                    "type": "hex3B",
+                    "default_value": "9600",
+                    "choices": [
+                        "1200",
+                        "2400",
+                        "4800",
+                        "9600",
+                        "19200",
+                        "38400",
+                        "57600",
+                        "115200"
+                    ],
+                    "HMI": {
+                        "label": "@baudRateLabel",
+                        "visual_type": "dropdown"
+                    }
+                },
+                "dataBits": {
+                    "type": "hex1B",
+                    "default_value": "8",
+                    "choices": [
+                        "7",
+                        "8"
+                    ],
+                    "HMI": {
+                        "label": "@dataBitsLabel",
+                        "visual_type": "dropdown"
+                    }
+                },
+                "parity": {
+                    "type": "hex1B",
+                    "default_value": "2",
+                    "choices": [
+                        ["0", "@parityNone"],
+                        ["1", "@parityOdd"],
+                        ["2", "@parityEven"]
+                    ],
+                    "HMI": {
+                        "label": "@parityLabel",
+                        "visual_type": "dropdown"
+                    }
+                },
+                "stopBit": {
+                    "type": "hex1B",
+                    "default_value": "1",
+                    "choices": [
+                        "1",
+                        "2"
+                    ],
+                    "HMI": {
+                        "label": "@stopBitLabel",
+                        "visual_type": "dropdown"
+                    }
+                }
+            }
+        },
+        "modbusFrame11": {
+            "label": "@modbusFrameLabel 1",
+            "fields": {
+                "mb11Slave": {
+                    "type": "hex1B",
+                    "default_value": "1",
+                    "min_value": "0",
+                    "max_value": "247",
+                    "HMI": {
+                        "label": "@modbusSlaveAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb11FunctionCode": {
+                    "type": "hex1B",
+                    "default_value": "3",
+                    "choices": [
+                        ["1", "0x01 - @readCoils"],
+                        ["2", "0x02 - @readDiscreteInputs"],
+                        ["3", "0x03 - @readHoldingRegisters"],
+                        ["4", "0x04 - @readInputRegisters"],
+                        ["5", "0x05 - @writeSingleCoil"],
+                        ["6", "0x06 - @writeSingleRegister"],
+                        ["15", "0x0F - @writeMultipleCoils"],
+                        ["16", "0x10 - @writeMultipleRegisters"]
+                    ],
+                    "HMI": {
+                        "label": "@modbusFunctionCode",
+                        "visual_type": "dropdown"
+                    }
+                },
+                "mb11StartAddress": {
+                    "type": "hex2B",
+                    "default_value": "0",
+                    "min_value": "0",
+                    "max_value": "65535",
+                    "HMI": {
+                        "label": "@modbusStartAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb11NumRegisters": {
+                    "type": "hex2B",
+                    "default_value": "1",
+                    "min_value": "1",
+                    "max_value": "125",
+                    "HMI": {
+                        "label": "@modbusNumRegisters",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb11DataToWrite": {
+                    "type": "stringPad4",
+                    "default_value": "",
+                    "placeholder": "Hex value (e.g. 1234)",
+                    "HMI": {
+                        "label": "@modbusDataToWrite",
+                        "visual_type": "textInput"
+                    }
+                }
+            }
+        },
+        "modbusFrame31": {
+            "label": "@modbusFrameLabel 2",
+            "fields": {
+                "mb31Slave": {
+                    "type": "hex1B",
+                    "default_value": "1",
+                    "min_value": "0",
+                    "max_value": "247",
+                    "HMI": {
+                        "label": "@modbusSlaveAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb31FunctionCode": {
+                    "type": "hex1B",
+                    "default_value": "3",
+                    "choices": [
+                        ["1", "0x01 - @readCoils"],
+                        ["2", "0x02 - @readDiscreteInputs"],
+                        ["3", "0x03 - @readHoldingRegisters"],
+                        ["4", "0x04 - @readInputRegisters"],
+                        ["5", "0x05 - @writeSingleCoil"],
+                        ["6", "0x06 - @writeSingleRegister"],
+                        ["15", "0x0F - @writeMultipleCoils"],
+                        ["16", "0x10 - @writeMultipleRegisters"]
+                    ],
+                    "HMI": {
+                        "label": "@modbusFunctionCode",
+                        "visual_type": "dropdown"
+                    }
+                },
+                "mb31StartAddress": {
+                    "type": "hex2B",
+                    "default_value": "0",
+                    "min_value": "0",
+                    "max_value": "65535",
+                    "HMI": {
+                        "label": "@modbusStartAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb31NumRegisters": {
+                    "type": "hex2B",
+                    "default_value": "1",
+                    "min_value": "1",
+                    "max_value": "125",
+                    "HMI": {
+                        "label": "@modbusNumRegisters",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb31DataToWrite": {
+                    "type": "stringPad4",
+                    "default_value": "",
+                    "placeholder": "Hex value (e.g. 1234)",
+                    "HMI": {
+                        "label": "@modbusDataToWrite",
+                        "visual_type": "textInput"
+                    }
+                }
+            }
+        },
+        "modbusFrame51": {
+            "label": "@modbusFrameLabel 3",
+            "fields": {
+                "mb51Slave": {
+                    "type": "hex1B",
+                    "default_value": "1",
+                    "min_value": "0",
+                    "max_value": "247",
+                    "HMI": {
+                        "label": "@modbusSlaveAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb51FunctionCode": {
+                    "type": "hex1B",
+                    "default_value": "3",
+                    "choices": [
+                        ["1", "0x01 - @readCoils"],
+                        ["2", "0x02 - @readDiscreteInputs"],
+                        ["3", "0x03 - @readHoldingRegisters"],
+                        ["4", "0x04 - @readInputRegisters"],
+                        ["5", "0x05 - @writeSingleCoil"],
+                        ["6", "0x06 - @writeSingleRegister"],
+                        ["15", "0x0F - @writeMultipleCoils"],
+                        ["16", "0x10 - @writeMultipleRegisters"]
+                    ],
+                    "HMI": {
+                        "label": "@modbusFunctionCode",
+                        "visual_type": "dropdown"
+                    }
+                },
+                "mb51StartAddress": {
+                    "type": "hex2B",
+                    "default_value": "0",
+                    "min_value": "0",
+                    "max_value": "65535",
+                    "HMI": {
+                        "label": "@modbusStartAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb51NumRegisters": {
+                    "type": "hex2B",
+                    "default_value": "1",
+                    "min_value": "1",
+                    "max_value": "125",
+                    "HMI": {
+                        "label": "@modbusNumRegisters",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb51DataToWrite": {
+                    "type": "stringPad4",
+                    "default_value": "",
+                    "placeholder": "Hex value (e.g. 1234)",
+                    "HMI": {
+                        "label": "@modbusDataToWrite",
+                        "visual_type": "textInput"
+                    }
+                }
+            }
+        },
+        "modbusFrame71": {
+            "label": "@modbusFrameLabel 4",
+            "fields": {
+                "mb71Slave": {
+                    "type": "hex1B",
+                    "default_value": "1",
+                    "min_value": "0",
+                    "max_value": "247",
+                    "HMI": {
+                        "label": "@modbusSlaveAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb71FunctionCode": {
+                    "type": "hex1B",
+                    "default_value": "3",
+                    "choices": [
+                        ["1", "0x01 - @readCoils"],
+                        ["2", "0x02 - @readDiscreteInputs"],
+                        ["3", "0x03 - @readHoldingRegisters"],
+                        ["4", "0x04 - @readInputRegisters"],
+                        ["5", "0x05 - @writeSingleCoil"],
+                        ["6", "0x06 - @writeSingleRegister"],
+                        ["15", "0x0F - @writeMultipleCoils"],
+                        ["16", "0x10 - @writeMultipleRegisters"]
+                    ],
+                    "HMI": {
+                        "label": "@modbusFunctionCode",
+                        "visual_type": "dropdown"
+                    }
+                },
+                "mb71StartAddress": {
+                    "type": "hex2B",
+                    "default_value": "0",
+                    "min_value": "0",
+                    "max_value": "65535",
+                    "HMI": {
+                        "label": "@modbusStartAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb71NumRegisters": {
+                    "type": "hex2B",
+                    "default_value": "1",
+                    "min_value": "1",
+                    "max_value": "125",
+                    "HMI": {
+                        "label": "@modbusNumRegisters",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb71DataToWrite": {
+                    "type": "stringPad4",
+                    "default_value": "",
+                    "placeholder": "Hex value (e.g. 1234)",
+                    "HMI": {
+                        "label": "@modbusDataToWrite",
+                        "visual_type": "textInput"
+                    }
+                }
+            }
+        },
+        "modbusFrame91": {
+            "label": "@modbusFrameLabel 5",
+            "fields": {
+                "mb91Slave": {
+                    "type": "hex1B",
+                    "default_value": "1",
+                    "min_value": "0",
+                    "max_value": "247",
+                    "HMI": {
+                        "label": "@modbusSlaveAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb91FunctionCode": {
+                    "type": "hex1B",
+                    "default_value": "3",
+                    "choices": [
+                        ["1", "0x01 - @readCoils"],
+                        ["2", "0x02 - @readDiscreteInputs"],
+                        ["3", "0x03 - @readHoldingRegisters"],
+                        ["4", "0x04 - @readInputRegisters"],
+                        ["5", "0x05 - @writeSingleCoil"],
+                        ["6", "0x06 - @writeSingleRegister"],
+                        ["15", "0x0F - @writeMultipleCoils"],
+                        ["16", "0x10 - @writeMultipleRegisters"]
+                    ],
+                    "HMI": {
+                        "label": "@modbusFunctionCode",
+                        "visual_type": "dropdown"
+                    }
+                },
+                "mb91StartAddress": {
+                    "type": "hex2B",
+                    "default_value": "0",
+                    "min_value": "0",
+                    "max_value": "65535",
+                    "HMI": {
+                        "label": "@modbusStartAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb91NumRegisters": {
+                    "type": "hex2B",
+                    "default_value": "1",
+                    "min_value": "1",
+                    "max_value": "125",
+                    "HMI": {
+                        "label": "@modbusNumRegisters",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb91DataToWrite": {
+                    "type": "stringPad4",
+                    "default_value": "",
+                    "placeholder": "Hex value (e.g. 1234)",
+                    "HMI": {
+                        "label": "@modbusDataToWrite",
+                        "visual_type": "textInput"
+                    }
+                }
+            }
+        },
+        "modbusFrameb1": {
+            "label": "@modbusFrameLabel 6",
+            "fields": {
+                "mbb1Slave": {
+                    "type": "hex1B",
+                    "default_value": "1",
+                    "min_value": "0",
+                    "max_value": "247",
+                    "HMI": {
+                        "label": "@modbusSlaveAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mbb1FunctionCode": {
+                    "type": "hex1B",
+                    "default_value": "3",
+                    "choices": [
+                        ["1", "0x01 - @readCoils"],
+                        ["2", "0x02 - @readDiscreteInputs"],
+                        ["3", "0x03 - @readHoldingRegisters"],
+                        ["4", "0x04 - @readInputRegisters"],
+                        ["5", "0x05 - @writeSingleCoil"],
+                        ["6", "0x06 - @writeSingleRegister"],
+                        ["15", "0x0F - @writeMultipleCoils"],
+                        ["16", "0x10 - @writeMultipleRegisters"]
+                    ],
+                    "HMI": {
+                        "label": "@modbusFunctionCode",
+                        "visual_type": "dropdown"
+                    }
+                },
+                "mbb1StartAddress": {
+                    "type": "hex2B",
+                    "default_value": "0",
+                    "min_value": "0",
+                    "max_value": "65535",
+                    "HMI": {
+                        "label": "@modbusStartAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mbb1NumRegisters": {
+                    "type": "hex2B",
+                    "default_value": "1",
+                    "min_value": "1",
+                    "max_value": "125",
+                    "HMI": {
+                        "label": "@modbusNumRegisters",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mbb1DataToWrite": {
+                    "type": "stringPad4",
+                    "default_value": "",
+                    "placeholder": "Hex value (e.g. 1234)",
+                    "HMI": {
+                        "label": "@modbusDataToWrite",
+                        "visual_type": "textInput"
+                    }
+                }
+            }
+        },
+        "modbusFramed1": {
+            "label": "@modbusFrameLabel 7",
+            "fields": {
+                "mbd1Slave": {
+                    "type": "hex1B",
+                    "default_value": "1",
+                    "min_value": "0",
+                    "max_value": "247",
+                    "HMI": {
+                        "label": "@modbusSlaveAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mbd1FunctionCode": {
+                    "type": "hex1B",
+                    "default_value": "3",
+                    "choices": [
+                        ["1", "0x01 - @readCoils"],
+                        ["2", "0x02 - @readDiscreteInputs"],
+                        ["3", "0x03 - @readHoldingRegisters"],
+                        ["4", "0x04 - @readInputRegisters"],
+                        ["5", "0x05 - @writeSingleCoil"],
+                        ["6", "0x06 - @writeSingleRegister"],
+                        ["15", "0x0F - @writeMultipleCoils"],
+                        ["16", "0x10 - @writeMultipleRegisters"]
+                    ],
+                    "HMI": {
+                        "label": "@modbusFunctionCode",
+                        "visual_type": "dropdown"
+                    }
+                },
+                "mbd1StartAddress": {
+                    "type": "hex2B",
+                    "default_value": "0",
+                    "min_value": "0",
+                    "max_value": "65535",
+                    "HMI": {
+                        "label": "@modbusStartAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mbd1NumRegisters": {
+                    "type": "hex2B",
+                    "default_value": "1",
+                    "min_value": "1",
+                    "max_value": "125",
+                    "HMI": {
+                        "label": "@modbusNumRegisters",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mbd1DataToWrite": {
+                    "type": "stringPad4",
+                    "default_value": "",
+                    "placeholder": "Hex value (e.g. 1234)",
+                    "HMI": {
+                        "label": "@modbusDataToWrite",
+                        "visual_type": "textInput"
+                    }
+                }
+            }
+        },
+        "modbusFramef1": {
+            "label": "@modbusFrameLabel 8",
+            "fields": {
+                "mbf1Slave": {
+                    "type": "hex1B",
+                    "default_value": "1",
+                    "min_value": "0",
+                    "max_value": "247",
+                    "HMI": {
+                        "label": "@modbusSlaveAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mbf1FunctionCode": {
+                    "type": "hex1B",
+                    "default_value": "3",
+                    "choices": [
+                        ["1", "0x01 - @readCoils"],
+                        ["2", "0x02 - @readDiscreteInputs"],
+                        ["3", "0x03 - @readHoldingRegisters"],
+                        ["4", "0x04 - @readInputRegisters"],
+                        ["5", "0x05 - @writeSingleCoil"],
+                        ["6", "0x06 - @writeSingleRegister"],
+                        ["15", "0x0F - @writeMultipleCoils"],
+                        ["16", "0x10 - @writeMultipleRegisters"]
+                    ],
+                    "HMI": {
+                        "label": "@modbusFunctionCode",
+                        "visual_type": "dropdown"
+                    }
+                },
+                "mbf1StartAddress": {
+                    "type": "hex2B",
+                    "default_value": "0",
+                    "min_value": "0",
+                    "max_value": "65535",
+                    "HMI": {
+                        "label": "@modbusStartAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mbf1NumRegisters": {
+                    "type": "hex2B",
+                    "default_value": "1",
+                    "min_value": "1",
+                    "max_value": "125",
+                    "HMI": {
+                        "label": "@modbusNumRegisters",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mbf1DataToWrite": {
+                    "type": "stringPad4",
+                    "default_value": "",
+                    "placeholder": "Hex value (e.g. 1234)",
+                    "HMI": {
+                        "label": "@modbusDataToWrite",
+                        "visual_type": "textInput"
+                    }
+                }
+            }
+        },
+        "modbusFrame13": {
+            "label": "@modbusFrameLabel 9",
+            "fields": {
+                "mb13Slave": {
+                    "type": "hex1B",
+                    "default_value": "1",
+                    "min_value": "0",
+                    "max_value": "247",
+                    "HMI": {
+                        "label": "@modbusSlaveAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb13FunctionCode": {
+                    "type": "hex1B",
+                    "default_value": "3",
+                    "choices": [
+                        ["1", "0x01 - @readCoils"],
+                        ["2", "0x02 - @readDiscreteInputs"],
+                        ["3", "0x03 - @readHoldingRegisters"],
+                        ["4", "0x04 - @readInputRegisters"],
+                        ["5", "0x05 - @writeSingleCoil"],
+                        ["6", "0x06 - @writeSingleRegister"],
+                        ["15", "0x0F - @writeMultipleCoils"],
+                        ["16", "0x10 - @writeMultipleRegisters"]
+                    ],
+                    "HMI": {
+                        "label": "@modbusFunctionCode",
+                        "visual_type": "dropdown"
+                    }
+                },
+                "mb13StartAddress": {
+                    "type": "hex2B",
+                    "default_value": "0",
+                    "min_value": "0",
+                    "max_value": "65535",
+                    "HMI": {
+                        "label": "@modbusStartAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb13NumRegisters": {
+                    "type": "hex2B",
+                    "default_value": "1",
+                    "min_value": "1",
+                    "max_value": "125",
+                    "HMI": {
+                        "label": "@modbusNumRegisters",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb13DataToWrite": {
+                    "type": "stringPad4",
+                    "default_value": "",
+                    "placeholder": "Hex value (e.g. 1234)",
+                    "HMI": {
+                        "label": "@modbusDataToWrite",
+                        "visual_type": "textInput"
+                    }
+                }
+            }
+        },
+        "modbusFrame33": {
+            "label": "@modbusFrameLabel 10",
+            "fields": {
+                "mb33Slave": {
+                    "type": "hex1B",
+                    "default_value": "1",
+                    "min_value": "0",
+                    "max_value": "247",
+                    "HMI": {
+                        "label": "@modbusSlaveAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb33FunctionCode": {
+                    "type": "hex1B",
+                    "default_value": "3",
+                    "choices": [
+                        ["1", "0x01 - @readCoils"],
+                        ["2", "0x02 - @readDiscreteInputs"],
+                        ["3", "0x03 - @readHoldingRegisters"],
+                        ["4", "0x04 - @readInputRegisters"],
+                        ["5", "0x05 - @writeSingleCoil"],
+                        ["6", "0x06 - @writeSingleRegister"],
+                        ["15", "0x0F - @writeMultipleCoils"],
+                        ["16", "0x10 - @writeMultipleRegisters"]
+                    ],
+                    "HMI": {
+                        "label": "@modbusFunctionCode",
+                        "visual_type": "dropdown"
+                    }
+                },
+                "mb33StartAddress": {
+                    "type": "hex2B",
+                    "default_value": "0",
+                    "min_value": "0",
+                    "max_value": "65535",
+                    "HMI": {
+                        "label": "@modbusStartAddress",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb33NumRegisters": {
+                    "type": "hex2B",
+                    "default_value": "1",
+                    "min_value": "1",
+                    "max_value": "125",
+                    "HMI": {
+                        "label": "@modbusNumRegisters",
+                        "visual_type": "numInput"
+                    }
+                },
+                "mb33DataToWrite": {
+                    "type": "stringPad4",
+                    "default_value": "",
+                    "placeholder": "Hex value (e.g. 1234)",
+                    "HMI": {
+                        "label": "@modbusDataToWrite",
+                        "visual_type": "textInput"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+            ["11 05 8006 0000 22 (baudRate)", "@cfgCommentBaudRate"],
+            ["11 05 8006 0001 20 (dataBits)", "@cfgCommentDataBits"],
+            ["11 05 8006 0002 20 (parity)", "@cfgCommentParity"],
+            ["11 05 8006 0003 20 (stopBit)", "@cfgCommentStopBit"],
+            ["11 05 8007 0000 41 06 (modbusFrame11)", "@cfgCommentModbusFrame 1"],
+            ["31 05 8007 0000 41 06 (modbusFrame31)", "@cfgCommentModbusFrame 2"],
+            ["51 05 8007 0000 41 06 (modbusFrame51)", "@cfgCommentModbusFrame 3"],
+            ["71 05 8007 0000 41 06 (modbusFrame71)", "@cfgCommentModbusFrame 4"],
+            ["91 05 8007 0000 41 06 (modbusFrame91)", "@cfgCommentModbusFrame 5"],
+            ["b1 05 8007 0000 41 06 (modbusFrameb1)", "@cfgCommentModbusFrame 6"],
+            ["d1 05 8007 0000 41 06 (modbusFramed1)", "@cfgCommentModbusFrame 7"],
+            ["f1 05 8007 0000 41 06 (modbusFramef1)", "@cfgCommentModbusFrame 8"],
+            ["13 05 8007 0000 41 06 (modbusFrame13)", "@cfgCommentModbusFrame 9"],
+            ["33 05 8007 0000 41 06 (modbusFrame33)", "@cfgCommentModbusFrame 10"]
+        ]
+    },
+    "standard_params": {
+        "serialMasterSlave": {
+            "label": "@serialMasterSlaveLabel",
+            "fields": {
+                "serialMasterSlaveDelay": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "1",
+                    "HMI": {
+                        "label": "@measureLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "multiMasterSlave": {
+            "label": "@multiMasterSlaveLabel",
+            "fields": {
+                "multiMasterSlaveDelay": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "1",
+                    "HMI": {
+                        "label": "@measureLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+            ["11 06 8007 0000 01 41 (serialMasterSlaveDelay) (serialMasterSlaveDelay) 0100", "@cfgCommentBatchReport"],  
+            ["11 06 8009 0000 00 41 (multiMasterSlaveDelay) (multiMasterSlaveDelay) 0100", "@cfgCommentBatchReport"]
+        ]
+    }
+}

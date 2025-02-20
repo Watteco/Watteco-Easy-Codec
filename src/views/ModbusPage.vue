@@ -2,9 +2,8 @@
   <ion-page>
     <ion-content :fullscreen="true">
       <div class="card-container">
-        <div class="two-column-grid">
           <!-- Endpoint Card -->
-          <ion-card class="field-card half-width">
+          <ion-card class="field-card orange-card">
             <ion-card-content>
               <ion-item>
                 <ion-label position="stacked">{{ localize('@modbusEndpoint') }}</ion-label>
@@ -18,7 +17,7 @@
               </ion-item>
             </ion-card-content>
           </ion-card>
-
+        <div class="two-column-grid">
           <!-- Slave Address Card -->
           <ion-card class="field-card half-width">
             <ion-card-content>
@@ -39,7 +38,7 @@
           <ion-card class="field-card half-width">
             <ion-card-content>
               <ion-item>
-                <ion-label position="stacked">{{ localize('@functionCode') }}</ion-label>
+                <ion-label position="stacked">{{ localize('@modbusFunctionCode') }}</ion-label>
                 <ion-select 
                   v-model="functionCode" 
                   interface="popover"
@@ -61,7 +60,7 @@
           <ion-card class="field-card half-width">
             <ion-card-content>
               <ion-item>
-                <ion-label position="stacked">{{ localize('@startAddress') }}</ion-label>
+                <ion-label position="stacked">{{ localize('@modbusStartAddress') }}</ion-label>
                 <ion-input
                   type="number"
                   v-model="startAddress"
@@ -77,7 +76,7 @@
           <ion-card class="field-card half-width">
             <ion-card-content>
               <ion-item>
-                <ion-label position="stacked">{{ localize('@numRegisters') }}</ion-label>
+                <ion-label position="stacked">{{ localize('@modbusNumRegisters') }}</ion-label>
                 <ion-input
                   type="number"
                   v-model="numRegisters"
@@ -88,26 +87,16 @@
               </ion-item>
             </ion-card-content>
           </ion-card>
-        
-          <!-- Endianness -->
-          <ion-card class="field-card half-width">
-            <ion-card-content>
-              <ion-item>
-                <ion-label position="stacked">{{ localize('@littleEndian') }}</ion-label>
-                <ion-toggle position="right" v-model="isLittleEndian"></ion-toggle>
-              </ion-item>
-            </ion-card-content>
-          </ion-card>
         </div>
 
         <!-- Data to Write Card -->
         <ion-card 
-          class="field-card write-data-card" 
+          class="field-card write-data-card orange-card" 
           v-if="isWriteOperation"
         >
           <ion-card-content>
             <ion-item class="write-data-item">
-              <ion-label position="stacked" color="dark">{{ localize('@dataToWrite') }}</ion-label>
+              <ion-label position="stacked" color="dark">{{ localize('@modbusDataToWrite') }}</ion-label>
               <ion-input
                 type="text"
                 v-model="writeData"
@@ -198,16 +187,28 @@ watch(
     frame.push(functionCode.value.substring(2).padStart(2, '0'));
     frame.push(parseInt(startAddress.value.toString()).toString(16).padStart(4, '0'));
 
-    if (['0x03', '0x04', '0x10'].includes(functionCode.value)) {
+    // Read operations - all need quantity
+    if (['0x01', '0x02', '0x03', '0x04'].includes(functionCode.value)) {
       frame.push(parseInt(numRegisters.value.toString()).toString(16).padStart(4, '0'));
     }
-
-    if (['0x06', '0x10'].includes(functionCode.value) && writeData.value) {
+    // Single write operations - only need data
+    else if (['0x05', '0x06'].includes(functionCode.value) && writeData.value) {
       let data = parseInt(writeData.value, 16).toString(16).padStart(4, '0');
       if (isLittleEndian.value) {
         data = data.match(/.{2}/g).reverse().join('');
       }
       frame.push(data);
+    }
+    // Multiple write operations - need both quantity and data
+    else if (['0x0F', '0x10'].includes(functionCode.value)) {
+      frame.push(parseInt(numRegisters.value.toString()).toString(16).padStart(4, '0'));
+      if (writeData.value) {
+        let data = parseInt(writeData.value, 16).toString(16).padStart(4, '0');
+        if (isLittleEndian.value) {
+          data = data.match(/.{2}/g).reverse().join('');
+        }
+        frame.push(data);
+      }
     }
 
     generatedFrame.value = frame.join(' ').toUpperCase();
@@ -218,7 +219,6 @@ watch(
 const copyFrame = async () => {
   try {
     await navigator.clipboard.writeText(generatedFrame.value.replace(/\s+/g, ''));
-    console.log('Frame copied to clipboard');
   } catch (err) {
     console.error('Failed to copy frame:', err);
   }
@@ -289,7 +289,7 @@ const selectedFunctionCodeLabel = computed(() => {
 });
 
 const isWriteOperation = computed(() => {
-  return ['0x06', '0x10'].includes(functionCode.value);
+  return ['0x05', '0x06', '0x0F', '0x10'].includes(functionCode.value);
 });
 </script>
 
@@ -395,17 +395,19 @@ ion-select::part(icon) {
   }
 }
 
-.write-data-card {
+.orange-card {
   --background: var(--ion-color-tertiary);
 }
+
+.orange-card ion-label, .orange-card ion-input {
+  color: var(--ion-color-tertiary-contrast) !important;
+  --color: var(--ion-color-tertiary-contrast) !important;
+}
+
 
 .write-data-card ion-item {
   --background: transparent;
   --border-color: rgba(0, 0, 0, 0.1);
-}
-
-.write-data-card ion-label {
-  color: var(--ion-color-dark) !important;
 }
 
 .write-data-card ion-input {

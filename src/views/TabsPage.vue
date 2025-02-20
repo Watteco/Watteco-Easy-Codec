@@ -146,4 +146,14 @@ ion-range {
     font-size: 0.8rem;
   }
 }
+
+ion-item.ion-activatable:hover {
+  --color-hover: inherit !important;
+  --background-hover: transparent !important;
+}
+
+ion-item.ion-activatable .item-native {
+  --color-hover: inherit !important;
+  --background-hover: transparent !important;
+}
 </style>

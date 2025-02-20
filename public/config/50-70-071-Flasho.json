@@ -37,7 +37,7 @@
             "label": "@IndexLabel",
             "fields": {
                 "pBatchEchant": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "120",
@@ -53,7 +53,7 @@
             "label": "@batt24h",
             "fields": {
                 "bBatchEchant": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
@@ -68,10 +68,11 @@
         "global_params": {
             "fields": {
                 "gBatchEmission": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "240",
                     "min_value": "1",
                     "max_value": "1440",
+                    "step": "1",
                     "HMI": {
                         "label": "@emitLabel",
                         "visual_type": "timeSlider"
@@ -90,7 +91,7 @@
             "default_state": "true",
             "fields": {
                 "p1StandEmission": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
@@ -105,7 +106,7 @@
             "label": "@battLabel",
             "fields": {
                 "bStandEchant": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "1440",
@@ -116,7 +117,7 @@
                     }
                 },
                 "bStandEmission": {
-                    "type": "timeInt32",
+                    "type": "timeVal",
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
@@ -126,7 +127,7 @@
                     }
                 },
                 "bNotification": {
-                    "type": "int32",
+                    "type": "hex2B",
                     "default_value": "2900 3300",
                     "min_value": "2000",
                     "max_value": "3700",
