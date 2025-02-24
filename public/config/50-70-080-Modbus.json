@@ -748,17 +748,161 @@
         ]
     },
     "standard_params": {
-        "serialMasterSlave": {
-            "label": "@serialMasterSlaveLabel",
+        "serialMasterSlave01": {
+            "label": "@serialMasterSlaveLabel 1",
             "fields": {
-                "serialMasterSlaveDelay": {
+                "serialMasterSlaveDelay01": {
                     "type": "timeVal",
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
+                    "step": "5",
                     "HMI": {
-                        "label": "@measureLabel",
+                        "label": "@readLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+		"serialMasterSlave02": {
+            "label": "@serialMasterSlaveLabel 2",
+            "fields": {
+                "serialMasterSlaveDelay02": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "5",
+                    "HMI": {
+                        "label": "@readLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+		"serialMasterSlave03": {
+            "label": "@serialMasterSlaveLabel 3",
+            "fields": {
+                "serialMasterSlaveDelay03": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "5",
+                    "HMI": {
+                        "label": "@readLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+		"serialMasterSlave04": {
+            "label": "@serialMasterSlaveLabel 4",
+            "fields": {
+                "serialMasterSlaveDelay04": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "5",
+                    "HMI": {
+                        "label": "@readLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+		"serialMasterSlave05": {
+            "label": "@serialMasterSlaveLabel 5",
+            "fields": {
+                "serialMasterSlaveDelay05": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "5",
+                    "HMI": {
+                        "label": "@readLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+		"serialMasterSlave06": {
+            "label": "@serialMasterSlaveLabel 6",
+            "fields": {
+                "serialMasterSlaveDelay06": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "5",
+                    "HMI": {
+                        "label": "@readLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+		"serialMasterSlave07": {
+            "label": "@serialMasterSlaveLabel 7",
+            "fields": {
+                "serialMasterSlaveDelay07": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "5",
+                    "HMI": {
+                        "label": "@readLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+		"serialMasterSlave08": {
+            "label": "@serialMasterSlaveLabel 8",
+            "fields": {
+                "serialMasterSlaveDelay08": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "5",
+                    "HMI": {
+                        "label": "@readLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+		"serialMasterSlave09": {
+            "label": "@serialMasterSlaveLabel 9",
+            "fields": {
+                "serialMasterSlaveDelay09": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "5",
+                    "HMI": {
+                        "label": "@readLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+		"serialMasterSlave10": {
+            "label": "@serialMasterSlaveLabel 10",
+            "fields": {
+                "serialMasterSlaveDelay10": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "5",
+                    "HMI": {
+                        "label": "@readLabel",
                         "visual_type": "timeSlider"
                     }
                 }
@@ -772,16 +916,25 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
+                    "step": "5",
                     "HMI": {
-                        "label": "@measureLabel",
+                        "label": "@readLabel",
                         "visual_type": "timeSlider"
                     }
                 }
             }
         },
         "cfg_block": [
-            ["11 06 8007 0000 01 41 (serialMasterSlaveDelay) (serialMasterSlaveDelay) 0100", "@cfgCommentBatchReport"],  
+            ["11 06 8007 0000 01 41 (serialMasterSlaveDelay01) (serialMasterSlaveDelay01) 0100", "@cfgCommentBatchReport"], 
+			["31 06 8007 0000 01 41 (serialMasterSlaveDelay02) (serialMasterSlaveDelay02) 0100", "@cfgCommentBatchReport"], 
+			["51 06 8007 0000 01 41 (serialMasterSlaveDelay03) (serialMasterSlaveDelay03) 0100", "@cfgCommentBatchReport"], 
+			["71 06 8007 0000 01 41 (serialMasterSlaveDelay04) (serialMasterSlaveDelay04) 0100", "@cfgCommentBatchReport"], 
+			["91 06 8007 0000 01 41 (serialMasterSlaveDelay05) (serialMasterSlaveDelay05) 0100", "@cfgCommentBatchReport"], 
+			["b1 06 8007 0000 01 41 (serialMasterSlaveDelay06) (serialMasterSlaveDelay06) 0100", "@cfgCommentBatchReport"], 
+			["d1 06 8007 0000 01 41 (serialMasterSlaveDelay07) (serialMasterSlaveDelay07) 0100", "@cfgCommentBatchReport"], 
+			["f1 06 8007 0000 01 41 (serialMasterSlaveDelay08) (serialMasterSlaveDelay08) 0100", "@cfgCommentBatchReport"], 
+			["13 06 8007 0000 01 41 (serialMasterSlaveDelay09) (serialMasterSlaveDelay09) 0100", "@cfgCommentBatchReport"], 
+			["33 06 8007 0000 01 41 (serialMasterSlaveDelay10) (serialMasterSlaveDelay10) 0100", "@cfgCommentBatchReport"], 
             ["11 06 8009 0000 00 41 (multiMasterSlaveDelay) (multiMasterSlaveDelay) 0100", "@cfgCommentBatchReport"]
         ]
     }

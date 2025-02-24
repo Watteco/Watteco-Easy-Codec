@@ -28,6 +28,8 @@
     "generalGlobalParamsLabel": "Paramètres globaux",
     "echantLabel": "Période d'enregistrement",
     "measureLabel": "Période de mesure",
+	"readLabel": "Période de lecture",
+	"requestLabel": "Requête",
     "emitLabel": "Période d'émission",
     "emitMaxLabel": "Période d'émission maximale",
     "thresholdLabel": "Seuils",
@@ -103,8 +105,8 @@
     "cfgCommentStopBit": "Configure le nombre de bits de stop",
     "cfgCommentRemoveHeader": "Supprime l'en-tête ModBus",
     "cfgCommentBatchReport": "Configure la période de rapport des données",
-    "cfgCommentModbusFrame": "Configure une trame Modbus sur l'Endpoint",
-    "modbusFrameLabel": "Trame Modbus sur l'Endpoint",
-    "serialMasterSlaveLabel": "Master/Slave série",
+    "cfgCommentModbusFrame": "Configure une trame Modbus sur la requête",
+    "modbusFrameLabel": "Trame Modbus sur la requête",
+    "serialMasterSlaveLabel": "Master/Slave Serial pour requête",
     "multiMasterSlaveLabel": "Master/Slave multi"
 }
