@@ -1,20 +1,23 @@
 <template>
   <ion-label position="stacked">{{ label }}</ion-label>
 
-  <!-- Slider (ion-range) -->
-  <ion-range
-    :min="min"
-    :max="max"
-    :value="value"
-    :step="step"
-    pin="true"
-    snaps="true"
-    color="primary"
-    dual-knobs="true"
-    @ionChange="onRangeChange"
-  ></ion-range>
-  <div class="separator"></div>
-  <ion-chip>{{ unit }}</ion-chip>
+  <div class="slider-container">
+    <!-- Slider (ion-range) -->
+    <ion-range
+      class="range-slider"
+      :min="min"
+      :max="max"
+      :value="value"
+      :step="step"
+      pin="true"
+      snaps="true"
+      color="primary"
+      dual-knobs="true"
+      @ionChange="onRangeChange"
+    ></ion-range>
+    
+    <ion-chip>{{ unit }}</ion-chip>
+  </div>
 </template>
 
 <script setup>
@@ -41,6 +44,17 @@ const onRangeChange = (event) => {
 </script>
 
 <style scoped>
+.slider-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.range-slider {
+  flex: 1;
+  --padding-end: 12px;
+}
 
 .separator {
   flex: 0.3 1 0px;
@@ -54,6 +68,8 @@ ion-chip {
   width: 90px;
   justify-content: space-around;
   border-radius: 10px;
+  flex-shrink: 0;
+  margin: 4px;
 }
 
 ion-range::part(pin) {

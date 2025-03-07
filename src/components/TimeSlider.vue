@@ -1,27 +1,41 @@
 <template>
   <ion-label position="stacked">{{ label }}</ion-label>
 
-  <!-- Slider (ion-range) -->
-  <ion-range
-    :min="min"
-    :max="max"
-    :value="currentValue"
-    :step="step"
-    pin="false"
-    snaps="true"
-    color="primary"
-    @ionChange="onRangeChange"
-    @ionInput="onRangeInput"
-  ></ion-range>
+  <div class="slider-container">
+    <ion-range
+      class="time-range"
+      :min="min"
+      :max="max"
+      :value="currentValue"
+      :step="step"
+      pin="false"
+      snaps="true"
+      color="primary"
+      @ionChange="onRangeChange"
+      @ionInput="onRangeInput"
+    ></ion-range>
 
-  <div class="separator"></div>
+    <ion-chip class="time-chip" v-if="!isEditing" @click="startEditing">
+      {{ valueHours }}
+    </ion-chip>
 
-  <!-- Display value in hours and minutes -->
-  <ion-chip>{{ valueHours }}</ion-chip>
+    <ion-input
+      v-else
+      class="time-input"
+      v-model="timeInputValue"
+      placeholder="0h00"
+      @ionBlur="finishEditing"
+      @keyup.enter="finishEditing"
+      @ionInput="onInputChange"
+      ref="timeInputRef"
+      inputmode="text"
+    ></ion-input>
+  </div>
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, nextTick } from 'vue';
+import { IonIcon } from '@ionic/vue';
 
 // Props
 const props = defineProps({
@@ -34,23 +48,31 @@ const props = defineProps({
   paramName: String,
 });
 
-// Reactive variable to store the current value of the slider
 const currentValue = ref(props.value);
+const timeInputValue = ref(formatMinutesToTimeString(props.value || 0));
+const isEditing = ref(false);
+const timeInputRef = ref(null);
 
-// Emit changes back to parent component
 const emit = defineEmits(['update:value']);
 
-// Handle changes in the ion-range (slider)
+const valueHours = computed(() => {
+  let validValue = currentValue.value || props.value;
+
+  if (props.min === props.max) {
+    validValue = props.min;
+  }
+
+  return formatMinutesToTimeString(validValue);
+});
+
 const onRangeChange = (event) => {
   let newValue = event.detail.value;
 
-  // Snap the value to the nearest step
   const snappedValue = Math.max(
     props.min,
     Math.round(newValue / props.step) * props.step
   );
 
-  // Ensure it does not exceed the max
   if (snappedValue > props.max) {
     newValue = props.max;
   } else {
@@ -61,17 +83,14 @@ const onRangeChange = (event) => {
   emit('update:value', { newValue, groupName: props.groupName, paramName: props.paramName });
 };
 
-// Handle input in the ion-range (slider) to update the chip while moving
 const onRangeInput = (event) => {
   let newValue = event.detail.value;
 
-  // Snap the value to the nearest step
   const snappedValue = Math.max(
     props.min,
     Math.round(newValue / props.step) * props.step
   );
 
-  // Ensure it does not exceed the max
   if (snappedValue > props.max) {
     newValue = props.max;
   } else {
@@ -81,23 +100,96 @@ const onRangeInput = (event) => {
   currentValue.value = newValue;
 };
 
-// Computed property to calculate time in "hours and minutes"
-const valueHours = computed(() => {
-  let validValue = currentValue.value || props.value;
-
-  if (props.min === props.max) {
-    validValue = props.min;
+const onInputChange = (event) => {
+  if (event.target && event.target.value) {
+    timeInputValue.value = event.target.value;
   }
+};
 
-  const hours = Math.floor((validValue) / 60);
-  const minutes = validValue % 60;
+function formatMinutesToTimeString(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours}h${mins < 10 ? '0' : ''}${mins}`;
+}
 
-  const result = `${hours}h${minutes < 10 ? '0' : ''}${minutes}`;
+function parseTimeStringToMinutes(timeString) {
+  if (!timeString) return 0;
+  
+  let hours = 0;
+  let minutes = 0;
+  
+  const cleanString = timeString.toString().trim().replace(/[^\dh:]/g, '');
+  
+  if (cleanString.includes('h')) {
+    const parts = cleanString.split('h');
+    hours = parseInt(parts[0]) || 0;
+    minutes = parseInt(parts[1]) || 0;
+  } else if (cleanString.includes(':')) {
+    const parts = cleanString.split(':');
+    hours = parseInt(parts[0]) || 0;
+    minutes = parseInt(parts[1]) || 0;
+  } else {
+    const totalMinutes = parseInt(cleanString) || 0;
+    hours = Math.floor(totalMinutes / 60);
+    minutes = totalMinutes % 60;
+    if (hours > 0) {
+      return totalMinutes;
+    } else {
+      return minutes;
+    }
+  }
+  
+  return hours * 60 + minutes;
+}
 
-  return result.trim();
-});
+const startEditing = async () => {
+  timeInputValue.value = formatMinutesToTimeString(currentValue.value);
+  isEditing.value = true;
+  
+  await nextTick();
+  
+  setTimeout(() => {
+    if (timeInputRef.value) {
+      if (typeof timeInputRef.value.setFocus === 'function') {
+        timeInputRef.value.setFocus();
+      } else {
+        const nativeInput = timeInputRef.value.$el.querySelector('input');
+        if (nativeInput) {
+          nativeInput.focus();
+          nativeInput.select();
+        }
+      }
+    }
+  }, 50);
+};
 
-// Watch for changes in max value and adjust the slider value if necessary
+const finishEditing = () => {
+  if (!timeInputValue.value) {
+    timeInputValue.value = formatMinutesToTimeString(currentValue.value);
+    isEditing.value = false;
+    return;
+  }
+  
+  const totalMinutes = parseTimeStringToMinutes(timeInputValue.value);
+  
+  let validMinutes = Math.max(props.min, Math.min(props.max, totalMinutes));
+  
+  validMinutes = Math.round(validMinutes / props.step) * props.step;
+  
+  currentValue.value = validMinutes;
+  timeInputValue.value = formatMinutesToTimeString(validMinutes);
+  
+  emit('update:value', { 
+    newValue: validMinutes, 
+    groupName: props.groupName, 
+    paramName: props.paramName 
+  });
+  
+  setTimeout(() => {
+    isEditing.value = false;
+  }, 100);
+};
+
 watch(() => props.max, (newMax) => {
   if (currentValue.value > newMax) {
     currentValue.value = newMax;
@@ -105,9 +197,11 @@ watch(() => props.max, (newMax) => {
   }
 });
 
-// Watch for changes in the initial value prop and update the current value
 watch(() => props.value, (newValue) => {
   currentValue.value = newValue;
+  if (!isEditing.value) {
+    timeInputValue.value = formatMinutesToTimeString(newValue);
+  }
 });
 </script>
 
@@ -125,12 +219,44 @@ watch(() => props.value, (newValue) => {
   height: 100%;
 }
 
-ion-chip {
+.slider-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.time-range {
+  flex: 1;
+  --padding-end: 12px;
+}
+
+.time-chip, .time-input {
   --background: var(--ion-color-primary);
   --color: white;
   width: 90px;
   justify-content: space-around;
   border-radius: 10px;
+  --border-radius: 10px;
+  margin: 4px;
+  flex-shrink: 0;
+}
+
+.time-input {
+  --padding-end: 12px;
+  --padding-start: 12px;
+  text-align: center;
+  font-family: inherit;
+  font-size: inherit;
+  min-height: unset;
+  height: 32px;
+  --highlight-color-focused: white;
+}
+
+.time-input::part(input) {
+  text-align: center;
+  padding: 0;
+  margin: 0;
 }
 
 ion-range::part(pin) {
@@ -150,10 +276,9 @@ ion-range::part(pin)::before {
   content: none;
 }
 
-/* Add responsive styles for smartphones */
 @media (max-width: 600px) {
-  ion-chip {
-    width: 70px;
+  .time-chip, .time-input {
+    width: 80px;
     font-size: 0.8rem;
   }
 
