@@ -333,8 +333,13 @@
 			"comment": ["Differential pressure measurement (for ventilation and air conditionning)", 
 						"Mesure de pression différentielle (pour système de ventilation ou conditionnement d'air)"],
 			"docLink": "https://support.watteco.com/ventilo/"
+		},
+		{
+			"name": "Alt'O Beta",
+			"file": "alt'o",
+			"apps": ["EasyCodec"],
+			"category": "BEAT"
 		}
-
 	],
 	"in_developpement_products": [
 	]

@@ -108,5 +108,16 @@
     "cfgCommentModbusFrame": "Configure une trame Modbus sur la requête",
     "modbusFrameLabel": "Trame Modbus sur la requête",
     "serialMasterSlaveLabel": "Master/Slave Serial pour requête",
-    "multiMasterSlaveLabel": "Master/Slave multi"
+    "multiMasterSlaveLabel": "Master/Slave multi",
+    "altoTestLabel": "Configuration Alt'o",
+    "altoTestDistance1Label": "Distance Niveau bas",
+    "altoTestDistance2Label": "Distance Niveau haut",
+    "altoTestPeriodLowLabel": "Période Niveau Bas",
+    "altoTestPeriodMedLabel": "Période Niveau Moyen",
+    "altoTestPeriodHighLabel": "Période Niveau Haut",
+    "altoTestAlarmLowLabel": "Alarme Niveau Bas",
+    "altoTestAlarmHighLabel": "Alarme Niveau Haut",
+    "altoTestPeriodAngleLabel": "Période de mesure d'Angle",
+    "altoTestAlarmAngleLabel": "Alarme de mesure d'Angle",
+    "cfgCommentAltoTest": "Configure les paramètres du capteur Alt'o"
 }

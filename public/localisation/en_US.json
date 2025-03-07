@@ -108,5 +108,16 @@
     "cfgCommentModbusFrame": "Configures Modbus frame on Request",
     "modbusFrameLabel": "Modbus Frame on Request",
     "serialMasterSlaveLabel": "Serial Master/Slave Request",
-    "multiMasterSlaveLabel": "Multi Master/Slave"
+    "multiMasterSlaveLabel": "Multi Master/Slave",
+    "altoTestLabel": "Alt'o Configuration",
+    "altoTestDistance1Label": "Low Level Distance",
+    "altoTestDistance2Label": "High Level Distance",
+    "altoTestPeriodLowLabel": "Low Level period",
+    "altoTestPeriodMedLabel": "Medium Level period",
+    "altoTestPeriodHighLabel": "High Level period",
+    "altoTestAlarmLowLabel": "Low Level alarm",
+    "altoTestAlarmHighLabel": "High Level alarm",
+    "altoTestPeriodAngleLabel": "Angle Measurement Period",
+    "altoTestAlarmAngleLabel": "Angle Measurement Alarm",
+    "cfgCommentAltoTest": "Configures Alt'o sensor parameters"
 }

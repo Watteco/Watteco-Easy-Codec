@@ -134,11 +134,26 @@
 
                     <!-- Using the NumInput component -->
                     <num-input
-                      v-if="param.HMI?.visual_type === 'numInput'"
+                      v-if="param.HMI?.visual_type === 'numInput' && param.type !== 'float'"
                       :label="param.HMI?.label"     
                       :value="param.selectedValue"
                       :min="param.min_value"
                       :max="param.max_value"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'general_params', groupName, paramName)"
+                    />
+
+                    <!-- Using the FloatInput component -->
+                    <float-input
+                      v-if="param.HMI?.visual_type === 'numInput' && param.type === 'float'"
+                      :label="param.HMI?.label"     
+                      :value="param.selectedValue"
+                      :min="parseFloat(param.min_value)"
+                      :max="parseFloat(param.max_value)"
+                      :step="param.step ? parseFloat(param.step) : 0.01"
+                      :precision="param.precision ? parseInt(param.precision) : 2"
                       :groupName="groupName"
                       :paramName="paramName"
                       :localize="localize"
@@ -263,11 +278,26 @@
 
                     <!-- Using the NumInput component -->
                     <num-input
-                      v-if="param.HMI?.visual_type === 'numInput'"
+                      v-if="param.HMI?.visual_type === 'numInput' && param.type !== 'float'"
                       :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :min="param.min_value"
                       :max="param.max_value"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'modbus_params', groupName, paramName)"
+                    />
+
+                    <!-- Using the FloatInput component -->
+                    <float-input
+                      v-if="param.HMI?.visual_type === 'numInput' && param.type === 'float'"
+                      :label="param.HMI?.label"     
+                      :value="param.selectedValue"
+                      :min="parseFloat(param.min_value)"
+                      :max="parseFloat(param.max_value)"
+                      :step="param.step ? parseFloat(param.step) : 0.01"
+                      :precision="param.precision ? parseInt(param.precision) : 2"
                       :groupName="groupName"
                       :paramName="paramName"
                       :localize="localize"
@@ -394,11 +424,26 @@
 
                     <!-- Using the NumInput component -->
                     <num-input
-                      v-if="param.HMI?.visual_type === 'numInput'"
+                      v-if="param.HMI?.visual_type === 'numInput' && param.type !== 'float'"
                       :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :min="param.min_value"
                       :max="param.max_value"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'batch_params', groupName, paramName)"
+                    />
+
+                    <!-- Using the FloatInput component -->
+                    <float-input
+                      v-if="param.HMI?.visual_type === 'numInput' && param.type === 'float'"
+                      :label="param.HMI?.label"     
+                      :value="param.selectedValue"
+                      :min="parseFloat(param.min_value)"
+                      :max="parseFloat(param.max_value)"
+                      :step="param.step ? parseFloat(param.step) : 0.01"
+                      :precision="param.precision ? parseInt(param.precision) : 2"
                       :groupName="groupName"
                       :paramName="paramName"
                       :localize="localize"
@@ -540,11 +585,26 @@
 
                     <!-- Using the NumInput component -->
                     <num-input
-                      v-if="param.HMI?.visual_type === 'numInput'"
+                      v-if="param.HMI?.visual_type === 'numInput' && param.type !== 'float'"
                       :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :min="param.min_value"
                       :max="param.max_value"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
+                    />
+
+                    <!-- Using the FloatInput component -->
+                    <float-input
+                      v-if="param.HMI?.visual_type === 'numInput' && param.type === 'float'"
+                      :label="param.HMI?.label"     
+                      :value="param.selectedValue"
+                      :min="parseFloat(param.min_value)"
+                      :max="parseFloat(param.max_value)"
+                      :step="param.step ? parseFloat(param.step) : 0.01"
+                      :precision="param.precision ? parseInt(param.precision) : 2"
                       :groupName="groupName"
                       :paramName="paramName"
                       :localize="localize"
@@ -578,7 +638,7 @@
         </ion-card>
       </div>
 
-      <ion-card class="outputCard">
+      <ion-card class="outputCard" v-show="sensorConfigLoaded">
         <ion-card-content class="sensor-select">
         <ion-label id="outputTitle">{{ localize("@port125") }}</ion-label>
         <ion-label id="outputArea">  </ion-label> 
@@ -629,6 +689,7 @@ import CustomValue from '@/components/CustomValue.vue';
 import CustomFrame from '@/components/CustomFrame.vue';
 import DropDown from '@/components/DropDown.vue';
 import NumInput from '@/components/NumInput.vue';
+import FloatInput from '@/components/FloatInput.vue';
 import TextInput from '@/components/TextInput.vue';
 import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'; // Import the new component
@@ -1106,6 +1167,12 @@ const convertToHexFrameValue = (value: string, param: {
       output = parseInt(value).toString(16).padStart(bytes * 2, '0');
     } else if (param.type == "bool") {
       output = (value == "true") ? "01" : "00";
+    } else if (param.type == "float") {
+      // Convert float to IEEE 754 single-precision format
+      const float32Array = new Float32Array(1);
+      float32Array[0] = parseFloat(value);
+      const uint32Array = new Uint32Array(float32Array.buffer);
+      output = uint32Array[0].toString(16).padStart(8, '0');
     } else {
       output = `-Error: ${value} is ${param.type}, not supported-`;
     }

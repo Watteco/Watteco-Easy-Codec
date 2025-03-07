@@ -1,0 +1,117 @@
+{
+    "general_params": {
+        "alto_config": {
+            "label": "@altoTestLabel",
+            "default_state": "true",
+            "fields": {
+                "Distance1": {
+                    "type": "float",
+                    "default_value": "1.50",
+                    "min_value": "0",
+                    "max_value": "10",
+                    "precision": 2,
+                    "step": "0.01",
+                    "HMI": {
+                        "label": "@altoTestDistance1Label (m)",
+                        "visual_type": "numInput"
+                    }
+                },
+                "Distance2": {
+                    "type": "float",
+                    "default_value": "3.00",
+                    "min_value": "0",
+                    "max_value": "10",
+                    "precision": 2,
+                    "step": "0.01",
+                    "HMI": {
+                        "label": "@altoTestDistance2Label (m)",
+                        "visual_type": "numInput"
+                    }
+                },
+                "PeriodLow": {
+                    "type": "timeVal",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "60",
+                    "step": "1",
+                    "HMI": {
+                        "label": "@altoTestPeriodLowLabel",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "PeriodMed": {
+                    "type": "timeVal",
+                    "default_value": "15",
+                    "min_value": "1",
+                    "max_value": "60",
+                    "step": "1",
+                    "HMI": {
+                        "label": "@altoTestPeriodMedLabel",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "PeriodHigh": {
+                    "type": "timeVal",
+                    "default_value": "20",
+                    "min_value": "1",
+                    "max_value": "60",
+                    "step": "1",
+                    "HMI": {
+                        "label": "@altoTestPeriodHighLabel",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "AlarmLow": {
+                    "type": "float",
+                    "default_value": "1.00",
+                    "min_value": "0",
+                    "max_value": "10",
+                    "precision": 2,
+                    "step": "0.01",
+                    "HMI": {
+                        "label": "@altoTestAlarmLowLabel (m)",
+                        "visual_type": "numInput"
+                    }
+                },
+                "AlarmHigh": {
+                    "type": "float",
+                    "default_value": "3.50",
+                    "min_value": "0",
+                    "max_value": "10",
+                    "precision": 2,
+                    "step": "0.01",
+                    "HMI": {
+                        "label": "@altoTestAlarmHighLabel (m)",
+                        "visual_type": "numInput"
+                    }
+                },
+                "PeriodAngle": {
+                    "type": "timeVal",
+                    "default_value": "1",
+                    "min_value": "1",
+                    "max_value": "60",
+                    "step": "1",
+                    "HMI": {
+                        "label": "@altoTestPeriodAngleLabel",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "AlarmAngle": {
+                    "type": "float",
+                    "default_value": "3",
+                    "min_value": "0",
+                    "max_value": "10",
+                    "precision": 2,
+                    "step": "0.01",
+                    "HMI": {
+                        "label": "@altoTestAlarmAngleLabel (deg)",
+                        "visual_type": "numInput"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+            ["11 50 0050 f2 22 04 00 00006673 (Distance1) (Distance2) (PeriodLow) (PeriodMed) (PeriodHigh) (AlarmLow) (AlarmHigh) (PeriodAngle) (AlarmAngle)", "@cfgCommentAltoTest"]
+        ]
+    }
+}
