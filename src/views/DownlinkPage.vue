@@ -28,6 +28,12 @@
                 </ion-select-option>
               </template>
             </ion-select>
+
+            <sensor-image 
+              v-if="sensorImage" 
+              :image="sensorImage" 
+              :alt-text="selectedSensor" 
+            />
           </ion-card-content>
         </ion-card>
         
@@ -639,7 +645,7 @@
       </div>
 
       <ion-card class="outputCard" v-show="sensorConfigLoaded">
-        <ion-card-content class="sensor-select">
+        <ion-card-content class="output-area">
         <ion-label id="outputTitle">{{ localize("@port125") }}</ion-label>
         <ion-label id="outputArea">  </ion-label> 
         <ion-button v-if="framesAvailable" @click="copyFramesNoSpaces" class="half-width">{{ localize("@copyFrames") }}</ion-button>
@@ -691,8 +697,9 @@ import DropDown from '@/components/DropDown.vue';
 import NumInput from '@/components/NumInput.vue';
 import FloatInput from '@/components/FloatInput.vue';
 import TextInput from '@/components/TextInput.vue';
+import SensorImage from '@/components/SensorImage.vue';
 import axios from 'axios';
-import LanguageSwitcher from '@/components/LanguageSwitcher.vue'; // Import the new component
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 
 // Import language files
 import enUS from '/localisation/en_US.json?url';
@@ -741,6 +748,7 @@ const subcategoryVisible = ref<Record<string, boolean>>({});
 const framesVisible = ref<Record<string, boolean>>({});
 const framesCount = ref<Record<string, number>>({});
 const sensorConfigLoaded = ref(false); // Add a new reactive variable to track the loading state
+const sensorImage = ref(''); // Reactive variable to store the sensor image path
 
 // Initialize subcategoryVisible to show all subcategories by default
 watch(sensorConfig, async (newConfig) => {
@@ -866,6 +874,7 @@ const onSensorChange = async (event) => {
   subcategoryVisible.value = {};
   framesVisible.value = {};
   framesCount.value = {};
+  sensorImage.value = '';
   
   // Wait for the DOM to update
   await nextTick();
@@ -963,6 +972,9 @@ const loadSensorConfig = async (sensorFile: string) => {
     // Apply localization to the configuration
     sensorConfig.value = applyLocalization(rawConfig);
 
+    // Extract image path from config if available
+    sensorImage.value = findSensorImage(sensorConfig.value);
+
     // Initialize default states first
     ["batch_params", "modbus_params", "standard_params", "general_params"].forEach((section) => {
       if (rawConfig[section]) {
@@ -987,6 +999,30 @@ const loadSensorConfig = async (sensorFile: string) => {
   } catch (error) {
     console.error('Failed to load sensor config:', error);
   }
+};
+
+// Function to find sensor image in the configuration
+const findSensorImage = (config) => {
+  if (!config) return '';
+  
+  // Check in all sections for an image property
+  for (const sectionKey of ['general_params', 'batch_params', 'standard_params', 'modbus_params']) {
+    const section = config[sectionKey];
+    if (!section) continue;
+    
+    if (section.image) {
+        return section.image;
+      }
+
+    // Check each group in the section
+    for (const groupKey in section) {
+      if (section[groupKey].image) {
+        return section[groupKey].image;
+      }
+    }
+  }
+  
+  return '';
 };
 
 // Initialize default values for sensor parameters
@@ -1574,11 +1610,15 @@ provide('localize', localize);
   width: 100%;
 }
 
-.sensor-select {
+.sensor-select, .output-area {
   display: flex;
   justify-content: space-between;
   margin: 10px 100px;
   flex-direction: column;
+}
+
+.sensor-select {
+  align-items: center;
 }
 
 #sensor-card {

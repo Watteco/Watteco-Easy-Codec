@@ -1,5 +1,6 @@
 {
     "general_params": {
+        "image": "img/alto.png",
         "alto_config": {
             "label": "@altoTestLabel",
             "default_state": "true",
@@ -12,7 +13,7 @@
                     "precision": 2,
                     "step": "0.01",
                     "HMI": {
-                        "label": "@altoTestDistance1Label (m)",
+                        "label": "S1: @altoTestDistance1Label (m)",
                         "visual_type": "numInput"
                     }
                 },
@@ -24,7 +25,7 @@
                     "precision": 2,
                     "step": "0.01",
                     "HMI": {
-                        "label": "@altoTestDistance2Label (m)",
+                        "label": "S2: @altoTestDistance2Label (m)",
                         "visual_type": "numInput"
                     }
                 },
@@ -35,7 +36,7 @@
                     "max_value": "60",
                     "step": "1",
                     "HMI": {
-                        "label": "@altoTestPeriodLowLabel",
+                        "label": "P1: @altoTestPeriodLowLabel",
                         "visual_type": "timeSlider"
                     }
                 },
@@ -46,7 +47,7 @@
                     "max_value": "60",
                     "step": "1",
                     "HMI": {
-                        "label": "@altoTestPeriodMedLabel",
+                        "label": "P2: @altoTestPeriodMedLabel",
                         "visual_type": "timeSlider"
                     }
                 },
@@ -57,7 +58,7 @@
                     "max_value": "60",
                     "step": "1",
                     "HMI": {
-                        "label": "@altoTestPeriodHighLabel",
+                        "label": "P3: @altoTestPeriodHighLabel",
                         "visual_type": "timeSlider"
                     }
                 },
@@ -69,7 +70,7 @@
                     "precision": 2,
                     "step": "0.01",
                     "HMI": {
-                        "label": "@altoTestAlarmLowLabel (m)",
+                        "label": "SA1: @altoTestAlarmLowLabel (m)",
                         "visual_type": "numInput"
                     }
                 },
@@ -81,7 +82,7 @@
                     "precision": 2,
                     "step": "0.01",
                     "HMI": {
-                        "label": "@altoTestAlarmHighLabel (m)",
+                        "label": "SA2: @altoTestAlarmHighLabel (m)",
                         "visual_type": "numInput"
                     }
                 },
@@ -92,7 +93,7 @@
                     "max_value": "60",
                     "step": "1",
                     "HMI": {
-                        "label": "@altoTestPeriodAngleLabel",
+                        "label": "PI: @altoTestPeriodAngleLabel",
                         "visual_type": "timeSlider"
                     }
                 },
@@ -104,7 +105,7 @@
                     "precision": 2,
                     "step": "0.01",
                     "HMI": {
-                        "label": "@altoTestAlarmAngleLabel (deg)",
+                        "label": "AI: @altoTestAlarmAngleLabel (deg)",
                         "visual_type": "numInput"
                     }
                 }
