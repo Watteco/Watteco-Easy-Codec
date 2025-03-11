@@ -1,6 +1,7 @@
 {
     "general_params": {
         "image": "img/alto.png",
+        "folded": false,
         "alto_config": {
             "label": "@altoTestLabel",
             "default_state": "true",

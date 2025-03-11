@@ -753,6 +753,22 @@ const sensorImage = ref(''); // Reactive variable to store the sensor image path
 // Initialize subcategoryVisible to show all subcategories by default
 watch(sensorConfig, async (newConfig) => {
   if (newConfig) {
+    // Check if the general_params has a folded property
+    if (newConfig.general_params && newConfig.general_params.hasOwnProperty('folded')) {
+      generalVisible.value = !newConfig.general_params.folded;
+    }
+    
+    // Initialize subcategory visibility
+    Object.keys(newConfig).forEach(bigGroupName => {
+      if (typeof newConfig[bigGroupName] === 'object') {
+        Object.keys(newConfig[bigGroupName]).forEach(groupName => {
+          if (typeof newConfig[bigGroupName][groupName] === 'object' && 
+              newConfig[bigGroupName][groupName].hasOwnProperty('folded')) {
+            subcategoryVisible.value[groupName] = !newConfig[bigGroupName][groupName].folded;
+          }
+        });
+      }
+    });
     // Wait for the DOM to update
     await nextTick();
     
