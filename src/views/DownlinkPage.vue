@@ -644,7 +644,7 @@
         </ion-card>
       </div>
 
-      <ion-card class="outputCard" v-show="sensorConfigLoaded">
+      <ion-card class="outputCard" v-show="sensorConfigLoaded && !(sensorConfig?.general_params?.outputCardHidden)">
         <ion-card-content class="output-area">
         <ion-label id="outputTitle">{{ localize("@port125") }}</ion-label>
         <ion-label id="outputArea">  </ion-label> 
@@ -727,6 +727,7 @@ const categorizedProducts = computed(() => {
   });
   return categories;
 });
+
 const selectedSensor = ref(''); // Stores the currently selected sensor
 const sensorConfig = ref<any | null>(null); // Dynamic configuration for the selected sensor
 const batchChecked = ref(false); // State of the batch mode checkbox
