@@ -1287,6 +1287,9 @@ const onParamChange = (event, bigGroupName, groupName, paramName) => {
       }
       sensorConfig.value[bigGroupName][groupName].fields[paramName].selectedValue = newVal;
       outputVals[paramName] = convertToHexFrameValue(newVal, sensorConfig.value[bigGroupName][groupName].fields[paramName]);
+
+      // Check and enforce all field relationships
+      enforceFieldRelationships(bigGroupName, groupName);
       
       // Update max values for dependent sliders
       if (sensorConfig.value[bigGroupName][groupName].fields[paramName].HMI.visual_type === 'timeSlider') {
@@ -1305,6 +1308,47 @@ const onParamChange = (event, bigGroupName, groupName, paramName) => {
     console.error('Invalid groupName:', groupName);
   }
   updateOutput();
+};
+
+const enforceFieldRelationships = (bigGroupName, groupName) => {
+  const group = sensorConfig.value[bigGroupName][groupName];
+  const relationships = group.field_relationships || [];
+  
+  // Look for relationships in the parent group too (alto_config in this case)
+  if (bigGroupName === 'general_params' && groupName === 'alto_config' && group.field_relationships) {
+    relationships.push(...group.field_relationships);
+  }
+  
+  relationships.forEach(relationship => {
+    const fields = sensorConfig.value[bigGroupName][groupName].fields;
+    
+    // Process relationships by type
+    if (relationship.type === 'lessThan' || relationship.type === 'greaterThan') {
+      // Normalize the fields based on the relationship type
+      const lessField = relationship.type === 'lessThan' ? fields[relationship.field1] : fields[relationship.field2];
+      const greaterField = relationship.type === 'lessThan' ? fields[relationship.field2] : fields[relationship.field1];
+      const lessFieldName = relationship.type === 'lessThan' ? relationship.field1 : relationship.field2;
+      const greaterFieldName = relationship.type === 'lessThan' ? relationship.field2 : relationship.field1;
+      
+      if (lessField && greaterField) {
+        const lessValue = parseFloat(lessField.selectedValue);
+        const greaterValue = parseFloat(greaterField.selectedValue);
+        const margin = parseFloat(relationship.margin || 0.01);
+        
+        // If greaterField <= lessField, adjust greaterField to be greater
+        if (greaterValue <= lessValue) {
+          const newGreaterValue = Math.min((lessValue + margin).toFixed(greaterField.precision), greaterField.max_value);
+          greaterField.selectedValue = newGreaterValue.toString();
+          outputVals[greaterFieldName] = convertToHexFrameValue(newGreaterValue.toString(), greaterField);
+        }
+        
+        // Set dynamic constraints
+        lessField.max_value = (parseFloat(greaterField.selectedValue) - margin).toFixed(lessField.precision).toString();
+        greaterField.min_value = lessField.selectedValue;
+      }
+    }
+    // Add other relationship types here as needed (equals, etc.)
+  });
 };
 
 // Handle toggle changes (e.g., hours vs. minutes)
@@ -1803,7 +1847,7 @@ ion-range::part(pin)::before {
     margin: 10px 20px;
   }
 
-  .category-card, .sensor-card, .outputCard {
+  .category-card, .sensor-card, .outputCard, #sensor-card {
     width: 95%;
   }
 

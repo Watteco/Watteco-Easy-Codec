@@ -33,7 +33,7 @@ const imageSrc = computed(() => {
 .sensor-image-container {
   display: flex;
   justify-content: center;
-  margin: 10px 0;
+  margin: -10px 0;
 }
 
 .sensor-image {
@@ -43,7 +43,6 @@ const imageSrc = computed(() => {
   border-radius: 8px;
 }
 
-/* Add responsive styles for smartphones */
 @media (max-width: 600px) {
   .sensor-image {
     max-height: 150px;

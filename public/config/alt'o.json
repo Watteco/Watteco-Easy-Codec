@@ -4,6 +4,14 @@
         "alto_config": {
             "label": "@altoTestLabel",
             "default_state": "true",
+            "field_relationships": [
+                {
+                    "type": "lessThan",
+                    "field1": "Distance1",
+                    "field2": "Distance2",
+                    "margin": 0.01
+                }
+            ],
             "fields": {
                 "Distance1": {
                     "type": "float",
