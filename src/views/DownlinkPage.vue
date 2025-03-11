@@ -1072,7 +1072,7 @@ const updateOutput = () => {
   let outputFrameTxt = "";
   
   // Reset all output data and param group list when no category is selected
-  if (!batchChecked.value && !standardChecked.value && !modbusChecked.value) {
+  if (!batchChecked.value && !standardChecked.value && !modbusChecked.value && !(sensorConfig.value?.general_params?.outputCardOverride)) {
     outputData.general_params = false;
     Object.keys(paramGroupList).forEach(key => {
       delete paramGroupList[key];

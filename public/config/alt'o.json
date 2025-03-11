@@ -1,6 +1,6 @@
 {
     "general_params": {
-        "outputCardHidden": true,
+        "outputCardOverride": true,
         "image": "img/alto.png",
         "folded": false,
         "alto_config": {
