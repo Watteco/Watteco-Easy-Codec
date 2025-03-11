@@ -52,7 +52,7 @@
                 },
                 "PeriodMed": {
                     "type": "timeVal",
-                    "default_value": "15",
+                    "default_value": "20",
                     "min_value": "1",
                     "max_value": "60",
                     "step": "1",
@@ -63,7 +63,7 @@
                 },
                 "PeriodHigh": {
                     "type": "timeVal",
-                    "default_value": "20",
+                    "default_value": "30",
                     "min_value": "1",
                     "max_value": "60",
                     "step": "1",

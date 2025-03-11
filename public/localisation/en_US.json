@@ -109,7 +109,7 @@
     "modbusFrameLabel": "Modbus Frame on Request",
     "serialMasterSlaveLabel": "Serial Master/Slave Request",
     "multiMasterSlaveLabel": "Multi Master/Slave",
-    "altoTestLabel": "Alt'O Configuration - Water Level Measurement",
+    "altoTestLabel": "Alt'O Configuration - Water Level Measurement (All alarms are triggered on rising and falling thresholds)",
     "altoTestDistance1Label": "Surface Distance, Low Threshold",
     "altoTestDistance2Label": "Surface Distance, High Threshold",
     "altoTestPeriodLowLabel": "Measurement and Transmission Period if D <= S1",
@@ -118,6 +118,6 @@
     "altoTestAlarmLowLabel": "Surface Distance Alarm, Low Threshold",
     "altoTestAlarmHighLabel": "Surface Distance Alarm, High Threshold",
     "altoTestPeriodAngleLabel": "Inclination Measurement Period",
-    "altoTestAlarmAngleLabel": "Inclination Measurement Alarm",
+    "altoTestAlarmAngleLabel": "Inclination Measurement Alarm threshold",
     "cfgCommentAltoTest": "Configures the Alt'O sensor parameters"
 }
