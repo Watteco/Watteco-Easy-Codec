@@ -23,7 +23,7 @@
                     "precision": 2,
                     "step": "0.01",
                     "HMI": {
-                        "label": "S1: @altoTestDistance1Label (m)",
+                        "label": "D1: @altoTestDistance1Label (m)",
                         "visual_type": "numInput"
                     }
                 },
@@ -35,7 +35,7 @@
                     "precision": 2,
                     "step": "0.01",
                     "HMI": {
-                        "label": "S2: @altoTestDistance2Label (m)",
+                        "label": "D2: @altoTestDistance2Label (m)",
                         "visual_type": "numInput"
                     }
                 },
@@ -80,7 +80,7 @@
                     "precision": 2,
                     "step": "0.01",
                     "HMI": {
-                        "label": "SA1: @altoTestAlarmLowLabel (m)",
+                        "label": "AD1: @altoTestAlarmLowLabel (m)",
                         "visual_type": "numInput"
                     }
                 },
@@ -92,7 +92,7 @@
                     "precision": 2,
                     "step": "0.01",
                     "HMI": {
-                        "label": "SA2: @altoTestAlarmHighLabel (m)",
+                        "label": "AD2: @altoTestAlarmHighLabel (m)",
                         "visual_type": "numInput"
                     }
                 },
