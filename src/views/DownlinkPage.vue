@@ -750,6 +750,7 @@ const framesVisible = ref<Record<string, boolean>>({});
 const framesCount = ref<Record<string, number>>({});
 const sensorConfigLoaded = ref(false); // Add a new reactive variable to track the loading state
 const sensorImage = ref(''); // Reactive variable to store the sensor image path
+const isEnforcingRelationships = ref(false);
 
 // Initialize subcategoryVisible to show all subcategories by default
 watch(sensorConfig, async (newConfig) => {
@@ -1328,44 +1329,59 @@ const onParamChange = (event, bigGroupName, groupName, paramName) => {
 };
 
 const enforceFieldRelationships = (bigGroupName, groupName) => {
-  const group = sensorConfig.value[bigGroupName][groupName];
-  const relationships = group.field_relationships || [];
+  if (isEnforcingRelationships.value) return;
   
-  // Look for relationships in the parent group too (alto_config in this case)
-  if (bigGroupName === 'general_params' && groupName === 'alto_config' && group.field_relationships) {
-    relationships.push(...group.field_relationships);
-  }
+  isEnforcingRelationships.value = true;
   
-  relationships.forEach(relationship => {
-    const fields = sensorConfig.value[bigGroupName][groupName].fields;
+  try {
+    const group = sensorConfig.value[bigGroupName][groupName];
+    let allRelationships = [...(group.field_relationships || [])];
     
-    // Process relationships by type
-    if (relationship.type === 'lessThan' || relationship.type === 'greaterThan') {
-      // Normalize the fields based on the relationship type
-      const lessField = relationship.type === 'lessThan' ? fields[relationship.field1] : fields[relationship.field2];
-      const greaterField = relationship.type === 'lessThan' ? fields[relationship.field2] : fields[relationship.field1];
-      const lessFieldName = relationship.type === 'lessThan' ? relationship.field1 : relationship.field2;
-      const greaterFieldName = relationship.type === 'lessThan' ? relationship.field2 : relationship.field1;
-      
-      if (lessField && greaterField) {
-        const lessValue = parseFloat(lessField.selectedValue);
-        const greaterValue = parseFloat(greaterField.selectedValue);
-        const margin = parseFloat(relationship.margin || 0.01);
-        
-        // If greaterField <= lessField, adjust greaterField to be greater
-        if (greaterValue <= lessValue) {
-          const newGreaterValue = Math.min((lessValue + margin).toFixed(greaterField.precision), greaterField.max_value);
-          greaterField.selectedValue = newGreaterValue.toString();
-          outputVals[greaterFieldName] = convertToHexFrameValue(newGreaterValue.toString(), greaterField);
-        }
-        
-        // Set dynamic constraints
-        lessField.max_value = (parseFloat(greaterField.selectedValue) - margin).toFixed(lessField.precision).toString();
-        greaterField.min_value = lessField.selectedValue;
-      }
+    if (bigGroupName === 'general_params' && groupName === 'alto_config' && group.field_relationships) {
+      allRelationships = [...allRelationships, ...(group.field_relationships || [])];
     }
-    // Add other relationship types here as needed (equals, etc.)
-  });
+    
+    allRelationships.forEach(relationship => {
+      const fields = sensorConfig.value[bigGroupName][groupName].fields;
+      
+      if (relationship.type === 'lessThan' || relationship.type === 'greaterThan') {
+        const lessField = relationship.type === 'lessThan' ? fields[relationship.field1] : fields[relationship.field2];
+        const greaterField = relationship.type === 'lessThan' ? fields[relationship.field2] : fields[relationship.field1];
+        const lessFieldName = relationship.type === 'lessThan' ? relationship.field1 : relationship.field2;
+        const greaterFieldName = relationship.type === 'lessThan' ? relationship.field2 : relationship.field1;
+        
+        if (lessField && greaterField) {
+          const lessValue = parseFloat(lessField.selectedValue);
+          const greaterValue = parseFloat(greaterField.selectedValue);
+          const margin = parseFloat(relationship.margin || 0.01);
+          
+          if (greaterValue <= lessValue) {
+            const newGreaterValue = Math.min(
+              parseFloat((lessValue + margin).toFixed(greaterField.precision || 2)),
+              parseFloat(greaterField.max_value)
+            );
+            
+            if (parseFloat(greaterField.selectedValue) !== newGreaterValue) {
+              greaterField.selectedValue = newGreaterValue.toString();
+              outputVals[greaterFieldName] = convertToHexFrameValue(newGreaterValue.toString(), greaterField);
+            }
+          }
+          
+          const newMaxValue = parseFloat((parseFloat(greaterField.selectedValue) - margin).toFixed(lessField.precision || 2));
+          if (parseFloat(lessField.max_value) !== newMaxValue) {
+            lessField.max_value = newMaxValue.toString();
+          }
+          
+          const newMinValue = parseFloat(lessField.selectedValue);
+          if (parseFloat(greaterField.min_value) !== newMinValue) {
+            greaterField.min_value = newMinValue.toString();
+          }
+        }
+      }
+    });
+  } finally {
+    isEnforcingRelationships.value = false;
+  }
 };
 
 // Handle toggle changes (e.g., hours vs. minutes)
