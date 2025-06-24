@@ -138,6 +138,12 @@
 			"docLink": "https://support.watteco.com/outdoor-temperature/"
 		},
 		{
+			"name": "Temp'O Outdoor - 1 probe + 1 remote probe (50-70-268)",
+			"file": "50-70-268-Temp'O-Outdoor-1probe+1remote-probe",
+			"apps": ["LoraEncoder","Decoder","LoraEncoderConfiguration","EasyCodec"],
+			"category": "TH sensors (Outdoor)"
+		},
+		{
 			"name": ["Pilot wire (50-70-027)","Fil pilote (50-70-027)"],
 			"apps": ["LoraEncoder","Decoder"],
 			"file": "50-70-027-PW",

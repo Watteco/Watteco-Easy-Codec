@@ -119,5 +119,7 @@
     "altoTestAlarmHighLabel": "Alarme distance surface, seuil haut",
     "altoTestPeriodAngleLabel": "Période de mesure inclinaison",
     "altoTestAlarmAngleLabel": "Seuil d'alarme de mesure inclinaison",
-    "cfgCommentAltoTest": "Configure les paramètres du capteur Alt'o"
+    "cfgCommentAltoTest": "Configure les paramètres du capteur Alt'o",
+    "forEp": "pour l'endpoint",
+    "cfgCommentSteinhartCoeff": "Configure les coefficients Steinhart"
 }

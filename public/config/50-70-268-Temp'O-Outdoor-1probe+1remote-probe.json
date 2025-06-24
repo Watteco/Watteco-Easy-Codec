@@ -1,0 +1,221 @@
+{
+    "general_params": {
+        "remove_config": {
+            "label": "@removeCurrentConfigLabel",
+            "default_state": "true",
+            "fields": {
+                "removeCurrentConfig": {
+                    "type": "frame",
+                    "HMI": {
+                        "label": "@removeCurrentConfigLabel",
+                        "visual_type": "customFrame"
+                    }
+                }
+            }
+        },
+        "confirmed": {
+            "label": "@confirmedLabel",
+            "fields": {
+                "confirmed": {
+                    "type": "bool",
+                    "default_value": "false",
+                    "HMI": {
+                        "label": "@confirmedLabel",
+                        "visual_type": "checkbox"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+            ["11 50 00 50 02 03 (removeCurrentConfig)", "@cfgCommentRemoveConfig"],
+            ["11 05 8004 0000 08 (confirmed)", "@cfgCommentConfirmed"],
+            ["11 05 04 02 90 01 41 10 3a 91 47 21 39 79 17 a6 33 9e 90 7c 46 1c 40 00", "@cfgCommentSteinhartCoeff @forEp 1"],
+            ["31 05 04 02 90 01 41 10 3A 76 B2 79 39 60 A2 64 33 A1 2E BF 46 1c 40 00", "@cfgCommentSteinhartCoeff @forEp 2"]
+        ]
+    },
+    "batch_params": {
+        "batch_T_params": {
+            "label": "@tempLabel",
+            "default_state": "true",
+            "fields": {
+                "tBatchEchant1": {
+                    "type": "timeVal",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "60",
+                    "step": "1",
+                    "depends_on": "gBatchEmission",
+                    "HMI": {
+                        "label": "@echantLabel @forEp 1",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "tBatchEchant2": {
+                    "type": "timeVal",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "60",
+                    "step": "1",
+                    "depends_on": "gBatchEmission",
+                    "HMI": {
+                        "label": "@echantLabel @forEp 2",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "batch_B_params": {
+            "label": "@batt24h",
+            "default_state": "true",
+            "fields": {
+                "bBatchEchant": {
+                    "type": "timeVal",
+                    "default_value": "1440",
+                    "default_unit": "1",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "30",
+                    "HMI": {
+                        "label": "@echantLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "global_params": {
+            "fields": {
+                "gBatchEmission": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "1",
+                    "HMI": {
+                        "label": "@emitLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+            ["11 06 04 02 15 00 00 00 (tBatchEchant1) (gBatchEmission) 00 00 00 0A 03", "@cfgCommentBatchTemp @forEp 1"],
+            ["31 06 04 02 15 00 00 00 (tBatchEchant2) (gBatchEmission) 00 00 00 0A 0B", "@cfgCommentBatchTemp @forEp 2"],
+            ["11 06 00 50 15 00 06 04 (bBatchEchant) 85a0 00 00 00 64 2B", "@cfgCommentBatchBatt"]
+        ]
+    },
+    "standard_params": {
+        "standard_T_params": {
+            "label": "@tempLabel",
+            "fields": {
+                "tStandEchantEp1": {
+                    "type": "timeVal",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "60",
+                    "depends_on": "tStandEmissionEp1",
+                    "HMI": {
+                        "label": "@measureLabel @forEp 1",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "tStandEmissionEp1": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "HMI": {
+                        "label": "@emitMaxLabel @forEp 1",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "tNotificationEp1": {
+                    "type": "hex2B",
+                    "default_value": "15 30",
+                    "min_value": "1",
+                    "max_value": "55",
+                    "HMI": {
+                        "label": "@thresholdLabel @forEp 1",
+                        "visual_type": "doubleSlider",
+                        "unit": "°C",
+                        "multiplier": "100"
+                    }
+                },
+                "tStandEchantEp2": {
+                    "type": "timeVal",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "60",
+                    "depends_on": "tStandEmissionEp2",
+                    "HMI": {
+                        "label": "@measureLabel @forEp 2",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "tStandEmissionEp2": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "HMI": {
+                        "label": "@emitMaxLabel @forEp 2",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "tNotificationEp2": {
+                    "type": "hex2B",
+                    "default_value": "15 30",
+                    "min_value": "1",
+                    "max_value": "55",
+                    "HMI": {
+                        "label": "@thresholdLabel @forEp 2",
+                        "visual_type": "doubleSlider",
+                        "unit": "°C",
+                        "multiplier": "100"
+                    }
+                }
+            }
+        },
+        "standard_B_params": {
+            "label": "@battLabel",
+            "fields": {
+                "bStandEchant": {
+                    "type": "timeVal",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "depends_on": "bStandEmission",
+                    "HMI": {
+                        "label": "@measureLabel",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "bStandEmission": {
+                    "type": "timeVal",
+                    "default_value": "1440",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "HMI": {
+                        "label": "@emitMaxLabel",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "bNotification": {
+                    "type": "hex2B",
+                    "default_value": "2900 3300",
+                    "min_value": "2000",
+                    "max_value": "3700",
+                    "HMI": {
+                        "label": "@thresholdLabel",
+                        "visual_type": "doubleSlider",
+                        "unit": "mV"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+            ["11 06 0402 80 0000 29 (tStandEchantEp1) (tStandEmissionEp1) 70 (tNotificationEp11) 0000 0171 (tNotificationEp12) 0000 01", "@cfgCommentStandTemp @forEp 1"],
+            ["31 06 0402 80 0000 29 (tStandEchantEp2) (tStandEmissionEp2) 70 (tNotificationEp21) 0000 0171 (tNotificationEp22) 0000 01", "@cfgCommentStandTemp @forEp 2"],
+            ["11 06 0050 80 0006 41 (bStandEchant) (bStandEmission) 0e 70 04 (bNotification1) 0000 0171 04 (bNotification2) 0000 01", "@cfgCommentStandBatt"]
+        ]
+    }
+}

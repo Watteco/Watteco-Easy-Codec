@@ -119,5 +119,7 @@
     "altoTestAlarmHighLabel": "Surface Distance Alarm, High Threshold",
     "altoTestPeriodAngleLabel": "Inclination Measurement Period",
     "altoTestAlarmAngleLabel": "Inclination Measurement Alarm threshold",
-    "cfgCommentAltoTest": "Configures the Alt'O sensor parameters"
+    "cfgCommentAltoTest": "Configures the Alt'O sensor parameters",
+    "forEp": "for endpoint",
+    "cfgCommentSteinhartCoeff": "Configures the Steinhart coefficients"
 }
