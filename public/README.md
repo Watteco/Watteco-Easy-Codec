@@ -108,13 +108,41 @@ Remplacez les valeurs variables dans les trames par des références aux paramè
 | `string`    | TextInput        | Chaîne de caractères                              | Pour des identifiants              |
 | `dropdown`  | DropDown         | Liste déroulante de choix                         | Pour des modes de fonctionnement   |
 
+### Option d'inversion pour les cases à cocher
+
+Les cases à cocher (`checkbox`) peuvent être configurées avec une option `inverted` qui inverse la valeur hexadécimale de sortie :
+
+```json
+"remove_header": {
+    "label": "@removeHeaderLabel",
+    "default_state": "true",
+    "fields": {
+        "remove": {
+            "type": "bool",
+            "default_value": "false",
+            "inverted": "true",
+            "HMI": {
+                "label": "@removeHeaderLabel",
+                "visual_type": "checkbox"
+            }
+        }
+    }
+}
+```
+
+Avec l'option `inverted: "true"`:
+- Case cochée → génère `00` dans la trame (au lieu de `01`)
+- Case non cochée → génère `01` dans la trame (au lieu de `00`)
+
+Cette option est utile lorsque la logique du capteur requiert une valeur inversée par rapport à l'action souhaitée par l'utilisateur.
+
 ## Conversion de Valeurs pour les Trames
 
 Les valeurs sont automatiquement converties au format approprié:
 
 - **`timeVal`**: Valeur décimale → hexadécimal sur 2 octets avec offset 32768 (ex: 10 → 800A)
 - **`hex[x]B`**: Valeur décimale → hexadécimal sur x octets (ex: pour hex2B, 21 → 0015)
-- **`bool`**: true/false → 01/00
+- **`bool`**: true/false → 01/00 (ou 00/01 si `inverted: "true"`)
 
 ## Localisation des Étiquettes
 

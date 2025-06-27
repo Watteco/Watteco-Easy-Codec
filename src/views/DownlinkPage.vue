@@ -105,6 +105,7 @@
                       :value="param.selectedValue"
                       :groupName="groupName"
                       :paramName="paramName"
+                      :inverted="param.inverted === 'true'"
                       @update:value="onParamChange($event, 'general_params', groupName, paramName)"
                     />
 
@@ -258,6 +259,7 @@
                       :value="param.selectedValue"
                       :groupName="groupName"
                       :paramName="paramName"
+                      :inverted="param.inverted === 'true'"
                       @update:value="onParamChange($event, 'modbus_params', groupName, paramName)"
                     />
 
@@ -404,6 +406,7 @@
                       :value="param.selectedValue"
                       :groupName="groupName"
                       :paramName="paramName"
+                      :inverted="param.inverted === 'true'"
                       @update:value="onParamChange($event, 'batch_params', groupName, paramName)"
                     />
 
@@ -565,6 +568,7 @@
                       :value="param.selectedValue"
                       :groupName="groupName"
                       :paramName="paramName"
+                      :inverted="param.inverted === 'true'"
                       @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
                     />
 
@@ -1186,7 +1190,7 @@ const replaceInFrame = (frame: string, key: string, value: string, enabled: stri
 
 // Convert a parameter value to a hex format for frames
 const convertToHexFrameValue = (value: string, param: {
-  HMI: any; type: string; isHours: boolean; 
+  HMI: any; type: string; isHours: boolean; inverted: string;
 }) => {
   if (param.type === 'frame') return "";
 
@@ -1220,7 +1224,13 @@ const convertToHexFrameValue = (value: string, param: {
       const bytes = parseInt(param.type.replace("hex", ""), 10);
       output = parseInt(value).toString(16).padStart(bytes * 2, '0');
     } else if (param.type == "bool") {
-      output = (value == "true") ? "01" : "00";
+      if (param.inverted === 'true') {
+        // Inverted logic: true becomes 00, false becomes 01
+        output = (value == "true") ? "00" : "01";
+      } else {
+        // Normal logic: true becomes 01, false becomes 00
+        output = (value == "true") ? "01" : "00";
+      }
     } else if (param.type == "float") {
       // Convert float to IEEE 754 single-precision format
       const float32Array = new Float32Array(1);
@@ -1754,7 +1764,7 @@ ion-segment-button::part(indicator-background) {
   margin-right: auto;
 }
 
-.category-card, .sensor-card, .outputCard {
+.category-card, .sensor-card, .outputCard, #sensor-card {
   width: 70%;
 }
 

@@ -25,7 +25,8 @@ const props = defineProps({
   label: String,
   value: Boolean,
   groupName: String,   // new prop for groupName
-  paramName: String    // new prop for paramName
+  paramName: String,   // new prop for paramName
+  inverted: Boolean    // new prop for inverted behavior
 });
 
 // Local state to manage checkbox state
@@ -38,7 +39,7 @@ const emit = defineEmits(['update:value']);
 const onCheckChange = (event) => {
   const newValue = event.detail.checked;
   enabled.value = newValue;
-  emit('update:value', { newValue, groupName: props.groupName, paramName: props.paramName });
+  emit('update:value', { newValue, groupName: props.groupName, paramName: props.paramName, inverted: props.inverted });
 };
 
 // Watch for changes in the value prop to update the local state
