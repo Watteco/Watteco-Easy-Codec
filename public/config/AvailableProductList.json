@@ -345,6 +345,12 @@
 			"file": "alt'o",
 			"apps": ["EasyCodec"],
 			"category": "BETA"
+		},
+		{
+			"name": "Ventil'O",
+			"file": "50-70-101-Ventil'O",
+			"apps": ["EasyCodec"],
+			"category": "BETA"
 		}
 	],
 	"in_developpement_products": [

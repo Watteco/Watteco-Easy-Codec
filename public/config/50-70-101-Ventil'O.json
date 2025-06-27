@@ -1,0 +1,62 @@
+{
+    "general_params": {
+        "remove_config": {
+            "label": "@removeCurrentConfigLabel",
+            "default_state": "true",
+            "fields": {
+                "removeCurrentConfig": {
+                    "type": "frame",
+                    "HMI": {
+                        "label": "@removeCurrentConfigLabel",
+                        "visual_type": "customFrame"
+                    }
+                }
+            }
+        },
+        "confirmed": {
+            "label": "@confirmedLabel",
+            "fields": {
+                "confirmed": {
+                    "type": "bool",
+                    "default_value": "false",
+                    "HMI": {
+                        "label": "@confirmedLabel",
+                        "visual_type": "checkbox"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+            ["11 50 00 50 02 03 (removeCurrentConfig)", "@cfgCommentRemoveConfig"],
+            ["11 05 8004 0000 08 (confirmed)", "@cfgCommentConfirmed"],
+			["11 05 80 08 00 04 21 00 01","dfde"],
+			["11 05 80 08 00 05 21 00 03","dfde"],
+			["11 05 80 08 00 06 23 00 00 03 E8","dfde"]
+        ]
+    },
+    "batch_params": {
+        "batch_T_params": {
+        },
+        "global_params": {
+            "fields": {
+                "gBatchEmission": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "1",
+                    "HMI": {
+                        "label": "@emitLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+		
+            ["11 06 80 08 15 01 00 00 (gBatchEmission) (gBatchEmission) 00 00 00 01 03", "Measure Mean"],
+            ["11 06 80 08 15 01 01 00 (gBatchEmission) (gBatchEmission) 00 00 00 01 0B", "Measure Minimal"],
+            ["11 06 80 08 15 01 02 00 (gBatchEmission) (gBatchEmission) 00 00 00 01 13", "Measure Maximal"]
+        ]
+    }
+}
