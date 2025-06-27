@@ -1,4 +1,4 @@
-# Guide pour la Création de Fichiers de Configuration pour nke Watteco LoRaWAN
+# Guide pour la Création de Fichiers de Configuration pour l'Easy Codec de Watteco
 
 Ce guide explique comment transformer des trames de configuration brutes en fichiers JSON structurés pour l'***Easy Codec*** de **Watteco**.
 
@@ -120,7 +120,7 @@ Les cases à cocher (`checkbox`) peuvent être configurées avec une option `inv
         "remove": {
             "type": "bool",
             "default_value": "false",
-            "inverted": "true",
+            "inverted": "true",  // Inverse la valeur hexadécimale de sortie
             "HMI": {
                 "label": "@removeHeaderLabel",
                 "visual_type": "checkbox"
