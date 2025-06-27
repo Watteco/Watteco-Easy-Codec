@@ -34,6 +34,7 @@
                 "remove": {
                     "type": "bool",
                     "default_value": "false",
+                    "inverted": "true",
                     "HMI": {
                         "label": "@removeHeaderLabel",
                         "visual_type": "checkbox"
