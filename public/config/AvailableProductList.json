@@ -341,16 +341,13 @@
 			"docLink": "https://support.watteco.com/ventilo/"
 		},
 		{
-			"name": "Alt'O Beta",
-			"file": "alt'o",
+			"name": "Alt'O (50-70-236)",
+			"file": "50-70-236-Alt'o",
 			"apps": ["EasyCodec"],
-			"category": "BETA"
-		},
-		{
-			"name": "Ventil'O",
-			"file": "50-70-101-Ventil'O",
-			"apps": ["EasyCodec"],
-			"category": "BETA"
+			"category": "Environnemental sensors",
+			"comment": ["Distance measurement", 
+			"Mesure de distance"],
+			"docLink": "https://support.watteco.com/"
 		}
 	],
 	"in_developpement_products": [
