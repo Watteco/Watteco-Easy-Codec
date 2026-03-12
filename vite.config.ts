@@ -23,7 +23,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  base: '/EasyCodec/',
+  base: process.env.CAPACITOR_BUILD === 'true' ? '/' : '/EasyCodec/',
   test: {
     globals: true,
     environment: 'jsdom'

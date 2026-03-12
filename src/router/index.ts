@@ -1,11 +1,23 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
+import { Capacitor } from '@capacitor/core';
 import TabsPage from '../views/TabsPage.vue'
+
+const isNative = Capacitor.isNativePlatform();
 
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
-    redirect: '/tabs/downlink'
+    redirect: isNative ? '/ble-connect' : '/tabs/downlink'
+  },
+  {
+    path: '/ble-connect',
+    component: () => import('@/views/BleConnectPage.vue'),
+    beforeEnter: (_to, _from, next) => {
+      // On web, skip the BLE connect page entirely
+      if (!isNative) { next('/tabs/downlink'); return; }
+      next();
+    }
   },
   {
     path: '/tabs/',

@@ -651,8 +651,28 @@
       <ion-card class="outputCard" v-show="sensorConfigLoaded && !(sensorConfig?.general_params?.outputCardHidden)">
         <ion-card-content class="output-area">
         <ion-label id="outputTitle">{{ localize("@port125") }}</ion-label>
-        <ion-label id="outputArea">  </ion-label> 
-        <ion-button v-if="framesAvailable" @click="copyFramesNoSpaces" class="half-width">{{ localize("@copyFrames") }}</ion-button>
+        <ion-label id="outputArea">  </ion-label>
+
+        <!-- Web: copy to clipboard (unchanged behavior) -->
+        <ion-button v-if="framesAvailable && !ble.isNative.value" @click="copyFramesNoSpaces" class="half-width">{{ localize("@copyFrames") }}</ion-button>
+
+        <!-- Native: BLE send (connection managed by BleConnectPage) -->
+        <div v-if="ble.isNative.value" class="ble-panel">
+          <div class="ble-actions">
+            <ion-chip :color="ble.connected.value ? 'success' : 'warning'" size="small">
+              {{ ble.connected.value
+                ? localize('@bleConnectedTo') + ' ' + ble.getDeviceName(ble.connectedDevice.value!)
+                : localize('@bleNotConnected') }}
+            </ion-chip>
+            <ion-button v-if="framesAvailable && ble.connected.value" @click="sendFramesBle" :disabled="ble.sending.value" class="half-width" color="primary">
+              {{ ble.sending.value ? localize('@bleSending') : localize('@bleSendFrames') }}
+            </ion-button>
+          </div>
+          <div v-if="ble.statusMessage.value" class="ble-status-msg">
+            <ion-text color="medium">{{ ble.statusMessage.value }}</ion-text>
+          </div>
+        </div>
+
         </ion-card-content>
       </ion-card>
     </ion-content>
@@ -690,8 +710,10 @@ import {
   IonItem,
   IonSegment,
   IonSegmentButton,
-  IonButton
+  IonButton,
+  IonText
 } from '@ionic/vue';
+import { useBle } from '@/composables/useBle';
 import TimeSlider from '@/components/TimeSlider.vue';
 import DoubleSlider from '@/components/DoubleSlider.vue';
 import CheckBox from '@/components/CheckBox.vue';
@@ -718,6 +740,9 @@ const availableLanguages = [
   { code: 'en', name: 'English', flag: gbFlag },
   { code: 'fr', name: 'Français', flag: frFlag },
 ];
+
+// BLE composable (only active on native platforms, no-op on web)
+const ble = useBle();
 
 // Reactive variables to store application state
 const availableProducts = ref([]); // Stores the list of available products
@@ -1420,6 +1445,8 @@ onMounted(() => {
     const selectToStartText = localize("@selectToStart");
     document.getElementById("outputArea").innerHTML = selectToStartText;
   });
+  // Initialize BLE on native platforms (no-op on web)
+  ble.initialize();
 });
 
 // Remove the event listener when the component is unmounted
@@ -1465,6 +1492,11 @@ const copyFramesNoSpaces = () => {
       });
     }
   }
+};
+
+// Send frames via BLE (native only)
+const sendFramesBle = () => {
+  ble.sendOutputFrames();
 };
 
 const toggleVisibility = (category: string) => {
@@ -1966,6 +1998,25 @@ ion-range::part(pin)::before {
 
 .subcategory-card.full-width {
   width: 100% !important;
+}
+
+/* BLE panel styles (only rendered on native) */
+.ble-panel {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ion-color-light-shade);
+}
+
+.ble-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.ble-status-msg {
+  margin-top: 6px;
+  font-size: 0.85em;
 }
 </style>
 
