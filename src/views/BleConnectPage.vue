@@ -23,8 +23,8 @@
           <ion-icon :icon="bluetoothOutline" />
           <ion-label>
             {{ ble.connected.value
-              ? 'Connected to ' + ble.getDeviceName(ble.connectedDevice.value!)
-              : 'Not connected' }}
+              ? localize('@bleConnectedTo') + ' ' + ble.getDeviceName(ble.connectedDevice.value!)
+              : localize('@bleNotConnected') }}
           </ion-label>
         </ion-chip>
 
@@ -36,7 +36,7 @@
           class="scan-button"
         >
           <ion-icon slot="start" :icon="searchOutline" />
-          Scan for devices
+          {{ localize('@bleScan') }}
         </ion-button>
 
         <ion-button
@@ -47,7 +47,7 @@
           class="scan-button"
         >
           <ion-icon slot="start" :icon="searchOutline" />
-          Scanning… (Cancel)
+          {{ localize('@bleScanning') }} (Cancel)
         </ion-button>
 
         <!-- Device list -->
@@ -103,11 +103,14 @@
         </div>
       </div>
     </ion-content>
+  <div class="language-switcher">
+    <LanguageSwitcher :current-language="currentLanguage" @update:language="changeLanguage" />
+  </div>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
@@ -117,6 +120,44 @@ import {
 import { bluetoothOutline, searchOutline, arrowForwardOutline } from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
 import type { BleDevice } from '@capacitor-community/bluetooth-le';
+import axios from 'axios';
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+
+// Import language files
+import enUS from '/localisation/en_US.json?url';
+import frFR from '/localisation/fr_FR.json?url';
+
+const currentLanguage = ref('en');
+const languages = ref({ en: {}, fr: {} });
+
+const generateCacheBuster = () => `?v=${new Date().getTime()}`;
+
+const loadLocalizationFiles = async () => {
+  try {
+    const enResp = await axios.get(enUS + generateCacheBuster());
+    const frResp = await axios.get(frFR + generateCacheBuster());
+    languages.value.en = enResp.data;
+    languages.value.fr = frResp.data;
+  } catch (e) {
+    console.error('Failed to load localization files', e);
+  }
+};
+
+const localization = () => languages.value[currentLanguage.value] || {};
+
+const localize = (key: string) => {
+  if (!key.startsWith('@')) return key;
+  const k = key.substring(1);
+  const v = (localization() as any)[k];
+  return v ?? key;
+};
+
+const STORAGE_KEY = 'easycodec.language';
+
+const changeLanguage = (lang: string) => {
+  currentLanguage.value = lang;
+  try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) {}
+};
 
 const ble = useBle();
 const router = useRouter();
@@ -127,6 +168,20 @@ const connectingDeviceId = ref('');
 onMounted(async () => {
   logoSrc.value = `${import.meta.env.BASE_URL}img/LOGO-WATTECO_v2021_wbg_ctr.png`;
   await ble.initialize();
+  await loadLocalizationFiles();
+  // Initialize language: prefer stored user selection, else try browser
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored && (languages.value as any)[stored]) {
+      currentLanguage.value = stored;
+    } else {
+      const browser = navigator.language?.split('-')[0] || 'en';
+      currentLanguage.value = (languages.value as any)[browser] ? browser : 'en';
+      try { localStorage.setItem(STORAGE_KEY, currentLanguage.value); } catch (e) {}
+    }
+  } catch (e) {
+    currentLanguage.value = 'en';
+  }
 });
 
 async function onDeviceSelect(dev: BleDevice) {
@@ -137,9 +192,12 @@ async function onDeviceSelect(dev: BleDevice) {
   connectingDeviceId.value = '';
 }
 
-function proceed() {
-  router.replace('/tabs/downlink');
-}
+// Auto-navigate to Easy Codec when BLE becomes connected
+watch(() => ble.connected.value, (val) => {
+  if (val) {
+    router.replace('/tabs/downlink');
+  }
+});
 </script>
 
 <style scoped>
@@ -151,22 +209,6 @@ function proceed() {
   max-width: 500px;
   margin: 0 auto;
   padding: 24px 16px;
-}
-
-.ble-chip {
-  display: flex;
-  margin: 0 auto 20px;
-  font-size: 1rem;
-}
-
-.scan-button {
-  margin-bottom: 12px;
-}
-
-.filter-toggle {
-  --background: transparent;
-  margin-bottom: 12px;
-  font-size: 0.9rem;
 }
 
 .device-list {

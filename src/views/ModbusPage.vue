@@ -257,14 +257,23 @@ const localize = (key: string): string => {
   return currentLang[translationKey] || key;
 };
 
-// Change language function
+// Change language function (persist selection)
+const STORAGE_KEY = 'easycodec.language';
 const changeLanguage = (language: string) => {
   currentLanguage.value = language;
+  try { localStorage.setItem(STORAGE_KEY, language); } catch (e) {}
 };
 
-// Load localizations on mount
+// Load localizations on mount and prefer stored selection
 onMounted(() => {
   loadLocalizationFiles().then(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored && (languages.value as any)[stored]) {
+        currentLanguage.value = stored;
+        return;
+      }
+    } catch (e) {}
     const browserLanguage = navigator.language.split('-')[0];
     if (languages.value[browserLanguage]) {
       currentLanguage.value = browserLanguage;

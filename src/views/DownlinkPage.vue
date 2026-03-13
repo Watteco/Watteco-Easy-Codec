@@ -852,9 +852,11 @@ const localization = computed(() => {
   return languages.value[currentLanguage.value];
 });
 
-// Function to change the language
+// Function to change the language and persist selection
+const STORAGE_KEY = 'easycodec.language';
 const changeLanguage = (language) => {
   currentLanguage.value = language;
+  try { localStorage.setItem(STORAGE_KEY, language); } catch (e) {}
   if (selectedSensor.value == '') {
     const outputArea = document.getElementById("outputArea");
     if (outputArea) {
@@ -1440,11 +1442,19 @@ onMounted(() => {
   document.addEventListener('click', handleCopyButtonClick);
   loadAvailableProducts();
   loadLocalizationFiles().then(() => {
-    const browserLanguage = navigator.language.split('-')[0]; // Get the browser language
-    if (languages.value[browserLanguage]) {
-      currentLanguage.value = browserLanguage;
-    } else {
-      currentLanguage.value = 'en';
+    // Prefer stored user selection, else fallback to browser detection
+    const STORAGE_KEY = 'easycodec.language';
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored && (languages.value as any)[stored]) {
+        currentLanguage.value = stored;
+      } else {
+        const browserLanguage = navigator.language.split('-')[0]; // Get the browser language
+        currentLanguage.value = languages.value[browserLanguage] ? browserLanguage : 'en';
+      }
+    } catch (e) {
+      const browserLanguage = navigator.language.split('-')[0];
+      currentLanguage.value = languages.value[browserLanguage] ? browserLanguage : 'en';
     }
     const selectToStartText = localize("@selectToStart");
     document.getElementById("outputArea").innerHTML = selectToStartText;
