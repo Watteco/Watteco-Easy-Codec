@@ -35,4 +35,5 @@ http://ionicframework.com/docs/theming/ */
 
 ion-popover {
     --width: fit-content;
+	--max-width: 90%;
 }

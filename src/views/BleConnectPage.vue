@@ -30,25 +30,25 @@
 
         <!-- Scan button -->
         <ion-button
-          v-if="!ble.connected.value"
-          @click="ble.startScan()"
-          :disabled="ble.scanning.value"
+          v-if="!ble.connected.value && !ble.scanning.value"
+          @click="ble.startAutoScan()"
           expand="block"
           class="scan-button"
         >
           <ion-icon slot="start" :icon="searchOutline" />
-          {{ ble.scanning.value ? 'Scanning…' : 'Scan for devices' }}
+          Scan for devices
         </ion-button>
 
-        <!-- Scan without filter toggle -->
-        <ion-item v-if="!ble.connected.value" lines="none" class="filter-toggle">
-          <ion-toggle
-            v-model="scanWithFilters"
-            :enable-on-off-labels="true"
-          >
-            Filter by known services
-          </ion-toggle>
-        </ion-item>
+        <ion-button
+          v-else-if="!ble.connected.value && ble.scanning.value"
+          @click="ble.cancelScan()"
+          expand="block"
+          color="medium"
+          class="scan-button"
+        >
+          <ion-icon slot="start" :icon="searchOutline" />
+          Scanning… (Cancel)
+        </ion-button>
 
         <!-- Device list -->
         <ion-list v-if="!ble.connected.value && ble.devices.value.length" class="device-list">
@@ -123,7 +123,6 @@ const router = useRouter();
 const logoSrc = ref('');
 const connecting = ref(false);
 const connectingDeviceId = ref('');
-const scanWithFilters = ref(true);
 
 onMounted(async () => {
   logoSrc.value = `${import.meta.env.BASE_URL}img/LOGO-WATTECO_v2021_wbg_ctr.png`;

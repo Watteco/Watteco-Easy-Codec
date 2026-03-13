@@ -16,6 +16,7 @@ const DEFAULT_SERVICE_UUIDS = [
 
 const MAX_CHUNK_SIZE = 20;   // BLE MTU-safe write size
 const MAX_RETRIES = 5;
+const MAX_AUTO_SCAN_ATTEMPTS = 30;
 const SCAN_TIMEOUT_MS = 5000;
 const FLUSH_INTERVAL_MS = 1000;
 const INTER_FRAME_DELAY_MS = 50;
@@ -58,7 +59,9 @@ let pending: Uint8Array[] = [];
 let flushing = false;
 let flushTimer: ReturnType<typeof setInterval> | undefined;
 let scanTimeoutId: ReturnType<typeof setTimeout> | undefined;
+let scanResolve: (() => void) | undefined;
 let initialized = false;
+let autoScanCanceled = false;
 
 let targetDeviceId: string | undefined;
 let targetServiceUuid: string | undefined;
@@ -98,6 +101,9 @@ async function startScan(useFilters = true) {
   scanning.value = true;
   statusMessage.value = 'Scanning…';
 
+  // Promise that resolves when this scan attempt ends (via stopScan)
+  const prom = new Promise<void>((resolve) => { scanResolve = resolve; });
+
   try {
     const options: any = {};
     if (useFilters) {
@@ -112,14 +118,76 @@ async function startScan(useFilters = true) {
   } catch (e: any) {
     statusMessage.value = 'Scan failed: ' + (e?.message ?? e);
     scanning.value = false;
+    if (scanResolve) { scanResolve(); scanResolve = undefined; }
   }
+
+  return prom;
 }
 
 async function stopScan() {
   if (!scanning.value) return;
   try { await BleClient.stopLEScan(); } catch {}
+  if (scanTimeoutId) { clearTimeout(scanTimeoutId); scanTimeoutId = undefined; }
   scanning.value = false;
   statusMessage.value = `Found ${devices.value.length} device(s)`;
+  if (scanResolve) { scanResolve(); scanResolve = undefined; }
+}
+
+async function startAutoScan(useFilters = true, maxAttempts = MAX_AUTO_SCAN_ATTEMPTS) {
+  if (!bleInitialized.value) { statusMessage.value = 'BLE not ready'; return; }
+  if (scanning.value) return; // already scanning
+  devices.value = [];
+  autoScanCanceled = false;
+  scanning.value = true;
+  statusMessage.value = 'Auto-scanning…';
+
+  const attemptDuration = SCAN_TIMEOUT_MS;
+  const totalDuration = Math.max(1, maxAttempts) * attemptDuration;
+  let attempts = 0;
+
+  try {
+    const options: any = {};
+    if (useFilters) options.services = DEFAULT_SERVICE_UUIDS.map(normalizeUuid);
+
+    await BleClient.requestLEScan(options, async (result: ScanResult) => {
+      if (!devices.value.find(d => d.deviceId === result.device.deviceId)) {
+        devices.value = [...devices.value, result.device];
+      }
+      // stop early when we detected at least one device
+      if (devices.value.length > 0 && scanning.value) {
+        try { await stopScan(); } catch {}
+      }
+    });
+
+    // update attempt counter periodically to avoid UI flicker
+    const attemptTimer = setInterval(() => {
+      attempts++;
+      if (attempts >= maxAttempts) return;
+      statusMessage.value = `Auto-scanning… (attempt ${attempts}/${maxAttempts})`;
+    }, attemptDuration);
+
+    // stop after total duration unless canceled or devices found
+    scanTimeoutId = setTimeout(async () => {
+      try { await stopScan(); } catch {}
+    }, totalDuration);
+
+    // wait until scan stops (stopScan resolves scanResolve)
+    await new Promise<void>((resolve) => { scanResolve = resolve; });
+
+    clearInterval(attemptTimer);
+  } catch (e: any) {
+    statusMessage.value = 'Auto-scan failed: ' + (e?.message ?? e);
+  } finally {
+    if (scanTimeoutId) { clearTimeout(scanTimeoutId); scanTimeoutId = undefined; }
+    scanning.value = false;
+    statusMessage.value = `Found ${devices.value.length} device(s) after ${Math.min(attempts || 1, maxAttempts)} attempt(s)`;
+    autoScanCanceled = false;
+  }
+}
+
+async function cancelScan() {
+  autoScanCanceled = true;
+  await stopScan();
 }
 
 /* ================================================================== */
@@ -308,6 +376,8 @@ export function useBle() {
 
     initialize,
     startScan,
+    startAutoScan,
+    cancelScan,
     stopScan,
     connectToDevice,
     disconnect,

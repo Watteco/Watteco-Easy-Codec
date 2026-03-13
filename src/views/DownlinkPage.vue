@@ -650,7 +650,7 @@
 
       <ion-card class="outputCard" v-show="sensorConfigLoaded && !(sensorConfig?.general_params?.outputCardHidden)">
         <ion-card-content class="output-area">
-        <ion-label id="outputTitle">{{ localize("@port125") }}</ion-label>
+        <ion-label v-if="!ble.isNative.value" id="outputTitle">{{ localize("@port125") }}</ion-label>
         <ion-label id="outputArea">  </ion-label>
 
         <!-- Web: copy to clipboard (unchanged behavior) -->
@@ -666,6 +666,9 @@
             </ion-chip>
             <ion-button v-if="framesAvailable && ble.connected.value" @click="sendFramesBle" :disabled="ble.sending.value" class="half-width" color="primary">
               {{ ble.sending.value ? localize('@bleSending') : localize('@bleSendFrames') }}
+            </ion-button>
+            <ion-button @click="disconnectAndGoBack" size="small" fill="outline" color="danger">
+              {{ localize('@bleDisconnect') }}
             </ion-button>
           </div>
           <div v-if="ble.statusMessage.value" class="ble-status-msg">
@@ -713,6 +716,7 @@ import {
   IonButton,
   IonText
 } from '@ionic/vue';
+import { useRouter } from 'vue-router';
 import { useBle } from '@/composables/useBle';
 import TimeSlider from '@/components/TimeSlider.vue';
 import DoubleSlider from '@/components/DoubleSlider.vue';
@@ -1499,6 +1503,13 @@ const sendFramesBle = () => {
   ble.sendOutputFrames();
 };
 
+// Disconnect BLE and navigate back to connection page
+const router = useRouter();
+const disconnectAndGoBack = async () => {
+  await ble.disconnect();
+  router.replace('/ble-connect');
+};
+
 const toggleVisibility = (category: string) => {
   if (category === 'general_params') {
     generalVisible.value = !generalVisible.value;
@@ -1954,6 +1965,10 @@ ion-range::part(pin)::before {
 
   ion-label {
     font-size: 0.9rem;
+  }
+
+  .output-area {
+    margin: 0;
   }
 
   #outputArea {
