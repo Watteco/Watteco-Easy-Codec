@@ -679,6 +679,39 @@
         </ion-card-content>
       </ion-card>
     </ion-content>
+  <!-- Debug panel for fe61 / fe62 -->
+  <div class="debug-panel" v-show="debugVisible" style="position:fixed;right:12px;bottom:12px;z-index:1000;width:320px;max-height:40vh;overflow:auto;background:#fff;border:1px solid #ccc;border-radius:6px;padding:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <strong>BLE debug (fe61 / fe62)</strong>
+      <div>
+        <ion-button size="small" fill="outline" @click="startDebugSubscriptions" :disabled="!ble.connected.value || debugSubscribed.value">Start</ion-button>
+        <ion-button size="small" fill="outline" color="danger" @click="stopDebugSubscriptions" :disabled="!debugSubscribed.value">Stop</ion-button>
+        <ion-button size="small" fill="clear" @click="clearDebugLogs">Clear</ion-button>
+        <ion-button size="small" fill="solid" color="tertiary" @click="autoFetchModelFirmware" :disabled="!ble.connected.value">Fetch model/fw</ion-button>
+      </div>
+    </div>
+    <div style="font-size:12px;margin-bottom:6px">
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input v-model="debugHex" placeholder="Hex (e.g. 01 02)" style="flex:1;padding:6px;border:1px solid #ccc;border-radius:4px;font-family:monospace;font-size:12px" />
+        <ion-button size="small" fill="solid" @click="writeToFe62" :disabled="!ble.connected.value">Write FE62</ion-button>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <ion-button size="small" fill="outline" @click="readFe61" :disabled="!ble.connected.value">Read FE61</ion-button>
+        <ion-button size="small" fill="clear" @click="dumpServices" :disabled="!ble.connected.value">Dump services</ion-button>
+      </div>
+    </div>
+    <div style="font-family:monospace;font-size:12px;line-height:1.2;overflow:auto;max-height:24vh">
+      <div v-for="(l, idx) in debugLogs" :key="idx">{{ l }}</div>
+      <div v-if="debugLogs.length === 0" style="color:#666">No messages</div>
+    </div>
+  </div>
+  <!-- Toggle button to open debug panel (dev only) -->
+  <div style="position:fixed;left:12px;bottom:12px;z-index:1100">
+    <ion-button size="small" fill="solid" color="medium" @click="debugVisible = !debugVisible" style="padding:6px 8px">
+      <span v-if="!debugVisible">DBG</span>
+      <span v-else>✕</span>
+    </ion-button>
+  </div>
   <div class="language-switcher">
     <LanguageSwitcher 
       :current-language="currentLanguage"
@@ -718,6 +751,7 @@ import {
 } from '@ionic/vue';
 import { useRouter } from 'vue-router';
 import { useBle } from '@/composables/useBle';
+import { BleClient } from '@capacitor-community/bluetooth-le';
 import TimeSlider from '@/components/TimeSlider.vue';
 import DoubleSlider from '@/components/DoubleSlider.vue';
 import CheckBox from '@/components/CheckBox.vue';
@@ -747,6 +781,367 @@ const availableLanguages = [
 
 // BLE composable (only active on native platforms, no-op on web)
 const ble = useBle();
+
+// Debug panel: subscribe to fe61 / fe62 services and show incoming data
+const debugVisible = ref(false);
+const debugLogs = ref<string[]>([]);
+const debugSubscribed = ref(false);
+
+function dataViewToHex(dv: DataView | ArrayBuffer | Uint8Array | any) {
+  try {
+    let arr: Uint8Array;
+    if (dv instanceof DataView) arr = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
+    else if (dv instanceof ArrayBuffer) arr = new Uint8Array(dv);
+    else if (dv instanceof Uint8Array) arr = dv;
+    else if (dv && dv.value instanceof DataView) arr = new Uint8Array(dv.value.buffer, dv.value.byteOffset, dv.value.byteLength);
+    else if (dv && dv.value instanceof ArrayBuffer) arr = new Uint8Array(dv.value);
+    else return JSON.stringify(dv);
+    return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join(' ');
+  } catch (e) {
+    return String(dv);
+  }
+}
+
+async function startDebugSubscriptions() {
+  if (!ble.connected.value || !ble.connectedDevice.value) return;
+  if (debugSubscribed.value) return;
+  const deviceId = ble.connectedDevice.value.deviceId;
+  try {
+    const services: any[] = await BleClient.getServices(deviceId);
+    // helper to normalize 16-bit UUIDs to full UUID
+    const normalizeUuidLocal = (s: string) => {
+      if (!s) return s;
+      const lower = s.toLowerCase();
+      if (/^[0-9a-f]{4}$/.test(lower)) return `0000${lower}-0000-1000-8000-00805f9b34fb`;
+      return lower;
+    };
+
+    for (const s of services) {
+      const svcUuid = (s.uuid || '').toLowerCase();
+      // target Cable Replacement Service (FE60)
+      if (!svcUuid.includes('fe60')) continue;
+      if (!s.characteristics) continue;
+      for (const c of s.characteristics) {
+        const charUuid = (c.uuid || '').toLowerCase();
+        // target RX/TX chars (FE61/FE62)
+        if (!(charUuid.includes('fe61') || charUuid.includes('fe62'))) continue;
+        const props = c.properties || {};
+        const svcId = normalizeUuidLocal(s.uuid || svcUuid);
+        const charId = normalizeUuidLocal(c.uuid || charUuid);
+        debugLogs.value.unshift(`Found ${svcId} / ${charId} props:${Object.keys(props).filter(k=>props[k]).join(',')}`);
+        try {
+          if (props.notify || props.indicate) {
+            await BleClient.startNotifications(deviceId, svcId, charId, (val: any) => {
+              const hex = dataViewToHex(val);
+              const ts = new Date().toLocaleTimeString();
+              debugLogs.value.unshift(`${ts} [NOTIF ${svcId.slice(0,8)}:${charId.slice(0,8)}] ${hex}`);
+              if (debugLogs.value.length > 200) debugLogs.value.pop();
+            });
+            // attempt an initial read to fetch any retained value
+            try {
+              const read = await BleClient.read(deviceId, svcId, charId);
+              const hex = dataViewToHex(read);
+              const ts = new Date().toLocaleTimeString();
+              debugLogs.value.unshift(`${ts} [READ ${svcId.slice(0,8)}:${charId.slice(0,8)}] ${hex}`);
+            } catch (e) {}
+          } else {
+            // no notify: try read
+            try {
+              const read = await BleClient.read(deviceId, svcId, charId);
+              const hex = dataViewToHex(read);
+              const ts = new Date().toLocaleTimeString();
+              debugLogs.value.unshift(`${ts} [READ ${svcId.slice(0,8)}:${charId.slice(0,8)}] ${hex}`);
+            } catch (e) {
+              debugLogs.value.unshift(`Read failed ${svcId} ${charId} -> ${e?.message ?? e}`);
+            }
+          }
+        } catch (e) {
+          debugLogs.value.unshift(`Subscribe/read failed ${svcId} ${charId} -> ${e?.message ?? e}`);
+        }
+      }
+    }
+    debugSubscribed.value = true;
+  } catch (e) {
+    debugLogs.value.unshift(`Service discovery failed: ${e?.message ?? e}`);
+  }
+}
+
+async function stopDebugSubscriptions() {
+  if (!ble.connectedDevice.value) return;
+  const deviceId = ble.connectedDevice.value.deviceId;
+  try {
+    const services: any[] = await BleClient.getServices(deviceId);
+    for (const s of services) {
+      const svcUuid = (s.uuid || '').toLowerCase();
+      if (!svcUuid.includes('fe60')) continue;
+      if (!s.characteristics) continue;
+      for (const c of s.characteristics) {
+        const charUuid = (c.uuid || '').toLowerCase();
+        if (!(charUuid.includes('fe61') || charUuid.includes('fe62'))) continue;
+        const normalizeUuidLocal = (s: string) => {
+          if (!s) return s;
+          const lower = s.toLowerCase();
+          if (/^[0-9a-f]{4}$/.test(lower)) return `0000${lower}-0000-1000-8000-00805f9b34fb`;
+          return lower;
+        };
+        try { await BleClient.stopNotifications(deviceId, normalizeUuidLocal(s.uuid || svcUuid), normalizeUuidLocal(c.uuid || charUuid)); } catch {}
+      }
+    }
+  } catch {}
+  debugSubscribed.value = false;
+}
+
+function clearDebugLogs() { debugLogs.value = []; }
+
+const debugHex = ref('01');
+
+function parseHexToUint8Array(hex: string): Uint8Array | null {
+  if (!hex) return new Uint8Array([]);
+  const clean = hex.replace(/[^0-9a-fA-F]/g, '');
+  if (clean.length % 2 !== 0) return null;
+  const bytes = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < clean.length; i += 2) {
+    bytes[i / 2] = parseInt(clean.substr(i, 2), 16);
+  }
+  return bytes;
+}
+
+async function findCharacteristic(deviceId: string, targetCharShort: string) {
+  try {
+    const services: any[] = await BleClient.getServices(deviceId);
+    for (const s of services) {
+      const svcUuid = (s.uuid || '').toLowerCase();
+      if (!svcUuid.includes('fe60')) continue;
+      if (!s.characteristics) continue;
+      for (const c of s.characteristics) {
+        const charUuid = (c.uuid || '').toLowerCase();
+        if (charUuid.includes(targetCharShort)) {
+          const normalize = (u: string) => (/^[0-9a-f]{4}$/i.test(u) ? `0000${u}-0000-1000-8000-00805f9b34fb` : u);
+          return { service: normalize(s.uuid || svcUuid), characteristic: normalize(c.uuid || charUuid), props: c.properties || {} };
+        }
+      }
+    }
+  } catch (e) {
+    debugLogs.value.unshift(`findCharacteristic failed: ${e?.message ?? e}`);
+  }
+  return null;
+}
+
+async function writeToCharacteristicByShort(deviceId: string, shortChar: string, data: Uint8Array) {
+  const found = await findCharacteristic(deviceId, shortChar);
+  if (!found) { debugLogs.value.unshift(`Char ${shortChar} not found`); return; }
+  try {
+    const dv = new DataView(data.buffer);
+    // prefer writeWithoutResponse if available
+    if (found.props.writeWithoutResponse) {
+      await BleClient.writeWithoutResponse(deviceId, found.service, found.characteristic, dv);
+      debugLogs.value.unshift(`${new Date().toLocaleTimeString()} [WRITE-wo ${found.characteristic.slice(0,8)}] ${Array.from(data).map(b=>b.toString(16).padStart(2,'0')).join(' ')}`);
+    } else if (found.props.write) {
+      await BleClient.write(deviceId, found.service, found.characteristic, dv);
+      debugLogs.value.unshift(`${new Date().toLocaleTimeString()} [WRITE ${found.characteristic.slice(0,8)}] ${Array.from(data).map(b=>b.toString(16).padStart(2,'0')).join(' ')}`);
+    } else {
+      debugLogs.value.unshift(`Char ${found.characteristic} not writable`);
+    }
+  } catch (e) {
+    debugLogs.value.unshift(`Write failed: ${e?.message ?? e}`);
+  }
+}
+
+async function writeToFe61() {
+  if (!ble.connectedDevice.value) return;
+  const bytes = parseHexToUint8Array(debugHex.value);
+  if (!bytes) { debugLogs.value.unshift('Invalid hex'); return; }
+  await writeToCharacteristicByShort(ble.connectedDevice.value.deviceId, 'fe61', bytes);
+}
+
+async function writeToFe62() {
+  if (!ble.connectedDevice.value) return;
+  const bytes = parseHexToUint8Array(debugHex.value);
+  if (!bytes) { debugLogs.value.unshift('Invalid hex'); return; }
+  await writeToCharacteristicByShort(ble.connectedDevice.value.deviceId, 'fe62', bytes);
+}
+
+async function readCharacteristicByShort(deviceId: string, shortChar: string) {
+  const found = await findCharacteristic(deviceId, shortChar);
+  if (!found) { debugLogs.value.unshift(`Char ${shortChar} not found`); return; }
+  try {
+    const read = await BleClient.read(deviceId, found.service, found.characteristic);
+    const hex = dataViewToHex(read);
+    debugLogs.value.unshift(`${new Date().toLocaleTimeString()} [READ ${found.characteristic.slice(0,8)}] ${hex}`);
+  } catch (e) {
+    debugLogs.value.unshift(`Read failed: ${e?.message ?? e}`);
+  }
+}
+
+async function readFe61() {
+  if (!ble.connectedDevice.value) return;
+  await readCharacteristicByShort(ble.connectedDevice.value.deviceId, 'fe61');
+}
+
+async function readFe62() {
+  if (!ble.connectedDevice.value) return;
+  await readCharacteristicByShort(ble.connectedDevice.value.deviceId, 'fe62');
+}
+
+async function dumpServices() {
+  if (!ble.connectedDevice.value) return;
+  try {
+    const services: any[] = await BleClient.getServices(ble.connectedDevice.value.deviceId);
+    debugLogs.value.unshift(`--- Services dump (${new Date().toLocaleTimeString()}) ---`);
+    for (const s of services) {
+      debugLogs.value.unshift(`Service ${s.uuid}`);
+      if (s.characteristics) {
+        for (const c of s.characteristics) {
+          debugLogs.value.unshift(`  Char ${c.uuid} props:${Object.keys(c.properties||{}).filter(k=>c.properties[k]).join(',')}`);
+        }
+      }
+    }
+  } catch (e) {
+    debugLogs.value.unshift(`Dump failed: ${e?.message ?? e}`);
+  }
+}
+
+const modelInfo = ref<string | null>(null);
+const firmwareInfo = ref<string | null>(null);
+
+function asciiRunsFromBytes(bytes: Uint8Array) {
+  // Return the full printable-string reconstructed from bytes (keep spaces and punctuation)
+  let s = '';
+  for (const b of bytes) {
+    if (b >= 32 && b <= 126) s += String.fromCharCode(b); else s += '\0';
+  }
+  // collapse sequences separated by nulls into array
+  return s.split('\0').filter(r => r.length >= 3);
+}
+
+function tryExtractInfoFromHex(hexStr: string) {
+  const clean = hexStr.replace(/[^0-9a-fA-F]/g, '');
+  if (clean.length % 2 !== 0) return {};
+  const bytes = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < clean.length; i += 2) bytes[i/2] = parseInt(clean.substr(i,2),16);
+  // Try to decode with TextDecoder first
+  let decoded = '';
+  try {
+    decoded = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+  } catch (e) {
+    // fallback: map printable ASCII
+    decoded = Array.from(bytes).map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '\0').join('');
+  }
+  // Replace nulls with separator
+  const parts = decoded.split(/\x00+/).map(p => p.trim()).filter(p => p.length > 0);
+  let model: string | null = null;
+  let fw: string | null = null;
+  // Search for model pattern (digits-digits...)
+  for (const p of parts) {
+    if (!model) {
+      const m = p.match(/(\d{1,3}(?:-\d{1,3}){1,})/);
+      if (m) model = m[0];
+    }
+    if (!fw) {
+      const m2 = p.match(/(\d+(?:\.\d+){1,}[\w\-\._]{2,})/);
+      if (m2) fw = m2[0];
+    }
+  }
+  // As a last resort, try to find long ascii runs in raw bytes
+  if ((!model || !fw) && parts.length === 0) {
+    const runs = asciiRunsFromBytes(bytes);
+    for (const r of runs) {
+      if (!model) {
+        const m = r.match(/(\d{1,3}(?:-\d{1,3}){1,})/);
+        if (m) model = m[0];
+      }
+      if (!fw) {
+        const m2 = r.match(/(\d+(?:\.\d+){1,}[\w\-\._]{2,})/);
+        if (m2) fw = m2[0];
+      }
+    }
+  }
+  return { model, fw, decoded };
+}
+
+async function autoFetchModelFirmware() {
+  if (!ble.connectedDevice.value) { debugLogs.value.unshift('Not connected'); return; }
+  debugLogs.value.unshift('Starting auto fetch of model & firmware...');
+  modelInfo.value = null; firmwareInfo.value = null;
+  const deviceId = ble.connectedDevice.value.deviceId;
+
+  const fe61 = await findCharacteristic(deviceId, 'fe61');
+  const fe62 = await findCharacteristic(deviceId, 'fe62');
+  if (!fe61 || !fe62) { debugLogs.value.unshift('FE61 or FE62 not found'); return; }
+
+  const timeoutMs = 7000;
+
+  // buffers keyed by 4-byte identifier (bytes[2..5])
+  const buffers: Record<string, number[]> = {};
+
+  const appendToBuffer = (key: string, data: Uint8Array) => {
+    if (!buffers[key]) buffers[key] = [];
+    for (let i = 0; i < data.length; i++) buffers[key].push(data[i]);
+  };
+
+  const notifHandler = (val: any) => {
+    const arr = (val instanceof DataView) ? new Uint8Array(val.buffer, val.byteOffset, val.byteLength) : (val && val.value instanceof DataView) ? new Uint8Array(val.value.buffer, val.value.byteOffset, val.value.byteLength) : (val instanceof ArrayBuffer) ? new Uint8Array(val) : (val instanceof Uint8Array) ? val : null;
+    if (!arr || arr.length < 6) return;
+    const keyBytes = arr.slice(2, 6);
+    const keyHex = Array.from(keyBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    const payload = arr.slice(6);
+    appendToBuffer(keyHex, payload);
+    const hex = Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join(' ');
+    debugLogs.value.unshift(`${new Date().toLocaleTimeString()} [AUTO-NOTIF] ${hex}`);
+  };
+
+  try {
+    await BleClient.startNotifications(deviceId, fe61.service, fe61.characteristic, notifHandler);
+  } catch (e) {
+    debugLogs.value.unshift(`startNotifications failed: ${e?.message ?? e}`);
+  }
+
+  const waitFor = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+  // send model request and collect fragments
+  const writeModel = parseHexToUint8Array('110000000005')!;
+  const modelKey = Array.from(writeModel.slice(2,6)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  buffers[modelKey] = [];
+  await writeToCharacteristicByShort(deviceId, 'fe62', writeModel);
+  let waited = 0;
+  while (buffers[modelKey].length === 0 && waited < timeoutMs) { await waitFor(200); waited += 200; }
+  // give a bit more time for remaining fragments
+  await waitFor(300);
+
+  // parse model
+  if (buffers[modelKey] && buffers[modelKey].length > 0) {
+    const bytes = new Uint8Array(buffers[modelKey]);
+    const hex = Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join(' ');
+    const extracted = tryExtractInfoFromHex(hex);
+    if (extracted.model) modelInfo.value = extracted.model; else {
+      const runs = asciiRunsFromBytes(bytes); if (runs.length>0) modelInfo.value = runs[0];
+    }
+  }
+
+  // send firmware request and collect fragments
+  const writeFw = parseHexToUint8Array('110000008001')!;
+  const fwKey = Array.from(writeFw.slice(2,6)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  buffers[fwKey] = [];
+  await writeToCharacteristicByShort(deviceId, 'fe62', writeFw);
+  waited = 0;
+  while (buffers[fwKey].length === 0 && waited < timeoutMs) { await waitFor(200); waited += 200; }
+  await waitFor(300);
+
+  if (buffers[fwKey] && buffers[fwKey].length > 0) {
+    const bytes = new Uint8Array(buffers[fwKey]);
+    const hex = Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join(' ');
+    const extracted = tryExtractInfoFromHex(hex);
+    if (extracted.fw) firmwareInfo.value = extracted.fw; else {
+      const runs = asciiRunsFromBytes(bytes); if (runs.length>0) firmwareInfo.value = runs.join(' ');
+    }
+  }
+
+  try { await BleClient.stopNotifications(deviceId, fe61.service, fe61.characteristic); } catch {}
+
+  debugLogs.value.unshift('--- Auto fetch result ---');
+  debugLogs.value.unshift(`Model ID: ${modelInfo.value ?? 'not found'}`);
+  debugLogs.value.unshift(`Firmware: ${firmwareInfo.value ?? 'not found'}`);
+}
 
 // Reactive variables to store application state
 const availableProducts = ref([]); // Stores the list of available products
@@ -1463,9 +1858,15 @@ onMounted(() => {
   ble.initialize();
 });
 
+// Auto start/stop debug subscriptions when connection state changes
+watch(() => ble.connected.value, (connectedNow) => {
+  if (connectedNow) startDebugSubscriptions(); else stopDebugSubscriptions();
+});
+
 // Remove the event listener when the component is unmounted
 onUnmounted(() => {
   document.removeEventListener('click', handleCopyButtonClick);
+  try { stopDebugSubscriptions(); } catch (e) {}
 });
 
 // Calculate appropriate slider step sizes
