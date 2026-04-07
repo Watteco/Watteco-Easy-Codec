@@ -17,22 +17,30 @@
 
         <!-- Status chip -->
         <ion-chip
-          :color="ble.connected.value ? 'success' : 'medium'"
+          :color="ble.connected.value ? 'success' : (ble.pairing.value ? 'warning' : 'medium')"
           class="ble-chip"
         >
           <ion-icon :icon="bluetoothOutline" />
           <ion-label>
-            {{ ble.connected.value
+            {{ ble.pairing.value
+              ? 'Secure pairing in progress'
+              : ble.connected.value
               ? localize('@bleConnectedTo') + ' ' + ble.getDeviceName(ble.connectedDevice.value!)
               : localize('@bleNotConnected') }}
           </ion-label>
         </ion-chip>
+
+        <div v-if="ble.pairing.value" class="pairing-banner">
+          <ion-spinner name="crescent" />
+          <ion-note>Please confirm the Bluetooth secure pairing on your Android device.</ion-note>
+        </div>
 
         <!-- Scan button -->
         <ion-button
           v-if="!ble.connected.value && !ble.scanning.value"
           @click="ble.startAutoScan()"
           expand="block"
+          :disabled="connecting || ble.pairing.value"
           class="scan-button"
         >
           <ion-icon slot="start" :icon="searchOutline" />
@@ -44,6 +52,7 @@
           @click="ble.cancelScan()"
           expand="block"
           color="medium"
+          :disabled="ble.pairing.value"
           class="scan-button"
         >
           <ion-icon slot="start" :icon="searchOutline" />
@@ -60,14 +69,14 @@
             :key="dev.deviceId"
             button
             @click="onDeviceSelect(dev)"
-            :disabled="connecting"
+            :disabled="connecting || ble.pairing.value"
           >
             <ion-icon :icon="bluetoothOutline" slot="start" color="primary" />
             <ion-label>
               <h2>{{ ble.getDeviceName(dev) }}</h2>
               <p>{{ dev.deviceId }}</p>
             </ion-label>
-            <ion-spinner v-if="connecting && connectingDeviceId === dev.deviceId" slot="end" name="crescent" />
+            <ion-spinner v-if="(connecting || ble.pairing.value) && connectingDeviceId === dev.deviceId" slot="end" name="crescent" />
           </ion-item>
         </ion-list>
 
@@ -82,7 +91,7 @@
 
         <!-- Connected — proceed button -->
         <div v-if="ble.connected.value" class="connected-actions">
-          <ion-button expand="block" color="primary" @click="proceed" class="proceed-button">
+          <ion-button expand="block" color="primary" @click="proceed" class="proceed-button" :disabled="ble.pairing.value">
             <ion-icon slot="start" :icon="arrowForwardOutline" />
             Open Easy Codec
           </ion-button>
@@ -91,6 +100,7 @@
             fill="outline"
             color="danger"
             @click="ble.disconnect()"
+            :disabled="ble.pairing.value"
             class="disconnect-button"
           >
             Disconnect
@@ -115,11 +125,10 @@ import { useRouter } from 'vue-router';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonButton, IonChip, IonIcon, IonLabel, IonList, IonListHeader,
-  IonItem, IonNote, IonSpinner, IonImg, IonToggle,
+  IonItem, IonNote, IonSpinner, IonImg,
 } from '@ionic/vue';
 import { bluetoothOutline, searchOutline, arrowForwardOutline } from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
-import type { BleDevice } from '@capacitor-community/bluetooth-le';
 import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 
@@ -128,7 +137,7 @@ import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
 
 const currentLanguage = ref('en');
-const languages = ref({ en: {}, fr: {} });
+const languages = ref<Record<string, Record<string, string>>>({ en: {}, fr: {} });
 
 const generateCacheBuster = () => `?v=${new Date().getTime()}`;
 
@@ -156,7 +165,7 @@ const STORAGE_KEY = 'easycodec.language';
 
 const changeLanguage = (lang: string) => {
   currentLanguage.value = lang;
-  try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) {}
+  try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) { /* ignore storage errors */ }
 };
 
 const ble = useBle();
@@ -177,19 +186,25 @@ onMounted(async () => {
     } else {
       const browser = navigator.language?.split('-')[0] || 'en';
       currentLanguage.value = (languages.value as any)[browser] ? browser : 'en';
-      try { localStorage.setItem(STORAGE_KEY, currentLanguage.value); } catch (e) {}
+      try { localStorage.setItem(STORAGE_KEY, currentLanguage.value); } catch (e) { /* ignore storage errors */ }
     }
   } catch (e) {
     currentLanguage.value = 'en';
   }
 });
 
-async function onDeviceSelect(dev: BleDevice) {
+type DeviceLike = { deviceId: string; name?: string; uuids?: readonly string[] };
+
+async function onDeviceSelect(dev: DeviceLike) {
   connecting.value = true;
   connectingDeviceId.value = dev.deviceId;
   await ble.connectToDevice(dev);
   connecting.value = false;
   connectingDeviceId.value = '';
+}
+
+function proceed() {
+  router.replace('/tabs/downlink');
 }
 
 // Auto-navigate to Easy Codec when BLE becomes connected
@@ -214,6 +229,22 @@ watch(() => ble.connected.value, (val) => {
 .device-list {
   background: transparent;
   margin-bottom: 16px;
+}
+
+.pairing-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(var(--ion-color-warning-rgb), 0.12);
+  color: var(--ion-color-warning-shade);
+  border: 1px solid rgba(var(--ion-color-warning-rgb), 0.24);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 14px 0;
+}
+
+.pairing-banner ion-note {
+  color: inherit;
 }
 
 .device-list ion-item {

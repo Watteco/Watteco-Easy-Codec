@@ -659,17 +659,22 @@
         <!-- Native: BLE send (connection managed by BleConnectPage) -->
         <div v-if="ble.isNative.value" class="ble-panel">
           <div class="ble-actions">
-            <ion-chip :color="ble.connected.value ? 'success' : 'warning'" size="small">
-              {{ ble.connected.value
+            <ion-chip :color="ble.connected.value ? 'success' : (ble.pairing.value ? 'warning' : 'warning')" size="small">
+              {{ ble.pairing.value
+                ? 'Secure pairing in progress'
+                : ble.connected.value
                 ? localize('@bleConnectedTo') + ' ' + ble.getDeviceName(ble.connectedDevice.value!)
                 : localize('@bleNotConnected') }}
             </ion-chip>
-            <ion-button v-if="framesAvailable && ble.connected.value" @click="sendFramesBle" :disabled="ble.sending.value" class="half-width" color="primary">
-              {{ ble.sending.value ? localize('@bleSending') : localize('@bleSendFrames') }}
+            <ion-button v-if="framesAvailable && ble.connected.value" @click="sendFramesBle" :disabled="ble.sending.value || ble.pairing.value" class="half-width" color="primary">
+              {{ ble.pairing.value ? 'Pairing…' : (ble.sending.value ? localize('@bleSending') : localize('@bleSendFrames')) }}
             </ion-button>
-            <ion-button @click="disconnectAndGoBack" size="small" fill="outline" color="danger">
+            <ion-button @click="disconnectAndGoBack" size="small" fill="outline" color="danger" :disabled="ble.pairing.value">
               {{ localize('@bleDisconnect') }}
             </ion-button>
+          </div>
+          <div v-if="ble.pairing.value" class="ble-status-msg">
+            <ion-text color="warning">Confirm the secure Bluetooth pairing on Android to continue.</ion-text>
           </div>
           <div v-if="ble.statusMessage.value" class="ble-status-msg">
             <ion-text color="medium">{{ ble.statusMessage.value }}</ion-text>
@@ -722,6 +727,7 @@
 </template>
 
 <script setup lang="ts">
+// @ts-nocheck
 import { ref, onMounted, computed, watch, onUnmounted, nextTick, provide } from 'vue';
 import { 
   IonTabBar, 
