@@ -433,7 +433,7 @@ Points à observer :
 
 Pendant les tests, relever si possible :
 
-- les logs Android filtrés sur `io.ionic.starter`
+- les logs Android filtrés sur `com.watteco.easycodec`
 - les transitions de statut affichées par l'application
 - les cas où un retry de pairing est déclenché
 - le comportement après un reset du capteur
