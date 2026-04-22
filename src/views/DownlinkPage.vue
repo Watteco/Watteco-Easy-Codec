@@ -696,12 +696,18 @@
       </div>
     </div>
     <div style="font-size:12px;margin-bottom:6px">
-      <div style="display:flex;gap:6px;margin-bottom:6px">
-        <input v-model="debugHex" placeholder="Hex (e.g. 01 02)" style="flex:1;padding:6px;border:1px solid #ccc;border-radius:4px;font-family:monospace;font-size:12px" />
+      <div style="margin-bottom:6px">
+        <input v-model="debugHex" placeholder="Hex (e.g. 01 02)" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;font-family:monospace;font-size:12px;box-sizing:border-box" />
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
         <ion-button size="small" fill="solid" @click="writeToFe62" :disabled="!ble.connected.value">Write FE62</ion-button>
+        <ion-button size="small" fill="outline" @click="writeToFf01" :disabled="!ble.connected.value">Write FF01</ion-button>
+        <ion-button size="small" fill="outline" @click="writeToFf02" :disabled="!ble.connected.value">Write FF02</ion-button>
       </div>
       <div style="display:flex;gap:6px;margin-bottom:6px">
         <ion-button size="small" fill="outline" @click="readFe61" :disabled="!ble.connected.value">Read FE61</ion-button>
+        <ion-button size="small" fill="outline" @click="readFe21InFe20" :disabled="!ble.connected.value">Read FE21 (FE20)</ion-button>
+        <ion-button size="small" fill="clear" @click="dumpServicesOnly" :disabled="!ble.connected.value">Dump services only</ion-button>
         <ion-button size="small" fill="clear" @click="dumpServices" :disabled="!ble.connected.value">Dump services</ion-button>
       </div>
     </div>
@@ -912,12 +918,12 @@ function parseHexToUint8Array(hex: string): Uint8Array | null {
   return bytes;
 }
 
-async function findCharacteristic(deviceId: string, targetCharShort: string) {
+async function findCharacteristic(deviceId: string, targetCharShort: string, targetServiceShort = 'fe60') {
   try {
     const services: any[] = await BleClient.getServices(deviceId);
     for (const s of services) {
       const svcUuid = (s.uuid || '').toLowerCase();
-      if (!svcUuid.includes('fe60')) continue;
+      if (!svcUuid.includes(targetServiceShort.toLowerCase())) continue;
       if (!s.characteristics) continue;
       for (const c of s.characteristics) {
         const charUuid = (c.uuid || '').toLowerCase();
@@ -953,6 +959,25 @@ async function writeToCharacteristicByShort(deviceId: string, shortChar: string,
   }
 }
 
+async function writeToCharacteristicInService(deviceId: string, shortService: string, shortChar: string, data: Uint8Array) {
+  const found = await findCharacteristic(deviceId, shortChar, shortService);
+  if (!found) { debugLogs.value.unshift(`Char ${shortChar} not found in service ${shortService}`); return; }
+  try {
+    const dv = new DataView(data.buffer);
+    if (found.props.writeWithoutResponse) {
+      await BleClient.writeWithoutResponse(deviceId, found.service, found.characteristic, dv);
+      debugLogs.value.unshift(`${new Date().toLocaleTimeString()} [WRITE-wo ${found.characteristic.slice(0,8)}] ${Array.from(data).map(b=>b.toString(16).padStart(2,'0')).join(' ')}`);
+    } else if (found.props.write) {
+      await BleClient.write(deviceId, found.service, found.characteristic, dv);
+      debugLogs.value.unshift(`${new Date().toLocaleTimeString()} [WRITE ${found.characteristic.slice(0,8)}] ${Array.from(data).map(b=>b.toString(16).padStart(2,'0')).join(' ')}`);
+    } else {
+      debugLogs.value.unshift(`Char ${found.characteristic} not writable`);
+    }
+  } catch (e) {
+    debugLogs.value.unshift(`Write failed: ${e?.message ?? e}`);
+  }
+}
+
 async function writeToFe61() {
   if (!ble.connectedDevice.value) return;
   const bytes = parseHexToUint8Array(debugHex.value);
@@ -967,6 +992,20 @@ async function writeToFe62() {
   await writeToCharacteristicByShort(ble.connectedDevice.value.deviceId, 'fe62', bytes);
 }
 
+async function writeToFf01() {
+  if (!ble.connectedDevice.value) return;
+  const bytes = parseHexToUint8Array(debugHex.value);
+  if (!bytes) { debugLogs.value.unshift('Invalid hex'); return; }
+  await writeToCharacteristicInService(ble.connectedDevice.value.deviceId, 'ff00', 'ff01', bytes);
+}
+
+async function writeToFf02() {
+  if (!ble.connectedDevice.value) return;
+  const bytes = parseHexToUint8Array(debugHex.value);
+  if (!bytes) { debugLogs.value.unshift('Invalid hex'); return; }
+  await writeToCharacteristicInService(ble.connectedDevice.value.deviceId, 'ff00', 'ff02', bytes);
+}
+
 async function readCharacteristicByShort(deviceId: string, shortChar: string) {
   const found = await findCharacteristic(deviceId, shortChar);
   if (!found) { debugLogs.value.unshift(`Char ${shortChar} not found`); return; }
@@ -979,9 +1018,26 @@ async function readCharacteristicByShort(deviceId: string, shortChar: string) {
   }
 }
 
+async function readCharacteristicInServiceByShort(deviceId: string, shortService: string, shortChar: string) {
+  const found = await findCharacteristic(deviceId, shortChar, shortService);
+  if (!found) { debugLogs.value.unshift(`Char ${shortChar} not found in service ${shortService}`); return; }
+  try {
+    const read = await BleClient.read(deviceId, found.service, found.characteristic);
+    const hex = dataViewToHex(read);
+    debugLogs.value.unshift(`${new Date().toLocaleTimeString()} [READ ${shortService.toUpperCase()}/${shortChar.toUpperCase()}] ${hex}`);
+  } catch (e) {
+    debugLogs.value.unshift(`Read failed ${shortService}/${shortChar}: ${e?.message ?? e}`);
+  }
+}
+
 async function readFe61() {
   if (!ble.connectedDevice.value) return;
   await readCharacteristicByShort(ble.connectedDevice.value.deviceId, 'fe61');
+}
+
+async function readFe21InFe20() {
+  if (!ble.connectedDevice.value) return;
+  await readCharacteristicInServiceByShort(ble.connectedDevice.value.deviceId, 'fe20', 'fe21');
 }
 
 async function readFe62() {
@@ -1001,6 +1057,19 @@ async function dumpServices() {
           debugLogs.value.unshift(`  Char ${c.uuid} props:${Object.keys(c.properties||{}).filter(k=>c.properties[k]).join(',')}`);
         }
       }
+    }
+  } catch (e) {
+    debugLogs.value.unshift(`Dump failed: ${e?.message ?? e}`);
+  }
+}
+
+async function dumpServicesOnly() {
+  if (!ble.connectedDevice.value) return;
+  try {
+    const services: any[] = await BleClient.getServices(ble.connectedDevice.value.deviceId);
+    debugLogs.value.unshift(`--- Services only (${new Date().toLocaleTimeString()}) ---`);
+    for (const s of services) {
+      debugLogs.value.unshift(`Service ${s.uuid}`);
     }
   } catch (e) {
     debugLogs.value.unshift(`Dump failed: ${e?.message ?? e}`);
