@@ -167,6 +167,35 @@
                       @update:value="onParamChange($event, 'general_params', groupName, paramName)"
                     />
 
+                    <!-- Using the Slider component (integer) -->
+                    <slider-input
+                      v-if="param.HMI?.visual_type === 'slider' && param.type !== 'float'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="parseInt(param.min_value)"
+                      :max="parseInt(param.max_value)"
+                      :step="param.step ? parseInt(param.step) : 1"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'general_params', groupName, paramName)"
+                    />
+
+                    <!-- Using the FloatInput component via slider visual_type -->
+                    <float-input
+                      v-if="param.HMI?.visual_type === 'slider' && param.type === 'float'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="parseFloat(param.min_value)"
+                      :max="parseFloat(param.max_value)"
+                      :step="param.step ? parseFloat(param.step) : 0.01"
+                      :precision="param.precision ? parseInt(param.precision) : 2"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'general_params', groupName, paramName)"
+                    />
+
                     <!-- Using the TextInput component -->
                     <text-input
                       v-if="param.HMI?.visual_type === 'textInput'"
@@ -301,6 +330,35 @@
                     <float-input
                       v-if="param.HMI?.visual_type === 'numInput' && param.type === 'float'"
                       :label="param.HMI?.label"     
+                      :value="param.selectedValue"
+                      :min="parseFloat(param.min_value)"
+                      :max="parseFloat(param.max_value)"
+                      :step="param.step ? parseFloat(param.step) : 0.01"
+                      :precision="param.precision ? parseInt(param.precision) : 2"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'modbus_params', groupName, paramName)"
+                    />
+
+                    <!-- Using the Slider component (integer) -->
+                    <slider-input
+                      v-if="param.HMI?.visual_type === 'slider' && param.type !== 'float'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="parseInt(param.min_value)"
+                      :max="parseInt(param.max_value)"
+                      :step="param.step ? parseInt(param.step) : 1"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'modbus_params', groupName, paramName)"
+                    />
+
+                    <!-- Using the FloatInput component via slider visual_type -->
+                    <float-input
+                      v-if="param.HMI?.visual_type === 'slider' && param.type === 'float'"
+                      :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :min="parseFloat(param.min_value)"
                       :max="parseFloat(param.max_value)"
@@ -448,6 +506,35 @@
                     <float-input
                       v-if="param.HMI?.visual_type === 'numInput' && param.type === 'float'"
                       :label="param.HMI?.label"     
+                      :value="param.selectedValue"
+                      :min="parseFloat(param.min_value)"
+                      :max="parseFloat(param.max_value)"
+                      :step="param.step ? parseFloat(param.step) : 0.01"
+                      :precision="param.precision ? parseInt(param.precision) : 2"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'batch_params', groupName, paramName)"
+                    />
+
+                    <!-- Using the Slider component (integer) -->
+                    <slider-input
+                      v-if="param.HMI?.visual_type === 'slider' && param.type !== 'float'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="parseInt(param.min_value)"
+                      :max="parseInt(param.max_value)"
+                      :step="param.step ? parseInt(param.step) : 1"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'batch_params', groupName, paramName)"
+                    />
+
+                    <!-- Using the FloatInput component via slider visual_type -->
+                    <float-input
+                      v-if="param.HMI?.visual_type === 'slider' && param.type === 'float'"
+                      :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :min="parseFloat(param.min_value)"
                       :max="parseFloat(param.max_value)"
@@ -621,6 +708,35 @@
                       @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
                     />
 
+                    <!-- Using the Slider component (integer) -->
+                    <slider-input
+                      v-if="param.HMI?.visual_type === 'slider' && param.type !== 'float'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="parseInt(param.min_value)"
+                      :max="parseInt(param.max_value)"
+                      :step="param.step ? parseInt(param.step) : 1"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
+                    />
+
+                    <!-- Using the FloatInput component via slider visual_type -->
+                    <float-input
+                      v-if="param.HMI?.visual_type === 'slider' && param.type === 'float'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="parseFloat(param.min_value)"
+                      :max="parseFloat(param.max_value)"
+                      :step="param.step ? parseFloat(param.step) : 0.01"
+                      :precision="param.precision ? parseInt(param.precision) : 2"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
+                    />
+
                     <!-- Using the TextInput component -->
                     <text-input
                       v-if="param.HMI?.visual_type === 'textInput'"
@@ -772,6 +888,7 @@ import CustomFrame from '@/components/CustomFrame.vue';
 import DropDown from '@/components/DropDown.vue';
 import NumInput from '@/components/NumInput.vue';
 import FloatInput from '@/components/FloatInput.vue';
+import SliderInput from '@/components/Slider.vue';
 import TextInput from '@/components/TextInput.vue';
 import SensorImage from '@/components/SensorImage.vue';
 import axios from 'axios';
