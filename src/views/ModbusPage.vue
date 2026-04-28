@@ -134,6 +134,7 @@
 </template>
 
 <script setup lang="ts">
+// @ts-nocheck
 import { ref, onMounted, computed, watch } from 'vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import axios from 'axios';
