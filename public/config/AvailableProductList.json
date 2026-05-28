@@ -207,6 +207,24 @@
 			"docLink": "https://support.watteco.com/remote-temperature/"
 		},
 		{
+			"name": "PT1000 (50-70-126)",
+			"file": "50-70-126-PT1000",
+			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
+			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel",
+			"category": "TH sensors",
+			"comment": ["1 channel PT1000 temperature measurement","Mesure de température PT1000 1 voie"],
+			"docLink": "https://support.watteco.com/pt1000/"
+		},
+		{
+			"name": "PT1000 400°C (50-70-288)",
+			"file": "50-70-288-PT1000-400C",
+			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
+			"BatchUncompressParams": "1 0,1,7,Temperature 1,100,6,BatteryLevel",
+			"category": "TH sensors",
+			"comment": ["High temperature PT1000 sensor (0.1°C resolution)","Capteur PT1000 haute température (résolution 0,1°C)"],
+			"docLink": "https://support.watteco.com/pt1000-400c/"
+		},
+		{
 			"name": "Temp'O - 2 remote probes (50-70-[139/163/184])",
 			"file": "50-70-139-000-RT2CTN",
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
