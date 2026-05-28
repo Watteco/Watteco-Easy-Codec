@@ -100,6 +100,15 @@
 			"docLink": "https://support.watteco.com/modbus/"
 		},	
 		{
+			"name": "Modbus Field (50-70-287)",
+			"file": "50-70-287-Modbus-Field",
+			"apps": ["EasyCodec"],
+			"category": "Serial monitoring sensors",
+			"comment": ["RS485 Modbus master allowing saveral slaves monitoring",
+						"Maître modbus RS485 permettant le suivi de plusierus esclaves"],
+			"docLink": "https://support.watteco.com/modbus/"
+		},
+		{
 			"name": "Monit'O (50-70-141)",
 			"file": "50-70-141-Batto",
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
