@@ -1168,7 +1168,7 @@ const findSensorImage = (config) => {
 // Initialize default values for sensor parameters
 const initParams = () => {
   if (sensorConfig.value) {
-    for (const bigGroupName of ['general_params', "standard_params", 'batch_params', 'standard_params']) {
+    for (const bigGroupName of ['general_params', 'modbus_params', 'batch_params', 'standard_params']) {
       const section = sensorConfig.value[bigGroupName];
       for (const groupName in section) {
         const group = section[groupName];
