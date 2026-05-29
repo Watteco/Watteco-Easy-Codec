@@ -1,7 +1,6 @@
 <template>
   <div class="num-input-field">
     <ion-label position="stacked">{{ localize(label) }}</ion-label>
-    <div class="separator"></div>
 
     <div class="input-row">
       <ion-input
