@@ -143,6 +143,7 @@
                     <num-input
                       v-if="param.HMI?.visual_type === 'numInput' && param.type !== 'float'"
                       :label="param.HMI?.label"     
+                      :unit="param.HMI?.unit"
                       :value="param.selectedValue"
                       :min="param.min_value"
                       :max="param.max_value"
@@ -317,6 +318,7 @@
                     <num-input
                       v-if="param.HMI?.visual_type === 'numInput' && param.type !== 'float'"
                       :label="param.HMI?.label"
+                      :unit="param.HMI?.unit"
                       :value="param.selectedValue"
                       :min="param.min_value"
                       :max="param.max_value"
@@ -493,6 +495,7 @@
                     <num-input
                       v-if="param.HMI?.visual_type === 'numInput' && param.type !== 'float'"
                       :label="param.HMI?.label"
+                      :unit="param.HMI?.unit"
                       :value="param.selectedValue"
                       :min="param.min_value"
                       :max="param.max_value"
@@ -684,6 +687,7 @@
                     <num-input
                       v-if="param.HMI?.visual_type === 'numInput' && param.type !== 'float'"
                       :label="param.HMI?.label"
+                      :unit="param.HMI?.unit"
                       :value="param.selectedValue"
                       :min="param.min_value"
                       :max="param.max_value"

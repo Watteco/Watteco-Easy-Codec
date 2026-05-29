@@ -1,14 +1,20 @@
 <template>
-  <ion-label position="stacked">{{ localize(label) }}</ion-label>
-  <div class="separator"></div>
-  
-  <ion-input
-    type="number"
-    :value="currentValue"
-    :min="min"
-    :max="max"
-    @ionInput="onInputChange"
-  ></ion-input>
+  <div class="num-input-field">
+    <ion-label position="stacked">{{ localize(label) }}</ion-label>
+    <div class="separator"></div>
+
+    <div class="input-row">
+      <ion-input
+        type="number"
+        :value="currentValue"
+        :min="min"
+        :max="max"
+        @ionInput="onInputChange"
+      ></ion-input>
+
+      <ion-chip v-if="unit" class="unit-chip">{{ unit }}</ion-chip>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -16,6 +22,7 @@ import { ref, watch } from 'vue';
 
 const props = defineProps({
   label: String,
+  unit: String,
   value: String,
   min: {
     type: Number,
@@ -53,6 +60,16 @@ watch(() => props.value, (newValue) => {
 </script>
 
 <style scoped>
+.num-input-field {
+  width: 100%;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .separator {
   flex: 0.3 1 0px;
   width: 1%;
@@ -60,13 +77,25 @@ watch(() => props.value, (newValue) => {
 }
 
 ion-input {
+  flex: 1;
   --padding-start: 10px;
   --padding-end: 10px;
+}
+
+.unit-chip {
+  --background: var(--ion-color-primary);
+  --color: var(--ion-color-primary-contrast);
+  margin: 0;
+  flex-shrink: 0;
 }
 
 @media (max-width: 600px) {
   ion-label {
     font-size: 0.9rem;
+  }
+
+  .input-row {
+    gap: 6px;
   }
 }
 </style>
