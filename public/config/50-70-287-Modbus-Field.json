@@ -58,9 +58,9 @@
                     "type": "hex2B",
                     "default_value": "2500",
                     "min_value": "1",
-                    "max_value": "60000",
+                    "max_value": "65000",
                     "HMI": {
-                        "label": "@b0ActivationLabel (≤ 60s)",
+                        "label": "@b0ActivationLabel (≤ 65s)",
                         "unit": "ms",
                         "visual_type": "numInput"
                     }
