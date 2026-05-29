@@ -55,10 +55,14 @@
             "folded": "true",
             "fields": {
                 "b0activation": {
-                    "type": "frame",
+                    "type": "hex2B",
+                    "default_value": "2500",
+                    "min_value": "1",
+                    "max_value": "65535",
                     "HMI": {
                         "label": "@b0ActivationLabel",
-                        "visual_type": "customFrame"
+                        "unit": "ms",
+                        "visual_type": "numInput"
                     }
                 }
             }
@@ -746,7 +750,7 @@
             }
         },
         "cfg_block": [
-            ["11 05 8007 8001 1A 01 09 c4 (b0activation)", "@cfgCommentB0Activation"],
+            ["11 05 8007 8001 1A 01 (b0activation)", "@cfgCommentB0Activation"],
             ["11 05 8006 0000 22 (baudRate)", "@cfgCommentBaudRate"],
             ["11 05 8006 0001 20 (dataBits)", "@cfgCommentDataBits"],
             ["11 05 8006 0002 20 (parity)", "@cfgCommentParity"],
