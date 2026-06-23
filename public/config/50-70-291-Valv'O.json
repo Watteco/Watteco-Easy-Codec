@@ -15,7 +15,7 @@
         },
         "confirmed": {
             "label": "@confirmedLabel",
-            "default_state": "true",
+            "folded": true,
             "fields": {
                 "confirmed": {
                     "type": "bool",
@@ -29,7 +29,7 @@
         },
 		"Trame de configuration": {
 			"label": "@ConfigTrameLabel",
-			"default_state": "true",
+			"mandatory": "true",
 			"fields": {
 				"cfgTrame": {
 					"type": "frame",

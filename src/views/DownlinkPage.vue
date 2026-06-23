@@ -58,6 +58,7 @@
 
                 <ion-checkbox 
                   :checked="paramGroupChecked[groupName] || false"
+                  :disabled="isMandatoryGroup('general_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'general_params')"
                 ></ion-checkbox>
                 <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
@@ -228,7 +229,7 @@
         <ion-card v-if="sensorConfig?.modbus_params" class="category-card" :key="`modbus-${currentLanguage}-${selectedSensor}`">
           <ion-item class="config-item">
             <ion-label>{{ localize("@modbusLabel") }}</ion-label>
-            <ion-checkbox :checked="modbusChecked" @ionChange="onModbusCheckedChange"></ion-checkbox>
+            <ion-checkbox :checked="modbusChecked || hasMandatoryGroup('modbus_params')" :disabled="hasMandatoryGroup('modbus_params')" @ionChange="onModbusCheckedChange"></ion-checkbox>
             <ion-button class="visibility-button" :class="{ invisible: !modbusChecked }" @click="toggleVisibility('modbus_params')">{{ modbusVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
@@ -243,6 +244,7 @@
 
                 <ion-checkbox 
                   :checked="paramGroupChecked[groupName] || false"
+                  :disabled="isMandatoryGroup('modbus_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'modbus_params')"
                 ></ion-checkbox>
                 <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
@@ -406,7 +408,7 @@
         <ion-card v-if="sensorConfig && sensorConfig.batch_params" class="category-card" :key="`batch-${currentLanguage}-${selectedSensor}`">
           <ion-item class="config-item">
             <ion-label>{{ localize("@batchLabel") }}</ion-label>
-            <ion-checkbox :checked="batchChecked" @ionChange="onBatchCheckedChange"></ion-checkbox>
+            <ion-checkbox :checked="batchChecked || hasMandatoryGroup('batch_params')" :disabled="hasMandatoryGroup('batch_params')" @ionChange="onBatchCheckedChange"></ion-checkbox>
             <ion-button class="visibility-button" :class="{ invisible: !batchChecked }" @click="toggleVisibility('batch_params')">{{ batchVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
@@ -421,6 +423,7 @@
 
                 <ion-checkbox 
                   :checked="paramGroupChecked[groupName] || false"
+                  :disabled="isMandatoryGroup('batch_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'batch_params')"
                 ></ion-checkbox>
                 <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
@@ -598,7 +601,7 @@
         <ion-card v-if="sensorConfig && sensorConfig.standard_params" class="category-card" :key="`standard-${currentLanguage}-${selectedSensor}`">
           <ion-item class="config-item">
             <ion-label>{{ localize("@standLabel") }}</ion-label>
-            <ion-checkbox :checked="standardChecked" @ionChange="onStandardCheckedChange"></ion-checkbox>
+            <ion-checkbox :checked="standardChecked || hasMandatoryGroup('standard_params')" :disabled="hasMandatoryGroup('standard_params')" @ionChange="onStandardCheckedChange"></ion-checkbox>
             <ion-button class="visibility-button" :class="{ invisible: !standardChecked }" @click="toggleVisibility('standard_params')">{{ standardVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
@@ -613,6 +616,7 @@
 
                 <ion-checkbox 
                   :checked="paramGroupChecked[groupName] || false"
+                  :disabled="isMandatoryGroup('standard_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'standard_params')"
                 ></ion-checkbox>
                 <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
@@ -774,7 +778,7 @@
         <ion-card v-if="sensorConfig?.configuration_params" class="category-card" :key="`configuration-${currentLanguage}-${selectedSensor}`">
           <ion-item class="config-item">
             <ion-label>{{ localize("@configurationLabel") }}</ion-label>
-            <ion-checkbox :checked="configurationChecked" @ionChange="onConfigurationCheckedChange"></ion-checkbox>
+            <ion-checkbox :checked="configurationChecked || hasMandatoryGroup('configuration_params')" :disabled="hasMandatoryGroup('configuration_params')" @ionChange="onConfigurationCheckedChange"></ion-checkbox>
             <ion-button class="visibility-button" :class="{ invisible: !configurationChecked }" @click="toggleVisibility('configuration_params')">{{ configurationVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
@@ -788,6 +792,7 @@
 
                 <ion-checkbox 
                   :checked="paramGroupChecked[groupName] || false"
+                  :disabled="isMandatoryGroup('configuration_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'configuration_params')"
                 ></ion-checkbox>
                 <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
@@ -937,7 +942,7 @@
         <ion-card v-if="sensorConfig?.commande_params" class="category-card" :key="`commande-${currentLanguage}-${selectedSensor}`">
           <ion-item class="config-item">
             <ion-label>{{ localize("@commandeLabel") }}</ion-label>
-            <ion-checkbox :checked="commandeChecked" @ionChange="onCommandeCheckedChange"></ion-checkbox>
+            <ion-checkbox :checked="commandeChecked || hasMandatoryGroup('commande_params')" :disabled="hasMandatoryGroup('commande_params')" @ionChange="onCommandeCheckedChange"></ion-checkbox>
             <ion-button class="visibility-button" :class="{ invisible: !commandeChecked }" @click="toggleVisibility('commande_params')">{{ commandeVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
@@ -951,6 +956,7 @@
 
                 <ion-checkbox 
                   :checked="paramGroupChecked[groupName] || false"
+                  :disabled="isMandatoryGroup('commande_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'commande_params')"
                 ></ion-checkbox>
                 <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
@@ -1211,6 +1217,34 @@ const sensorConfigLoaded = ref(false); // Add a new reactive variable to track t
 const sensorImage = ref(''); // Reactive variable to store the sensor image path
 const isEnforcingRelationships = ref(false);
 
+const isTrueFlag = (value: unknown) => value === true || value === "true";
+
+const isMandatoryGroup = (bigGroupName: string, groupName: string | number) => {
+  return isTrueFlag(sensorConfig.value?.[bigGroupName]?.[groupName]?.mandatory);
+};
+
+const hasMandatoryGroup = (bigGroupName: string) => {
+  const section = sensorConfig.value?.[bigGroupName];
+  if (!section) return false;
+
+  return Object.keys(section).some(groupName => {
+    if (groupName === "global_params" || groupName === "cfg_block") return false;
+    return isTrueFlag(section[groupName]?.mandatory);
+  });
+};
+
+const setGroupEnabled = (bigGroupName: string, groupName: string | number, checked: boolean) => {
+  const group = sensorConfig.value?.[bigGroupName]?.[groupName];
+  if (!group?.fields) return;
+
+  paramGroupChecked.value[groupName] = checked;
+  Object.keys(group.fields).forEach(field => {
+    group.fields[field].enabled = checked;
+    paramGroupList[field] = group.fields[field];
+  });
+  outputData[groupName] = checked;
+};
+
 // Initialize subcategoryVisible to show all subcategories by default
 watch(sensorConfig, async (newConfig) => {
   if (newConfig) {
@@ -1391,7 +1425,7 @@ const resetCheckboxes = () => {
 const initializeStates = (config) => {
   const setParentAndChildStates = (parentGroup, groupName, bigGroupName) => {
     // Check parent default_state
-    if (parentGroup.default_state === "true") {
+    if (parentGroup.default_state === "true" || isTrueFlag(parentGroup.mandatory)) {
       if (bigGroupName === "general_params") {
         generalChecked.value = true;
         onGeneralCheckedChange({ detail: { checked: true } });
@@ -1428,7 +1462,7 @@ const initializeStates = (config) => {
           field.originalMaxValue = field.max_value;
 
           // Check individual default_state (if applicable)
-          if (parentGroup.default_state === "true") {
+          if (parentGroup.default_state === "true" || isTrueFlag(parentGroup.mandatory)) {
             paramGroupList[fieldName] = parentGroup.fields[fieldName];
           }
         }
@@ -1465,7 +1499,7 @@ const loadSensorConfig = async (sensorFile: string) => {
       if (rawConfig[section]) {
         Object.keys(rawConfig[section]).forEach((groupName) => {
           const group = rawConfig[section][groupName];
-          if (group.default_state === "true") {
+          if (group.default_state === "true" || isTrueFlag(group.mandatory)) {
             paramGroupChecked.value[groupName] = true;
             if (section === "general_params") generalChecked.value = true;
             if (section === "batch_params") batchChecked.value = true;
@@ -1730,11 +1764,7 @@ const onCategoryCheckedChange = (event: CustomEvent, category: string) => {
     if (group !== "global_params" && group !== "cfg_block") {
       const groupObject = sensorConfig.value[category][group];
       if (groupObject && groupObject.fields) {
-        paramGroupChecked.value[group] = event.detail.checked;
-        Object.keys(groupObject.fields).forEach(field => {
-          groupObject.fields[field].enabled = event.detail.checked;
-          paramGroupList[field] = groupObject.fields[field];
-        });
+        setGroupEnabled(category, group, isTrueFlag(groupObject.mandatory) || event.detail.checked);
       }
     }
   });
@@ -1745,32 +1775,37 @@ const onCategoryCheckedChange = (event: CustomEvent, category: string) => {
 
 // Update batch mode state
 const onBatchCheckedChange = (event: CustomEvent) => {
-  batchChecked.value = event.detail.checked;
-  onCategoryCheckedChange(event, "batch_params");
+  const checked = hasMandatoryGroup("batch_params") || event.detail.checked;
+  batchChecked.value = checked;
+  onCategoryCheckedChange({ detail: { checked } }, "batch_params");
 };
 
 // Update standard mode state
 const onStandardCheckedChange = (event: CustomEvent) => {
-  standardChecked.value = event.detail.checked;
-  onCategoryCheckedChange(event, "standard_params");
+  const checked = hasMandatoryGroup("standard_params") || event.detail.checked;
+  standardChecked.value = checked;
+  onCategoryCheckedChange({ detail: { checked } }, "standard_params");
 };
 
 // Update ModBus mode state
 const onModbusCheckedChange = (event: CustomEvent) => {
-  modbusChecked.value = event.detail.checked;
-  onCategoryCheckedChange(event, "modbus_params");
+  const checked = hasMandatoryGroup("modbus_params") || event.detail.checked;
+  modbusChecked.value = checked;
+  onCategoryCheckedChange({ detail: { checked } }, "modbus_params");
 };
 
 // Update configuration mode state
 const onConfigurationCheckedChange = (event: CustomEvent) => {
-  configurationChecked.value = event.detail.checked;
-  onCategoryCheckedChange(event, "configuration_params");
+  const checked = hasMandatoryGroup("configuration_params") || event.detail.checked;
+  configurationChecked.value = checked;
+  onCategoryCheckedChange({ detail: { checked } }, "configuration_params");
 };
 
 // Update commande mode state
 const onCommandeCheckedChange = (event: CustomEvent) => {
-  commandeChecked.value = event.detail.checked;
-  onCategoryCheckedChange(event, "commande_params");
+  const checked = hasMandatoryGroup("commande_params") || event.detail.checked;
+  commandeChecked.value = checked;
+  onCategoryCheckedChange({ detail: { checked } }, "commande_params");
 };
 
 // Update general mode state
@@ -1781,12 +1816,8 @@ const onGeneralCheckedChange = (event: CustomEvent) => {
 
 // Handle group checkbox changes
 const onParamGroupCheckedChange = (event: CustomEvent, groupName: string | number, bigGroupName: string) => {
-  paramGroupChecked.value[groupName] = event.detail.checked;
-  Object.keys(sensorConfig.value[bigGroupName][groupName].fields).forEach(field => {
-    sensorConfig.value[bigGroupName][groupName].fields[field].enabled = event.detail.checked;
-    paramGroupList[field] = sensorConfig.value[bigGroupName][groupName].fields[field];
-  });
-  outputData[groupName] = event.detail.checked;
+  const checked = isMandatoryGroup(bigGroupName, groupName) || event.detail.checked;
+  setGroupEnabled(bigGroupName, groupName, checked);
   updateOutput();
 };
 
