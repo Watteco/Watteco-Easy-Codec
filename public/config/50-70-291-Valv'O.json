@@ -1,0 +1,327 @@
+{
+    "general_params": {
+        "remove_config": {
+            "label": "@removeCurrentConfigLabel",
+            "default_state": "true",
+            "fields": {
+                "removeCurrentConfig": {
+                    "type": "frame",
+                    "HMI": {
+                        "label": "@removeCurrentConfigLabel",
+                        "visual_type": "customFrame"
+                    }
+                }
+            }
+        },
+        "confirmed": {
+            "label": "@confirmedLabel",
+            "default_state": "true",
+            "fields": {
+                "confirmed": {
+                    "type": "bool",
+                    "default_value": "false",
+                    "HMI": {
+                        "label": "@confirmedLabel",
+                        "visual_type": "checkbox"
+                    }
+                }
+            }
+        },
+		"Trame de configuration": {
+			"label": "@ConfigTrameLabel",
+			"default_state": "true",
+			"fields": {
+				"cfgTrame": {
+					"type": "frame",
+					"HMI": {
+						"label": "@ConfigTrameLabel",
+						"visual_type": "customFrame"
+					}
+				}
+			}
+		},
+        "cfg_block": [
+            ["11 50 00 50 02 03(removeCurrentConfig)", "@cfgCommentRemoveConfig"],
+            ["11 05 8004 0000 08 (confirmed)", "@cfgCommentConfirmed"],
+			["11 05 00 50 FF 00 41 06 11 50 00 06 F2 14(cfgTrame)", "configuration action 00 "],
+			["11 05 00 50 FF 01 41 06 31 50 00 06 F2 14(cfgTrame)","configuration action 01"],
+			["11 05 00 50 FF 02 41 10 11 06 00 0f 00 04 02 23 00 1e 80 02 00 00 00 01(cfgTrame)", "configuration action 02"],
+			["11 05 00 50 FF 03 41 10 11 06 00 0f 00 04 02 23 00 00 00 00 00 00 00 00(cfgTrame)","configuration action 03"],
+			["11 05 00 50 FF 04 41 06 51 50 00 06 F2 14(cfgTrame)","configuration action 04"],
+			["11 05 00 50 FF 05 41 06 71 50 00 06 F2 14(cfgTrame)","configuration action 05"],
+			["11 05 00 50 FF 06 41 10 31 06 00 0f 00 04 02 23 00 1e 80 02 00 00 00 01(cfgTrame)"," configuration action 06"],
+			["11 05 00 50 FF 07 41 10 31 06 00 0f 00 04 02 23 00 00 00 00 00 00 00 00(cfgTrame)","configuration action 07"]
+        ]
+    },
+	 "standard_params":{
+		"standard_P_params": {
+            "label": "@powerLabel",
+            "default_state": "true",
+            "fields": {
+                "pStandEchant": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "depends_on": "pStandEmission",
+                    "HMI": {
+                        "label": "@measureLabel",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "pStandEmission": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "HMI": {
+                        "label": "@emitMaxLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+		"standard_H_params": {
+			"label" : "@heartbitLabel",
+			"default_state" : "true",
+			"fields" : {
+				"hStandEchant" : {
+					"type" : "timeVal",
+					"default_value" : "60",
+					"min_value" : "5",
+					"max_value" : "1440",
+					"depends_on" : "hStandEmission",
+					"HMI":{
+						"label" : "@emitMaxLabel",
+						"visual_type" : "timeSlider"
+					}
+				}
+			}
+		},	
+		"cfg_block": [
+			["11 06 00 50 00 00 06 41 (pStandEchant) (pStandEmission) 07 00 05 00 c8 00 c8 00", "@cfgCommentPower"],
+			["91 06 00 0f 82 00 55 10 (hStandEchant) (hStandEchant) 55 70 00 00 01", "@cfgCommentHeartbit"]
+			
+		]	
+	},
+    "configuration_params":{
+        "default_state" : "true",
+        "Activation_Time1" : {
+            "label" : "@configActivation1Label",
+            "fields" : {
+                "ActivationTime1": {
+                    "type": "timeVal",
+                    "default_value": "480",
+                    "min_value": "0",
+                    "max_value": "1439",
+                    "step": "5",
+                    "HMI": {
+                        "label": "@activationTime1Label",
+                        "visual_type": "timeSliderHHMM",
+                        "outputFormat": "HHMM"
+                    }
+                },
+                "Activation_duration1" : {
+                    "type" : "timeVal",
+                    "default_value" : "5",
+                    "min_value" : "1",
+                    "max_value" : "60",
+                    "step" : "1",
+                    "HMI":{
+                        "label" : "@activationDuration1Label",
+                        "visual_type" : "timeSlider"
+                    }
+                }
+            }
+        },
+        "Activation_Time12" : {
+            "label" : "@configActivation12Label",
+            "fields" : {
+				"ActivationTime2": {
+					"type": "timeVal",
+					"default_value": "480",
+					"min_value": "0",
+					"max_value": "1439",
+					"step": "5",
+					"HMI": {
+						"label": "@activationTime2Label",
+						"visual_type": "timeSliderHHMM",
+						"outputFormat": "HHMM"
+					}
+				},
+                "Activation_durationev1" : {
+                    "type" : "timeVal",
+                    "default_value" : "5",
+                    "min_value" : "1",
+                    "max_value" : "60",
+                    "step" : "1",
+                    "HMI":{
+                        "label" : "@activationDurationEv1Label",
+                        "visual_type" : "timeSlider"
+                    }
+                },
+                "Activation_durationev2" : {
+                    "type" : "timeVal",
+                    "default_value" : "5",
+                    "min_value" : "1",
+                    "max_value" : "60",
+                    "step" : "1",
+                    "HMI":{
+                        "label" : "@activationDurationEv2Label",
+                        "visual_type" : "timeSlider"
+                    }
+                }
+            }
+        },
+        "cfg_block": [
+			["11 05 00 50 FF 08 41 1A 11 50 00 50 F0 14 FF 06 (ActivationTime1) 04 02 00 00 01 (Activation_duration1) 00 01 01 80 03 04 03 00 08","@cfgcommentConfig1"],
+			["11 05 00 50 FF 09 41 28 11 50 00 50 F0 22 FF 06 (ActivationTime2) 04 02 00 00 01 (Activation_durationev1) 00 01 01 80 03 04 03 04 06 00 04 01 (Activation_durationev2) 00 05 01 80 03 04 07 00 09", "@cfgcommentConfig2"]
+		]
+	},
+    "commande_params":{
+        "default_state" : "true",
+		"Commande1" : {
+			"label" : "@commande1Label",
+			"fields" : {
+				"Commande1": {
+					"type": "frame",
+					"HMI": {
+						"label": "@commande1Label",
+						"visual_type": "customFrame"
+					}
+				}
+			}
+		},"Commande2" : {
+			"label" : "@commande2Label",
+			"fields" : {
+				"Commande2": {
+					"type": "frame",
+					"HMI": {
+						"label": "@commande2Label",
+						"visual_type": "customFrame"
+					}
+				}
+			}
+		},
+		"Commande3" :{
+			"label" : "@commande3Label",
+			"fields" : {
+				"HeureCommande3": {
+					"type": "timeVal",
+					"default_value": "480",
+					"min_value": "0",
+					"max_value": "1439",
+					"step": "5",
+					"HMI": {
+						"label": "@heureCommande3Label",
+						"visual_type": "timeSliderHHMM",
+						"outputFormat": "HHMM"
+					}
+				},
+				"DurationCommande3": {
+					"type": "timeVal",
+					"default_value": "5",
+					"min_value": "1",
+					"max_value": "60",
+					"step": "1",
+					"HMI": {
+						"label": "@dureeCommande3Label",
+						"visual_type": "timeSlider"
+					}
+				}
+			}
+		},
+		"Commande4" :{
+			"label" : "@commande4Label",
+			"fields" : {
+				"HeureCommande4": {
+					"type": "timeVal",
+					"default_value": "480",
+					"min_value": "0",
+					"max_value": "1439",
+					"step": "5",
+					"HMI": {
+						"label": "@heureCommande4Label",
+						"visual_type": "timeSliderHHMM",
+						"outputFormat": "HHMM"
+					}
+				},
+				"DurationCommande4Ev1": {
+					"type": "timeVal",
+					"default_value": "5",
+					"min_value": "1",
+					"max_value": "60",
+					"step": "1",
+					"HMI": {
+						"label": "@dureeCommande4Ev1Label",
+						"visual_type": "timeSlider"
+					}
+				},
+				"DurationCommande4Ev2": {
+					"type": "timeVal",
+					"default_value": "5",
+					"min_value": "1",
+					"max_value": "60",
+					"step": "1",
+					"HMI": {
+						"label": "@dureeCommande4Ev2Label",
+						"visual_type": "timeSlider"
+					}
+				}
+			}
+		},
+		"Commande5" : {
+			"label" : "@commande5Label",
+			"fields" : {
+				"DurationCommande5":{
+					"type": "timeVal",
+					"default_value": "5",
+					"min_value": "1",
+					"max_value": "60",
+					"step": "1",
+					"HMI": {
+						"label": "@dureeCommande5Label",
+						"visual_type": "timeSlider"
+					}
+				}
+			}
+		},
+		"Commande6" : {
+			"label" : "@commande6Label",
+			"fields" : {
+				"DurationCommande6":{
+					"type": "timeVal",
+					"default_value": "5",
+					"min_value": "1",
+					"max_value": "60",
+					"step": "1",
+					"HMI": {
+						"label": "@dureeCommande6Label",
+						"visual_type": "timeSlider"
+					}
+				}
+			}
+		},
+		"Arretprogramme" : {
+			"label" : "@ArretprogrammeLabel",
+			"fields" : {
+				"ArretCurrentProgram":{
+					"type": "frame",
+					"HMI": {
+						"label": "@ArretCurrentProgramLabel",
+						"visual_type": "customFrame"
+					}
+				}
+			}
+		},
+        "cfg_block": [
+			["11 50 00 50 F0 02 00 08 (Commande1)", "@cfgCommentCommande1"],
+			["11 50 00 50 F0 02 00 09 (Commande2)", "@cfgCommentCommande2"],
+			["11 50 00 50 F0 12 FF 06 (HeureCommande3) 04 02 00 00 01 (DurationCommande3) 00 01 01 80 03 04 03", "@cfgCommentCommande3"],
+			["11 50 00 50 F0 20 FF 06 (HeureCommande4) 04 02 00 00 01 (DurationCommande4Ev1) 00 01 01 80 03 04 03 04 06 00 04 01 (DurationCommande4Ev2) 00 05 01 80 03 04 07","@cfgCommentCommande4"],
+			["11 50 00 50 F0 1C 04 02 00 00 01 (DurationCommande5) 00 01 01 80 03 04 03 ","@cfgCommentCommande5"],
+			["11 50 00 50 F0 1C 04 06 00 04 01 (DurationCommande6) 00 05 01 80 03 04 07 ","@cfgCommentCommande6"],
+			["11 50 00 50 F0 05 FF 00 04 00 05 (ArretCurrentProgram)","@cfgCommentArretCurrentProgram"]
+        ]
+    }
+}	

@@ -375,6 +375,15 @@
 			"comment": ["Distance measurement", 
 			"Mesure de distance"],
 			"docLink": "https://support.watteco.com/"
+		},
+		{
+			"name": "Valv'O (50-70-291)",
+			"file": "50-70-291-Valv'O",
+			"apps": ["EasyCodec"],
+			"category": "zTest dev",
+			"comment": ["com1,com2",
+						"com3 , com4"],
+			"docLink": "https://support.watteco.com/atmo/"
 		}
 	],
 	"in_developpement_products": [
