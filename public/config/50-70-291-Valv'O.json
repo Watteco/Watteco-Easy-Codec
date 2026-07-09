@@ -343,6 +343,20 @@
                 }
             }
         },
+        "group_relationships": [
+            {
+                "type": "exclusive",
+                "groups": [
+                    "Commande1",
+                    "Commande2",
+                    "Commande3",
+                    "Commande4",
+                    "Commande5",
+                    "Commande6"
+                ],
+                "allow_none": true
+            }
+        ],
         "cfg_block": [
             [
                 "11 50 00 50 F0 02 00 08 (Commande1)",
