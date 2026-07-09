@@ -1,0 +1,11 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 2
+; [tiator] [50-70-020-000_Smartplug Allemagne (version CLIENT)]
+; [tiator] [50-70-021-000_Smartplug UK (version CLIENT)]
+
+[ROM_DEFAULT_TARGET] V3.4.0.3648_ips-sp-btntest.cal.ClassC.lrctm.EU.chkpt.wdt2-dfp-br.296V3-1mc.sx-lr.ROMCfg-IOTTHINK.txt IOTTHINK
+@10a00
+06 11 50 00 50 02 03
+13 11 06 00 52 19 00 00 00 80 03 80 0F 00 00 00 00 00 01 01
+0D 11 06 00 06 00 00 00 10 00 00 ff ff 01
+05 11 50 00 06 01

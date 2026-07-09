@@ -1,0 +1,14 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [71-70-104-000 _ 50-70-164-000_Carte Analogique 1CTN court testee]
+
+[ROM_DEFAULT_TARGET] .*_ips-4ctn.1ctn10k.*ClassA.lrctm.EU.chkpt.wdt2.*dfp-br-fota.*.sx-lr.*.txt CONF_DALKIA_TEMP_EP_0_MES10MIN_TX1H_PILE_MES24H_TX24H_AMPH10K
+@10a00
+# remove toute configuration
+06 11 50 00 50 02 03
+# tagsize=3, label=0 configuration batch mesure 10min tx 1 h sur ctn 1
+11 11 06 04 02 15 00 00 00 80 0A 80 3C 00 00 00 0A 03
+#tension pile: tag size = 3 label = 5 resolution = 100mV TX 24h
+11 11 06 00 50 15 00 06 04 85 A0 85 A0 00 00 00 64 2B
+# Coeff de steinhart A B C + resistance CTN 1 Amphenol A=0.001108382 B=0.000237553 C=7.38373E-08 Resistance=10 000
+18 11 05 04 02 90 01 41 10 3a 91 47 21 39 79 17 a6 33 9e 90 7c 46 1c 40 00

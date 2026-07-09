@@ -1,0 +1,73 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [stmator] [71-70-120-004_50-70-201-004_INCLINO]
+
+[ROM_DEFAULT_TARGET] .*_ips-accelero.*(fat3)*.ClassA.lrctm.EU.chkpt.wdt2.*7010737.*sx-lr.hex U10Deg_O40Deg.12h
+@
+# ---------CFG 0 (Default): CONF FOR HUB'O BATCH & STANDARD REPORTS ---------------------------
+# . Set "not confirmed" except for confirmed alarms with 3 retries (if any)
+08 11 05 8004 0000 08 00
+08 11 05 8004 0001 20 03
+#
+# . Effacement des configurations (Batch et Standard)
+06 11 50 0050 02 03
+#
+# LIS2DE TAP detection (Think about devopt LIS2DE et TAP bit activation (cf InfoMem.7010xxxVyy))
+# TAP inactivated and use 100Hz for angle measurement (faster measurement):
+#  0x1403 : (b00 0101 00 / 0 0000011) Idle/100Hz/2g/(3*16)=48mg
+09 11 05 000c 8004 19 1403
+#
+# ------------------------ STANDARD REPORTS -------------------------
+# . POWERDESC  [mV]
+#   . Periodic MAX = 7j => 10080mn => xA760; MIN = 10mn => 0x800A
+#   . Length of remaining payload (for 0x41 type ): 0x08
+#   . ALARM on power treshold : 2,7v (hyst 100mV)
+#     RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98 
+#     CSD : IsAlarm/OnExceed/OnFall/Threshold/Slot0 : b 1 1 1 10 000 ==> xF0
+#     Disposable battery field index : 0x04
+#     THRS: 2700 : 0x0A8C; HYST: 100 mV : 0x0064
+#     OCC : 1
+14 11 06 0050 98 0006 41 800A A760 07 F0 04 0A8C 0064 01
+#
+# . ANGLE DISP (LIS2DE12TR) (Report aperture(analoginput): Alarme Ouverture/fermeture [( > 40Â° + 2,5)]
+#                            Min 30s et pï¿½riodique 12h (720 min ==> x82D0)
+#   . RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98
+#   . CSD : IsAlarm/OnExceed/NotOnFall/Threshold/Slot0 : b 1 1 0 10 000 ==> xD0
+#   . THRS: 40,00Â°: 0x42200000; HYST: 2,50Â°: 0x40200000
+#   . OCC : 1
+16 11 06 000c 98 0055 39 001E 82D0 D0 42200000 40200000 01
+#
+# . ANGLE DISP (LIS2DE12TR) (Report aperture(analoginput): Alarme Ouverture/fermeture [( < 10Â° + 2,5)]
+#                            Min 30s et pï¿½riodique 12h (720 min ==> x82D0)
+#   . RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98
+#   . CSD : IsAlarm/NotOnExceed/OnFall/Threshold/Slot1 : b 1 0 1 10 001 ==> 0xB1
+#   . THRS: 10,00Â° : 0x41200000; HYST: 2,50Â° : 0x40200000
+#   . OCC : 1
+16 11 06 000c 98 0055 39 001E 82D0 B1 41200000 40200000 01
+#
+# ------------------------- BATCH REPORT ---------------------------------------
+# . 
+#
+#---------------------------------------------------------------------------------------------
+# ------------------------------- CONFIGURATION SEPARATOR : byte 00 --------------------------
+00
+#---------------------------------------------------------------------------------------------
+# ------------ CFG 1: AngleChocks copy (see previous configuration above) --------------------
+# To Swap from Default to Alternate configuration: 11 50 0050 F1 01, and to get back: 11 50 0050 F1 00
+08 11 05 8004 0000 08 00
+08 11 05 8004 0001 20 03
+06 11 50 0050 02 03
+09 11 05 000c 8004 19 5706
+09 11 05 0406 0011 21 0000
+09 11 05 0406 0010 21 00F0
+19 11 05 0050 FF00 41 11  11 06 800E 15 0000 00 0005 8003 0000 0001 03
+19 11 05 0050 FF01 41 11  11 06 800E 15 0000 00 0001 85A0 0000 0001 03
+0D 11 05 0050 FF02 41 05 11 50 0050 08 
+19 11 06 0406 98 0000 18 000A FFFF 59 01 01 01 88 FF 010001 0002 0400
+14 11 06 0406 98 0000 18 000A FFFF 3A 01 01 01 83 FF 0401
+14 11 06 0050 98 0006 41 800A A760 07 F0 04 0A8C 0064 01
+11 11 06 800E 15 0000 00 0001 85A0 0000 0001 03
+15 11 06 000C 1D 0055 00 80F0 85A0 40a00000 3dcccccd 0B
+#---------------------------------------------------------------------------------------------
+# ------------------------------- CONFIGURATION END : byte FF --------------------------------
+FF

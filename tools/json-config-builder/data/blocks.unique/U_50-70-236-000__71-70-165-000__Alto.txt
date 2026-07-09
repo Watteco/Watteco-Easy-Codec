@@ -1,0 +1,220 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [stmator] [71-70-165-000_50-70-236-000_ALTO]
+
+[ROM_DEFAULT_TARGET] .*_ips-accelero.*(fat3)*.ClassA.lrctm.EU.chkpt.wdt2.*7010737.*sx-lr.hex Alto
+@
+#=============================================================================================
+# ---------CFG 0 (Default): For dynamic measurement & batch report  --------------------------
+#=============================================================================================
+# Specific Header describing following configuration format
+02 00 01
+# Semi-colon separated list of parameters for this configuration
+#---------------------------------------------------------------
+#  D1   D2   Hyst   Occ          P1          P2          P3   BResD  BResM  AlL    AlH AlHHyst AlOcc          PA  AlA  AlAHyst
+#   0    1      2     3           4           5           6       7      8    9     10      11    12          13   14       15
+F:1.5; F:3; F:.01; U8:1; U16:0x800A; U16:0x8014; U16:0x801E; F:.001; U16:1; F:1; F:3.5;  F:.05; U8:1; U16:0x8001; F:3;   F:1.5
+#
+# . Set "not confirmed" except for confirmed alarms with 3 retries (if any)
+11 05 8004 0000 08 00
+11 05 8004 0001 20 03
+#
+# . Delete all configurations (Batch and Standard)
+11 50 0050 02 03
+#
+# . LIS2DE TAP detection (Think about devopt LIS2DE et TAP bit activation (cf InfoMem.7010xxxVyy))
+#   TAP inactivated and use 100Hz for angle measurement (faster measurement):
+#   0x1403 : (b00 0101 00 / 0 0000011) Idle/100Hz/2g/(3*16)=48mg
+11 05 000c 8004 19 1403
+#   Set temp drift corr : ON (4F) / OFF (0F),  Max drift corr: 0x0F =>1.5Â°
+11 50 000C FF 01 4F 0F
+#
+# . Configure Batch History Redundancy: 
+#   2 previous Batches are sent when a new batch is sent, with a delay of 5s between each
+#11 05 0050 0008 20 02
+#11 05 0050 0009 21 0005
+#
+# --------------------- Dynamic measurement period -----------------------
+#
+#  S0,S1: Configuration slots used on distance attribute
+#  D1, D2:   Thresholds (D1 > D2) [Default: D1 = 0.5m  (0x3f000000), D2 = 1m (0x3f800000)] 
+#  H:        Hysteresis           [Default:  H = 0.01m (0x3c23d70a)]
+#  P1,P2,P3: Measurement periods  [Default: P1 = 10mn, P2 = 20mn P3 = 30mn]
+#  ^^ :      Rising
+#  vv :      Falling
+#  => :      Throw action 
+#  Ax :      Configured action NÂ°x
+#
+# Distance thresolds                                           Measurement period
+# High
+#  |                                                                   P3
+#  D2 --- A2(S1):P2,^^ => 1s,A3,A6,A9 --- A3(S1):P3,vv => 0s,A2,A5,A8 ---
+#  |                                                                   P2
+#  D1 --- A0(S0):P1,^^ => 0s,A1,A5,A8 --- A1(S0):P2,vv => 1s,A0,A4,A7 ---
+#  |                                                                   P1
+# Low
+#
+# Notes: 
+# - On factory rest following actions are lauched A2,A0,A4,A7 (see at the end of CFG)
+# - The 0s or 1s delays are useful to guarantee the order of execution of actions S0 and S1
+#   In fact, in the event of simultaneous crossing of 2 thresholds, the actions associated with
+#   last in the order of crossing must be executed last.
+#   Rq: Slots are processed in the order S0,S1, so the delay in A2 is not necessarily necessary
+#
+#   ACTION 0: "From P1 to P2" / (S0)D1,P1,^^ => 0s,A1,A5 
+#   . Periodic MAX = Inf => xFFFF; MIN = P1 
+#   . Action on treshold Low: D1; hyst : H
+#     RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98 
+#     CSD : NotIsAlarm/OnExceed/NotOnFall/ThresholdWAction/Slot0 : b 0 1 0 11 000 ==> x58
+#     THRS: D1 : ; HYST: H
+#     OCC : 1
+#     ACTION: Without report (8x 0x=> With report), A1 (No save), A5 (no save), A8 (no save) : 87 02 0401 0405 0408(Save = replace 04xx by 00xx)
+11 05 0050 FF00 41 1D 31 06 000C 98 0055 39 <4> FFFF 58 <0> <2> <3> 86 0401 0405 0408
+#
+#   ACTION 1: "From P2 to P1" / (S0)D1,P2,vv => 1s,A0,A4,A7
+11 05 0050 FF01 41 20 31 06 000C 98 0055 39 <5> FFFF 38 <0> <2> <3> 89 010001 0400 0404 0407
+#
+#   ACTION 2: "From P2 to P3" / (S1)D2,P2,^^ => 1s,A3,A6,A9
+11 05 0050 FF02 41 20 31 06 000C 98 0055 39 <5> FFFF 59 <1> <2> <3> 89 010001 0403 0406 0409
+#
+#   ACTION 3: "From P3 to P2" / (S1)D2,P3,vv => 0s,A2,A5,A8 
+11 05 0050 FF03 41 1D 31 06 000C 98 0055 39 <6> FFFF 39 <1> <2> <3> 86 0402 0405 0408
+#
+# Batchs reconfiguration Actions: (Record and report simultaneously. Could be longer report)
+#
+#   ACTION 4: Batch Distance P1 / Delta 0 / Resolution 0.001 / Tag size 3 / tag label 2, type Flt 12
+11 05 0050 FF04 41 15 31 06 000C 1D 0055 00 0000 <4> 00000000 <7> 13
+#
+#   ACTION 5: Batch Distance P2 / Delta 0 / Resolution 0.001 / Tag size 3 / tag label 2, type Flt 12
+11 05 0050 FF05 41 15 31 06 000C 1D 0055 00 0000 <5> 00000000 <7> 13
+#
+#   ACTION 6: Batch Distance P3 / Delta 0 / Resolution 0.001 / Tag size 3 / tag label 2, type Flt 12
+11 05 0050 FF06 41 15 31 06 000C 1D 0055 00 0000 <6> 00000000 <7> 13
+#
+#   ACTION 7: Batch Magnitude P1 / Delta 0 / Resolution 1 / Tag size 3 / tag label 3, Type U16 6
+11 05 0050 FF07 41 11 31 06 800E 15 0000 00 0000 <4> 0000 <8> 1B
+#
+#   ACTION 8: Batch Magnitude P2 / Delta 0 / Resolution 1 / Tag size 3 / tag label 3, Type U16 6
+11 05 0050 FF08 41 11 31 06 800E 15 0000 00 0000 <5> 0000 <8> 1B
+#
+#   ACTION 9: Batch Magnitude P3 / Delta 0 / Resolution 1 / Tag size 3 / tag label 3, Type U16 6
+11 05 0050 FF09 41 11 31 06 800E 15 0000 00 0000 <6> 0000 <8> 1B
+#
+#------------------------------------------------------------------------------
+# Batch AngleDisp 1mn,24h / Delta 3Deg (0x40400000)/ Resolution 0.1Deg (0x3dcccccd) / Tag size 3 / tag label 1, Type Float 12
+11 06 000C 1D 0055 00 <13> 85A0 40400000 3dcccccd 0B
+#
+# Batch Battery 30mn,24h / Delta 200mV / Resolution 100mV / Tag size 3 / tag label 4, Type U16 6
+11 06 0050 15 0006 04 801E 85a0 00C8 0064 23
+#
+# Batch Temperature of AngleDisp 1mn,24h / Delta 0.1DegC / Resolution 0.1DegC / Tag size 3 / tag label 5, Type I16 7
+# !! Intentionally removed from default configuration !!
+# 11 06 0402 15 0000 00 <13> 803C 000A 000A 2B
+#------------------------------------------------------------------------------
+#
+# CODEC PARAMS: 3 0,1,6,ACCmg 1,0.1,12,Ang 2,0.001,12,Dist 3,1,6,Magn 4,1,6,VBatt 5,0.1,7,AccTemp
+#
+#-------------------------------------------------------------------------------
+# Configure the alarms (standard reports for Max and Min threholds / no actions)  
+# Beware to relaunch STARTUP ACTIONS AFTER this config 
+# NOTE: After first crossed threshold and Reconfiguration ACTIONS, used MIN an MAX 
+#       for EP1 (0x31, Clst 000C, Attr 0055) will be those of last used action
+#-------------------------------------------------------------------------------
+#   Alarm on very low threshold crossed and back 
+#   . Periodic MAX = Inf => xFFFF; MIN = P1 <4> 
+#   . Alarm on threshold Very Low:
+#     RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98 
+#     CSD : IsAlarm/OnExceed/OnFall/Thresholdn/Slot2 : b 1 1 1 10 010 ==> xF2
+#     THRS: AlL <9> ; HYST: AlHyst <11>; OCC : AlOcc <12>
+31 06 000C 98 0055 39 <4> FFFF F2 <9> <11> <12>
+#   Alarm on very high threshold crossed and back 
+#     CSD : IsAlarm/OnExceed/OnFall/Thresholdn/Slot3 : b 1 1 1 10 010 ==> xF3
+#     THRS: AlL <10> ; HYST: AlHyst <11>; OCC : AlOcc <12>
+31 06 000C 98 0055 39 <4> FFFF F3 <10> <11> <12>
+#-------------------------------------------------------------------------------
+# . Alarm on angle threshold: [defaut ( <14> +/- <15>)]
+#                            Min 1mn et No periodic ==> xFFFF)
+#   . RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98
+#   . CSD : IsAlarm/OnExceed/OnFall/Threshold/Slot0 : b 1 1 1 10 000 ==> 0xF0
+#   . THRS: <14>; HYST: <15> 
+#   . OCC : 1
+11 06 000c 98 0055 39 <13> FFFF F0 <14> <15> 01
+#-------------------------------------------------------------------------------
+#
+# STARTUP ACTIONS on factory reset with necessary action in Save mode (Action 00 either than 04)
+# (default startup configuration will always be the same)
+11 50 0050 F0 08 0002 0000 0004 0007
+# ------------------------------- CONFIGURATION SEPARATOR : byte 00 --------------------------
+00
+#=============================================================================================
+# ------------------ CFG 1 : For Std (no batch) dynamic measurement Test  --------------------
+#=============================================================================================
+# . Set "not confirmed" except for confirmed alarms with 3 retries (if any)
+08 11 05 8004 0000 08 00
+08 11 05 8004 0001 20 03
+#
+# . Delete all configurations (Batch and Standard)
+06 11 50 0050 02 03
+#
+# LIS2DE TAP detection (Think about devopt LIS2DE et TAP bit activation (cf InfoMem.7010xxxVyy))
+# TAP inactivated and use 100Hz for angle measurement (faster measurement):
+#  0x1403 : (b00 0101 00 / 0 0000011) Idle/100Hz/2g/(3*16)=48mg
+09 11 05 000c 8004 19 1403
+#
+# ----------------------------- Angle report configuration -----------------------------
+# . ANGLE (LIS2DE12) (Report Angle(analoginput): Periodique ) 
+#   Measure period (Min) 1mn periodic report 30mn ( 0x8001 / 0x801E), + report on variation > 2Â° 
+#   . RP  : NewCfg/Reserved/NoCause/NotSecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 00 0 0 0 0 ==> x80 
+#   . CSD : IsNotAlarm/OnExceed/OnFall/Delta/Slot0 : b 0 1 0 01 000 ==> x48
+#   . DELTA: 2.0 (0x40000000)
+11 11 06 000c 80 0055 39 8001 801e 48 40000000
+#
+# --------------------- Dynamic distance measurement period Test -----------------------
+# With report on actions:          0.5m       1m
+#                         (10s/1mn) |(20s/5mn) |(30s/10mn)                         
+#
+#  S0,S1: Configuration slots used on distance attribute
+#  D1, D2:   Thresholds (D1 > D2) [Default: D1 = 0.5m  (0x3f000000), D2 = 1m (0x3f800000)] 
+#  H:        Hysteresis           [Default:  H = 0.01m (0x3c23d70a)]
+#  P1,P2,P3: Measurement periods  [Default: P1 = 10s, P2 = 20s P3 = 30s]
+#  ^^ :      Rising
+#  vv :      Falling
+#  => :      Throw action 
+#  Ax :      Configured action NÂ°x
+#
+# Distance thresolds                                           Measurement period
+# High
+#  |                                                                   P3
+#  D2 --- A2(S1):P2,^^ => 1s,A3 --- A3(S1):P3,vv => 0s,A2 ---
+#  |                                                                   P2
+#  D1 --- A0(S0):P1,^^ => 0s,A1 --- A1(S0):P2,vv => 1s,A0 ---
+#  |                                                                   P1
+# Low
+#
+#   ACTION 0: "From P1 to P2" / (S0)D1,P1,^^ => 0s,A1,A5 
+#   . Periodic MAX = Inf => 30mn (0x801E); MIN = P1 
+#   . Action on treshold Low: D1; hyst : H
+#     RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllSecured/HeaderKept/NotBatch :  b 1 0 01 1 1 0 0 ==> x9C 
+#     CSD : NotIsAlarm/OnExceed/NotOnFall/ThresholdWAction/Slot0 : b 0 1 0 11 000 ==> x58
+#     THRS: D1 : ; HYST: H
+#     OCC : 1
+#     Action With report (02) (Without: 82), A0 (No save), A5 (no save) : 02 0401 (Save = replace 04xx by 00xx)
+21 11 05 0050 FF00 41 19 31 06 000C 9C 0055 39 000A 8001 58 3f000000 3c23d70a 01 02 0401
+#
+#   ACTION 1: "From P2 to P1" / (S0)D1,P2,vv => 1s,A0,A4
+24 11 05 0050 FF01 41 1C 31 06 000C 9C 0055 39 0014 8005 38 3f000000 3c23d70a 01 05 010001 0400
+#
+#   ACTION 2: "From P2 to P3" / (S1)D2,P2,^^ => 1s,A3,A6
+24 11 05 0050 FF02 41 1C 31 06 000C 9C 0055 39 0014 8005 59 3f800000 3c23d70a 01 05 010001 0403
+#
+#   ACTION 3: "From P3 to P2" / (S1)D2,P3,vv => 0s,A2,A5 
+21 11 05 0050 FF03 41 19 31 06 000C 9C 0055 39 001E 800A 39 3f800000 3c23d70a 01 02 0402
+#
+# Pas de BAtch
+#
+# Launc at reset factory to set default configuration: Action 2, Action 0 
+# !WITH! Configuration record (Action 00 instead of 04)
+0A 11 50 0050 F0 04 0002 0000
+#---------------------------------------------------------------------------------------------
+# ------------------------------- CONFIGURATION END : byte FF --------------------------------
+FF

@@ -1,0 +1,26 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [71-70-054-002 _ 50-70-165-000_Carte Capteur ModBus Class A DALKIA SHARKY 2018 testee]
+
+[ROM_DEFAULT_TARGET] .*_ips-modbus-sensor.*Class.*.lrctm.EU.chkpt.wdt2-dfp-br.*.sx-lr.*.txt CONF_DALKIA_SHARKY_2018
+@10a00
+#remove toute configuration
+06 11 50 00 50 02 03
+#lecture index energy sur esclave 01
+0E 11 05 80 07 00 00 41 06 01 03 00 08 00 02
+#lecture volume sur esclave 01
+0E 31 05 80 07 00 00 41 06 01 03 00 12 00 02
+#lecture puissance sur esclave 01
+0E 51 05 80 07 00 00 41 06 01 03 00 1c 00 02
+#lecture dÃ©bit sur esclave 01
+0E 71 05 80 07 00 00 41 06 01 03 00 26 00 02
+#lecture TÂ°C dÃ©part sur esclave 01
+0E 91 05 80 07 00 00 41 06 01 03 00 2e 00 02
+#lecture TÂ°C arrivÃ© sur esclave 01
+0E B1 05 80 07 00 00 41 06 01 03 00 36 00 02
+#lecture delta TÂ°C sur esclave 01
+0E D1 05 80 07 00 00 41 06 01 03 00 3e 00 02
+#report multiserial Ã  l'heure:
+0E 11 06 80 09 00 00 00 41 80 3c 80 3c 01 00
+#retire l'entÃªte modbus
+08 11 05 80 09 00 01 10 00

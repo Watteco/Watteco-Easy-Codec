@@ -1,0 +1,32 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [71-70-184-001 _ 71-70-185-001 - 50-70-263-001_Carte Capteur VentilO DC 9v-24v + pile 500Pa testee]
+
+[ROM_DEFAULT_TARGET] .*ips-ict-vmc.*bsm.ClassA.*EU.*chkpt.wdt2.*333V0.*\.txt CONF1_1_DEFAULT_MEAS15M_TX6H_PILE_VEXT
+@10a00
+#efface les reports
+06 11 50 00 50 02 03
+#1 ï¿½chantillon par mesure
+09 11 05 80 08 00 04 21 00 01
+#3 ï¿½chantillons par confirmation
+09 11 05 80 08 00 05 21 00 03
+#1000 ms entre chaque ï¿½chantillon
+0B 11 05 80 08 00 06 23 00 00 03 E8
+# 15 min entre chaque mesure
+0B 11 05 80 08 00 03 23 00 0D BB A0
+#moyenne sauvegardï¿½ dans batch et emis une fois par 6 heures
+11 11 06 80 08 15 01 00 00 81 68 81 68 00 00 00 01 03
+#min sauvegardï¿½ dans batch  et emis une fois par 6 heures
+11 11 06 80 08 15 01 01 00 81 68 81 68 00 00 00 01 0B
+#max sauvegardï¿½ dans batch  et emis une fois par 6 heures
+11 11 06 80 08 15 01 02 00 81 68 81 68 00 00 00 01 13
+#tension pile sauvegardï¿½e dans batch tous les 7 jours ou sur passage sous 3V
+16 11 06 00 50 9F 00 06 04 80 0A A7 60 01 B1 0B B8 00 64 01 00 01 1B
+# VEXT : Min 30s, Max 24h, report on power source change
+14 11 06 00 50 00 00 06 41 00 1E 85 A0 07 00 05 00 00 00 00 01
+#seuil 90mv +- 10mV alarme cause short vï¿½rification tous les 30 minutes
+12 11 06 80 08 90 00 00 29 80 1E FF FF F1 00 5A 00 0A 01
+#seuil 400mv +- 10mV alarme cause short vï¿½rification tous les 30 minutes
+12 11 06 80 08 90 00 00 29 80 1E FF FF F2 01 90 00 0A 01
+#debounce Ã  80ms de l'entrÃ©e S0 pour fonction state
+09 11 05 00 0f 04 01 21 00 50

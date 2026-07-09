@@ -1,0 +1,33 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 2
+; [tiator] [71-70-047-001_50-70-098-001_Capteur INTENSO 868Mhz 60A]
+; [tiator] [71-70-047-002_50-70-098-001_Capteur INTENSO 868Mhz 60A]
+
+[ROM_DEFAULT_TARGET] .*_ips-analoginput-INTENSO.*.bsm.*ClassA.lrctm.EU.chkpt.wdt2.*-dfp-br.*.307V.*.sx-lr.*.txt Default
+@10a00
+# Suppression reports
+06 11 50 00 50 02 03
+#
+# Configuration polynome Vadc 0-2500mv ==> 0-30A
+# I (A) =  0.333313 + (0.0122591)*Vadc + (1.40860E-6)*Vadc*Vadc
+# IEE754: 0x3eaaa800 + 0x3c48da64*Vadc + 0x35bd0f21*Vadc*Vadc 
+14 31 05 00 0C 80 00 41 0C 3e aa a8 00 3c 48 da 64 35 bd 0f 21
+#
+# Configuration sample period ==> 1ms
+09 31 05 00 0C 80 01 21 00 01
+#
+# Configuration number of sample ==> 21 (20 ms)
+09 31 05 00 0C 80 02 21 00 15
+#
+# (D8: New, Short cause, Secured if fAlarm), MinRpt=5s, MaxRpt=2min, 
+# (F0 : Alarm, Up/Down, Treshold), Seuil=1A, Gap=0.2A, Occ=3 
+# 16 31 06 00 0C D8 00 55 39 00 05 80 02 F0 3f 80 00 00 3e 4c cc cd 03
+#
+# (D8: New, Short cause, Secured if fAlarm), MinRpt=1mn, MaxRpt=12h(720 mn) 
+# Seuil 0: D0 : Alarm, Up,   Treshold), Seuil=10A, Gap=1A, Occ=3 
+# Seuil 1: B0 : Alarm, Down, Treshold), Seuil=1A,  Gap=0.1A, Occ=3 
+# 20 31 06 00 0c d8 00 55 39 80 01 82 d0 D0 41 20 00 00 3f 80 00 00 03 b1 3f 80 00 00 3d cc cc cd 03
+#
+# (E8: New, Long cause, Secured if fAlarm), MinRpt=1mn, MaxRpt=2h, Suppression autres critÃ¨res (01 Ã  05)
+# (F0 : Alarm, Up/Down, Treshold), Seuil=1,5A, Gap=0.5A, Occ=3 
+1B 31 06 00 0C E8 00 55 39 80 01 80 78 F0 3f c0 00 00 3f 00 00 00 03 01 02 03 04 05

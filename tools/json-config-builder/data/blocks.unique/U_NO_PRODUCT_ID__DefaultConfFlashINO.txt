@@ -1,0 +1,10 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 2
+; [tiator] [50-70-258-00_Capteur Flash'IN'O Class A (version CLIENT)]
+; [tiator] [50-70-261-00_Capteur Flash'IN'O Class C (version CLIENT)]
+
+[ROM_DEFAULT_TARGET] .*_ips-ild\.bsm.*Class.*.lrctm.EU.chkpt.wdt2.*-dfp-br.*306V4.sx-lr.*.txt DefaultConfFlashINO
+@10a00
+06 11 50 00 50 02 03
+15 11 06 00 0f 1d 04 02 00 80 01 80 0a 00 00 00 00 00 00 00 01 04
+08 11 05 80 04 00 00 08 01

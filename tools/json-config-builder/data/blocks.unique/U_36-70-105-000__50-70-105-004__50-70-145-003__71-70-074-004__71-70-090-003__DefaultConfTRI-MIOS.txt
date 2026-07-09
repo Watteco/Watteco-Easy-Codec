@@ -1,0 +1,18 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 2
+; [tiator] [71-70-074-004 _36-70-105-000_ 50-70-105-004_TRIPHASO 60 A MIOS testee]
+; [tiator] [71-70-090-003 _ 50-70-145-003_TRIPHASO 400 A MIOS Version Finale]
+
+[ROM_DEFAULT_TARGET] V3.5.2.6041.6304_ips-tri.60A.lctt16.bsm.fat3.ClassC.lrctm.EU.chkpt.wdt2-dfp-br-fota.wtc-502-tri.7170074V1.sx-lr.ROMCfg-DefaultConfTRI-MIOS.txt DefaultConfTRI-MIOS
+[ROM_DEFAULT_TARGET] V3.5.2.6041.6304_ips-tri.400A.lctt16.bsm.fat3.ClassC.lrctm.EU.chkpt.wdt2-dfp-br-fota.wtc-502-tri.7170074V1.sx-lr.ROMCfg-DefaultConfTRI-MIOS.txt DefaultConfTRI-MIOS
+@10a00
+06 11 50 00 50 02 03
+11 11 06 00 50 80 00 06 41 85 a0 85 a0 04 48 01 00 00
+11 11 06 80 0b 80 00 00 41 80 0a 80 0a 04 48 00 00 00
+11 31 06 80 0b 80 00 00 41 80 0a 80 0a 04 48 00 00 00
+11 51 06 80 0b 80 00 00 41 80 0a 80 0a 04 48 00 00 00
+13 71 06 80 0a 80 00 00 41 80 0a 80 0a 06 48 00 00 00 00 00
+0b 11 05 80 0a 00 01 23 00 00 02 58
+0b 31 05 80 0a 00 01 23 00 00 02 58
+0b 51 05 80 0a 00 01 23 00 00 02 58
+0b 71 05 80 0a 00 01 23 00 00 02 58

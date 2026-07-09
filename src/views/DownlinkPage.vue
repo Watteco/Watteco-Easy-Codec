@@ -58,6 +58,7 @@
 
                 <ion-checkbox 
                   :checked="paramGroupChecked[groupName] || false"
+                  :disabled="isMandatoryGroup('general_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'general_params')"
                 ></ion-checkbox>
                 <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
@@ -72,7 +73,7 @@
                   <ion-item class="config-item">
                     <!-- Using the TimeSlider component -->
                     <time-slider
-                      v-if="param.HMI?.visual_type === 'timeSlider'"
+                      v-if="param.HMI?.visual_type === 'timeSlider' || param.HMI?.visual_type === 'timeSliderHHMM'"
                       :label="param.HMI?.label"
                       :min="param.min_value"
                       :max="param.max_value"
@@ -80,6 +81,7 @@
                       :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
                       :groupName="groupName"
                       :paramName="paramName"
+                      :outputFormat="param.HMI?.outputFormat"
                       @update:value="onParamChange($event, 'general_params', groupName, paramName)"
                       @update:units="onToggleChange($event, 'general_params', groupName, paramName)"
                     />
@@ -227,7 +229,7 @@
         <ion-card v-if="sensorConfig?.modbus_params" class="category-card" :key="`modbus-${currentLanguage}-${selectedSensor}`">
           <ion-item class="config-item">
             <ion-label>{{ localize("@modbusLabel") }}</ion-label>
-            <ion-checkbox :checked="modbusChecked" @ionChange="onModbusCheckedChange"></ion-checkbox>
+            <ion-checkbox :checked="modbusChecked || hasMandatoryGroup('modbus_params')" :disabled="hasMandatoryGroup('modbus_params')" @ionChange="onModbusCheckedChange"></ion-checkbox>
             <ion-button class="visibility-button" :class="{ invisible: !modbusChecked }" @click="toggleVisibility('modbus_params')">{{ modbusVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
@@ -242,6 +244,7 @@
 
                 <ion-checkbox 
                   :checked="paramGroupChecked[groupName] || false"
+                  :disabled="isMandatoryGroup('modbus_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'modbus_params')"
                 ></ion-checkbox>
                 <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
@@ -256,7 +259,7 @@
                   <ion-item class="config-item">
                     <!-- Using the TimeSlider component -->
                     <time-slider
-                      v-if="param.HMI?.visual_type === 'timeSlider'"
+                      v-if="param.HMI?.visual_type === 'timeSlider' || param.HMI?.visual_type === 'timeSliderHHMM'"
                       :label="param.HMI?.label"
                       :min="param.min_value"
                       :max="param.max_value"
@@ -264,6 +267,7 @@
                       :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
                       :groupName="groupName"
                       :paramName="paramName"
+                      :outputFormat="param.HMI?.outputFormat"
                       @update:value="onParamChange($event, 'modbus_params', groupName, paramName)"
                       @update:units="onToggleChange($event, 'modbus_params', groupName, paramName)"
                     />
@@ -404,7 +408,7 @@
         <ion-card v-if="sensorConfig && sensorConfig.batch_params" class="category-card" :key="`batch-${currentLanguage}-${selectedSensor}`">
           <ion-item class="config-item">
             <ion-label>{{ localize("@batchLabel") }}</ion-label>
-            <ion-checkbox :checked="batchChecked" @ionChange="onBatchCheckedChange"></ion-checkbox>
+            <ion-checkbox :checked="batchChecked || hasMandatoryGroup('batch_params')" :disabled="hasMandatoryGroup('batch_params')" @ionChange="onBatchCheckedChange"></ion-checkbox>
             <ion-button class="visibility-button" :class="{ invisible: !batchChecked }" @click="toggleVisibility('batch_params')">{{ batchVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
@@ -419,6 +423,7 @@
 
                 <ion-checkbox 
                   :checked="paramGroupChecked[groupName] || false"
+                  :disabled="isMandatoryGroup('batch_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'batch_params')"
                 ></ion-checkbox>
                 <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
@@ -433,7 +438,7 @@
                   <ion-item class="config-item">
                     <!-- Using the TimeSlider component -->
                     <time-slider
-                      v-if="param.HMI?.visual_type === 'timeSlider'"
+                      v-if="param.HMI?.visual_type === 'timeSlider' || param.HMI?.visual_type === 'timeSliderHHMM'"
                       :label="param.HMI?.label"
                       :min="param.min_value"
                       :max="param.max_value"
@@ -441,6 +446,7 @@
                       :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
                       :groupName="groupName"
                       :paramName="paramName"
+                      :outputFormat="param.HMI?.outputFormat"
                       @update:value="onParamChange($event, 'batch_params', groupName, paramName)"
                       @update:units="onToggleChange($event, 'batch_params', groupName, paramName)"
                     />
@@ -595,7 +601,7 @@
         <ion-card v-if="sensorConfig && sensorConfig.standard_params" class="category-card" :key="`standard-${currentLanguage}-${selectedSensor}`">
           <ion-item class="config-item">
             <ion-label>{{ localize("@standLabel") }}</ion-label>
-            <ion-checkbox :checked="standardChecked" @ionChange="onStandardCheckedChange"></ion-checkbox>
+            <ion-checkbox :checked="standardChecked || hasMandatoryGroup('standard_params')" :disabled="hasMandatoryGroup('standard_params')" @ionChange="onStandardCheckedChange"></ion-checkbox>
             <ion-button class="visibility-button" :class="{ invisible: !standardChecked }" @click="toggleVisibility('standard_params')">{{ standardVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
@@ -610,6 +616,7 @@
 
                 <ion-checkbox 
                   :checked="paramGroupChecked[groupName] || false"
+                  :disabled="isMandatoryGroup('standard_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'standard_params')"
                 ></ion-checkbox>
                 <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
@@ -625,7 +632,7 @@
                     
                     <!-- Using the TimeSlider component -->
                     <time-slider
-                      v-if="param.HMI?.visual_type === 'timeSlider'"
+                      v-if="param.HMI?.visual_type === 'timeSlider' || param.HMI?.visual_type === 'timeSliderHHMM'"
                       :label="param.HMI?.label"
                       :min="param.min_value"
                       :max="param.max_value"
@@ -633,6 +640,7 @@
                       :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
                       :groupName="groupName"
                       :paramName="paramName"
+                      :outputFormat="param.HMI?.outputFormat"
                       @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
                       @update:units="onToggleChange($event, 'standard_params', groupName, paramName)"
                     />
@@ -766,6 +774,333 @@
             </ion-card>
           </div>
         </ion-card>
+        <!-- Configuration (configuration_params) -->
+        <ion-card v-if="sensorConfig?.configuration_params" class="category-card" :key="`configuration-${currentLanguage}-${selectedSensor}`">
+          <ion-item class="config-item">
+            <ion-label>{{ localize("@configurationLabel") }}</ion-label>
+            <ion-checkbox :checked="configurationChecked || hasMandatoryGroup('configuration_params')" :disabled="hasMandatoryGroup('configuration_params')" @ionChange="onConfigurationCheckedChange"></ion-checkbox>
+            <ion-button class="visibility-button" :class="{ invisible: !configurationChecked }" @click="toggleVisibility('configuration_params')">{{ configurationVisible ? '–' : '+' }}</ion-button>
+          </ion-item>
+
+          <div class="subcategory-card-holder" v-show="configurationVisible">
+            <ion-card v-for="(paramGroup, groupName) in sensorConfig.configuration_params" 
+                      :key="groupName" 
+                      v-show="configurationChecked && paramGroup.label" 
+                      :class="['subcategory-card', { 'full-width': hasIonRange(paramGroup.fields) }]">
+              <ion-item class="config-item">
+                <ion-label>{{ paramGroup.label }}</ion-label>
+
+                <ion-checkbox 
+                  :checked="paramGroupChecked[groupName] || false"
+                  :disabled="isMandatoryGroup('configuration_params', groupName)"
+                  @ionChange="onParamGroupCheckedChange($event, groupName, 'configuration_params')"
+                ></ion-checkbox>
+                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
+              </ion-item>
+
+              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && !onlyCustomFrame(paramGroup.fields)">
+                <ion-card v-for="(param, paramName) in paramGroup.fields" 
+                          :key="paramName" 
+                          v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
+                          class="config-card">
+                  <ion-item class="config-item">
+                    <time-slider
+                      v-if="param.HMI?.visual_type === 'timeSlider' || param.HMI?.visual_type === 'timeSliderHHMM'"
+                      :label="param.HMI?.label"
+                      :min="param.min_value"
+                      :max="param.max_value"
+                      :value="param.selectedValue"
+                      :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :outputFormat="param.HMI?.outputFormat"
+                      @update:value="onParamChange($event, 'configuration_params', groupName, paramName)"
+                      @update:units="onToggleChange($event, 'configuration_params', groupName, paramName)"
+                    />
+
+                    <double-slider
+                      v-if="param.HMI?.visual_type === 'doubleSlider'"
+                      :label="param.HMI?.label"
+                      :unit="param.HMI?.unit"
+                      :min="param.min_value"
+                      :max="param.max_value"
+                      :value="{ lower: param.selectedValue.split(' ')[0], upper: param.selectedValue.split(' ')[1] }"
+                      :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      @update:value="onParamChange($event, 'configuration_params', groupName, paramName)"
+                    />
+
+                    <check-box
+                      v-if="param.HMI?.visual_type === 'checkbox'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :inverted="param.inverted === 'true'"
+                      @update:value="onParamChange($event, 'configuration_params', groupName, paramName)"
+                    />
+
+                    <custom-value
+                      v-if="param.HMI?.visual_type === 'customValue'"
+                      :label="localize(`${param.HMI?.label} @customFixed `) + param.valueText"
+                      :value="param.value"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                    />
+
+                    <drop-down
+                      v-if="param.HMI?.visual_type === 'dropdown'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :choices="param.choices"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'configuration_params', groupName, paramName)"
+                    />
+
+                    <num-input
+                      v-if="param.HMI?.visual_type === 'numInput' && param.type !== 'float'"
+                      :label="param.HMI?.label"
+                      :unit="param.HMI?.unit"
+                      :value="param.selectedValue"
+                      :min="param.min_value"
+                      :max="param.max_value"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'configuration_params', groupName, paramName)"
+                    />
+
+                    <float-input
+                      v-if="param.HMI?.visual_type === 'numInput' && param.type === 'float'"
+                      :label="param.HMI?.label"     
+                      :value="param.selectedValue"
+                      :min="parseFloat(param.min_value)"
+                      :max="parseFloat(param.max_value)"
+                      :step="param.step ? parseFloat(param.step) : 0.01"
+                      :precision="param.precision ? parseInt(param.precision) : 2"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'configuration_params', groupName, paramName)"
+                    />
+
+                    <slider-input
+                      v-if="param.HMI?.visual_type === 'slider' && param.type !== 'float'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="parseInt(param.min_value)"
+                      :max="parseInt(param.max_value)"
+                      :step="param.step ? parseInt(param.step) : 1"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'configuration_params', groupName, paramName)"
+                    />
+
+                    <float-input
+                      v-if="param.HMI?.visual_type === 'slider' && param.type === 'float'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="parseFloat(param.min_value)"
+                      :max="parseFloat(param.max_value)"
+                      :step="param.step ? parseFloat(param.step) : 0.01"
+                      :precision="param.precision ? parseInt(param.precision) : 2"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'configuration_params', groupName, paramName)"
+                    />
+
+                    <text-input
+                      v-if="param.HMI?.visual_type === 'textInput'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :placeholder="param.placeholder"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'configuration_params', groupName, paramName)"
+                    />
+
+                  </ion-item>
+                </ion-card>
+              </ul>
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" class="showFrameButton">                
+                <ion-button @click="toggleFramesVisibility(groupName)" class="small-button">
+                  {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
+                </ion-button>
+                <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('configuration_params', groupName)"></div>
+              </ion-card-content>
+            </ion-card>
+          </div>
+        </ion-card>
+
+        <!-- Commande (commande_params) -->
+        <ion-card v-if="sensorConfig?.commande_params" class="category-card" :key="`commande-${currentLanguage}-${selectedSensor}`">
+          <ion-item class="config-item">
+            <ion-label>{{ localize("@commandeLabel") }}</ion-label>
+            <ion-checkbox :checked="commandeChecked || hasMandatoryGroup('commande_params')" :disabled="hasMandatoryGroup('commande_params')" @ionChange="onCommandeCheckedChange"></ion-checkbox>
+            <ion-button class="visibility-button" :class="{ invisible: !commandeChecked }" @click="toggleVisibility('commande_params')">{{ commandeVisible ? '–' : '+' }}</ion-button>
+          </ion-item>
+
+          <div class="subcategory-card-holder commande-grid" v-show="commandeVisible">
+            <ion-card v-for="(paramGroup, groupName) in sensorConfig.commande_params" 
+                      :key="groupName" 
+                      v-show="commandeChecked && paramGroup.label" 
+                      class="subcategory-card commande-card">
+              <ion-item class="config-item">
+                <ion-label>{{ paramGroup.label }}</ion-label>
+
+                <ion-checkbox 
+                  :checked="paramGroupChecked[groupName] || false"
+                  :disabled="isMandatoryGroup('commande_params', groupName)"
+                  @ionChange="onParamGroupCheckedChange($event, groupName, 'commande_params')"
+                ></ion-checkbox>
+                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
+              </ion-item>
+
+              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && !onlyCustomFrame(paramGroup.fields)">
+                <ion-card v-for="(param, paramName) in paramGroup.fields" 
+                          :key="paramName" 
+                          v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
+                          class="config-card">
+                  <ion-item class="config-item">
+                    <time-slider
+                      v-if="param.HMI?.visual_type === 'timeSlider' || param.HMI?.visual_type === 'timeSliderHHMM'"
+                      :label="param.HMI?.label"
+                      :min="param.min_value"
+                      :max="param.max_value"
+                      :value="param.selectedValue"
+                      :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :outputFormat="param.HMI?.outputFormat"
+                      @update:value="onParamChange($event, 'commande_params', groupName, paramName)"
+                      @update:units="onToggleChange($event, 'commande_params', groupName, paramName)"
+                    />
+
+                    <double-slider
+                      v-if="param.HMI?.visual_type === 'doubleSlider'"
+                      :label="param.HMI?.label"
+                      :unit="param.HMI?.unit"
+                      :min="param.min_value"
+                      :max="param.max_value"
+                      :value="{ lower: param.selectedValue.split(' ')[0], upper: param.selectedValue.split(' ')[1] }"
+                      :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      @update:value="onParamChange($event, 'commande_params', groupName, paramName)"
+                    />
+
+                    <check-box
+                      v-if="param.HMI?.visual_type === 'checkbox'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :inverted="param.inverted === 'true'"
+                      @update:value="onParamChange($event, 'commande_params', groupName, paramName)"
+                    />
+
+                    <custom-value
+                      v-if="param.HMI?.visual_type === 'customValue'"
+                      :label="localize(`${param.HMI?.label} @customFixed `) + param.valueText"
+                      :value="param.value"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                    />
+
+                    <drop-down
+                      v-if="param.HMI?.visual_type === 'dropdown'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :choices="param.choices"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'commande_params', groupName, paramName)"
+                    />
+
+                    <num-input
+                      v-if="param.HMI?.visual_type === 'numInput' && param.type !== 'float'"
+                      :label="param.HMI?.label"
+                      :unit="param.HMI?.unit"
+                      :value="param.selectedValue"
+                      :min="param.min_value"
+                      :max="param.max_value"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'commande_params', groupName, paramName)"
+                    />
+
+                    <float-input
+                      v-if="param.HMI?.visual_type === 'numInput' && param.type === 'float'"
+                      :label="param.HMI?.label"     
+                      :value="param.selectedValue"
+                      :min="parseFloat(param.min_value)"
+                      :max="parseFloat(param.max_value)"
+                      :step="param.step ? parseFloat(param.step) : 0.01"
+                      :precision="param.precision ? parseInt(param.precision) : 2"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'commande_params', groupName, paramName)"
+                    />
+
+                    <slider-input
+                      v-if="param.HMI?.visual_type === 'slider' && param.type !== 'float'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="parseInt(param.min_value)"
+                      :max="parseInt(param.max_value)"
+                      :step="param.step ? parseInt(param.step) : 1"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'commande_params', groupName, paramName)"
+                    />
+
+                    <float-input
+                      v-if="param.HMI?.visual_type === 'slider' && param.type === 'float'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="parseFloat(param.min_value)"
+                      :max="parseFloat(param.max_value)"
+                      :step="param.step ? parseFloat(param.step) : 0.01"
+                      :precision="param.precision ? parseInt(param.precision) : 2"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'commande_params', groupName, paramName)"
+                    />
+
+                    <text-input
+                      v-if="param.HMI?.visual_type === 'textInput'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :placeholder="param.placeholder"
+                      :groupName="groupName"
+                      :paramName="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'commande_params', groupName, paramName)"
+                    />
+
+                  </ion-item>
+                </ion-card>
+              </ul>
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" class="showFrameButton">                
+                <ion-button @click="toggleFramesVisibility(groupName)" class="small-button">
+                  {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
+                </ion-button>
+                <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('commande_params', groupName)"></div>
+              </ion-card-content>
+            </ion-card>
+          </div>
+        </ion-card>
       </div>
 
       <ion-card class="outputCard" v-show="sensorConfigLoaded && !(sensorConfig?.general_params?.outputCardHidden)">
@@ -859,6 +1194,8 @@ const sensorConfig = ref<any | null>(null); // Dynamic configuration for the sel
 const batchChecked = ref(false); // State of the batch mode checkbox
 const standardChecked = ref(false); // State of the standard mode checkbox
 const modbusChecked = ref(true); // State of the modbus mode checkbox
+const configurationChecked = ref(true); // State of the configuration mode checkbox
+const commandeChecked = ref(true); // State of the commande mode checkbox
 const generalChecked = ref(true); // State of the general mode checkbox
 const paramGroupChecked = ref<Record<string, boolean>>({}); // Tracks the state of group checkboxes
 const outputData: never[] = []; // Output data for rendering
@@ -870,6 +1207,8 @@ const framesAvailable = ref(false);
 const batchVisible = ref(true);
 const standardVisible = ref(true);
 const modbusVisible = ref(true);
+const configurationVisible = ref(true);
+const commandeVisible = ref(true);
 const generalVisible = ref(false);
 const subcategoryVisible = ref<Record<string, boolean>>({});
 const framesVisible = ref<Record<string, boolean>>({});
@@ -877,6 +1216,34 @@ const framesCount = ref<Record<string, number>>({});
 const sensorConfigLoaded = ref(false); // Add a new reactive variable to track the loading state
 const sensorImage = ref(''); // Reactive variable to store the sensor image path
 const isEnforcingRelationships = ref(false);
+
+const isTrueFlag = (value: unknown) => value === true || value === "true";
+
+const isMandatoryGroup = (bigGroupName: string, groupName: string | number) => {
+  return isTrueFlag(sensorConfig.value?.[bigGroupName]?.[groupName]?.mandatory);
+};
+
+const hasMandatoryGroup = (bigGroupName: string) => {
+  const section = sensorConfig.value?.[bigGroupName];
+  if (!section) return false;
+
+  return Object.keys(section).some(groupName => {
+    if (groupName === "global_params" || groupName === "cfg_block") return false;
+    return isTrueFlag(section[groupName]?.mandatory);
+  });
+};
+
+const setGroupEnabled = (bigGroupName: string, groupName: string | number, checked: boolean) => {
+  const group = sensorConfig.value?.[bigGroupName]?.[groupName];
+  if (!group?.fields) return;
+
+  paramGroupChecked.value[groupName] = checked;
+  Object.keys(group.fields).forEach(field => {
+    group.fields[field].enabled = checked;
+    paramGroupList[field] = group.fields[field];
+  });
+  outputData[groupName] = checked;
+};
 
 // Initialize subcategoryVisible to show all subcategories by default
 watch(sensorConfig, async (newConfig) => {
@@ -900,7 +1267,7 @@ watch(sensorConfig, async (newConfig) => {
     // Wait for the DOM to update
     await nextTick();
     
-    ["batch_params", "modbus_params", "standard_params", "general_params"].forEach(section => {
+    ["batch_params", "modbus_params", "standard_params", "configuration_params", "commande_params", "general_params"].forEach(section => {
       if (newConfig[section]) {
         Object.keys(newConfig[section]).forEach(groupName => {
           // Initialize subcategoryVisible based on the folded property
@@ -1034,6 +1401,8 @@ const resetCheckboxes = () => {
   batchChecked.value = false;
   standardChecked.value = false;
   modbusChecked.value = false;
+  configurationChecked.value = false;
+  commandeChecked.value = false;
   generalChecked.value = true;
 
   Object.keys(outputData).forEach(data => {
@@ -1056,7 +1425,7 @@ const resetCheckboxes = () => {
 const initializeStates = (config) => {
   const setParentAndChildStates = (parentGroup, groupName, bigGroupName) => {
     // Check parent default_state
-    if (parentGroup.default_state === "true") {
+    if (parentGroup.default_state === "true" || isTrueFlag(parentGroup.mandatory)) {
       if (bigGroupName === "general_params") {
         generalChecked.value = true;
         onGeneralCheckedChange({ detail: { checked: true } });
@@ -1069,6 +1438,12 @@ const initializeStates = (config) => {
       } else if (bigGroupName === "modbus_params") {
         modbusChecked.value = true;
         onModbusCheckedChange({ detail: { checked: true } });
+      }else if (bigGroupName === "configuration_params") {
+        configurationChecked.value = true;
+        onConfigurationCheckedChange({ detail: { checked: true } });
+      }else if (bigGroupName === "commande_params") {
+        commandeChecked.value = true;
+        onCommandeCheckedChange({ detail: { checked: true } });
       }
       paramGroupChecked.value[groupName] = true;
       onParamGroupCheckedChange({ detail: { checked: true } }, groupName, bigGroupName);
@@ -1087,7 +1462,7 @@ const initializeStates = (config) => {
           field.originalMaxValue = field.max_value;
 
           // Check individual default_state (if applicable)
-          if (parentGroup.default_state === "true") {
+          if (parentGroup.default_state === "true" || isTrueFlag(parentGroup.mandatory)) {
             paramGroupList[fieldName] = parentGroup.fields[fieldName];
           }
         }
@@ -1096,7 +1471,7 @@ const initializeStates = (config) => {
   };
 
   // Iterate over big groups
-  ["batch_params", "modbus_params", "standard_params", "general_params"].forEach((bigGroupName) => {
+  ["batch_params", "modbus_params", "standard_params", "configuration_params", "commande_params", "general_params"].forEach((bigGroupName) => {
     if (config[bigGroupName]) {
       Object.keys(config[bigGroupName]).forEach((groupName) => {
         const parentGroup = config[bigGroupName][groupName];
@@ -1120,16 +1495,18 @@ const loadSensorConfig = async (sensorFile: string) => {
     sensorImage.value = findSensorImage(sensorConfig.value);
 
     // Initialize default states first
-    ["batch_params", "modbus_params", "standard_params", "general_params"].forEach((section) => {
+    ["batch_params", "modbus_params", "standard_params", "configuration_params", "commande_params", "general_params"].forEach((section) => {
       if (rawConfig[section]) {
         Object.keys(rawConfig[section]).forEach((groupName) => {
           const group = rawConfig[section][groupName];
-          if (group.default_state === "true") {
+          if (group.default_state === "true" || isTrueFlag(group.mandatory)) {
             paramGroupChecked.value[groupName] = true;
             if (section === "general_params") generalChecked.value = true;
             if (section === "batch_params") batchChecked.value = true;
             if (section === "standard_params") standardChecked.value = true;
             if (section === "modbus_params") modbusChecked.value = true;
+            if (section === "configuration_params") configurationChecked.value = true;
+            if (section === "commande_params") commandeChecked.value = true;
           }
         });
       }
@@ -1172,7 +1549,7 @@ const findSensorImage = (config) => {
 // Initialize default values for sensor parameters
 const initParams = () => {
   if (sensorConfig.value) {
-    for (const bigGroupName of ['general_params', 'modbus_params', 'batch_params', 'standard_params']) {
+    for (const bigGroupName of ['general_params', 'modbus_params', 'batch_params', 'standard_params', 'configuration_params', 'commande_params']) {
       const section = sensorConfig.value[bigGroupName];
       for (const groupName in section) {
         const group = section[groupName];
@@ -1198,13 +1575,8 @@ const initParams = () => {
 const updateOutput = () => {
   let outputFrameTxt = "";
   
-  // Reset all output data and param group list when no category is selected
-  if (!batchChecked.value && !standardChecked.value && !modbusChecked.value && !(sensorConfig.value?.general_params?.outputCardOverride)) {
-    outputData.general_params = false;
-    Object.keys(paramGroupList).forEach(key => {
-      delete paramGroupList[key];
-    });
-    const outputArea = document.getElementById("outputArea");
+  const outputArea = document.getElementById("outputArea");
+  if (!sensorConfig.value) {
     if (outputArea) {
       outputArea.innerHTML = localize("@selectAtLeastOneMode");
     }
@@ -1212,31 +1584,27 @@ const updateOutput = () => {
     return;
   }
 
-  // Set general params
-  /*outputData.general_params = true;
-  outputData.confirmed = true;
-  outputVals.confirmed = "00";*/
-  //sensorConfig.value.general_params.fields.confirmed.enabled = true;
-  //paramGroupList.confirmed = sensorConfig.value.general_params.fields.confirmed;
-  
   Object.keys(sensorConfig.value).forEach((bigGroupName) => {
-    // Skip processing if the category is unchecked
+  // Skip processing if the category is unchecked
     if ((bigGroupName === 'batch_params' && !batchChecked.value) || 
         (bigGroupName === 'modbus_params' && !modbusChecked.value) ||
         (bigGroupName === 'standard_params' && !standardChecked.value) ||
-        (bigGroupName === 'general_params' && !generalChecked.value)) {
+        (bigGroupName === 'general_params' && !generalChecked.value)||
+        (bigGroupName === 'configuration_params' && !configurationChecked.value)||
+        (bigGroupName === 'commande_params' && !commandeChecked.value)) 
+         {
       // Clear all parameter groups for this category
       if (sensorConfig.value[bigGroupName]) {
         Object.keys(sensorConfig.value[bigGroupName]).forEach(groupName => {
           if (sensorConfig.value[bigGroupName][groupName]?.fields) {
             Object.keys(sensorConfig.value[bigGroupName][groupName].fields).forEach(fieldName => {
               delete paramGroupList[fieldName];
-            });
-          }
-        });
-      }
-      return;
+          });
+        }
+      });
     }
+    return;
+  }
 
     const cfgBlocks = sensorConfig.value[bigGroupName]?.cfg_block || [];
     
@@ -1288,10 +1656,8 @@ const updateOutput = () => {
       }
     });
   });
-  
-  const outputArea = document.getElementById("outputArea");
   if (outputArea) {
-    outputArea.innerHTML = outputFrameTxt;
+    outputArea.innerHTML = outputFrameTxt.trim() === "" ? localize("@selectAtLeastOneMode") : outputFrameTxt;
   }
   framesAvailable.value = outputFrameTxt.trim() !== "";
 };
@@ -1302,6 +1668,7 @@ const replaceInFrame = (frame: string, key: string, value: string, enabled: stri
     if (frame.includes(key)) {
       frame = frame.replace(RegExp(`\\(${key}\\)`, 'g'), `${value}`);
       
+      // Only drop the frame when the referenced field is explicitly disabled.
       if (!enabled) {
         frame = '';
       }
@@ -1309,9 +1676,20 @@ const replaceInFrame = (frame: string, key: string, value: string, enabled: stri
   }
   return frame;
 };
-
+//Convert minutes to utc minutes
+const localMinutesToUtcMinutes = (localMinutes: number) => {
+  const now = new Date();
+  const localDate = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    Math.floor(localMinutes / 60),
+    localMinutes % 60
+  );
+  return localDate.getUTCHours() * 60 + localDate.getUTCMinutes();
+};
 // Convert a parameter value to a hex format for frames
-const convertToHexFrameValue = (value: string, param: {
+const convertToHexFrameValue = (value: string, param:{
   HMI: any; type: string; isHours: boolean; inverted: string;
 }) => {
   if (param.type === 'frame') return "";
@@ -1338,10 +1716,17 @@ const convertToHexFrameValue = (value: string, param: {
       value = (parseInt(value) * param.HMI.multiplier).toString();
     }
     if (param.type == "timeVal") {
-      if (param.isHours) {
-        value = (parseInt(value) * 60).toString();
+      if (param.HMI?.outputFormat === 'HHMM') {
+        const totalMinutes = localMinutesToUtcMinutes(parseInt(value, 10));
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        output = hours.toString(16).padStart(2, '0') + minutes.toString(16).padStart(2, '0');
+      } else {
+        if (param.isHours) {
+          value = (parseInt(value) * 60).toString();
+        }
+        output = (parseInt(value) + 32768).toString(16).padStart(4, '0');
       }
-      output = (parseInt(value) + 32768).toString(16).padStart(4, '0');
     } else if (param.type.startsWith("hex")) {
       const bytes = parseInt(param.type.replace("hex", ""), 10);
       output = parseInt(value).toString(16).padStart(bytes * 2, '0');
@@ -1376,12 +1761,10 @@ const onCategoryCheckedChange = (event: CustomEvent, category: string) => {
   }
 
   Object.keys(sensorConfig.value[category]).forEach(group => {
-    if (group !== "global_params") {
-      if (paramGroupChecked.value[group]) {
-        Object.keys(sensorConfig.value[category][group].fields).forEach(field => {
-          sensorConfig.value[category][group].fields[field].enabled = event.detail.checked;
-          paramGroupList[field] = sensorConfig.value[category][group].fields[field];
-        });
+    if (group !== "global_params" && group !== "cfg_block") {
+      const groupObject = sensorConfig.value[category][group];
+      if (groupObject && groupObject.fields) {
+        setGroupEnabled(category, group, isTrueFlag(groupObject.mandatory) || event.detail.checked);
       }
     }
   });
@@ -1392,20 +1775,37 @@ const onCategoryCheckedChange = (event: CustomEvent, category: string) => {
 
 // Update batch mode state
 const onBatchCheckedChange = (event: CustomEvent) => {
-  batchChecked.value = event.detail.checked;
-  onCategoryCheckedChange(event, "batch_params");
+  const checked = hasMandatoryGroup("batch_params") || event.detail.checked;
+  batchChecked.value = checked;
+  onCategoryCheckedChange({ detail: { checked } }, "batch_params");
 };
 
 // Update standard mode state
 const onStandardCheckedChange = (event: CustomEvent) => {
-  standardChecked.value = event.detail.checked;
-  onCategoryCheckedChange(event, "standard_params");
+  const checked = hasMandatoryGroup("standard_params") || event.detail.checked;
+  standardChecked.value = checked;
+  onCategoryCheckedChange({ detail: { checked } }, "standard_params");
 };
 
 // Update ModBus mode state
 const onModbusCheckedChange = (event: CustomEvent) => {
-  modbusChecked.value = event.detail.checked;
-  onCategoryCheckedChange(event, "modbus_params");
+  const checked = hasMandatoryGroup("modbus_params") || event.detail.checked;
+  modbusChecked.value = checked;
+  onCategoryCheckedChange({ detail: { checked } }, "modbus_params");
+};
+
+// Update configuration mode state
+const onConfigurationCheckedChange = (event: CustomEvent) => {
+  const checked = hasMandatoryGroup("configuration_params") || event.detail.checked;
+  configurationChecked.value = checked;
+  onCategoryCheckedChange({ detail: { checked } }, "configuration_params");
+};
+
+// Update commande mode state
+const onCommandeCheckedChange = (event: CustomEvent) => {
+  const checked = hasMandatoryGroup("commande_params") || event.detail.checked;
+  commandeChecked.value = checked;
+  onCategoryCheckedChange({ detail: { checked } }, "commande_params");
 };
 
 // Update general mode state
@@ -1416,12 +1816,8 @@ const onGeneralCheckedChange = (event: CustomEvent) => {
 
 // Handle group checkbox changes
 const onParamGroupCheckedChange = (event: CustomEvent, groupName: string | number, bigGroupName: string) => {
-  paramGroupChecked.value[groupName] = event.detail.checked;
-  Object.keys(sensorConfig.value[bigGroupName][groupName].fields).forEach(field => {
-    sensorConfig.value[bigGroupName][groupName].fields[field].enabled = event.detail.checked;
-    paramGroupList[field] = sensorConfig.value[bigGroupName][groupName].fields[field];
-  });
-  outputData[groupName] = event.detail.checked;
+  const checked = isMandatoryGroup(bigGroupName, groupName) || event.detail.checked;
+  setGroupEnabled(bigGroupName, groupName, checked);
   updateOutput();
 };
 
@@ -1596,6 +1992,10 @@ const toggleVisibility = (category: string) => {
     batchVisible.value = !batchVisible.value;
   } else if (category === 'modbus_params') {
     modbusVisible.value = !modbusVisible.value;
+  } else if (category === 'configuration_params') {
+    configurationVisible.value = !configurationVisible.value;
+  } else if (category === 'commande_params') {
+    commandeVisible.value = !commandeVisible.value;
   } else if (category === 'standard_params') {
     standardVisible.value = !standardVisible.value;
   }
@@ -1665,23 +2065,27 @@ const generateModbusFrame = (frame: string, fields: any, enabled: boolean) => {
 };
 
 const generateFramesForGroup = (bigGroupName: string, groupName: string) => {
-  
   let frames = '';
   const paramGroup = sensorConfig.value[bigGroupName][groupName];
   const globalParams = sensorConfig.value[bigGroupName]?.global_params?.fields || {};
+  const cfgBlocks = sensorConfig.value[bigGroupName]?.cfg_block || [];
   let frameCount = 0;
 
-  if (paramGroup && paramGroup.fields) {
-    const cfgBlocks = sensorConfig.value[bigGroupName]?.cfg_block || [];
-    cfgBlocks.forEach((cfgEntry: string, index: any) => {
+  if (paramGroup) {
+    cfgBlocks.forEach((cfgEntry: any, index: any) => {
       let frame = cfgEntry[0];
       const frameDesc = cfgEntry[1];
+      let includeFrame = false;
+      const hasPlaceholder = frame.includes('(') && frame.includes(')');
+
+      if (!hasPlaceholder) {
+        includeFrame = true;
+      }
 
       // Special handling for Modbus frames
       if (frame.includes('8007 0000 41 06')) {
         const frameNumber = frame.split(' ')[0];
-        // Only process this frame if we're in the correct modbus frame group
-        if (groupName === `modbusFrame${frameNumber}`) {
+        if (groupName === `modbusFrame${frameNumber}` && paramGroup.fields) {
           const fields = {
             slave: paramGroup.fields[`mb${frameNumber}Slave`],
             functionCode: paramGroup.fields[`mb${frameNumber}FunctionCode`],
@@ -1689,7 +2093,6 @@ const generateFramesForGroup = (bigGroupName: string, groupName: string) => {
             numRegisters: paramGroup.fields[`mb${frameNumber}NumRegisters`],
             dataToWrite: paramGroup.fields[`mb${frameNumber}DataToWrite`]
           };
-          
           const modbusFrame = generateModbusFrame(frame, fields, paramGroup.fields[`mb${frameNumber}Slave`]?.enabled);
           if (modbusFrame) {
             const frameId = `frame-${bigGroupName}-${groupName}-${index}`;
@@ -1699,64 +2102,55 @@ const generateFramesForGroup = (bigGroupName: string, groupName: string) => {
         }
         return;
       }
-      
-      let includeFrame = false;
-      Object.keys(paramGroup.fields).forEach(paramName => {
-        const param = paramGroup.fields[paramName];
-        if (param.selectedValue) {
-          if (frame.includes(`(${paramName}1)`) || frame.includes(`(${paramName}2)`)) {
-            const frameValues = param.selectedValue.split(' ').map((value: string) => convertToHexFrameValue(value, param));
-            frame = replaceInFrame(frame, `${paramName}1`, frameValues[0], param.enabled);
-            frame = replaceInFrame(frame, `${paramName}2`, frameValues[1], param.enabled);
-            includeFrame = true;
-          } else if (frame.includes(`(${paramName})`)) {
-            const frameValue = convertToHexFrameValue(param.selectedValue, param);
-            frame = replaceInFrame(frame, paramName, frameValue || '', param.enabled);
-            includeFrame = true;
-          }
-        } else if (param.type === 'frame') {
-          if (frame.includes(`(${paramName})`)) {
+
+      if (paramGroup.fields) {
+        Object.keys(paramGroup.fields).forEach(paramName => {
+          const param = paramGroup.fields[paramName];
+          if (!param) return;
+
+          const hasValue = param.selectedValue !== undefined && param.selectedValue !== null && (param.selectedValue !== '' || param.type === 'bool');
+          if (hasValue) {
+            if (frame.includes(`(${paramName}1)`) || frame.includes(`(${paramName}2)`)) {
+              const frameValues = param.selectedValue.toString().split(' ').map((value: string) => convertToHexFrameValue(value, param));
+              frame = replaceInFrame(frame, `${paramName}1`, frameValues[0], param.enabled);
+              frame = replaceInFrame(frame, `${paramName}2`, frameValues[1], param.enabled);
+              includeFrame = true;
+            } else if (frame.includes(`(${paramName})`)) {
+              const frameValue = convertToHexFrameValue(param.selectedValue, param);
+              frame = replaceInFrame(frame, paramName, frameValue || '', param.enabled);
+              includeFrame = true;
+            }
+          } else if (param.type === 'frame' && frame.includes(`(${paramName})`)) {
             frame = replaceInFrame(frame, paramName, "", param.enabled);
             includeFrame = true;
           }
-        }
-      });
+        });
+      }
+
       Object.keys(globalParams).forEach(globalParamName => {
         const globalParam = globalParams[globalParamName];
-        if (globalParam.selectedValue) {
-          if (frame.includes(`(${globalParamName}1)`) || frame.includes(`(${globalParamName}2)`)) {
-            const frameValues = globalParam.selectedValue.split(' ').map(value => convertToHexFrameValue(value, globalParam));
-            frame = replaceInFrame(frame, `${globalParamName}1`, frameValues[0], globalParam.enabled);
-            frame = replaceInFrame(frame, `${globalParamName}2`, frameValues[1], globalParam.enabled);
-          } else if (frame.includes(`(${globalParamName})`)) {
-            const frameValue = convertToHexFrameValue(globalParam.selectedValue, globalParam);
-            frame = replaceInFrame(frame, globalParamName, frameValue, globalParam.enabled);
-          }
+        if (!globalParam || !globalParam.selectedValue) return;
+
+        if (frame.includes(`(${globalParamName}1)`) || frame.includes(`(${globalParamName}2)`)) {
+          const frameValues = globalParam.selectedValue.split(' ').map(value => convertToHexFrameValue(value, globalParam));
+          frame = replaceInFrame(frame, `${globalParamName}1`, frameValues[0], globalParam.enabled);
+          frame = replaceInFrame(frame, `${globalParamName}2`, frameValues[1], globalParam.enabled);
+          includeFrame = true;
+        } else if (frame.includes(`(${globalParamName})`)) {
+          const frameValue = convertToHexFrameValue(globalParam.selectedValue, globalParam);
+          frame = replaceInFrame(frame, globalParamName, frameValue, globalParam.enabled);
+          includeFrame = true;
         }
       });
+
       if (includeFrame) {
         const frameId = `frame-${bigGroupName}-${groupName}-${index}`;
-        Object.keys(globalParams).forEach(globalParamName => {
-          const globalParam = globalParams[globalParamName];
-          if (globalParam.selectedValue) {
-            if (frame.includes(`(${globalParamName}1)`) || frame.includes(`(${globalParamName}2)`)) {
-              const frameValues = globalParam.selectedValue.split(' ').map(value => convertToHexFrameValue(value, globalParam));
-              frame = replaceInFrame(frame, `${globalParamName}1`, frameValues[0], globalParam.enabled);
-              frame = replaceInFrame(frame, `${globalParamName}2`, frameValues[1], globalParam.enabled);
-            } else if (frame.includes(`(${globalParamName})`)) {
-              const frameValue = convertToHexFrameValue(globalParam.selectedValue, globalParam);
-              frame = replaceInFrame(frame, globalParamName, frameValue, globalParam.enabled);
-            }
-          }
-        });
-        if (includeFrame) {
-          const frameId = `frame-${bigGroupName}-${groupName}-${index}`;
-          frames += `<span class="frameArea" id="${frameId}"><span class="frame">${frame}</span>&nbsp;&nbsp;&nbsp;&nbsp;(${frameDesc}) <button class="copy-button" data-frame-id="${frameId}" data-no-spaces="true">${localize('@copyFrame')}</button></span><br>`;
+        frames += `<span class="frameArea" id="${frameId}"><span class="frame">${frame}</span>&nbsp;&nbsp;&nbsp;&nbsp;(${frameDesc}) <button class="copy-button" data-frame-id="${frameId}" data-no-spaces="true">${localize('@copyFrame')}</button></span><br>`;
         frameCount++;
-        }
       }
     });
   }
+
   framesCount.value[groupName] = frameCount;
   return frames;
 };
@@ -1915,10 +2309,19 @@ ion-segment-button::part(indicator-background) {
   padding: 10px;
 }
 
+.commande-grid {
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+}
+
 .subcategory-card {
   width: 100% !important;
   margin: 0 !important;
   height: fit-content;
+}
+
+.commande-card {
+  width: 100% !important;
+  min-height: 120px;
 }
 
 .subcategory-card.full-width {

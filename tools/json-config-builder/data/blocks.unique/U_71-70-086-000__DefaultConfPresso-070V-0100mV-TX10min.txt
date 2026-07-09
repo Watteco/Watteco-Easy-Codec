@@ -1,0 +1,10 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [71-70-086-000_Carte Analogique 0-10v 0-2,5v LORA 868Mhz testee]
+
+[ROM_DEFAULT_TARGET] V3.5.2.5457_ips-analoginput.bsm.at.ClassA.lrctm.EU.chkpt.wdt2-prf-dfp-br-fota-S0.wtc-307-analoginput.307V4.sx-lr.ROMCfg-DefaultConfPresso-070V-0100mV-TX10min.txt DefaultConfPresso-070V-0100mV-TX10min
+@10a00
+06 11 50 00 50 02 03
+10 31 06 00 0C 00 00 55 39 00 00 80 0A 00 00 00 00
+09 31 05 00 0c 80 03 21 00 00
+10 11 06 00 0C 00 00 55 39 00 00 80 0A 00 00 00 00

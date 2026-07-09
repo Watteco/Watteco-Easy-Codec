@@ -1,0 +1,126 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [stmator] [71-70-120-004_50-70-201-004_configuration_36-70-201-000_CHOCK]
+
+[ROM_DEFAULT_TARGET] .*_ips-accelero.*(fat3)*.ClassA.lrctm.EU.chkpt.wdt2.*7010737.*sx-lr.hex AngleChocks
+@
+# ---------CFG 0 (Default): Angle and chocks with accelerated batch when chocks/vibrations ----------
+# . Set "not confirmed" except for confirmed alarms with 3 retries (if any)
+08 11 05 8004 0000 08 00
+08 11 05 8004 0001 20 03
+#
+# . Delete all configurations (Batch and Standard)
+06 11 50 0050 02 03
+#
+# LIS2DE TAP detection (Think about devopt LIS2DE et TAP bit activation (cf InfoMem.7010xxxVyy))
+# Note about TAP configuration examples:
+#  0x9403 : (b10 0101 00 / 0 0000011) Click/100Hz/2g/(3*16)=48mg
+#  0x5403 : (b01 0101 00 / 0 0000011) Chock/100Hz/2g/(3*16)=48mg
+#  0x9C03 : (b10 0111 00 / 0 0000011) Click/400Hz/2g/(3*16)=48mg
+#  0xA003 : (b10 1000 00 / 0 0000011) Click/1620Hz/2g/(3*16)=48mg
+#  0x6003 : (b01 1000 00 / 0 0000011) Chock/1620Hz/2g/(3*16)=48mg
+#  0x5503 : (b01 0101 01 / 0 0000011) Chock/100Hz/4g/(3*32)=96mg
+#  0x5D03 : (b01 0111 10 / 0 0000011) Chock/400Hz/8g/(3*62)=186mg
+#  0x5706 : (b01 0101 11 / 0 0000110) Chock/100Hz/16g/(6*186)=1116mg
+#  0x6306 : (b01 1000 11 / 0 0000110) Chock/1620Hz/16g/(6*186)=1116mg
+#  0x5E03 : (b01 0111 10 / 0 0000011) Chock/400Hz/8g/(3*186)=558mg
+#  0x5F06 : (b01 0111 11 / 0 0000101) Chock/400Hz/16g/(6*186)=1116mg
+09 11 05 000c 8004 19 5706
+#
+# . TAP_OCC config avec driver hybride Occupancy sur tap_sensor
+#
+#   UnOcc to Occ delay: 0s (Will reconfigure "fast batches (ACTION 0)" after this delay without chocks notification
+09 11 05 0406 0011 21 0000
+#   Occ to Unocc delay: 4minutes (0xF0 sec) (> FAST BACTH period see 3mn (8003) below!). 
+#                       Will reconfigure "SLOW batches (ACTION 1)" after this delay without notification
+09 11 05 0406 0010 21 00F0
+#
+# ------------------------- ACTIONS altering BATCH REPORT --------------------------------
+#
+#   ACTION 0: FAST batch config for chocks 
+#                         ACCELERATION (TAP/LIS2DE) ** Acc(mg) **
+#                         Min 5s => 0x0005, Max 3mn, Delta=0,    resol=1,   Tag Label 0, Tag Size 3, Type U16 6
+19 11 05 0050 FF00 41 11  11 06 800E 15 0000 00 0005 8003 0000 0001 03
+#
+#   ACTION 1: SLOW batch config for chocks (big max)
+#                         ACCELERATION (TAP/LIS2DE) ** Acc(mg) **
+#                         Min 1s => 0x0001, Max 24h, Delta=0,    resol=1,   Tag Label 0, Tag Size 3, Type U16 6
+19 11 05 0050 FF01 41 11  11 06 800E 15 0000 00 0001 85A0 0000 0001 03
+#
+#   ACTION 2: Batch Force reports 
+0D 11 05 0050 FF02 41 05 11 50 0050 08 
+# 
+# ------------------------- ACTIONS TRIGGER CONFIGURATION -----------------------------
+# -------------- ACCORDING CHOCKS EVENTS MAPPED TO OCCUPANCY CLUSTER ------------------
+#
+#     NOTE: New action function used here, available since this INclin'o Chocks revision: 
+#           Execute action "Without Save" = 0x04 can be used instead of Execute action = 0x00
+#           ==> If any required ZCL action should be saved it won't be 
+#               Concerned commands : Write saved parameter, Configre STD report, Configure Batch report
+#
+#   ---> A Chock has set occupancy back to 1 : TILT is being chocked or moving => Acceleration reports are faster
+#   . Periodic MAX = Inf => xFFFF; MIN = 10s => 0x000A 
+#   . ALARM on treshold HIGH: 1; hyst 00
+#     RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98 
+#     CSD : NotIsAlarm/OnExceed/NotOnFall/ThresholdWAction/Slot1 : b 0 1 0 11 001 ==> x59
+#     THRS(Bitmap Mask): 1 : 0x01; HYST(Bitmap Pattern): 0 : 0x01
+#     OCC : 1
+#     ACTION: Without report (0x88), StopOtherActions(FF) /
+#       StartDelayBeforeForceBatch(010001) / Force batch report(0002) / Set batch config wo save(ACTION 0: 0400)
+19 11 06 0406 98 0000 18 000A FFFF 59 01 01 01 88 FF 010001 0002 0400
+#
+#   ---> No chock from a while occupancy back to 0 : TILT is immobile => Stop acceleration report (big Max)
+#   . Periodic MAX = Inf => xFFFF; MIN = 10s => 0x000A
+#   . ALARM on treshold LOW: 1; hyst 0
+#     RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98 
+#     CSD : NotIsAlarm/NotOnExceed/OnFall/ThresholdWAction/Slot2 : b 0 0 1 11 010 ==> x3A
+#     THRS(Bitmap Mask): 1 : 0x01; HYST(Bitmap Pattern): 0 : 0x01
+#     OCC : 1
+#     ACTION: Without report size 3 (0x83), StopOtherActions(FF)/Set batch config wo save(0401) 
+#             ==> 83 FF 0401
+14 11 06 0406 98 0000 18 000A FFFF 3A 01 01 01 83 FF 0401
+#
+# ------------------------ STANDARD REPORTS -------------------------------------------
+# . POWERDESC  [mV]
+#   . Periodic MAX = 7j => 10080mn => xA760; MIN = 10mn => 0x800A
+#   . Length of remaining payload (for 0x41 type ): 0x08
+#   . ALARM on power treshold : 2,7v (hyst 100mV)
+#     RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98 
+#     CSD : IsAlarm/OnExceed/OnFall/Threshold/Slot0 : b 1 1 1 10 000 ==> xF0
+#     Disposable battery field index : 0x04
+#     THRS: 2700 : 0x0A8C; HYST: 100 mV : 0x0064
+#     OCC : 1
+14 11 06 0050 98 0006 41 800A A760 07 F0 04 0A8C 0064 01
+#
+# ------------------------- STARTUP BATCH REPORT ---------------------------------------
+#
+# . ACCELERATION (TAP/LIS2DE) ** Acc(mg) **
+#   Min 1s => 0x0001 (Note: this min sets the min maximum acc measurement when chocks occures), 
+#   Max 24h, Delta=0,    resol=1,   Tag Label 0, Tag Size 3, Type U16 6
+11 11 06 800E 15 0000 00 0001 85A0 0000 0001 03
+#
+# . ANGLEDISP (TAP/LIS2DE) ** Angle (Â°) **
+#   Min 4h => 0x80F0(angle measurement period), Max 24H, Delta=5 (0x40a00000) [1 (0x3f800000)],    resol=0,1(0x3dcccccd),   Tag Label 1, Tag Size 3, Type Float 12
+15 11 06 000C 1D 0055 00 80F0 85A0 40a00000 3dcccccd 0B
+#
+# Codec params: 3 0,1,6,ACCmg 1,0.1,12,Deg 
+#
+#---------------------------------------------------------------------------------------------
+# ------------------------------- CONFIGURATION SEPARATOR : byte 00 --------------------------
+00
+#---------------------------------------------------------------------------------------------
+# ------------ CFG 1: U10Deg_O40Deg.12h copy (see next configuration below) ------------------
+# To Swap from Default to Alternate configuration: 11 50 0050 F1 01, and to get back: 11 50 0050 F1 00
+08 11 05 8004 0000 08 00
+08 11 05 8004 0001 20 03
+06 11 50 0050 02 03
+09 11 05 000c 8004 19 1403
+14 11 06 0050 98 0006 41 800A A760 07 F0 04 0A8C 0064 01
+16 11 06 000c 98 0055 39 001E 82D0 D0 42200000 40200000 01
+16 11 06 000c 98 0055 39 001E 82D0 B1 41200000 40200000 01
+#
+# ------------------------- BATCH REPORT ---------------------------------------
+# . 
+#---------------------------------------------------------------------------------------------
+# ------------------------------- CONFIGURATION END : byte FF --------------------------------
+FF

@@ -1,0 +1,8 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [71-70-025-003  50-70-027-003_Carte Actionneur telecommande]
+
+[ROM_DEFAULT_TARGET] V3.4.0.3578.6507_ips-actuatorpilotwire.avoid_sync_start.ClassC.lrctm.EU.chkpt.wdt2-dfp-br.315V0.sx-lr.ROMCfg-DefaultConf.txt DefaultConf
+@10a00
+06 11 50 00 50 02 03
+0d 11 06 00 13 00 00 55 20 00 00 ff ff 01

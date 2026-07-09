@@ -1,0 +1,8 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [71-70-010-006_50-70-196-000_Carte Analogique LORA 868Mhz testee]
+
+[ROM_DEFAULT_TARGET] V3.5.2.5358.5693_ips-analoginput.bsm.at.ClassA.lrctm.EU.chkpt.wdt2-dfp-br-fota-S0.wtc-307-analoginput.307V4.sx-lr.ROMCfg-DefaultConfPresso-420mA.txt DefaultConfPresso-420mA
+@10a00
+06 11 50 00 50 02 03
+10 11 06 00 0C 00 00 55 39 00 00 85 A0 00 00 00 00

@@ -1,0 +1,15 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [71-70-113-000 _ 50-70-191-000_Carte Capteur TH LED Tropicalisee testee]
+
+[ROM_DEFAULT_TARGET] .*ips-ict-th.*ClassA.lrctm.EU.*.txt CONF_DALKIA_TEMP_HUM_MES10M_TX1H_PILE_MES24H_TX24H
+@10a00
+06 11 50 00 50 02 03
+#tempï¿½rature: tag size = 2 label = 0 resolution = 0.1ï¿½C
+11 11 06 04 02 15 00 00 00 80 0A 80 3C 00 00 00 0A 02
+#humiditï¿½: tag size = 2 label = 1 resolution = 1%
+11 11 06 04 05 15 00 00 00 80 0A 80 3C 00 00 00 64 0A
+#tension pile: tag size = 2 label = 2 resolution = 1mV
+11 11 06 00 50 15 00 06 04 85 A0 85 A0 00 00 00 01 12
+#ï¿½mission de trame sur arrachement
+0D 11 06 00 0F 00 00 55 10 80 01 FF FF 01
