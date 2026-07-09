@@ -1,0 +1,10 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [50-70-206-000_Flash'O 3 Sondes LoRaWAN UE (version CLIENT)]
+
+[ROM_DEFAULT_TARGET] V3.5.2.5602_ips-ild.bsm.at.ClassA.lrctm.EU.chkpt.wdt2-dfp-br-fota.wtc-306-ild.306V4.sx-lr.ROMCfg-DefaultConf3Flasho.txt DefaultConf3Flasho
+@10a00
+06 11 50 00 50 02 03
+10 11 06 00 0f 00 04 02 23 00 00 85 a0 00 00 00 00
+10 31 06 00 0f 00 04 02 23 00 00 85 a0 00 00 00 00
+10 51 06 00 0f 00 04 02 23 00 00 85 a0 00 00 00 00

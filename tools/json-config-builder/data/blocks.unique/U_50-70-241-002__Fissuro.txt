@@ -1,0 +1,80 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [stmator] [71-70-xxx-xxx_50-70-241-002_Fissurometre]
+
+[ROM_DEFAULT_TARGET] .*_ips-fissuro.*ClassA.lrctm.EU.chkpt.wdt2.*V[0-3].*.hex Fissuro
+@
+# ---------CFG 0 (Default): CONF FOR BATCH & STANDARD REPORTS ---------------------------
+# Specific Header describing following configuration format ( Config with params. )
+# One frame cfg exemple: 
+# . Angle 10s/30s, LTC Fissure et Temp 10s/30s, VBatt 1mn/5mn, UART Trace Active, Not confirmed
+#   Request          : 11 50 0050 F2 14 04 00 000000FF 000A 001E 000A 001E 8001 8005 01 00
+# Expected Response: 11 01 0050 00 0A 00 41 0B 03 00 00 000003FF 000003FF 
+#
+02 00 01
+# Semi-colon separated list of parameters for this configuration
+#---------------------------------------------------------------
+#         AngleSpl  AngleSnd LTCSpl LTCSnd VBatSpl  VBatSnd TraceOn Confirmed 
+# index:          0        1      2      3       4        5       6         7
+# dflt:          3h       6h     3h     6h     24h      24h       0         0
+U16:0x80B4; U16:0x8168; U16:0x80B4; U16:0x8168; U16:0x85A0; U16:0x85A0; U8:0; U8:0
+# . Passage en mode "NON confirme"
+11 05 8004 0000 08 <7>
+#
+# . Effacement des configurations (Batch et Standard)
+11 50 0050 02 03
+#
+# . LIS2DE TAP detection (Think about devopt LIS2DE et TAP bit activation (cf InfoMem.7010xxxVyy))
+#   TAP inactivated and use 100Hz for angle measurement (faster measurement):
+#   0x1403 : (b00 0101 00 / 0 0000011) Idle/100Hz/2g/(3*16)=48mg
+11 05 000c 8004 19 1403
+#
+#   Set temp drift corr : ON (4F) / OFF (0F),  Max drift corr: 0x0F =>1.5Â°
+11 50 000C FF 01 0F 0F
+#
+# . Occupancy binded to chocks sensor. (Could be used for specific action/reconfiguration durings chocks ... Cf Accelro, Alto ...)
+#   ie: when chocks occur the "occupied is set" and after a programmable delay without chocks, the "occupied is unset" 
+#
+#   UnOcc to Occ delay: 0s 
+11 05 0406 0011 21 0000
+#   Occ to Unocc delay: 4minutes (0xF0 sec) . 
+#                       Will reconfigure "SLOW batches (ACTION 1)" after this delay without notification
+11 05 0406 0010 21 00F0
+#
+# UART Traces activation
+11 50 0050 88 <6>
+#
+# ----------------------- CONFIGURE ACTIONS -------------------------
+#
+# ------------------------ STANDARD REPORTS -------------------------
+#
+# ------------------------- BATCH REPORT ---------------------------------------
+#
+# . ANGLEDISP (TAP/LIS2Dx) ** Angle (Â°) **
+#   Min <0>, Max <1>, Delta=0.2 (0x3e4ccccd) [1 (0x3f800000)],
+#   resol=0,1(0x3dcccccd), Tag Label 0 (b0000 0010), Tag Size 2, Type Float 12
+11 06 000C 1D 0055 00 <0> <1> 3e4ccccd 3dcccccd 02
+#
+# . FISSURE (ADC/LTC2492 CH0), (m)
+#   Min <2>, Max <3>, Delta=0.01 (0x3c23d70a) [1 (0x3f800000)],
+#   resol=0.001,   Tag Label 1 (b0000 1010), Tag Size 2, Type Float 12
+31 06 000c 1d 0055 00 <2> <3> 3c23d70a 3a83126f 0A
+#
+# . TEMPERATURE (ADC/LTC2492 TEMP)
+#   Min <2>, Max <3>, Delta=10degC/100,  
+#   resol=10degC/100, Tag Label 2 (b0001 0010), Tag Size 2, Type I16 7
+31 06 0402 15 0000 00 <2> <3> 000A 000A 12
+#
+# . TENSION PILE (ADC/MCU) V
+#   Min <4>, Max <5>, Delta=20mV,  
+#   resol=20mV, Tag Label 3 (b0001 1010), Tag Size 2, Type U16 6
+11 06 0050 15 0006 04 <4> <5> 0014 0014 1A
+#
+## Typical batch decoding parameters:
+# -----------------------------------
+# Utilitaire windows: echo "<Hexadecimal string>>" | ./br_uncompress.exe -a  2 0,0.1,12 1,0.001,12 2,10,7 3,20,6
+# Codec en ligne nke: 2 0,0.1,12,Angle_deg 1,0.001,12,Ecart_m 2,10,7,TempDeg 3,20,6,BattLevel_mV
+#
+# --------------------------------------------------------------------------------------------
+# ------------------------------- CONFIGURATION END : byte FF --------------------------------
+FF

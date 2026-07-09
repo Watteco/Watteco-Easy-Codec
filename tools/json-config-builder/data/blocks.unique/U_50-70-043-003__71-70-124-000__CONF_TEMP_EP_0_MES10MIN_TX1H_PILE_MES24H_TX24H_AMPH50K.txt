@@ -1,0 +1,14 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [71-70-124-000 _ 50-70-043-003_Carte Analogique 1CTN testee]
+
+[ROM_DEFAULT_TARGET] .*_ips-4ctn.1ctn10k.*ClassA.lrctm.EU.chkpt.wdt2.*dfp-br-fota.*.sx-lr.*.txt CONF_TEMP_EP_0_MES10MIN_TX1H_PILE_MES24H_TX24H_AMPH50K
+@10a00
+# remove toute configuration
+06 11 50 00 50 02 03
+# tagsize=1, label=0 configuration batch mesure 10min tx 1 h sur ctn 1
+11 11 06 04 02 15 00 00 00 80 0A 80 3C 00 00 00 0A 01
+#tension pile: tag size = 1 label = 1 resolution = 100mV TX 24h
+11 11 06 00 50 15 00 06 04 85 A0 85 A0 00 00 00 64 09
+# Coeff de steinhart A B C + resistance CTN 1 Amphenol A=0,000941075 3A76B279 B=0,000214228 3960A264 C=7,50565E-08 33A12EBF Resistance=10000
+18 11 05 04 02 90 01 41 10 3A 76 B2 79 39 60 A2 64 33 A1 2E BF 46 1c 40 00

@@ -1,0 +1,12 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 3
+; [tiator] [71-70-010-006_50-70-017-006_Carte Analogique LORA 868Mhz testee]
+; [tiator] [71-70-112-000_Carte Press'O alimentation externe Testee]
+; [tiator] [71-70-175-000_50-70-267-000_Carte Analogique 10V[1MOhm]
+
+[ROM_DEFAULT_TARGET] .*_ips-analoginput.*ClassA.lrctm.EU.chkpt.wdt2.*dfp-br-.*S0.*307V.*.sx-lr.*.txt DefaultConfPresso-S0-420mA-010V
+@10a00
+06 11 50 00 50 02 03
+10 31 06 00 0C 00 00 55 39 00 00 85 A0 00 00 00 00
+10 11 06 00 0C 00 00 55 39 00 00 85 A0 00 00 00 00
+08 11 05 00 0F 04 00 18 01

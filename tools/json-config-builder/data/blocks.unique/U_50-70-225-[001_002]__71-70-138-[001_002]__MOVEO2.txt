@@ -1,0 +1,107 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 2
+; [stmator] [71-70-138-001_50-70-225-001_MOVEO 2]
+; [stmator] [71-70-138-002_50-70-225-002_MOVEO 2]
+
+[ROM_DEFAULT_TARGET] .*_ips-thpl.*ClassA.lrctm.EU.chkpt.wdt2.*V0.*.hex MOVEO2
+@
+# ---------CFG 0 (Default): CONF FOR BATCH & STANDARD REPORTS ---------------------------
+# . Passage en mode "NON confirme"
+08 11 05 8004 0000 08 00
+#
+# . Effacement des configurations (Batch et Standard)
+06 11 50 0050 02 03
+#
+# . PIR config
+#   Occ to Unocc delai: 30min (30 minutes WITHOUT move (notice that PIR activity won't be processed 1/10 x 30mn )
+09 11 05 0406 0010 21 0708
+#   UnOcc to Occ delai: 0s (Immediatly)
+09 11 05 0406 0011 21 0000
+#
+# ----------------------- CONFIGURE ACTIONS -------------------------
+#
+#
+# ------------------------ STANDARD REPORTS -------------------------
+# . POWERDESC  [mV]
+#   . Periodic MAX = 1 J => 1440mn => x85A0; MIN = 10mn => 0x800A
+#   . Length of remaining payload (for 0x41 type ): 0x08
+#   . ALARM on power treshold : 2,9v (hyst 100mV)
+#     RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98 
+#     CSD : IsAlarm/OnExceed/OnFall/Threshold/Slot0 : b 1 1 1 10 000 ==> xF0
+#     Disposable battery field index : 0x04
+#     THRS: 2900 : 0x0B54; HYST: 100 mV : 0x0064
+#     OCC : 2
+14 11 06 0050 98 0006 41 800A 85A0 07 F0 04 0B54 0064 02
+#
+#
+# . VIOLATION (Effraction based on sensor displacement) ([Binary state 0/1]
+#   . Configured with soft binary management based on angle 0: < 4Â° / 1: > 6Â° (hardcoded)
+#   . Angle measurement period: 30s (harcoded)
+#   . Binary config: EDGE_BOTH (3)
+#   . Box openning and closing report 
+#     Min 1s => 0x0001, Max max, Delta=1
+0D 11 06 000F 00 0055 10 0001 FFFF 01
+#
+# PRESENCE: (PIR Occupancy) (BESOIN DOUBLON AVEC BATCH A CONFIRMER)
+# Report 12h or changing, no more than once per 1 second
+0D 11 06 0406 00 0000 18 0001 82d0 01
+#
+#
+# ------------------------- BATCH REPORT ---------------------------------------
+# (COMPATABILITE VAQAO+ ET MOVE'O REQUISE ?)
+# . OCCUPANCY
+#   Min 1sc => 0x801E, Max 1h,   Delta=1,    resol=1,     Tag Label 0, Tag Size 3, Type Bool 1
+0F 11 06 0406 11 0000 00 0001 803C 01 01 03
+#
+# . TEMPERATURE (SHTC3)
+#   Min 10mn => 0x800A, Max 1h, Delta=0.1degC,  resol=0.1degC, Tag Label 1, Tag Size 3, Type I16 7
+11 11 06 0402 15 0000 00 800A 803C 000A 000A 0B
+#
+# . HYGROMETRY (SHTC3)
+#   Min 10mn => 0x800A, Max 1h, Delta=1%,    resol=1%,   Tag Label 2, Tag Size 3, Type U16 6
+11 11 06 0405 15 0000 00 800A 803C 0064 0064 13
+#
+# . ILLUMINANCE
+#   Min 10mn => 0x800A, Max 1h, Delta=10,    resol=10,   Tag Label 5, Tag Size 3, Type U16 6
+11 11 06 0400 15 0000 00 800A 803C 000A 000A 2B
+#
+#
+# Typical batch decoding parameters:
+# ----------------------------------
+# Utilitaire windows: echo "<Hexadecimal string>>" | ./br_uncompress.exe -a 3 0,1,4 1,10,7 2,100,6 5,10,6 
+# Codec en ligne nke: 3 0,1,4,OCC 1,10,7,T 2,100,6,H 5,10,6,LUX 
+#---------------------------------------------------------------------------------------------
+# ------------------------------- CONFIGURATION SEPARATOR : byte 00 --------------------------
+00
+#---------------------------------------------------------------------------------------------
+# ------------ CFG 1: CONF FOR STANDARD REPORTS (Typically for HUb'O usage) ------------------
+# To Swap from Default to Alternate configuration: 11 50 0050 F1 01, and to get back: 11 50 0050 F1 00
+# All report unconfirmed
+08 11 05 8004 0000 08 00
+#
+# Remove current reports configuration (Standard and batchs)
+06 11 50 0050 02 03
+#
+# T: 30mn or variation of 0.4degC, no more than once per minute
+0F 11 06 0402 80 0000 29 8001 801E 48 0028
+#
+# RH: 30mn or variation of 4%, no more than onceper minute
+0F 11 06 0405 80 0000 21 8001 801E 48 0190
+#
+# VBATT: 24 h  ou or variation of 0.5V, no more than once per minute
+12 11 06 0050 00 0006 41 800a 85a0 05 00 04 01f4 00
+#
+# VIOLATION: 24 h or changing, no more than once per minute
+0D 11 06 000f 00 0055 10 8001 85a0 01
+#
+# ANGLEDISP: No reported but used for violation
+#
+# LUMINOSITY:12h or 50lux variation, no more than once per minute
+0E 11 06 0400 00 0000 21 8001 82D0 0032
+#
+# PRESENCE (PIR Occupancy): Report 12h or changing, no more than once per 1 second
+0D 11 06 0406 00 0000 18 0001 82d0 01
+#
+# --------------------------------------------------------------------------------------------
+# ------------------------------- CONFIGURATION END : byte FF --------------------------------
+FF

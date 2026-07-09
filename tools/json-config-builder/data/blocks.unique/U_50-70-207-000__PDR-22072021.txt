@@ -1,0 +1,48 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [50-70-207-000_Capteur IN'O Pompe de relevge SNCF (version CLIENT)]
+
+[ROM_DEFAULT_TARGET] .*_ips-ild\..*Class..lrctm.EU.chkpt.wdt2.*-dfp-br.*306V4.sx-lr.*.txt PDR-22072021
+# Surveillance d'automate d'escalator avec 3 à 5 sorties d'état
+@10a00
+# Delete all Std and Batch Configuration
+06 11 50 00 50 02 03
+#
+# Inversement des polarités pour conformité avec spec (bit à 1 si contact fermé, 0 sinon)
+08 11 05 000F 0054 10 01
+08 31 05 000F 0054 10 01
+08 51 05 000F 0054 10 01
+08 71 05 000F 0054 10 01
+08 91 05 000F 0054 10 01
+08 B1 05 000F 0054 10 01
+08 D1 05 000F 0054 10 01
+08 F1 05 000F 0054 10 01
+08 13 05 000F 0054 10 01
+08 33 05 000F 0054 10 01
+#
+# Report alarme sur "seuils" MultiBinary sur "patterns" spécifiques
+# Cf. http://support.nke-watteco.com/#Threshold
+#
+# Min:  30s (0x001e) 
+# Max:  2h (0x82D0) (Une émission par 2 heures à minima si aucune alarme entre temps (heartbeat) )
+#
+# Configuration des slots avec alarme et avec cause
+#  RP:   NEW=1b/Reserved=0b/NoCause=00b/SecuredIfAlarm=0b/Secured=1b/NoHeaderPort=0b/BAtch=0b = 1000 0100b = 84
+#  
+#  CSD:  Alarm=1b/OnExceed=1b/OnFall=1b/Threshold=10b/CriterionSlot0=001b = 1111 0001b = f1
+#  OCC: pour faire env >= 3mn ((180s/30)+1(period polling)) :
+#       80 long occ, ON (Exceed) : 7 (0x0007)  / OFF (FAll) : 7 (0x0007)
+#
+# Report chgt sur b0,...,b7:   [Entrées IN'O 1,..,8 passe à 1 / Slot 001..007,000]
+# --------------------------
+#  CSD:  Alarm=0b/OnExceed=1b/OnFall=1b/Threshold=10b/CriterionSlot0=001b = 0111 0001b = 71
+16 11 06 8005 84 0000 19 001E 8078 f1 0001 0001 80 0007 0007
+16 11 06 8005 84 0000 19 001E 8078 f2 0002 0002 80 0007 0007
+16 11 06 8005 84 0000 19 001E 8078 f3 0004 0004 80 0007 0007
+16 11 06 8005 84 0000 19 001E 8078 f4 0008 0008 80 0007 0007
+16 11 06 8005 84 0000 19 001E 8078 f5 0010 0010 80 0007 0007
+16 11 06 8005 84 0000 19 001E 8078 f6 0020 0020 80 0007 0007
+16 11 06 8005 84 0000 19 001E 8078 f7 0040 0040 80 0007 0007
+16 11 06 8005 84 0000 19 001E 8078 f0 0080 0080 80 0007 0007
+# report tension batterie une fois par 2h ou sur chgt d'alimentation (confirmé et alarme). mesure à 10 minutes
+10 11 06 0050 88 00 06 41 80 0a 80 78 03 c8 07 01

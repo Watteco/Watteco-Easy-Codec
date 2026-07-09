@@ -1,0 +1,16 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 2
+; [tiator] [50-70-160-001_Pulse_SENS'O securise UE (version CLIENT)]
+; [tiator] [50-70-277-00_Pulse_SENS'O securise Waterproof IP68 UE (version CLIENT)]
+
+[ROM_DEFAULT_TARGET] .*_ips-ild\..*ClassA.lrctm.EU.chkpt.wdt2.*-dfp-br.*306V4.sx-lr.*.txt CONF_DALKIA_BININPUT_COUNT_EP_0_1_2_MES1H_TX4H_PILE_MES24H_TX24H
+@10a00
+06 11 50 00 50 02 03
+#configuration : tag size=4, lbl=0, entrée 1: une mesure toutes les heures, une transmission toutes les 4 heures
+15 11 06 00 0F 1D 04 02 00 80 3C 80 F0 00 00 00 00 00 00 00 01 04
+#configuration : tag size=4, lbl=1,entrée 2: une mesure toutes les heures, une transmission toutes les 4 heures
+15 31 06 00 0F 1D 04 02 00 80 3C 80 F0 00 00 00 00 00 00 00 01 0C
+#configuration : tag size=4, lbl=2,entrée 3: une mesure toutes les heures, une transmission toutes les 4 heures
+15 51 06 00 0F 1D 04 02 00 80 3C 80 F0 00 00 00 00 00 00 00 01 14
+#tension pile: tag size = 4 label = 6 resolution = 100mV
+11 11 06 00 50 15 00 06 04 85 A0 85 A0 00 00 00 64 34

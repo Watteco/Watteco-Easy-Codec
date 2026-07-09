@@ -1,0 +1,10 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 2
+; [tiator] [71-70-010-006_50-70-178-002_Carte Analogique LORA 868Mhz testee Huba 520]
+; [tiator] [71-70-010-006_50-70-216-00_Carte Analogique LORA 868Mhz testee Huba 520 IP67]
+
+[ROM_DEFAULT_TARGET] V3.5.2.5358.5693_ips-analoginput.bsm.at.ClassA.lrctm.EU.chkpt.wdt2-dfp-br-fota-S0.wtc-307-analoginput.307V4.sx-lr.ROMCfg-DefaultConfPresso-010V-4H-Pile7J.txt DefaultConfPresso-010V-4H-Pile7J
+@10a00
+06 11 50 00 50 02 03
+10 31 06 00 0C 00 00 55 39 00 00 80 F0 00 00 00 00
+12 11 06 00 50 00 00 06 41 80 0a a7 60 05 00 04 00 64 00

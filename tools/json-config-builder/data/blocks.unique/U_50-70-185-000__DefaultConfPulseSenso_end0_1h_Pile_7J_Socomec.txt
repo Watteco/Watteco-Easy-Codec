@@ -1,0 +1,9 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [50-70-185-000_Capteur SensO deporte 868Mhz IP68 SOCOMEC (version CLIENT)]
+
+[ROM_DEFAULT_TARGET] V3.5.2.5602_ips-ild.bsm.at.ClassA.lrctm.EU.chkpt.wdt2-dfp-br-fota.wtc-306-ild.306V4.sx-lr.ROMCfg-DefaultConfPulseSenso_end0_1h_Pile_7J_Socomec.txt DefaultConfPulseSenso_end0_1h_Pile_7J_Socomec
+@10a00
+06 11 50 00 50 02 03
+10 11 06 00 0f 00 04 02 23 00 01 80 3C 00 00 00 00
+11 11 06 00 50 80 00 06 41 a7 60 a7 60 04 48 04 00 00

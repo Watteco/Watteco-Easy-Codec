@@ -1,0 +1,8 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [50-70-003-006_Smartplug UE ABP et OTAA (version CLIENT)]
+
+[ROM_DEFAULT_TARGET] V3.4.0.3648_ips-sp-btntest.cal.ClassC.lrctm.EU.chkpt.wdt2-dfp-br.296V3-1mc.sx-lr.ROMCfg.txt DEFAULT
+@10a00
+06 11 50 00 50 02 03
+19 11 06 00 52 00 00 00 41 00 00 80 3c 0c 00 00 00 00 00 00 00 00 00 00 00 00

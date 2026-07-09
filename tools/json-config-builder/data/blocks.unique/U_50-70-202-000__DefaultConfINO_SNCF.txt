@@ -1,0 +1,9 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [50-70-202-000_Capteur IN'O SNCF (version CLIENT)]
+
+[ROM_DEFAULT_TARGET] V3.5.2.5466.5514_ips-ild.bsm.at.ClassA.lrctm.EU.chkpt.wdt2-dfp-br-fota.wtc-306-ild.306V4.sx-lr.ROMCfg-DefaultConfINO_SNCF.txt DefaultConfINO_SNCF
+@10a00
+06 11 50 00 50 02 03
+10 11 06 80 05 88 00 00 19 00 00 A7 60 C8 FF FF 01
+14 11 06 00 50 00 00 06 41 85 a0 85 a0 07 00 05 00 00 00 00 00

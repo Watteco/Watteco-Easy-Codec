@@ -1,0 +1,32 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 2
+; [tiator] [71-70-091-003 _ 50-70-146-003_TRIPHASO Rogowski Version Finale]
+; [tiator] [71-70-091-004 _ 50-70-146-004_TRIPHASO Rogowski Version Finale]
+
+[ROM_DEFAULT_TARGET] .*_ips-tri.lct.*Class.*.lrctm.EU.chkpt.wdt2.*dfp-br..*.sx-lr.*.txt DefaultConfTRIKwh
+@10a00
+06 11 50 00 50 02 03
+08 11 05 00 0F 04 00 18 01
+# Ã©mission tension courant sur les 3 phases toutes les 60 minutes.
+13 11 06 80 0B 00 00 00 41 00 00 80 3c 06 00 00 00 00 00 00
+13 31 06 80 0B 00 00 00 41 00 00 80 3c 06 00 00 00 00 00 00
+13 51 06 80 0B 00 00 00 41 00 00 80 3c 06 00 00 00 00 00 00
+# puissance moyenne calculÃ©e sur 60 minutes. 
+0B 11 05 80 0a 00 01 23 00 00 0E 10
+0B 31 05 80 0a 00 01 23 00 00 0E 10
+0B 51 05 80 0a 00 01 23 00 00 0E 10
+0B 71 05 80 0a 00 01 23 00 00 0E 10
+# energie en kwh 
+08 11 05 80 0a 00 02 20 01
+08 31 05 80 0a 00 02 20 01
+08 51 05 80 0a 00 02 20 01
+08 71 05 80 0a 00 02 20 01
+# energie en kwh multi
+08 11 05 80 10 00 03 20 01
+# puissance moyenne calculÃ©e sur 60 minutes multi
+0B 11 05 80 10 00 02 23 00 00 0E 10
+# Ã©mission Ã©nergie et puissance moyenne toutes les 60 minutes.
+2D 11 06 80 0A 00 00 00 41 00 00 80 3c 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2D 31 06 80 0A 00 00 00 41 00 00 80 3c 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2D 51 06 80 0A 00 00 00 41 00 00 80 3c 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2D 71 06 80 0A 00 00 00 41 00 00 80 3c 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
