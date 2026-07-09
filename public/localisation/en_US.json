@@ -162,5 +162,14 @@
     "activationDurationEv2Label": "Irrigation duration for valve 2",
     "ArretprogrammeLabel" : "Stop programs and close valves",
     "cfgCommentArretCurrentProgram": "Sends command to stop current programs and close valves",
+    "ArretCurrentProgramLabel": "Stop current programs",
+    "cfgCommentConfigBattery": "Battery configuration",
+    "LabelActivationTime": "Activation time",
+    "cfgCommentELECTROVANNE_1": "Valve 1",
+    "cfgCommentELECTROVANNE_2": "Valve 2",
+    "cfgCommentREPORT_COMPTAGE_ELECTROVANNE_1": "Valve 1 metering report",
+    "cfgCommentREPORT_COMPTAGE_ELECTROVANNE_2": "Valve 2 metering report",
+    "cfgCommentaction_03_endpoint_0_entr_e_1_remove_report_comptage": "Action 03 endpoint 0 input 1 remove metering report",
+    "cfgCommentaction_07_endpoint_1_entr_e_2_remove_report_comptage": "Action 07 endpoint 1 input 2 remove metering report",
     "ConfigTrameLabel" : "Mandatory Frames"
 }
