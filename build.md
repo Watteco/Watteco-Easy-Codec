@@ -66,6 +66,9 @@ Pour éviter les problèmes de `base path` sur Android, utiliser les scripts npm
 - Ouvrir le projet Android dans Android Studio :
   - `npm run open:android`
 
+- Build Android avec debug BLE forcé (debug panel + bouton Skip BLE visibles) :
+  - `npm run android:debug`
+
 ## Pourquoi ces scripts existent
 
 Le projet utilise une base Vite différente selon le contexte :
