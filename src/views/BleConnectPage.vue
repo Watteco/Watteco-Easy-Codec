@@ -114,7 +114,7 @@
 
       </div>
     </ion-content>
-  <div class="debug-corner">
+  <div v-if="bleDebugEnabledByEnv" class="debug-corner">
     <ion-button size="small" fill="solid" color="medium" @click="proceed" class="debug-corner-button">
       Skip BLE (dev)
     </ion-button>
@@ -176,6 +176,7 @@ const changeLanguage = (lang: string) => {
 
 const ble = useBle();
 const router = useRouter();
+const bleDebugEnabledByEnv = import.meta.env.DEV || import.meta.env.VITE_ENABLE_BLE_DEBUG === 'true';
 const logoSrc = ref('');
 const connecting = ref(false);
 const connectingDeviceId = ref('');
