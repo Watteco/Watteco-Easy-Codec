@@ -348,6 +348,14 @@
 			"comment": ["Distance measurement", 
 			"Mesure de distance"],
 			"docLink": "https://support.watteco.com/"
+		},
+		{
+			"name": "BETA Pulse Sens'O BLE",
+			"file": "PulseSensoBLETest",
+			"apps": ["EasyCodec"],
+			"category": "BETA",
+			"comment": ["",""],
+			"docLink": "https://support.watteco.com/"
 		}
 	],
 	"in_developpement_products": [

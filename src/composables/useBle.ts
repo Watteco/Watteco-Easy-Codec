@@ -11,14 +11,7 @@ type DeviceLike = {
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
-const DEFAULT_SERVICE_UUIDS = [
-  '0000ff00-0000-1000-8000-00805f9b34fb',
-  '0000ff01-0000-1000-8000-00805f9b34fb',
-  '0000ff02-0000-1000-8000-00805f9b34fb',
-  '0000180f-0000-1000-8000-00805f9b34fb',   // Battery Service
-  '0000fe60-cc7a-482a-984a-7f2ed5b3e58f',   // HMI service (custom base)
-  'fe60',
-];
+const SCAN_NAME_PREFIXES = ['WS', 'WTC'];
 
 const MAX_CHUNK_SIZE = 20;   // BLE MTU-safe write size
 const MAX_RETRIES = 5;
@@ -30,6 +23,7 @@ const FLUSH_INTERVAL_MS = 1000;
 const INTER_FRAME_DELAY_MS = 50;
 const INTER_CHUNK_DELAY_MS = 10;
 const BONDED_DEVICES_STORAGE_KEY = 'easycodec.androidBondedDevices';
+const BONDING_ENABLED = true; // set to true to enable bonding on connect
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -42,14 +36,13 @@ function toHex(buf: Uint8Array): string {
   return Array.from(buf).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function normalizeUuid(s: string): string {
-  if (/^[0-9a-f]{4}$/i.test(s)) {
-    return `0000${s.toLowerCase()}-0000-1000-8000-00805f9b34fb`;
-  }
-  return s;
-}
-
 const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
+function hasAllowedScanPrefix(name?: string): boolean {
+  if (!name) return false;
+  const upperName = name.toUpperCase();
+  return SCAN_NAME_PREFIXES.some(prefix => upperName.startsWith(prefix.toUpperCase()));
+}
 
 /* ------------------------------------------------------------------ */
 /*  Singleton state (shared across all components)                     */
@@ -66,6 +59,8 @@ const sending = ref(false);
 const pairing = ref(false);
 const bondedDevices = ref<string[]>([]);
 
+const receivedFrames = ref<string[]>([]);
+
 const pending: Uint8Array[] = [];
 let flushing = false;
 let flushTimer: ReturnType<typeof setInterval> | undefined;
@@ -77,6 +72,7 @@ let autoScanCanceled = false;
 let targetDeviceId: string | undefined;
 let targetServiceUuid: string | undefined;
 let targetCharUuid: string | undefined;
+let targetNotifyCharUuid: string | undefined;
 
 /* ---- log helper ---- */
 function log(msg: string) {
@@ -134,6 +130,7 @@ function clearConnectionTarget() {
   targetDeviceId = undefined;
   targetServiceUuid = undefined;
   targetCharUuid = undefined;
+  targetNotifyCharUuid = undefined;
 }
 
 function handleBondInvalidation(deviceId: string, reason: string) {
@@ -155,7 +152,87 @@ function isLikelyBondIssue(error: unknown) {
   ].some(token => message.includes(token));
 }
 
+function isAttApplicationError(error: unknown): boolean {
+  const message = String((error as any)?.message ?? error ?? '');
+  const lower = message.toLowerCase();
+  if (/gatt|bonding|authentication|encryption/.test(lower)) return false;
+
+  const match = message.match(/(?:application\s+error|error)\s+(?:0x)?([0-9a-f]{2}|\d{2,3})/i);
+  if (!match) return false;
+
+  const parsed = match[1].toLowerCase().startsWith('0x')
+    ? parseInt(match[1], 16)
+    : Number(match[1]);
+
+  return Number.isFinite(parsed) && parsed >= 0x80 && parsed <= 0xff;
+}
+
+function getAttErrorCode(error: unknown): string | null {
+  const message = String((error as any)?.message ?? error ?? '');
+  const match = message.match(/(?:application\s+error|error)\s+(0x[0-9a-f]{2}|[0-9a-f]{2}|\d{2,3})/i);
+  if (!match) return null;
+  const raw = match[1];
+  if (raw.toLowerCase().startsWith('0x')) return raw.toLowerCase();
+  if (/^[0-9a-f]{2}$/i.test(raw)) return `0x${raw.toLowerCase()}`;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  return `0x${n.toString(16).padStart(2, '0')}`;
+}
+
+function extractBleErrorCode(error: unknown): string | null {
+  const err = error as any;
+  const candidates = [
+    err?.code,
+    err?.errorCode,
+    err?.status,
+    err?.nativeErrorCode,
+    err?.androidErrorCode,
+    err?.cause?.code,
+    err?.cause?.errorCode,
+    err?.cause?.status,
+  ];
+
+  for (const value of candidates) {
+    if (value === undefined || value === null) continue;
+    if (typeof value === 'number' && Number.isFinite(value)) return `0x${value.toString(16).toLowerCase()}`;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (/^0x[0-9a-f]+$/i.test(trimmed)) return trimmed.toLowerCase();
+      if (/^[0-9]+$/.test(trimmed)) return `0x${Number(trimmed).toString(16).toLowerCase()}`;
+    }
+  }
+
+  const message = String((error as any)?.message ?? error ?? '');
+  const attCode = getAttErrorCode(error);
+  if (attCode) return attCode;
+
+  const hexMatch = message.match(/0x([0-9a-f]{2,4})/i);
+  if (hexMatch) return `0x${hexMatch[1].toLowerCase()}`;
+
+  const decimalMatch = message.match(/(?:error|status|code)\s*[:=]?\s*(\d{1,5})/i);
+  if (decimalMatch) {
+    const value = Number(decimalMatch[1]);
+    if (Number.isFinite(value)) return `0x${value.toString(16).toLowerCase()}`;
+  }
+
+  return null;
+}
+
+function debugBleWriteError(stage: 'write' | 'writeWithoutResponse' | 'frame', frameHex: string, error: unknown, attempt?: number) {
+  const code = extractBleErrorCode(error);
+  const message = String((error as any)?.message ?? error ?? 'Unknown BLE error');
+  console.debug('[BLE_WRITE_ERROR]', {
+    stage,
+    attempt,
+    frameHex,
+    code,
+    message,
+    raw: error,
+  });
+}
+
 async function isDeviceBonded(deviceId: string): Promise<boolean> {
+  if (!BONDING_ENABLED) return false;
   if (!isAndroidNativePlatform()) return false;
   try {
     const isBonded = await BleClient.isBonded(deviceId);
@@ -172,6 +249,7 @@ async function isDeviceBonded(deviceId: string): Promise<boolean> {
 }
 
 async function ensureBonded(deviceId: string, force = false): Promise<boolean> {
+  if (!BONDING_ENABLED) return false;
   if (!isAndroidNativePlatform()) return false;
 
   if (!force) {
@@ -232,10 +310,13 @@ async function startScan(useFilters = true) {
 
   try {
     const options: any = {};
-    if (useFilters) {
-      options.services = DEFAULT_SERVICE_UUIDS.map(normalizeUuid);
+    if (useFilters && SCAN_NAME_PREFIXES.length === 1) {
+      options.namePrefix = SCAN_NAME_PREFIXES[0];
     }
     await BleClient.requestLEScan(options, (result: ScanResult) => {
+      if (useFilters && !hasAllowedScanPrefix(result.device.name)) {
+        return;
+      }
       if (!devices.value.find(d => d.deviceId === result.device.deviceId)) {
         devices.value = [...devices.value, result.device];
       }
@@ -273,16 +354,19 @@ async function startAutoScan(useFilters = true, maxAttempts = MAX_AUTO_SCAN_ATTE
 
   try {
     const options: any = {};
-    if (useFilters) options.services = DEFAULT_SERVICE_UUIDS.map(normalizeUuid);
+    if (useFilters && SCAN_NAME_PREFIXES.length === 1) options.namePrefix = SCAN_NAME_PREFIXES[0];
 
     await BleClient.requestLEScan(options, async (result: ScanResult) => {
+      if (useFilters && !hasAllowedScanPrefix(result.device.name)) {
+        return;
+      }
       if (!devices.value.find(d => d.deviceId === result.device.deviceId)) {
         devices.value = [...devices.value, result.device];
       }
       // stop early when we detected at least one device
-      if (devices.value.length > 0 && scanning.value) {
-        try { await stopScan(); } catch { /* ignore stop scan errors */ }
-      }
+      /*if (devices.value.length > 0 && scanning.value) {
+        try { await stopScan(); } catch { /* ignore stop scan errors  }
+      }*/
     });
 
     // update attempt counter periodically to avoid UI flicker
@@ -367,11 +451,40 @@ async function connectToDevice(device: DeviceLike) {
           foundChar = foundService.characteristics.find((c: any) =>
             c.properties && (c.properties.write || c.properties.writeWithoutResponse));
         }
+        // Look for a notify/indicate characteristic in the same service
+        let notifyChar: any;
+        if (foundService?.characteristics) {
+          notifyChar = foundService.characteristics.find((c: any) =>
+            c.properties && (c.properties.notify || c.properties.indicate));
+        }
+
         if (foundService && foundChar) {
           targetDeviceId = device.deviceId;
           targetServiceUuid = foundService.uuid;
           targetCharUuid = foundChar.uuid;
-          statusMessage.value += ' (ready)';
+          targetNotifyCharUuid = notifyChar?.uuid;
+
+          if (notifyChar) {
+            try {
+              await BleClient.startNotifications(
+                device.deviceId,
+                foundService.uuid,
+                notifyChar.uuid,
+                (value: DataView) => {
+                  const bytes = new Uint8Array(value.buffer);
+                  const hex = toHex(bytes);
+                  log(`NOTIF ${hex}`);
+                  receivedFrames.value = [hex, ...receivedFrames.value].slice(0, 50);
+                }
+              );
+              statusMessage.value += ' (ready, notifications on)';
+            } catch (ne) {
+              console.warn('startNotifications failed:', ne);
+              statusMessage.value += ' (ready, notifications failed)';
+            }
+          } else {
+            statusMessage.value += ' (ready)';
+          }
         } else {
           console.warn('No writable HMI characteristic found');
           statusMessage.value += ' (no writable char)';
@@ -433,7 +546,9 @@ async function flushPending() {
         await writeFrame(frame);
         log(`ACK   ${toHex(frame)}`);
       } catch (err: any) {
-        log(`ERROR ${toHex(frame)} ${err?.message ?? err}`);
+        const code = extractBleErrorCode(err);
+        log(`ERROR ${toHex(frame)} ${err?.message ?? err}${code ? ` (code ${code})` : ''}`);
+        debugBleWriteError('frame', toHex(frame), err);
       }
       await delay(INTER_FRAME_DELAY_MS);
     }
@@ -470,11 +585,26 @@ async function writeChunkWithRetries(chunk: Uint8Array) {
       return;
     } catch (e) {
       lastError = e;
+      debugBleWriteError('write', toHex(chunk), lastError, attempt);
+
+      if (isAttApplicationError(lastError)) {
+        const errorCode = getAttErrorCode(lastError) ?? '0x??';
+        throw new Error(`ATT Application Error ${errorCode}: Command rejected by device (no retry)`);
+      }
+
       try {
         const dv = new DataView(chunk.buffer, chunk.byteOffset, chunk.byteLength);
         await BleClient.writeWithoutResponse(targetDeviceId, targetServiceUuid, targetCharUuid, dv);
         return;
-      } catch (e2) { lastError = e2; }
+      } catch (e2) {
+        lastError = e2;
+        debugBleWriteError('writeWithoutResponse', toHex(chunk), lastError, attempt);
+      }
+
+      if (isAttApplicationError(lastError)) {
+        const errorCode = getAttErrorCode(lastError) ?? '0x??';
+        throw new Error(`ATT Application Error ${errorCode}: Command rejected by device (no retry)`);
+      }
 
       if (attempt === 1 && (await isDeviceBonded(targetDeviceId) === false || hasRememberedBond(targetDeviceId) || isLikelyBondIssue(lastError))) {
         handleBondInvalidation(targetDeviceId, (lastError as any)?.message ?? String(lastError));
@@ -525,6 +655,7 @@ function getDeviceName(device: DeviceLike): string {
 /* ================================================================== */
 export function useBle() {
   return {
+    receivedFrames:   readonly(receivedFrames),
     isNative:        readonly(isNative),
     bleInitialized:  readonly(bleInitialized),
     scanning:        readonly(scanning),

@@ -111,8 +111,14 @@
         <div v-if="ble.statusMessage.value" class="status-msg">
           <ion-note>{{ ble.statusMessage.value }}</ion-note>
         </div>
+
       </div>
     </ion-content>
+  <div class="debug-corner">
+    <ion-button size="small" fill="solid" color="medium" @click="proceed" class="debug-corner-button">
+      Skip BLE (dev)
+    </ion-button>
+  </div>
   <div class="language-switcher">
     <LanguageSwitcher :current-language="currentLanguage" @update:language="changeLanguage" />
   </div>
@@ -295,6 +301,18 @@ watch(() => ble.connected.value, (val) => {
   margin-top: 16px;
   font-size: 0.85em;
   color: var(--ion-color-medium);
+}
+
+.debug-corner {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 1100;
+}
+
+.debug-corner-button {
+  --padding-start: 8px;
+  --padding-end: 8px;
 }
 
 /* Reuse watteco header styles */
