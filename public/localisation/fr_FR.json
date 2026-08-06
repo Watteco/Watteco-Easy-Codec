@@ -28,6 +28,7 @@
     "bleNotConnected": "Non connecté",
     "bleSendFrames": "Envoyer les trames",
     "bleSending": "Envoi en cours…",
+    "bleActivateAfterSend": "Activer la configuration après l'envoi (redémarrage du capteur)",
     "bleDisconnect": "Déconnecter",
     "batchLabel": "Historisation",
     "standLabel": "Notification",

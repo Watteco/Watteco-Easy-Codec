@@ -11,6 +11,13 @@ export const FF_NOTIFY_SHORT = 'ff02';
 export const OSA_ADMIN_SERVICE_UUID = '80018001-890d-4f4e-a197-3f9eb158ea95';
 export const OSA_CHALLENGE_CHAR_UUID = '8001c801-890d-4f4e-a197-3f9eb158ea95';
 export const OSA_RESPONSE_CHAR_UUID = '8001c802-890d-4f4e-a197-3f9eb158ea95';
+export const OSA_STATUS_CHAR_UUID = '8001c803-890d-4f4e-a197-3f9eb158ea95';
+
+export const BLOB_INFO_CHAR_UUID = '8001cc01-890d-4f4e-a197-3f9eb158ea95';
+export const BLOB_COMMAND_CHAR_UUID = '8001cc02-890d-4f4e-a197-3f9eb158ea95';
+export const BLOB_STATUS_CHAR_UUID = '8001cc03-890d-4f4e-a197-3f9eb158ea95';
+export const BLOB_DATA_CHAR_UUID = '8001cc04-890d-4f4e-a197-3f9eb158ea95';
+export const ADMIN_EVENT_CHAR_UUID = '8001cd01-890d-4f4e-a197-3f9eb158ea95';
 
 export function normalizeUuid(uuid: string): string {
   if (!uuid) return uuid;

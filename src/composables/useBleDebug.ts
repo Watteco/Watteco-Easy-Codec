@@ -13,6 +13,7 @@ import {
   writeToFf01 as writeFf01Blob,
   readCharacteristicByShort,
   readCharacteristicInServiceByShort,
+  downloadConfigurationBlob,
 } from '@/utils/BLE/blob';
 import { runOsaChallenge, readOsaChallenge } from '@/utils/BLE/osa';
 import { autoFetchModelFirmware as fetchModelFirmwareFromBle } from '@/utils/BLE/configReader';
@@ -135,6 +136,21 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
     await readOsaChallenge(ble.connectedDevice.value.deviceId, pushDebugLog);
   }
 
+  async function readConfigurationBlob() {
+    if (!ble.connectedDevice.value) return;
+    pushDebugLog('Reading configuration BLOB…');
+    try {
+      const result = await downloadConfigurationBlob(ble.connectedDevice.value.deviceId, pushDebugLog);
+      const crc = result.computedCrc32.toString(16).padStart(8, '0').toUpperCase();
+      pushDebugLog([
+        `Configuration Blob: ${result.blob.length} bytes, CRC32=0x${crc}`,
+        ...result.formattedLines,
+      ].join('\n'));
+    } catch (error: any) {
+      pushDebugLog(`Configuration BLOB read failed: ${error?.message ?? error}`);
+    }
+  }
+
   async function runOsaChallengeFe20() {
     if (!ble.connectedDevice.value) return;
     await runOsaChallenge(
@@ -226,6 +242,7 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
     readFe61,
     readFf01,
     readFe21InFe20,
+    readConfigurationBlob,
     runOsaChallengeFe20,
     readFe62,
     dumpServices,

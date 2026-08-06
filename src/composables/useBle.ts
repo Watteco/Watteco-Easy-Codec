@@ -1,6 +1,8 @@
 import { ref, readonly } from 'vue';
 import { Capacitor } from '@capacitor/core';
 import { BleClient, type BleDevice, type ScanResult } from '@capacitor-community/bluetooth-le';
+import { uploadConfigurationBlob } from '@/utils/BLE/blob';
+import { authenticateOsa } from '@/utils/BLE/osa';
 
 type DeviceLike = {
   deviceId: string;
@@ -620,8 +622,9 @@ async function writeChunkWithRetries(chunk: Uint8Array) {
 /* ================================================================== */
 /*  High-level: send frames from output area                           */
 /* ================================================================== */
-function sendOutputFrames(): number {
-  if (!connected.value || !targetDeviceId) {
+async function sendOutputFrames(osaKeyHex: string, devEuiHex: string, activateAfterCommit = true): Promise<number> {
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) {
     statusMessage.value = 'Not connected to a BLE device';
     return -1;
   }
@@ -641,9 +644,26 @@ function sendOutputFrames(): number {
     statusMessage.value = 'No valid frames to send';
     return 0;
   }
-  enqueueHexFrames(validFrames);
-  statusMessage.value = `Queued ${validFrames.length} frame(s) for BLE send`;
-  return validFrames.length;
+  if (sending.value) return 0;
+
+  sending.value = true;
+  statusMessage.value = 'Authenticating configuration transfer…';
+  try {
+    await authenticateOsa(deviceId, osaKeyHex, devEuiHex, log);
+    statusMessage.value = `Sending ${validFrames.length} configuration frame(s)…`;
+    await uploadConfigurationBlob(deviceId, validFrames, log, activateAfterCommit);
+    statusMessage.value = activateAfterCommit
+      ? 'Configuration committed; sensor is restarting'
+      : 'Configuration stored without activation';
+    return validFrames.length;
+  } catch (error: any) {
+    const message = error?.message ?? String(error);
+    log(`BLOB ERROR ${message}`);
+    statusMessage.value = `Configuration transfer failed: ${message}`;
+    return -1;
+  } finally {
+    sending.value = false;
+  }
 }
 
 function getDeviceName(device: DeviceLike): string {

@@ -782,7 +782,7 @@
       <ion-card class="outputCard" v-show="sensorConfigLoaded && !(sensorConfig?.general_params?.outputCardHidden)">
         <ion-card-content class="output-area">
         <ion-label v-if="!ble.isNative.value" id="outputTitle">{{ localize("@port125") }}</ion-label>
-        <ion-label id="outputArea">  </ion-label>
+        <ion-label id="outputArea" v-show="!bleHideInProd">  </ion-label>
 
         <!-- Web: copy to clipboard (unchanged behavior) -->
         <ion-button v-if="framesAvailable && !ble.isNative.value" @click="copyFramesNoSpaces" class="half-width">{{ localize("@copyFrames") }}</ion-button>
@@ -804,10 +804,21 @@
               {{ localize('@bleDisconnect') }}
             </ion-button>
           </div>
+          <ion-checkbox
+            v-if="framesAvailable && ble.connected.value"
+            class="ble-activation-option"
+            label-placement="end"
+            justify="start"
+            :checked="activateConfigurationAfterSend"
+            :disabled="ble.sending.value || ble.pairing.value"
+            @ionChange="activateConfigurationAfterSend = $event.detail.checked"
+          >
+            {{ localize('@bleActivateAfterSend') }}
+          </ion-checkbox>
           <div v-if="ble.pairing.value" class="ble-status-msg">
             <ion-text color="warning">Confirm the secure Bluetooth pairing on Android to continue.</ion-text>
           </div>
-          <div v-if="ble.statusMessage.value" class="ble-status-msg">
+          <div v-if="ble.statusMessage.value && !bleHideInProd" class="ble-status-msg">
             <ion-text color="medium">{{ ble.statusMessage.value }}</ion-text>
           </div>
         </div>
@@ -834,6 +845,7 @@
     @read-fe61="readFe61"
     @read-ff01="readFf01"
     @read-fe21="readFe21InFe20"
+    @read-config-blob="readConfigurationBlob"
     @osa-challenge="runOsaChallengeFe20"
     @dump-services-only="dumpServicesOnly"
     @dump-services="dumpServices"
@@ -877,6 +889,7 @@ import {
   IonText
 } from '@ionic/vue';
 import { useRouter } from 'vue-router';
+import { Capacitor } from '@capacitor/core';
 import { useBle } from '@/composables/useBle';
 import { useBleDebug } from '@/composables/useBleDebug';
 import TimeSlider from '@/components/TimeSlider.vue';
@@ -909,6 +922,7 @@ const availableLanguages = [
 ];
 
 const bleDebugEnabledByEnv = import.meta.env.DEV || import.meta.env.VITE_ENABLE_BLE_DEBUG === 'true';
+const bleHideInProd = Capacitor.getPlatform() === 'android' && !bleDebugEnabledByEnv;
 
 // BLE composable (only active on native platforms, no-op on web)
 const ble = useBle();
@@ -929,6 +943,7 @@ const {
   readFe61,
   readFf01,
   readFe21InFe20,
+  readConfigurationBlob,
   runOsaChallengeFe20,
   dumpServices,
   dumpServicesOnly,
@@ -961,6 +976,8 @@ const paramGroupList: Record<string, any> = {}; // List of parameter groups
 const currentErrors: never[] = []; // Tracks current errors
 const currentLanguage = ref('en'); // Reactive variable to store the current language
 const framesAvailable = ref(false);
+// Debug builds default to storing the BLOB without applying/rebooting it.
+const activateConfigurationAfterSend = ref(!bleDebugEnabledByEnv);
 const batchVisible = ref(true);
 const standardVisible = ref(true);
 const modbusVisible = ref(true);
@@ -1696,8 +1713,12 @@ const copyFramesNoSpaces = () => {
 };
 
 // Send frames via BLE (native only)
-const sendFramesBle = () => {
-  ble.sendOutputFrames();
+const sendFramesBle = async () => {
+  await ble.sendOutputFrames(
+    debugOtaAppKeyHex.value,
+    debugDevEuiHex.value,
+    activateConfigurationAfterSend.value
+  );
 };
 
 // Disconnect BLE and navigate back to connection page
@@ -2213,11 +2234,6 @@ ion-range::part(pin)::before {
 }
 
 /* BLE panel styles (only rendered on native) */
-.ble-panel {
-  margin-top: 12px;
-  padding-top: 8px;
-  border-top: 1px solid var(--ion-color-light-shade);
-}
 
 .ble-actions {
   display: flex;
@@ -2229,6 +2245,24 @@ ion-range::part(pin)::before {
 .ble-status-msg {
   margin-top: 6px;
   font-size: 0.85em;
+}
+
+.ble-activation-option {
+  margin-top: 10px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  --size: 20px;
+}
+
+.ble-activation-option::part(container) {
+  flex-shrink: 0;
+}
+
+.ble-activation-option::part(label) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
 }
 </style>
 

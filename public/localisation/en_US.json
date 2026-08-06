@@ -28,6 +28,7 @@
     "bleNotConnected": "Not connected",
     "bleSendFrames": "Send frames",
     "bleSending": "Sending…",
+    "bleActivateAfterSend": "Activate configuration after sending (sensor restart)",
     "bleDisconnect": "Disconnect",
     "batchLabel": "Logging",
     "standLabel": "Notification",

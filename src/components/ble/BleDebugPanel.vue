@@ -50,6 +50,7 @@
         <ion-button size="small" fill="outline" @click="$emit('read-fe21')" :disabled="!connected">Read FE21 (FE20)</ion-button>
       </div>
       <div class="button-row">
+        <ion-button size="small" fill="solid" color="tertiary" @click="$emit('read-config-blob')" :disabled="!connected">Read config BLOB</ion-button>
         <ion-button size="small" fill="solid" color="success" @click="$emit('osa-challenge')" :disabled="!connected">OSA Challenge</ion-button>
         <ion-button size="small" fill="clear" @click="$emit('dump-services-only')" :disabled="!connected">Dump services only</ion-button>
         <ion-button size="small" fill="clear" @click="$emit('dump-services')" :disabled="!connected">Dump services</ion-button>
@@ -104,6 +105,7 @@ defineEmits<{
   (e: 'read-fe61'): void;
   (e: 'read-ff01'): void;
   (e: 'read-fe21'): void;
+  (e: 'read-config-blob'): void;
   (e: 'osa-challenge'): void;
   (e: 'dump-services-only'): void;
   (e: 'dump-services'): void;
@@ -154,6 +156,7 @@ defineEmits<{
 
 .button-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 6px;
 }
@@ -164,6 +167,7 @@ defineEmits<{
   line-height: 1.2;
   overflow: auto;
   max-height: 24vh;
+  white-space: pre-wrap;
 }
 
 .empty-logs {
