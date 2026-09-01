@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.watteco.easycodec',
+  appId: 'wattecoDev.easycodec',
   appName: 'Watteco Codec',
   webDir: 'dist'
 };
