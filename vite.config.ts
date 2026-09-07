@@ -29,4 +29,3 @@ export default defineConfig({
     environment: 'jsdom'
   }
 })
-console.log(process.env.VITE_BASE_URL)

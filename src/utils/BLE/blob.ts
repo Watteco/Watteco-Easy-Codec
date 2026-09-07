@@ -205,8 +205,9 @@ export async function downloadConfigurationBlob(
     const payloadParts: Uint8Array[] = [];
     let expectedSequence = 0;
     let expectedOffset = 0;
+    let isLast = false;
 
-    while (true) {
+    while (!isLast) {
       const frame = parseBlobData(await waitForFrame());
       onLog(`ObjData(N): seq=${frame.sequence} offset=${frame.offset} len=${frame.payload.length} last=${frame.isLast}`);
       if (frame.sequence !== expectedSequence) throw new Error(`Unexpected ObjData sequence: got ${frame.sequence}, expected ${expectedSequence}`);
@@ -214,8 +215,8 @@ export async function downloadConfigurationBlob(
       payloadParts.push(frame.payload);
       expectedSequence++;
       expectedOffset += frame.payload.length;
-      if (frame.isLast) break;
-      await writeCommand(CMD_READ_NEXT);
+      isLast = frame.isLast;
+      if (!isLast) await writeCommand(CMD_READ_NEXT);
     }
 
     const blob = new Uint8Array(expectedOffset);
