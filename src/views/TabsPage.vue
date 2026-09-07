@@ -15,7 +15,7 @@
           </ion-title>
         </ion-toolbar>
       </ion-header>
-      <ion-tab-bar slot="bottom">
+      <ion-tab-bar v-if="!isInIframe" slot="bottom">
         <ion-tab-button tab="downlink" href="/tabs/downlink">
           <ion-icon :icon="arrowDownCircleOutline" />
         </ion-tab-button>
@@ -65,6 +65,18 @@ import { arrowDownCircleOutline, arrowUpCircleOutline, batteryHalfOutline, serve
 
 // Define a reactive variable for the logo's src
 const logoSrc = ref('');
+
+const isInIframe = (() => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+})();
 
 onMounted(() => {
   loadImage();

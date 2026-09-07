@@ -379,7 +379,7 @@
 		{
 			"name": "Valv'O (50-70-291)",
 			"file": "50-70-291-Valv'O",
-			"apps": ["EasyCodec"],
+			"apps": [""],
 			"category": "zTest dev",
 			"comment": ["com1,com2",
 						"com3 , com4"],

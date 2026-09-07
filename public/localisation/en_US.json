@@ -136,7 +136,7 @@
     "cfgCommentCommande1": "sends command for valve 1",
     "commande2Label" : "Start daily scheduling for valve 1 and 2",
     "cfgCommentCommande2": "sends command for valve 2",
-    "commande3Label" : "Start daily scheduling for valve 1 and 2 with time",
+    "commande3Label" : "Unique triggering of valve 1 at scheduled time",
     "cfgCommentCommande3": "sends command for valve 1 and 2 with time",
     "cfgcommentConfig1": "configuration of the daily triggering of valve 1",
     "cfgcommentConfig2": "configuration of the daily triggering of valve 1 and 2",

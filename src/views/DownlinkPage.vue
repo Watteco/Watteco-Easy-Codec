@@ -1245,6 +1245,61 @@ const setGroupEnabled = (bigGroupName: string, groupName: string | number, check
   outputData[groupName] = checked;
 };
 
+const getGroupRelationships = (bigGroupName: string) => {
+  const relationships = sensorConfig.value?.[bigGroupName]?.group_relationships;
+  return Array.isArray(relationships) ? relationships : [];
+};
+
+const enforceExclusiveGroupRelationships = (
+  bigGroupName: string,
+  selectedGroupName: string | number,
+  checked: boolean,
+) => {
+  if (!checked) return;
+
+  getGroupRelationships(bigGroupName).forEach(relationship => {
+    if (
+      relationship.type !== "exclusive" ||
+      !Array.isArray(relationship.groups) ||
+      !relationship.groups.includes(selectedGroupName)
+    ) {
+      return;
+    }
+
+    relationship.groups.forEach(groupName => {
+      if (groupName !== selectedGroupName) {
+        setGroupEnabled(bigGroupName, groupName, false);
+      }
+    });
+  });
+};
+
+const canDisableExclusiveGroup = (bigGroupName: string, groupName: string | number) => {
+  return !getGroupRelationships(bigGroupName).some(relationship =>
+    relationship.type === "exclusive" &&
+    relationship.allow_none === false &&
+    Array.isArray(relationship.groups) &&
+    relationship.groups.includes(groupName) &&
+    relationship.groups.every(relatedGroupName =>
+      relatedGroupName === groupName || !paramGroupChecked.value[relatedGroupName]
+    )
+  );
+};
+
+const initializeExclusiveGroups = (bigGroupName: string) => {
+  getGroupRelationships(bigGroupName).forEach(relationship => {
+    if (relationship.type !== "exclusive" || !Array.isArray(relationship.groups)) return;
+
+    const selectedGroup = relationship.allow_none === false
+      ? relationship.default_group || relationship.groups[0]
+      : undefined;
+
+    relationship.groups.forEach(groupName => {
+      setGroupEnabled(bigGroupName, groupName, groupName === selectedGroup);
+    });
+  });
+};
+
 // Initialize subcategoryVisible to show all subcategories by default
 watch(sensorConfig, async (newConfig) => {
   if (newConfig) {
@@ -1768,6 +1823,10 @@ const onCategoryCheckedChange = (event: CustomEvent, category: string) => {
       }
     }
   });
+
+  if (event.detail.checked) {
+    initializeExclusiveGroups(category);
+  }
   
   outputData[category] = event.detail.checked;
   updateOutput();
@@ -1816,7 +1875,10 @@ const onGeneralCheckedChange = (event: CustomEvent) => {
 
 // Handle group checkbox changes
 const onParamGroupCheckedChange = (event: CustomEvent, groupName: string | number, bigGroupName: string) => {
-  const checked = isMandatoryGroup(bigGroupName, groupName) || event.detail.checked;
+  const requestedChecked = isMandatoryGroup(bigGroupName, groupName) || event.detail.checked;
+  const checked = requestedChecked || !canDisableExclusiveGroup(bigGroupName, groupName);
+
+  enforceExclusiveGroupRelationships(bigGroupName, groupName, checked);
   setGroupEnabled(bigGroupName, groupName, checked);
   updateOutput();
 };
@@ -1863,11 +1925,7 @@ const enforceFieldRelationships = (bigGroupName, groupName) => {
   
   try {
     const group = sensorConfig.value[bigGroupName][groupName];
-    let allRelationships = [...(group.field_relationships || [])];
-    
-    if (bigGroupName === 'general_params' && groupName === 'alto_config' && group.field_relationships) {
-      allRelationships = [...allRelationships, ...(group.field_relationships || [])];
-    }
+    const allRelationships = [...(group.field_relationships || [])];
     
     allRelationships.forEach(relationship => {
       const fields = sensorConfig.value[bigGroupName][groupName].fields;
