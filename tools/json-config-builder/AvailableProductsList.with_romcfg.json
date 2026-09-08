@@ -1,0 +1,912 @@
+{
+	"products": [
+		{
+			"name": "Acceler'O (50-70-197) [beta]",
+			"file": "50-70-197-Accelero",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder"
+			],
+			"category": "Accelerometric sensors",
+			"comment": [
+				"High amplitude chocks measurement [100g,200g,400g]",
+				"Mesure de chocs d'amplitude élevée [100g,200g,400g]"
+			],
+			"rom_default_cmds_filenames": [
+				{
+					"name": "CME",
+					"file": "U_36-70-197-000__50-70-197-002__71-70-117-002__CME.txt"
+				},
+				{
+					"name": "XYZ.100Hz.200G.24h",
+					"file": "U_50-70-197-002__71-70-117-002__XYZ.100Hz.200G.24h.txt"
+				}
+			]
+		},
+		{
+			"name": "Atm'O (50-70-099)",
+			"file": "50-70-099-Atmo",
+			"apps": [
+				"LoraEncoder",
+				"Decoder"
+			],
+			"BatchUncompressParams": "3 0,1,7,Temperature 1,1,6,RelativeHumidity 2,1,7,Pressure 3,1,10,Index1 4,1,10,Index2 5,1,6,BatteryLevel",
+			"category": "TH sensors (Outdoor)",
+			"comment": [
+				"Outdoor meteo station. Temperature, hygrometry and pressure measurement",
+				"Station météo extérieure. Mesures de temprérature, hygrometrie et pression"
+			],
+			"docLink": "https://support.watteco.com/atmo/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "8_MEAS10M_BATCH10M+TENSION24h-MIOS",
+					"file": "U_36-70-099-000__50-70-099-002__71-70-073-001__8_MEAS10M_BATCH10M+TENSION24h-MIOS.txt"
+				},
+				{
+					"name": "8_MEAS15M_BATCH15M+ALARM1M",
+					"file": "U_50-70-099-002__71-70-073-001__8_MEAS15M_BATCH15M+ALARM1M.txt"
+				}
+			]
+		},
+		{
+			"name": "Cels'O (50-70-049)",
+			"file": "50-70-049-Celso",
+			"apps": [
+				"LoraEncoder",
+				"Decoder"
+			],
+			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel",
+			"category": "TH sensors (Outdoor)",
+			"comment": [
+				"Outdoor temperature measurement",
+				"Mesure de température extérieure"
+			],
+			"docLink": "https://support.watteco.com/celso/"
+		},
+		{
+			"name": "Flash'O (50-70-071)",
+			"file": "50-70-071-Flasho",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "1 0,1,10,Index 1,100,6,BatteryLevel",
+			"category": "Digital input sensors",
+			"comment": [
+				"Light pulse counting sensor (1 probe)",
+				"Compteur d'impulsions lumineuses (1 capteur)"
+			],
+			"docLink": "https://support.watteco.com/flasho/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "DefaultConfFlasho",
+					"file": "U_50-70-071-007__50-70-245-[000_001]__DefaultConfFlasho.txt"
+				}
+			]
+		},
+		{
+			"name": "Flash'O 3 probes (50-70-206)",
+			"file": "50-70-206-Flash'O-3-probes",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,100,6,BatteryLevel 7,1,6,MultiState",
+			"category": "Digital input sensors",
+			"comment": [
+				"Light pulse counting sensor (3 probes)",
+				"Compteur d'impulsions lumineuses (3 capteurs)"
+			],
+			"docLink": "https://support.watteco.com/flasho/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "DefaultConf3Flasho",
+					"file": "U_50-70-206-000__DefaultConf3Flasho.txt"
+				}
+			]
+		},
+		{
+			"name": "HygroTemp'O (50-70-[205/232])",
+			"file": "50-70-205-232-HygroTemp'O",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel 3,1,1,OpenCase",
+			"category": "TH sensors",
+			"comment": [
+				"Temperature, hygrometry measurement + break in alarm",
+				"Mesure de température et hygrometrie + alarme d'effraction"
+			],
+			"docLink": "https://support.watteco.com/hygrotempo/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "CONF_DALKIA_TEMP_HUM_MES10M_TX1H_PILE_MES24H_TX24H",
+					"file": "U_50-70-205-002__50-70-247-000__71-70-128-002__71-70-155-000__CONF_DALKIA_TEMP_HUM_MES10M_TX1H_PILE_MES24H_TX24H.txt"
+				}
+			]
+		},
+		{
+			"name": "Clim'O (50-70-247)",
+			"file": "50-70-247-Clim'O",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel",
+			"category": "TH sensors",
+			"comment": [
+				"Temperature, hygrometry measurement",
+				"Mesure de température et hygrometrie"
+			],
+			"docLink": "https://support.watteco.com/climo/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "CONF_DALKIA_TEMP_HUM_MES10M_TX1H_PILE_MES24H_TX24H",
+					"file": "U_50-70-205-002__50-70-247-000__71-70-128-002__71-70-155-000__CONF_DALKIA_TEMP_HUM_MES10M_TX1H_PILE_MES24H_TX24H.txt"
+				}
+			]
+		},
+		{
+			"name": "In'O (50-70-016-005)",
+			"file": "50-70-016-Ino",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder"
+			],
+			"category": "Digital input/output sensors",
+			"comment": [
+				"Multi-usage digital I/O sensor (10 inputs, 3 outputs)",
+				"Entrées sorties digitales (10 entrées, 3 sorties)"
+			],
+			"docLink": "https://support.watteco.com/ino-2/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "DefaultConfINO",
+					"file": "U_50-70-016-005__50-70-087-002__DefaultConfINO.txt"
+				}
+			]
+		},
+		{
+			"name": "Inclin'O (50-70-201)",
+			"file": "50-70-201-Inclino",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder"
+			],
+			"BatchUncompressParams": "3 0,1,6,ACCmg 1,0.1,12,Deg",
+			"category": "Accelerometric sensors",
+			"comment": [
+				"Angle measurement sensor with chocks detection capability (rev > 6163) [2g to 16g]",
+				"Mesure d'angle avec possibilité de détection de chocs (rev > 6163) [2g à 16g]"
+			],
+			"docLink": "https://support.watteco.com/inclino-r6163/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "AngleChocks",
+					"file": "U_36-70-201-000__50-70-201-004__71-70-120-004__AngleChocks.txt"
+				},
+				{
+					"name": "U10Deg_O40Deg.12h",
+					"file": "U_50-70-201-004__71-70-120-004__U10Deg_O40Deg.12h.txt"
+				}
+			]
+		},
+		{
+			"name": "Intens'O (50-70-098)",
+			"file": "50-70-098-Intenso",
+			"apps": [
+				"LoraEncoder",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "2 0,0.1,12,Current 1,100,6,BatteryLevel",
+			"category": "AC power sensors & actuators",
+			"comment": [
+				"Single phase AC current intensity evaluation (up to 30 A)",
+				"Mesure de courant secteur monophasé (Jusqu'à 30 A)"
+			],
+			"docLink": "https://support.watteco.com/intenso/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "Default",
+					"file": "U_50-70-098-001__71-70-047-[001_002]__Default.txt"
+				}
+			]
+		},
+		{
+			"name": "Modbus (50-70-[080/109/165/176/181/182])",
+			"file": "50-70-080-Modbus",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"category": "Serial monitoring sensors",
+			"comment": [
+				"RS485 Modbus master allowing saveral slaves monitoring",
+				"Maître modbus RS485 permettant le suivi de plusierus esclaves"
+			],
+			"docLink": "https://support.watteco.com/modbus/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "CONF_DALKIA_KAMSTRUP",
+					"file": "U_50-70-176-000__71-70-054-002__CONF_DALKIA_KAMSTRUP.txt"
+				},
+				{
+					"name": "CONF_DALKIA_SHARKY_2013",
+					"file": "U_50-70-181-000__71-70-054-002__CONF_DALKIA_SHARKY_2013.txt"
+				},
+				{
+					"name": "CONF_DALKIA_ITRON_CF_II_CF800",
+					"file": "U_50-70-182-000__71-70-054-002__CONF_DALKIA_ITRON_CF_II_CF800.txt"
+				},
+				{
+					"name": "CONF_DALKIA_SHARKY_2018",
+					"file": "U_50-70-165-000__71-70-054-002__CONF_DALKIA_SHARKY_2018.txt"
+				}
+			]
+		},
+		{
+			"name": "Modbus Field (50-70-287)",
+			"file": "50-70-287-Modbus-Field",
+			"apps": [
+				"EasyCodec"
+			],
+			"category": "Serial monitoring sensors",
+			"comment": [
+				"RS485 Modbus master allowing saveral slaves monitoring",
+				"Maître modbus RS485 permettant le suivi de plusierus esclaves"
+			],
+			"docLink": "https://support.watteco.com/modbus/"
+		},
+		{
+			"name": "Monit'O (50-70-141)",
+			"file": "50-70-141-Batto",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder"
+			],
+			"BatchUncompressParams": "3 0,0.02,12,0-100mV 1,17,12,0-70V 2,100,6,BatteryLevel 3,100,6,ExternalLevel",
+			"category": "Analogic input sensors",
+			"comment": [
+				"2 channels 0-70V and 0-100mV measurements",
+				"Mesure de 2 voies analogiques 0-70V en 0-100mV"
+			],
+			"docLink": "https://support.watteco.com/monito/"
+		},
+		{
+			"name": "[Deprecated] Move'O (50-70-220)",
+			"file": "50-70-220-000-Move'o",
+			"apps": [
+				"LoraEncoder",
+				"Decoder"
+			],
+			"BatchUncompressParams": "3 0,1,4,OCC 1,10,7,T 2,100,6,H 5,10,6,LUX",
+			"category": "Environnemental sensors",
+			"comment": [
+				"Occupancy, Temperature, Hygrometry and Illuminance measurement + break-in detection",
+				"Mesure de luminosité, température, hygrometrie et détection de présence + détection d'effraction"
+			],
+			"docLink": "https://support.watteco.com/moveo-old/"
+		},
+		{
+			"name": "Move'O (50-70-225)",
+			"file": "50-70-225-Move'o",
+			"apps": [
+				"LoraEncoder",
+				"Decoder",
+				"LoraEncoderConfiguration",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "3 0,1,4,OCC 1,10,7,T 2,100,6,H 5,10,6,LUX",
+			"category": "Environnemental sensors",
+			"comment": [
+				"Occupancy, Temperature, Hygrometry and Illuminance measurement + break-in detection",
+				"Mesure de luminosité, température, hygrometrie et détection de présence + détection d'effraction"
+			],
+			"docLink": "https://support.watteco.com/moveo/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "MOVEO2",
+					"file": "U_50-70-225-[001_002]__71-70-138-[001_002]__MOVEO2.txt"
+				}
+			]
+		},
+		{
+			"name": "Temp'O Outdoor (50-70-164)",
+			"file": "50-70-164-RT",
+			"apps": [
+				"LoraEncoder",
+				"Decoder",
+				"LoraEncoderConfiguration",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "3 0,10,7,Temperature 5,100,6,BatteryLevel",
+			"category": "TH sensors (Outdoor)",
+			"comment": [
+				"Outdoor (IP66) temperature measurement",
+				"Mesure de température extérieure (IP66)"
+			],
+			"docLink": "https://support.watteco.com/outdoor-temperature/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "CONF_DALKIA_TEMP_EP_0_MES10MIN_TX1H_PILE_MES24H_TX24H_AMPH10K",
+					"file": "U_50-70-164-000__71-70-104-000__CONF_DALKIA_TEMP_EP_0_MES10MIN_TX1H_PILE_MES24H_TX24H_AMPH10K.txt"
+				}
+			]
+		},
+		{
+			"name": "Temp'O Outdoor - 1 probe + 1 remote probe (50-70-268)",
+			"file": "50-70-268-Temp'O-Outdoor-1probe+1remote-probe",
+			"apps": [
+				"LoraEncoder",
+				"Decoder",
+				"LoraEncoderConfiguration",
+				"EasyCodec"
+			],
+			"category": "TH sensors (Outdoor)",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "CONF_TEMP_EP_0_1_MES10MIN_TX1H_PILE_MES24H_TX24H_AMPH10K-50K",
+					"file": "U_50-70-268-000__71-70-176-000__CONF_TEMP_EP_0_1_MES10MIN_TX1H_PILE_MES24H_TX24H_AMPH10K-50K.txt"
+				}
+			]
+		},
+		{
+			"name": [
+				"Pilot wire (50-70-027)",
+				"Fil pilote (50-70-027)"
+			],
+			"apps": [
+				"LoraEncoder",
+				"Decoder"
+			],
+			"file": "50-70-027-PW",
+			"category": "AC power sensors & actuators",
+			"comment": [
+				"Pilot wire actuator",
+				"Actionneur fil-pilote"
+			],
+			"docLink": "https://support.watteco.com/pilote-wire-lora-remote/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "DefaultConf",
+					"file": "U_50-70-027-003__71-70-025-003__DefaultConf.txt"
+				}
+			]
+		},
+		{
+			"name": "[Deprecated] Press'O 50-70-017-004",
+			"file": "50-70-017-004-Presso",
+			"apps": [
+				"LoraEncoder",
+				"Decoder"
+			],
+			"BatchUncompressParams": "3 0,0.004,12,4-20mA 1,1,12,0-10V 2,100,6,BatteryLevel 3,100,6,ExtPowerLevel 4,1,10,Index",
+			"category": "Analogic input sensors",
+			"comment": [
+				"2 channels 0-10V and 4-20mA Analogic inputs",
+				"Mesures analogiques 2 voies 0-10V et 4-20mV"
+			],
+			"docLink": "https://support.watteco.com/presso-2/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "DefaultConfPresso-S0-420mA-010V",
+					"file": "U_50-70-017-006__50-70-267-000__71-70-010-006__71-70-112-000__71-70-175-000__DefaultConfPresso-S0-420mA-010V.txt"
+				}
+			]
+		},
+		{
+			"name": "Press'O (50-70-017-[≥ 005])/(50-70-189 Ext. Ant.)",
+			"file": "50-70-017-005-Presso",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder"
+			],
+			"BatchUncompressParams": "3 0,0.004,12,4-20mA 1,1,12,0-10V 2,100,6,BatteryLevel 3,100,6,ExtPowerLevel 4,1,10,Index",
+			"category": "Analogic input sensors",
+			"comment": [
+				"2 channels 0-10V and 4-20mA Analogic inputs",
+				"Mesures analogiques 2 voies 0-10V et 4-20mV"
+			],
+			"docLink": "https://support.watteco.com/presso-3/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "DefaultConfPresso-S0-420mA-010V",
+					"file": "U_50-70-017-006__50-70-267-000__71-70-010-006__71-70-112-000__71-70-175-000__DefaultConfPresso-S0-420mA-010V.txt"
+				}
+			]
+		},
+		{
+			"name": "Pulse Sens'O ATEX zone 1 (50-70-[123,228])",
+			"file": "50-70-014-PulseSenso",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,100,6,BatteryLevel 7,1,6,MultiState",
+			"category": "Digital input sensors",
+			"comment": [
+				"3 digital inputs for state or count monitoring (ATEX)",
+				"3 entrées binaires de suivi d'état ou de comptage (ATEX)"
+			],
+			"docLink": "https://support.watteco.com/pulsesensoatexzone1/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "DefaultC",
+					"file": "U_50-70-123-000__50-70-124-000__50-70-150-000__50-70-152-001__50-70-228-000__50-70-246-000__50-70-254-000__71-70-081-000__71-70-082-000__71-70-147-000__71-70-161-000__71-70-188-000__DefaultC.txt"
+				}
+			]
+		},
+		{
+			"name": "Pulse Sens'O (50-70-[014/072/039/051/160])",
+			"file": "50-70-014-PulseSenso",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,100,6,BatteryLevel 7,1,6,MultiState",
+			"category": "Digital input sensors",
+			"comment": [
+				"3 digital inputs for state or count monitoring",
+				"3 entrées binaires de suivi d'état ou de comptage"
+			],
+			"docLink": "https://support.watteco.com/pulsesenso-2/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "DefaultConfPulseSenso",
+					"file": "U_50-70-039-007__DefaultConfPulseSenso.txt"
+				},
+				{
+					"name": "DefaultConfPulseSensoSilensoft",
+					"file": "U_50-70-039-007__DefaultConfPulseSensoSilensoft.txt"
+				},
+				{
+					"name": "CONF_DALKIA_BININPUT_COUNT_EP_0_1_2_MES1H_TX4H_PILE_MES24H_TX24H",
+					"file": "U_50-70-160-001__CONF_DALKIA_BININPUT_COUNT_EP_0_1_2_MES1H_TX4H_PILE_MES24H_TX24H.txt"
+				}
+			]
+		},
+		{
+			"name": "[Deprecated] Remote temperature (50-70-043-002)",
+			"file": "50-70-043-002-RT",
+			"apps": [
+				"LoraEncoder",
+				"Decoder"
+			],
+			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel",
+			"category": "TH sensors (Remote)",
+			"comment": [
+				"1 channel remote temperature measurement",
+				"Mesure de température déportée 1 voie"
+			],
+			"docLink": "https://support.watteco.com/remote-temperature-old/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "CONF_TEMP_EP_0_MES10MIN_TX1H_PILE_MES24H_TX24H_AMPH50K",
+					"file": "U_50-70-043-003__71-70-124-000__CONF_TEMP_EP_0_MES10MIN_TX1H_PILE_MES24H_TX24H_AMPH50K.txt"
+				}
+			]
+		},
+		{
+			"name": "Temp'O - 1 remote probe (50-70-043-003)",
+			"file": "50-70-043-003-RT1CTN",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel",
+			"category": "TH sensors (Remote)",
+			"comment": [
+				"1 channel remote temperature measurement (more accurate and thresholds management)",
+				"Mesure de température déportée 1 voie (précision améliorée et gestion de seuils)"
+			],
+			"docLink": "https://support.watteco.com/remote-temperature/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "CONF_TEMP_EP_0_MES10MIN_TX1H_PILE_MES24H_TX24H_AMPH50K",
+					"file": "U_50-70-043-003__71-70-124-000__CONF_TEMP_EP_0_MES10MIN_TX1H_PILE_MES24H_TX24H_AMPH50K.txt"
+				}
+			]
+		},
+		{
+			"name": "PT1000 (50-70-126)",
+			"file": "50-70-126-PT1000",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel",
+			"category": "TH sensors",
+			"comment": [
+				"1 channel PT1000 temperature measurement",
+				"Mesure de température PT1000 1 voie"
+			],
+			"docLink": "https://support.watteco.com/pt1000/"
+		},
+		{
+			"name": "PT1000 400°C (50-70-288)",
+			"file": "50-70-288-PT1000-400C",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "1 0,1,7,Temperature 1,100,6,BatteryLevel",
+			"category": "TH sensors",
+			"comment": [
+				"High temperature PT1000 sensor (0.1°C resolution)",
+				"Capteur PT1000 haute température (résolution 0,1°C)"
+			],
+			"docLink": "https://support.watteco.com/pt1000-400c/"
+		},
+		{
+			"name": "Temp'O - 2 remote probes (50-70-[139/163/184])",
+			"file": "50-70-139-000-RT2CTN",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "3 0,10,7,Temperature1 1,10,7,Temperature2 5,100,6,BatteryLevel",
+			"category": "TH sensors (Remote)",
+			"comment": [
+				"2 channels remote temperature measurement",
+				"Mesure de température déportée 2 voies"
+			],
+			"docLink": "https://support.watteco.com/remote-temperature-2/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "CONF_TEMP_EP_0_1_MES1H_TX1H_PILE_MES7J_TX7J_AMPH50K",
+					"file": "U_50-70-184-000__71-70-107-000__CONF_TEMP_EP_0_1_MES1H_TX1H_PILE_MES7J_TX7J_AMPH50K.txt"
+				},
+				{
+					"name": "CONF_TEMP_EP_0_1_MES10MIN_TX1H_PILE_MES24H_TX24H_AMPH50K",
+					"file": "U_50-70-163-000__71-70-107-000__CONF_TEMP_EP_0_1_MES10MIN_TX1H_PILE_MES24H_TX24H_AMPH50K.txt"
+				}
+			]
+		},
+		{
+			"name": "HygroTemp'O - remote probe 1m (50-70-200)",
+			"file": "50-70-200-RTH",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel",
+			"category": "TH sensors (Remote)",
+			"comment": [
+				"Remote temperature and hygrometry measurement",
+				"Mesure de température et hygrometrie déportées"
+			],
+			"docLink": "https://support.watteco.com/remot_th/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "CONF_SNCF_TEMP_HUM_PILE_TX4H_SEUIL_15C_30C_40",
+					"file": "U_50-70-200-001__50-70-289-000__71-70-119-000__CONF_SNCF_TEMP_HUM_PILE_TX4H_SEUIL_15C_30C_40__60.txt"
+				}
+			]
+		},
+		{
+			"name": "SmartPlug (50-70-003)",
+			"file": "50-70-003-SmartPlug",
+			"apps": [
+				"LoraEncoder",
+				"Decoder"
+			],
+			"BatchUncompressParams": "1 0,1,9,ActiveEnergy",
+			"category": "AC power sensors & actuators",
+			"comment": [
+				"ON/OFF and power monitoring AC Plug",
+				"Prise secteur commandée avec mesure de puissance"
+			],
+			"docLink": "https://support.watteco.com/smartplug/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "DEFAULT",
+					"file": "U_50-70-003-006__DEFAULT.txt"
+				}
+			]
+		},
+		{
+			"name": "[Deprecated] T (50-70-[085/167])",
+			"file": "50-70-085-T",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder"
+			],
+			"BatchUncompressParams": "2 0,10,7,Temperature  2,1,6,BatteryLevel 3,1,1,OpenCase",
+			"category": "TH sensors",
+			"comment": [
+				"Indoor temperature measurement",
+				"Mesure de température intérieure"
+			]
+		},
+		{
+			"name": "Temp'O (50-70-231)",
+			"file": "50-70-231-Temp'O",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "2 0,10,7,Temperature 2,1,6,BatteryLevel 3,1,1,BreakIn",
+			"category": "TH sensors",
+			"comment": [
+				"Temperature, hygrometry measurement + break in alarm",
+				"Mesure de température et hygrometrie + alarme d'effraction"
+			],
+			"docLink": "https://support.watteco.com/hygrotempo/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "CONF_DALKIA_TEMP_MES10M_TX1H_PILE_MES24H_TX24H",
+					"file": "U_50-70-231-002__71-70-152-002__CONF_DALKIA_TEMP_MES10M_TX1H_PILE_MES24H_TX24H.txt"
+				}
+			]
+		},
+		{
+			"name": "[Deprecated] TH (50-70-[053/162])",
+			"file": "50-70-053-TH",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder"
+			],
+			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel 3,1,1,OpenCase",
+			"category": "TH sensors",
+			"comment": [
+				"Temperature, hygrometry measurement + break in alarm",
+				"Mesure de température et hygrometrie + alarme d'effraction"
+			]
+		},
+		{
+			"name": "TICs'O (50-70-045) [beta]",
+			"file": "50-70-045-TIC-PMEPMI",
+			"apps": [
+				"LoraEncoder",
+				"Decoder"
+			],
+			"category": "AC power sensors & actuators",
+			"comment": [
+				"French legal electrical meter monitoring (Tele-Information Client: CBE,ICE,CJE,PMEPMI,Linky)",
+				"Capteur TIC pour compteurs électriques (Tele-Information Client: CBE,ICE,CJE,PMEPMI,Linky)"
+			],
+			"docLink": "https://support.watteco.com/tic/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "MIOS_202206",
+					"file": "U_36-70-045-000__50-70-045-006__71-70-035-006__MIOS_202206.txt"
+				},
+				{
+					"name": "MIOS_202310_Tx1h",
+					"file": "U_36-70-045-001__50-70-045-006__71-70-035-006__MIOS_202310_Tx1h.txt"
+				}
+			]
+		},
+		{
+			"name": "Toran'O ATEX zone 1(50-70-124)",
+			"file": "50-70-124-Torano",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder"
+			],
+			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,0.004,12,4-20mA 7,1,12,0-5V[Measure-1] 8,1,12,0-5V[Measure-2] 9,1,12,ratio[Measure-1] 10,1,12,ratio[Measure-1] 11,100,6,BatteryLevel",
+			"category": "Digital and analogic input sensors",
+			"comment": [
+				"Multi-purpose digital and analogic inputs sensor (3digitals inputs, 3 analogic inputs (1 x 4-20mA, 2 x 0-5V))",
+				"Capteur multi-usages pour entrées digitales et analogiques (3 entrées digitales, 3 analogiques (1 x 4-20mA, 2 x 0-5V))"
+			],
+			"docLink": "https://support.watteco.com/toranoatexzone1/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "DefaultC",
+					"file": "U_50-70-123-000__50-70-124-000__50-70-150-000__50-70-152-001__50-70-228-000__50-70-246-000__50-70-254-000__71-70-081-000__71-70-082-000__71-70-147-000__71-70-161-000__71-70-188-000__DefaultC.txt"
+				}
+			]
+		},
+		{
+			"name": "Triphas'O (50-70-[105/145/146])",
+			"file": "50-70-105-Triphaso",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder"
+			],
+			"category": "AC power sensors & actuators",
+			"comment": [
+				"AC 3 phased electrical power and energy meter (105: 0-60A, 145: 0-400A, 146: Rogowski loop)",
+				"Mesure secteur de puissance et énergie triphasée (105: 0-60A, 145: 0-400A, 146: Rogowski loop)"
+			],
+			"docLink": "https://support.watteco.com/triphaso/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "DefaultConfTRI-MIOS",
+					"file": "U_36-70-105-000__50-70-105-004__50-70-145-003__71-70-074-004__71-70-090-003__DefaultConfTRI-MIOS.txt"
+				},
+				{
+					"name": "DefaultConfTRI",
+					"file": "U_50-70-105-[004_005]__50-70-145-[003_004]__71-70-074-[004_006]__71-70-090-[003_004]__DefaultConfTRI.txt"
+				},
+				{
+					"name": "DefaultConfTRIKwh-MIOS",
+					"file": "U_50-70-146-003__71-70-091-003__DefaultConfTRIKwh-MIOS.txt"
+				},
+				{
+					"name": "DefaultConfTRIKwh-SEIREL",
+					"file": "U_50-70-146-003__71-70-091-003__DefaultConfTRIKwh-SEIREL.txt"
+				},
+				{
+					"name": "DefaultConfTRIKwh",
+					"file": "U_50-70-146-[003_004]__71-70-091-[003_004]__DefaultConfTRIKwh.txt"
+				}
+			]
+		},
+		{
+			"name": "Vaqa'O Lite (50-70-223)",
+			"file": "50-70-223-VAQAO Lt",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "3 1,10,7,T 2,100,6,H 3,10,6,CO2",
+			"category": "Environnemental sensors",
+			"comment": [
+				"Temperature, Hygrometry and CO2 measurement + break-in detection",
+				"Mesure de température, hygrometrie et CO2 + détection d'effraction"
+			],
+			"docLink": "https://support.watteco.com/vaqaolite/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "Vaqao2Lt_1.0",
+					"file": "U_50-70-217-002__50-70-223-[000_001]__50-70-251-[000_001]__71-70-130-002__71-70-137-[000_001]__71-70-160-[000_001]__Vaqao2Lt_1.0.txt"
+				}
+			]
+		},
+		{
+			"name": "Vaqa'O + Lite (50-70-251)",
+			"file": "50-70-251-VAQAO+Lt",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder",
+				"EasyCodec"
+			],
+			"BatchUncompressParams": "3 0,1,4,OCC 1,10,7,T 2,100,6,H 3,10,6,CO2 5,10,6,LUX ",
+			"category": "Environnemental sensors",
+			"comment": [
+				"Temperature, Hygrometry, CO2, luminosity and occupancy measurement + break-in detection",
+				"Mesure de température, hygrometrie, CO2, luminosité et présence + détection d'effraction"
+			],
+			"docLink": "https://support.watteco.com/vaqaolite/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "Vaqao2Lt_1.0",
+					"file": "U_50-70-217-002__50-70-223-[000_001]__50-70-251-[000_001]__71-70-130-002__71-70-137-[000_001]__71-70-160-[000_001]__Vaqao2Lt_1.0.txt"
+				}
+			]
+		},
+		{
+			"name": "[Deprecated] Vaqa'O + Plus (50-70-074)",
+			"file": "50-70-074-VAQAO+Plus",
+			"apps": [
+				"LoraEncoder",
+				"Decoder"
+			],
+			"BatchUncompressParams": "3 0,1,4,OCC 1,10,7,T 2,100,6,H 3,10,6,CO2 4,10,6,COV 5,10,6,LUX 6,10,6,P",
+			"category": "Environnemental sensors",
+			"comment": [
+				"Temperature, hygrometry, VOC, CO2, opening, displacement, pressure, occupancy, illuminance measurement",
+				"Mesure de température, hygrometrie, COV, CO2, ouverture, déplacement, pression, présence"
+			],
+			"docLink": "https://support.watteco.com/vaqao/"
+		},
+		{
+			"name": "[Deprecated] Vaqa'O (50-70-168)",
+			"file": "50-70-168-VAQAO",
+			"apps": [
+				"LoraEncoder",
+				"Decoder"
+			],
+			"BatchUncompressParams": "3 1,10,7,T 2,100,6,H 3,10,6,CO2 4,10,6,COV",
+			"category": "Environnemental sensors",
+			"comment": [
+				"Temperature, Hygrometry, CO2, Opening measurement",
+				"Mesure de température, hygrometrie, CO2, Ouverture"
+			],
+			"docLink": "https://support.watteco.com/vaqao/"
+		},
+		{
+			"name": "Ventil'O (50-70-[064/101/166])",
+			"file": "50-70-064-Ventil'o",
+			"apps": [
+				"LoraEncoder",
+				"LoraEncoderConfiguration",
+				"Decoder"
+			],
+			"BatchUncompressParams": "3 0,1,7,Mean_differential_pressure_since_last_report 1,1,7,Minimal_differential_pressure_since_last_report 2,1,7,Maximal_differential_pressure_since_last_report  3,1,6,BatteryLevel 4,10,7,Temperature 5,1,7,DifferentialPressure 6,1,10,Index 7,1,1,State",
+			"category": "HVAC sensors",
+			"comment": [
+				"Differential pressure measurement (for ventilation and air conditionning)",
+				"Mesure de pression différentielle (pour système de ventilation ou conditionnement d'air)"
+			],
+			"docLink": "https://support.watteco.com/ventilo/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "CONF1_1_DEFAULT_MEAS15M_TX6H",
+					"file": "U_50-70-101-006__50-70-248-001__50-70-265-000__71-70-057-002__71-70-129-000__71-70-156-000__71-70-172-000__71-70-173-000__CONF1_1_DEFAULT_MEAS15M_TX6H.txt"
+				}
+			]
+		},
+		{
+			"name": "Alt'O (50-70-236)",
+			"file": "50-70-236-Alt'o",
+			"apps": [
+				"EasyCodec"
+			],
+			"category": "Environnemental sensors",
+			"comment": [
+				"Distance measurement",
+				"Mesure de distance"
+			],
+			"docLink": "https://support.watteco.com/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "Alto",
+					"file": "U_50-70-236-000__71-70-165-000__Alto.txt"
+				}
+			]
+		},
+		{
+			"name": "Valv'O (50-70-291)",
+			"file": "50-70-291-Valv'O",
+			"apps": [
+				"EasyCodec"
+			],
+			"category": "zTest dev",
+			"comment": [
+				"com1,com2",
+				"com3 , com4"
+			],
+			"docLink": "https://support.watteco.com/atmo/",
+			"rom_default_cmds_filenames": [
+				{
+					"name": "DefaultConfVALVO12Compteur",
+					"file": "U_50-70-291-000__71-70-189-000__DefaultConfVALVO12Compteur.txt"
+				}
+			]
+		}
+	],
+	"in_developpement_products": []
+}

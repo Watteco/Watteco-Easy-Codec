@@ -126,7 +126,7 @@ Cela permet d'exposer les options standard dans l'UI sans les activer par défau
 
 | Type | Visual type conseillé | Usage | Conversion trame |
 |------|------------------------|-------|------------------|
-| `timeVal` | `timeSlider` | Temps (minutes) | Décimal → hexa 2 octets avec offset 32768 (ex: 10 → 800A) |
+| `timeVal` | `timeSlider`, `timeSliderHHMM` | Temps (minutes ou HH:MM) | Décimal → hexa sur 2 octets avec offset 32768 (ex: 08 : 10 → 08 0A) |
 | `hex[x]B` | `doubleSlider`, `slider` ou `numInput` | Entier sur x octets | Décimal → hexa sur x octets (ex: hex2B, 21 → 0015) |
 | `bool` | `checkbox` | Booléen | true/false → 01/00 |
 | `float` | `slider` (ou `numInput`) | Décimal | IEEE 754 simple précision (4 octets, 8 chars hexa) |
@@ -137,6 +137,7 @@ Cela permet d'exposer les options standard dans l'UI sans les activer par défau
 
 Remarques:
 
+- `timeSliderHHMM` est une variante de `timeSlider` utilisée pour afficher et modifier des durées/horaires au format heures:minutes.
 - `customValue` est utile pour une valeur fixe affichée mais non éditable.
 - Pour `float`, utilisez en général `precision` et `step` (ex: `2` et `0.01`).
 
@@ -251,7 +252,7 @@ Types supportés:
 
 | Type | Champ UI | Capture |
 |------|----------|---------|
-| `timeVal` | `timeSlider` | ![timeSlider](img/readme-ui/timeSlider.png) |
+| `timeVal` | `timeSlider`, `timeSliderHHMM` | ![timeSlider](img/readme-ui/timeSlider.png) |
 | `hex[x]B` | `doubleSlider` | ![doubleSlider](img/readme-ui/doubleSlider.png) |
 | `bool` | `checkbox` | ![checkbox](img/readme-ui/checkbox.png) |
 | `float` / `hex[x]B` | `slider` | ![sliderFloat](img/readme-ui/sliderFloat.png) |

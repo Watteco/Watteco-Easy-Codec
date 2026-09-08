@@ -1,0 +1,82 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [stmator] [71-70-117-002_36-70-197-000_50-70-197-002_ACCELERO_TAB_CME]
+
+[ROM_DEFAULT_TARGET] .*_ips-accelero.*(fat3)*.ClassA.lrctm.EU.chkpt.wdt2.*7010736.*sx-lr.hex CME
+@
+# ---------CFG 0 (Default): CONF FOR HUB'O BATCH & STANDARD REPORTS ---------------------------
+# . Passage en mode "NON confirmï¿½", sauf alarmes alors 3 retries
+08 11 05 8004 0000 08 00
+08 11 05 8004 0001 20 03
+#
+# . Effacement des configurations (Batch et Standard)
+06 11 50 0050 02 03
+#
+# . Configuration mesure accelerometrique
+#   FreqWait:      100 dhz 
+#   FreqAcq:      1000 dHz
+#   NewWaitDelay:    0 s   (Minimal delay between two acquisitions will be 1 tick (1/16s))
+#   AcqDuration:  4000 ms
+#   ThresholdX:    160 cG (0x00A0)
+#   ThresholdY:    160 cG  
+#   ThresholdZ:    160 cG  (Trig and Accept samples over 1.6G [Non linearity pb with ThresholByte = 1 (0.8G)] => Trig with no move )
+#   WakeUpDt:        0 ms  (Immediate trig)
+#   SleepDt:       500 ms  (Will stop after SleepDt under threshold or after AcqDuration)
+#   Range :   +/-10000 cG  (0x2710)(Fullscale)
+#
+#   Filtering parameter: S[n] = [(abs(En)*Beta) + (S[n-1] * Alpha)] / (alpha + 1))
+#   Alpha :          0     (Smoothing coefficient/level)
+#   Beta  :          1     (Gain)
+#
+#   Mode  :       0x07     (Clear Z, Y, X stats after stats standard report)
+#   
+1F 11 05 800f 8000 41 17 0064 03e8 0000 0FA0 00A0 00A0 00A0 0000 01f4 2710 00 01 07
+#
+# ------------------------ STANDARD REPORTS -------------------------
+# . POWERDESC  [mV]
+#   . Periodic MAX = 0xFFFF; MIN = 24h 1440mn = 0x85A0
+#   . Length of remaining payload (for 0x41 type ): 0x08
+#   . ALARM on power treshold : 2,7v (hyst 100mV)
+#     RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98 
+#     CSD : IsAlarm/OnExceed/OnFall/Threshold/Slot0 : b 1 1 1 10 000 ==> xF0
+#     Disposable battery field index : 0x04
+#     THRS: 2700 : 0x0A8C; HYST: 100 mV : 0x0064
+#     OCC : 1
+14 11 06 0050 98 0006 41 800A 85A0 07 F0 04 0A8C 0064 01
+#
+# . ACC MONITOR (H3LIS331DL) (Statistics on X,Y and Z (Attributes 0x0001,0x0002,0x0003) only if modified in last 24h)
+#   NOTA: Ne pas avoir de report si aucune acquisition ==> On ne fait pas juste periodique, 
+#         mais plutot avec Min et sur changement
+#   . Periodic MAX = 0xFFFF; MIN = 24h 1440mn = 0x85A0
+#   . Sent periodically only no Threshold or Delta
+#     RP   : NewCfg/Reserved/NoCause/NotSecuredIfAlarm/AllSecured/HeaderKept/NotBatch :  b 1 0 00 0 1 0 0 ==> x84 
+#     CSD  : NotIsAlarm/OnExceed/NotOnFall/Threshold/Slot0 : b 0 1 0 10 000 => x50
+#     FID: Index OO NbAcq : 0x00
+#     THRS: 0 : 0x0000; HYST:0 : 0x0000 (dÃ¨s que l'on franchit 0 par valeur supï¿½rieur, si on met THRSH = 1 cela dï¿½clenchera ï¿½ 2 ?)
+#     OCC : 1
+14 11 06 800F 84 0001 41 85A0 FFFF 07 50 00 0000 0000 01
+14 11 06 800F 84 0002 41 85A0 FFFF 07 50 00 0000 0000 01
+14 11 06 800F 84 0003 41 85A0 FFFF 07 50 00 0000 0000 01
+#
+# . ACC MONITOR (H3LIS331DL) (Last acceleration, Each time new Acc is done) 
+#   . Periodic MAX = 0xFFFE ; MIN = 0s 
+#     Note : 0xFFFE instead of 0xFFFF, avoids missing first detection ! 
+#            However a periodic report (not alarm (110A... not 118A) will occur first with 0 in values of acceleration 
+#            then periodically each about 22,7 days containing last "Last acceleration", without change of number of acc
+#   . Sent when a new acceleration is received (change 0 on NbTriggedAcq Field 0)
+#     RP   : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98 
+#     CSD  : IsAlarm/OnExceed/-/Delta/Slot0 : b 1 1 0 01 000 => xC8
+#     Field: 0 (Number of trigged measurements)
+#     DELTA: 1 => 0x00000001; 
+13 11 06 800F 98 0000 41 0000 FFFE 06 C8 00 00000001
+# . Note Remove Slot 0 configuration : 
+#     Min=0x0000 and Max=0x0000
+#     RP   : NewCfg/Reserved/NoCause/NotSecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 00 0 0 0 0 ==> x80
+#     CSD  : -/-/-/-/Slot0 : b 0 0 0 00 000 => x00
+#     ==> 11 06 800F 80 0000 41 0000 0000 01 00
+#
+# ------------------------- BATCH REPORT ---------------------------------------
+# . 
+#---------------------------------------------------------------------------------------------
+# ------------------------------- CONFIGURATION END : byte FF --------------------------------
+FF

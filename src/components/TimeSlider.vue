@@ -16,14 +16,14 @@
     ></ion-range>
 
     <ion-chip class="time-chip" v-if="!isEditing" @click="startEditing">
-      {{ valueHours }}
+      {{ displayValue }}
     </ion-chip>
 
     <ion-input
       v-else
       class="time-input"
       v-model="timeInputValue"
-      placeholder="0h00"
+      :placeholder="props.outputFormat === 'HHMM' ? 'HHMM' : '0h00'"
       @ionBlur="finishEditing"
       @keyup.enter="finishEditing"
       @ionInput="onInputChange"
@@ -46,23 +46,34 @@ const props = defineProps({
   step: Number,
   groupName: String,
   paramName: String,
+  outputFormat: {
+    type: String,
+    default: ''
+  }
 });
 
-const currentValue = ref(props.value);
-const timeInputValue = ref(formatMinutesToTimeString(props.value || 0));
+const currentValue = ref(Number(props.value) || 0);
+const timeInputValue = ref(formatMinutesToTimeString(Number(props.value) || 0));
 const isEditing = ref(false);
 const timeInputRef = ref(null);
 
 const emit = defineEmits(['update:value']);
 
 const valueHours = computed(() => {
-  let validValue = currentValue.value || props.value;
+  let validValue = Number(currentValue.value) || Number(props.value) || 0;
 
   if (props.min === props.max) {
     validValue = props.min;
   }
 
   return formatMinutesToTimeString(validValue);
+});
+
+const displayValue = computed(() => {
+  if (props.outputFormat === 'HHMM') {
+    return formatMinutesToTwoByteHHMM(Number(currentValue.value) || 0);
+  }
+  return valueHours.value;
 });
 
 const onRangeChange = (event) => {
@@ -117,19 +128,30 @@ function parseTimeStringToMinutes(timeString) {
   
   let hours = 0;
   let minutes = 0;
+  let cleanString = timeString.toString().trim();
+
+  if (props.outputFormat === 'HHMM') {
+    cleanString = cleanString.replace(/[^0-9]/g, '');
+    if (cleanString.length === 4) {
+      hours = parseInt(cleanString.slice(0, 2), 10) || 0;
+      minutes = parseInt(cleanString.slice(2), 10) || 0;
+      return hours * 60 + minutes;
+    }
+    const totalMinutes = parseInt(cleanString, 10) || 0;
+    return totalMinutes;
+  }
   
-  const cleanString = timeString.toString().trim().replace(/[^\dh:]/g, '');
-  
-  if (cleanString.includes('h')) {
-    const parts = cleanString.split('h');
+  const normalized = cleanString.replace(/[^0-9h:]/g, '');
+  if (normalized.includes('h')) {
+    const parts = normalized.split('h');
     hours = parseInt(parts[0]) || 0;
     minutes = parseInt(parts[1]) || 0;
-  } else if (cleanString.includes(':')) {
-    const parts = cleanString.split(':');
+  } else if (normalized.includes(':')) {
+    const parts = normalized.split(':');
     hours = parseInt(parts[0]) || 0;
     minutes = parseInt(parts[1]) || 0;
   } else {
-    const totalMinutes = parseInt(cleanString) || 0;
+    const totalMinutes = parseInt(normalized, 10) || 0;
     hours = Math.floor(totalMinutes / 60);
     minutes = totalMinutes % 60;
     if (hours > 0) {
@@ -142,8 +164,16 @@ function parseTimeStringToMinutes(timeString) {
   return hours * 60 + minutes;
 }
 
+function formatMinutesToTwoByteHHMM(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours.toString().padStart(2, '0')}h${mins.toString().padStart(2, '0')}`;
+}
+
 const startEditing = async () => {
-  timeInputValue.value = formatMinutesToTimeString(currentValue.value);
+  timeInputValue.value = props.outputFormat === 'HHMM'
+    ? formatMinutesToTwoByteHHMM(Number(currentValue.value) || 0)
+    : formatMinutesToTimeString(currentValue.value);
   isEditing.value = true;
   
   await nextTick();
@@ -165,7 +195,9 @@ const startEditing = async () => {
 
 const finishEditing = () => {
   if (!timeInputValue.value) {
-    timeInputValue.value = formatMinutesToTimeString(currentValue.value);
+    timeInputValue.value = props.outputFormat === 'HHMM'
+      ? formatMinutesToTwoByteHHMM(Number(currentValue.value) || 0)
+      : formatMinutesToTimeString(currentValue.value);
     isEditing.value = false;
     return;
   }
@@ -177,7 +209,9 @@ const finishEditing = () => {
   validMinutes = Math.round(validMinutes / props.step) * props.step;
   
   currentValue.value = validMinutes;
-  timeInputValue.value = formatMinutesToTimeString(validMinutes);
+  timeInputValue.value = props.outputFormat === 'HHMM'
+    ? formatMinutesToTwoByteHHMM(validMinutes)
+    : formatMinutesToTimeString(validMinutes);
   
   emit('update:value', { 
     newValue: validMinutes, 
@@ -198,9 +232,10 @@ watch(() => props.max, (newMax) => {
 });
 
 watch(() => props.value, (newValue) => {
-  currentValue.value = newValue;
+  const numericValue = Number(newValue) || 0;
+  currentValue.value = numericValue;
   if (!isEditing.value) {
-    timeInputValue.value = formatMinutesToTimeString(newValue);
+    timeInputValue.value = formatMinutesToTimeString(numericValue);
   }
 });
 </script>

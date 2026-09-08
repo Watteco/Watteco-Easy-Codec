@@ -1,0 +1,15 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [71-70-093-001_Carte HumidO Testee]
+
+[ROM_DEFAULT_TARGET] .*_ips-analoginput.*ClassA.lrctm.EU.chkpt.wdt2.*dfp-br-.*S0.*307V.*.sx-lr.*.txt DefaultConfHumido
+@10a00
+06 11 50 00 50 02 03
+# mise Ã  500 ms l'alimenation
+09 31 05 00 0c 80 03 21 01 F4
+# on place une action 0 qui sur dÃ©passemnt du seuil 5000 mV dÃ©clenche l'action 1. Cette action a un min Ã  10 minutes et un max Ã  2 heures
+21 11 05 00 50 FF 00 41 19 31 06 00 0c 80 00 55 39 80 0a 82 d0 d8 45 9c 40 00 42 c8 00 00 01 02 00 01
+# on place une action 1 qui sur franchissement bas du seuil 5000 mV dÃ©clenche l'action 0. Cette action a un min Ã  10 minutes et un max Ã  30 minutes
+21 11 05 00 50 FF 01 41 19 31 06 00 0c 80 00 55 39 80 0a 80 1e b8 44 7a 00 00 42 c8 00 00 01 02 00 00
+# on lance l'action 0.
+08 11 50 00 50 F0 02 00 00

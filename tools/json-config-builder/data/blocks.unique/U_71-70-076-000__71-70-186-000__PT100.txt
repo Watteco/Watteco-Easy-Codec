@@ -1,0 +1,14 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 2
+; [tiator] [71-70-076-000_Carte Analogique LoRa + carte PT1000(version TEST)]
+; [tiator] [71-70-186-000_Carte Analogique LoRa + carte PT1000 -50 +400]
+
+[ROM_DEFAULT_TARGET] .*PT100.*334.*.txt PT100
+@10a00
+#remove toute configuration
+06 11 50 00 50 02 03
+# Configuration polynome 1619 => 1620.59 / 846 => 846.917 => y =  0.180444 + 1.00087 * Vadc + 0 *Vadc * Vadc
+# IEE754: 0x3e38c650 + 0x3f801c82*Vadc + 0x00000000*Vadc*Vadc 
+#14 11 05 04 02 90 00 41 0C 3e 38 c6 50 3f 80 1c 82 00 00 00 00
+#Le capteur mesure tous les 2 heures la température et envoie un report toutes les 2 heures
+0E 11 06 04 02 00 00 00 29 00 00 80 78 00 00

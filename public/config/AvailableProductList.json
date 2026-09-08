@@ -100,6 +100,15 @@
 			"docLink": "https://support.watteco.com/modbus/"
 		},	
 		{
+			"name": "Modbus Field (50-70-287)",
+			"file": "50-70-287-Modbus-Field",
+			"apps": ["EasyCodec"],
+			"category": "Serial monitoring sensors",
+			"comment": ["RS485 Modbus master allowing saveral slaves monitoring",
+						"Maître modbus RS485 permettant le suivi de plusierus esclaves"],
+			"docLink": "https://support.watteco.com/modbus/"
+		},
+		{
 			"name": "Monit'O (50-70-141)",
 			"file": "50-70-141-Batto",
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
@@ -205,6 +214,24 @@
 			"comment": ["1 channel remote temperature measurement (more accurate and thresholds management)",
 						"Mesure de température déportée 1 voie (précision améliorée et gestion de seuils)"],
 			"docLink": "https://support.watteco.com/remote-temperature/"
+		},
+		{
+			"name": "PT1000 (50-70-126)",
+			"file": "50-70-126-PT1000",
+			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
+			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel",
+			"category": "TH sensors",
+			"comment": ["1 channel PT1000 temperature measurement","Mesure de température PT1000 1 voie"],
+			"docLink": "https://support.watteco.com/pt1000/"
+		},
+		{
+			"name": "PT1000 400°C (50-70-288)",
+			"file": "50-70-288-PT1000-400C",
+			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
+			"BatchUncompressParams": "1 0,1,7,Temperature 1,100,6,BatteryLevel",
+			"category": "TH sensors",
+			"comment": ["High temperature PT1000 sensor (0.1°C resolution)","Capteur PT1000 haute température (résolution 0,1°C)"],
+			"docLink": "https://support.watteco.com/pt1000-400c/"
 		},
 		{
 			"name": "Temp'O - 2 remote probes (50-70-[139/163/184])",
@@ -348,6 +375,15 @@
 			"comment": ["Distance measurement", 
 			"Mesure de distance"],
 			"docLink": "https://support.watteco.com/"
+		},
+		{
+			"name": "Valv'O (50-70-291)",
+			"file": "50-70-291-Valv'O",
+			"apps": [""],
+			"category": "zTest dev",
+			"comment": ["com1,com2",
+						"com3 , com4"],
+			"docLink": "https://support.watteco.com/atmo/"
 		},
 		{
 			"name": "BETA Pulse Sens'O BLE",

@@ -1,0 +1,15 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [71-70-010-006_50-70-208-000_Carte Analogique Pompe de relevage testee]
+
+[ROM_DEFAULT_TARGET] .*_ips-analoginput.ClassA.lrctm.EU.chkpt.wdt2-dfp-br.307V3.sx-lr.*.txt PDR_22072021
+@10a00
+# Suppression reports
+06 11 50 00 50 02 03
+# (84: New, no cause, Secured), MinRpt=30sec, MaxRpt=2h(120 mn) 
+# Delta: C8 : Alarm, 0.16mA  
+11 11 06 00 0c 84 00 55 39 001e 8078 c8 3e 23 d7 0a
+# durÃ©e alimentation sonde 200ms
+09 11 05 00 0c 80 03 21 00 c8
+# report tension batterie une fois par 2h ou sur chgt d'alimentation (confirmÃ© et alarme). mesure Ã  10 minutes
+10 11 06 00 50 88 00 06 41 80 0a 80 78 03 c8 07 01

@@ -1,0 +1,12 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [71-70-046-001_Carte Cels'O testee]
+
+[ROM_DEFAULT_TARGET] .*335.*.txt Celso
+@10a00
+06 11 50 00 50 02 03
+11 11 06 04 02 15 00 00 00 80 0F 80 3C 00 00 00 0A 01
+0E 11 06 04 02 00 00 00 29 80 01 FF FF 01 F4
+11 11 06 00 50 15 00 06 04 A7 60 A7 60 00 00 00 64 09
+# historisation à 60 minutes
+09 11 05 04 02 80 00 21 00 3C

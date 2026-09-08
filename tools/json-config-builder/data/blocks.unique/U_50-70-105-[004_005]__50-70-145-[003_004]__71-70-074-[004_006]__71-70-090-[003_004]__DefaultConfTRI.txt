@@ -1,0 +1,27 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 4
+; [tiator] [71-70-074-004 _ 50-70-105-004_TRIPHASO 60 A Version finale]
+; [tiator] [71-70-074-006 _ 50-70-105-005_TRIPHASO 60 A Version finale]
+; [tiator] [71-70-090-003 _ 50-70-145-003_TRIPHASO 400 A Version Finale]
+; [tiator] [71-70-090-004 _ 50-70-145-004_TRIPHASO 400 A Version Finale]
+
+[ROM_DEFAULT_TARGET] .*_ips-tri.*0A.*Class.*.lrctm.EU.chkpt.wdt2.*dfp-br..*.sx-lr.*.txt DefaultConfTRI
+@10a00
+06 11 50 00 50 02 03
+08 11 05 00 0F 04 00 18 01
+# Ã©mission tension courant sur les 3 phases toutes les 60 minutes.
+13 11 06 80 0B 00 00 00 41 00 00 80 3c 06 00 00 00 00 00 00
+13 31 06 80 0B 00 00 00 41 00 00 80 3c 06 00 00 00 00 00 00
+13 51 06 80 0B 00 00 00 41 00 00 80 3c 06 00 00 00 00 00 00
+# puissance moyenne calculÃ©e sur 60 minutes. 
+0B 11 05 80 0a 00 01 23 00 00 0E 10
+0B 31 05 80 0a 00 01 23 00 00 0E 10
+0B 51 05 80 0a 00 01 23 00 00 0E 10
+0B 71 05 80 0a 00 01 23 00 00 0E 10
+# puissance moyenne calculÃ©e sur 60 minutes multi
+0B 11 05 80 10 00 02 23 00 00 0E 10
+# Ã©mission Ã©nergie et puissance moyenne toutes les 60 minutes.
+2D 11 06 80 0A 00 00 00 41 00 00 80 3c 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2D 31 06 80 0A 00 00 00 41 00 00 80 3c 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2D 51 06 80 0A 00 00 00 41 00 00 80 3c 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2D 71 06 80 0A 00 00 00 41 00 00 80 3c 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00

@@ -1,0 +1,81 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [stmator] [71-70-117-002_50-70-197-002_ACCELERO_TAB]
+
+[ROM_DEFAULT_TARGET] .*_ips-accelero.*(fat3)*.ClassA.lrctm.EU.chkpt.wdt2.*7010736.*sx-lr.hex XYZ.100Hz.200G.24h
+@
+# ---------CFG 0 (Default): CONF FOR HUB'O BATCH & STANDARD REPORTS ---------------------------
+# . Passage en mode "NON confirmé", sauf alarmes alors 3 retries
+08 11 05 8004 0000 08 00
+08 11 05 8004 0001 20 03
+#
+# . Effacement des configurations (Batch et Standard)
+06 11 50 0050 02 03
+#
+# . Configuration mesure accelerometrique
+#   FreqWait:      100 dhz 
+#   FreqAcq:      1000 dHz
+#   NewWaitDelay:    3 s   (Minimal delay between two acquisitions [mn|s] 0bxnnn nnnn, x:0=>s,x:1=>mn)
+#   AcqDuration:  7000 ms
+#   ThresholdX:    310 cG
+#   ThresholdY:    310 cG  
+#   ThresholdZ:    310 cG  (Trig and Accept samples over 3,1G [Non linearity pb with ThresholByte = 1 (1,6G)] => Trig with no move )
+#   WakeUpDt:        0 ms  (Immediate trig)
+#   SleepDt:      1000 ms  (Will stop after SleepDt under threshold or after AcqDuration)
+#   Range :   +/-20000 cG  (Fullscale)
+#
+#   Filtering parameter: S[n] = [(abs(En)*Beta) + (S[n-1] * Alpha)] / (alpha + 1))
+#   Alpha :        144     (Smoothing coefficient/level)
+#   Beta  :          3     (Gain)
+#
+#   Mode  :       0x07     (Clear Z, Y, X stats after stats standard report)
+#   
+1F 11 05 800F 8000 41 17 0064 03E8 0003 1B58 0136 0136 0136 0000 03E8 4E20 90 03 07
+#
+# ------------------------ STANDARD REPORTS -------------------------
+# . POWERDESC  [mV]
+#   . Periodic MAX = 0xFFFF; MIN = 24h 1440mn = 0x85A0
+#   . Length of remaining payload (for 0x41 type ): 0x08
+#   . ALARM on power treshold : 2,7v (hyst 100mV)
+#     RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98 
+#     CSD : IsAlarm/OnExceed/OnFall/Threshold/Slot0 : b 1 1 1 10 000 ==> xF0
+#     Disposable battery field index : 0x04
+#     THRS: 2700 : 0x0A8C; HYST: 100 mV : 0x0064
+#     OCC : 1
+14 11 06 0050 98 0006 41 800A 85A0 07 F0 04 0A8C 0064 01
+#
+# . ACC MONITOR (H3LIS331DL) (Statistics on X,Y and Z (Attributes 0x0001,0x0002,0x0003) only if modified in last 24h)
+#   NOTA: Requête client: Ne pas avoir de report si aucune acquisition ==> On ne fait pas juste périodique, 
+#         mais plutot avec Min et sur changement
+#   . Periodic MAX = 0xFFFF; MIN = 24h 1440mn = 0x85A0
+#   . Sent periodically only no Threshold or Delta
+#     RP   : NewCfg/Reserved/NoCause/NotSecuredIfAlarm/AllSecured/HeaderKept/NotBatch :  b 1 0 00 0 1 0 0 ==> x84 
+#     CSD  : NotIsAlarm/OnExceed/NotOnFall/Threshold/Slot0 : b 0 1 0 10 000 => x50
+#     FID: Index OO NbAcq : 0x00
+#     THRS: 0 : 0x0000; HYST:0 : 0x0000 (dès que l'on franchi 0 par valeur supérieur, si on met THRSH = 1 cela déclenchera à 2 ?)
+#     OCC : 1
+14 11 06 800F 84 0001 41 85A0 FFFF 07 50 00 0000 0000 01
+14 11 06 800F 84 0002 41 85A0 FFFF 07 50 00 0000 0000 01
+14 11 06 800F 84 0003 41 85A0 FFFF 07 50 00 0000 0000 01
+#
+#     AUTRES POSSIBILITE: Non utilisées mais pour mémoire :
+#     -----------------------------------------------------
+#     Par Delta plus simple que par seuil mais  n'y a t'il pas un risque si meme nombre après Min period ?
+#     CSD  : NotIsAlarm/OnExceed/NotOnFall/Delta/Slot0 : b 0 1 0 01 000 => x48
+#     FID: Index OO NbAcq : 0x00
+#     DELTA: 1 : 0x0001; 
+#11 11 06 800F 84 0001 41 85A0 FFFF 04 48 00 0001
+#11 11 06 800F 84 0002 41 85A0 FFFF 04 48 00 0001
+#11 11 06 800F 84 0003 41 85A0 FFFF 04 48 00 0001
+#
+#     Dernière solution Delta en mode "historique" ? (Attention ne fonctionne qu'avec un nombre de slot à 10 !)
+#     DELTA à 1 sur tous les champs : 0x0001; 
+#21 11 06 800F 00 0001 41 85A0 FFFF 14 0001 0001 0001 0001 0001 0001 0001 0001 0001 0001
+#21 11 06 800F 00 0002 41 85A0 FFFF 14 0001 0001 0001 0001 0001 0001 0001 0001 0001 0001
+#21 11 06 800F 00 0003 41 85A0 FFFF 14 0001 0001 0001 0001 0001 0001 0001 0001 0001 0001
+#
+# ------------------------- BATCH REPORT ---------------------------------------
+# . 
+#---------------------------------------------------------------------------------------------
+# ------------------------------- CONFIGURATION END : byte FF --------------------------------
+FF

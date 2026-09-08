@@ -1,0 +1,10 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 3
+; [tiator] [50-70-071-007_Flash'O LoRaWAN Seuil 2.6v (version CLIENT)]
+; [tiator] [50-70-245-000_Flash'O LoRaWAN Antenne Externe (version CLIENT)]
+; [tiator] [50-70-245-001_Flash'O LoRaWAN Antenne Externe seuil 2.6v (version CLIENT)]
+
+[ROM_DEFAULT_TARGET] .*_ips-ild\..*ClassA.lrctm.EU.chkpt.wdt2.*-dfp-br.*306V4.sx-lr.*.txt DefaultConfFlasho
+@10a00
+06 11 50 00 50 02 03
+10 11 06 00 0f 00 04 02 23 00 00 85 a0 00 00 00 00

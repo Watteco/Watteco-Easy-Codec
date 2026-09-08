@@ -1,0 +1,29 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 2
+; [tiator] [71-70-065-001 _ 50-70-108-001_Carte Capteur ClosO testee]
+; [tiator] [71-70-065-002 _ 50-70-108-002_Carte Capteur ClosO indice 2 testee]
+
+[ROM_DEFAULT_TARGET] .*_ips-lgv-withIOT3.bsm.*ClassA.lrctm.EU.chkpt.wdt2.*-dfp-br.70-10-670V0.sx-lr.*.txt PortailLGV-batch24H-polaInverseIn1-BatteryReport
+@10a00
+#remove toute configuration
+06 11 50 00 50 02 03
+#report entrée 1:
+0D 11 06 00 0F 00 00 55 10 80 01 FF FF 01
+#report entrée 2:
+#14 31 06 00 0F 80 00 55 10 00 00 FF FF 70 01 00 80 03 84 02 58  # FV le 05/06/2019
+# Report 240 minutes = 4h - 2 occurrences sur front montant et descendant # FV le 05/06/2019
+14 31 06 00 0F 80 00 55 10 00 00 80 F0 70 01 00 80 00 02 00 02  
+#inversion polarité entrée 2 - portail:
+08 31 05 00 0F 00 54 10 01
+#report entrée 2 batch: portail sur seuil et occurrence (4 secondes) / 24h label 0
+12 31 06 00 0F 97 00 55 00 00 85 a0 01 70 01 00 05 01 02
+#report tension batch: /24h label 1 0.1V
+# 11 11 06 00 50 15 00 06 04 85 a0 85 a0 00 00 00 64 0A  # FV le 05/06/2019 Suppression
+#report tension battery 24h avec mesure toutes les 30 minutes  # FV le 05/06/2019
+12 11 06 00 50 00 00 06 41 80 1E 85 a0 05 00 04 00 c8 00
+#configuration entrée 2 edgde = polling:
+08 31 05 00 0f 04 00 18 04
+#configuration entrée 2 polling time = 1000 ms:
+09 31 05 00 0f 04 03 21 03 e8
+#configuration entrée 2 force notify = 1:
+08 31 05 00 0f 04 04 10 01

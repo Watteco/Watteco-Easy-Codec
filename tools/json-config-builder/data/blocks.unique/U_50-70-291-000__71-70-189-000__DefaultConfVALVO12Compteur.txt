@@ -1,0 +1,33 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 2
+; [tiator] [50-70-291-000_Capteur VALV'O (version CLIENT)]
+; [tiator] [71-70-189-000_Capteur VALV'O (version CLIENT)]
+
+[ROM_DEFAULT_TARGET] .*_ips-ild-ELECTROVA\..*Class..lrctm.EU.chkpt.wdt2.*-dfp-br.*306V4.sx-lr.*.txt DefaultConfVALVO12Compteur
+@10a00
+#suppression des trames standard et batch
+06 11 50 00 50 02 03
+#Heartbit  report état entrée 5+ min60min max60min fport 85
+11 91 06 00 0f 82 00 55 10 80 3c 80 3c 55 70 00 00 01
+# TENSIONS ALIMS Batt et VExt (mesure à 60 minutes et report 1 jour ou sur variation de 200 mV)
+14 11 06 00 50 00 00 06 41 80 3c 85 a0 07 00 05 00 c8 00 c8 00
+#### ELECTROVANNE 1
+#action 00 endpoint 0 (sortie 1+) activation 200ms de l'électrovannes 1
+0E 11 05 00 50 FF 00 41 06 11 50 00 06 F2 14
+#action 01 endpoint 1 (sortie 2+) désactivation 200ms de l'électrovannes 1
+0E 11 05 00 50 FF 01 41 06 31 50 00 06 F2 14
+## REPORT COMPTAGE ELECTROVANNE 1
+#action 02 endpoint 0 (entrée 1+) report comptage sur variation de 1  min30s max2min
+18 11 05 00 50 FF 02 41 10 11 06 00 0f 00 04 02 23 00 1e 80 02 00 00 00 01
+#action 03 endpoint 0 (entrée 1+) remove report comptage 
+18 11 05 00 50 FF 03 41 10 11 06 00 0f 00 04 02 23 00 00 00 00 00 00 00 00
+#### ELECTROVANNE 2
+#action 04 endpoint 2 (sortie 3+) activation 200ms de l'électrovannes 2
+0E 11 05 00 50 FF 04 41 06 51 50 00 06 F2 14
+#action 05 endpoint 3 (sortie 4+) désactivation 200ms de l'électrovannes 2
+0E 11 05 00 50 FF 05 41 06 71 50 00 06 F2 14
+## REPORT COMPTAGE ELECTROVANNE 2
+#action 06 endpoint 1 (entrée 2+) report comptage sur variation de 1  min30s max2min
+18 11 05 00 50 FF 06 41 10 31 06 00 0f 00 04 02 23 00 1e 80 02 00 00 00 01
+#action 07 endpoint 1 (entrée 2+) remove report comptage 
+18 11 05 00 50 FF 07 41 10 31 06 00 0f 00 04 02 23 00 00 00 00 00 00 00 00

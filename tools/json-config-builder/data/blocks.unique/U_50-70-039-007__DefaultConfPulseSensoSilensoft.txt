@@ -1,0 +1,18 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [50-70-039-007_Capteur SensO deporte 868Mhz IP68 SILENSOFT (version CLIENT)]
+
+[ROM_DEFAULT_TARGET] V3.5.2.5602_ips-ild.bsm.at.ClassA.lrctm.EU.chkpt.wdt2-dfp-br-fota.wtc-306-ild.306V4.sx-lr.ROMCfg-DefaultConfPulseSensoSilensoft.txt DefaultConfPulseSensoSilensoft
+@10a00
+06 11 50 00 50 02 03
+15 11 06 00 0f 1d 04 02 00 80 f0 82 d0 00 00 00 00 00 00 00 01 04
+15 31 06 00 0f 1d 04 02 00 80 f0 82 d0 00 00 00 00 00 00 00 01 0c
+15 51 06 00 0f 1d 04 02 00 80 f0 82 d0 00 00 00 00 00 00 00 01 14
+09 11 05 00 0f 04 01 21 00 40
+09 31 05 00 0f 04 01 21 00 40
+09 51 05 00 0f 04 01 21 00 40
+10 11 06 00 0f 00 04 02 23 00 00 ff fe 00 00 00 00
+10 31 06 00 0f 00 04 02 23 00 00 ff fe 00 00 00 00
+10 51 06 00 0f 00 04 02 23 00 00 ff fe 00 00 00 00
+1A 11 06 00 50 80 00 06 41 00 0a 00 3c 0d 58 04 00 00 00 00 01 05 01 80 04 00 01
+19 11 05 00 50 FF 01 41 11 11 06 00 50 80 00 06 41 80 3c a7 60 04 48 04 00 c8

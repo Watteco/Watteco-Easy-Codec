@@ -1,0 +1,20 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [71-70-054-002 _ 50-70-182-000_Carte Capteur ModBus Class A DALKIA ITRON testee]
+
+[ROM_DEFAULT_TARGET] .*_ips-modbus-sensor.*Class.*.lrctm.EU.chkpt.wdt2-dfp-br.*.sx-lr.*.txt CONF_DALKIA_ITRON_CF_II_CF800
+@10a00
+#remove toute configuration
+06 11 50 00 50 02 03
+#vitesse sÃ©rie 19200 
+0A 11 05 80 06 00 00 22 00 4B 00
+#nombre de bits 8
+08 11 05 80 06 00 01 20 08
+#paritÃ©: even (00: none, 01: odd, 02: even)
+08 11 05 80 06 00 02 20 00
+#stopbit: 1
+08 11 05 80 06 00 03 20 01
+#lecture de tous les registres en floatant en une seule requÃªte
+0E 11 05 80 07 00 00 41 06 01 03 00 02 00 10
+#report modbus serial Ã  l'heure:
+0E 11 06 80 07 00 00 01 41 80 3c 80 3c 01 00

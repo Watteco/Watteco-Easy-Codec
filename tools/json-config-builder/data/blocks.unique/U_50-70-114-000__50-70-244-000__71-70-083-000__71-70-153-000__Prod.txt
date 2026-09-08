@@ -1,0 +1,20 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 2
+; [tiator] [71-70-083-000 _ 50-70-114-000_Carte Capteur Atex Zone 1 0-5V GESTRA testée(version TEST)]
+; [tiator] [71-70-153-000 _ 50-70-244-000_Carte Capteur Ex Zone 1 0-5V US915 MSB-1 GESTRA testée(version TEST)]
+
+[ROM_DEFAULT_TARGET] .*_ips-multisensbolt.*.txt Prod
+@10a00
+06 11 50 00 50 02 03
+# MSB needs power survey running, so the reading period is
+# automatically forced to 1 minutes if the report is not
+# set or if it is set to more than 10 minutes (see ips_specific_ext_clust_config_set()).
+# Below an example to modify power survey reading period to 30s without report: 
+# 12 11 06 0050 00 0006 41 001E ffff 050004 7fff00
+FF
+# ---- NODE --------------------------------------
+@10200
+00000000
+# ---- MSB 1 & MSB2 (keep har coded default) ---------------------------------
+@10280
+00000000

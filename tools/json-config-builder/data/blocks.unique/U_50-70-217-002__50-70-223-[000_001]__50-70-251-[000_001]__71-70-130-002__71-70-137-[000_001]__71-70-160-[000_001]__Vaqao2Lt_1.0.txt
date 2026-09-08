@@ -1,0 +1,193 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 5
+; [stmator] [71-70-130-002_50-70-217-002_VAQAO2 MULTI LT]
+; [stmator] [71-70-137-000_50-70-223-000_VAQAO2 LT]
+; [stmator] [71-70-137-001_50-70-223-001_VAQAO2 LT]
+; [stmator] [71-70-160-000_50-70-251-000_VAQAO2 PLUS LT]
+; [stmator] [71-70-160-001_50-70-251-001_VAQAO2 PLUS LT]
+
+[ROM_DEFAULT_TARGET] .*_ips-vaqao.*(fat3)*.ClassA.lrctm.EU.chkpt.wdt2.*7010(738|755)V([0-8]|999).*sx-lr.hex Vaqao2Lt_1.0
+@
+# ---------CFG 0 (Default): CONF FOR BATCH & STANDARD REPORTS ---------------------------
+# .  All report unconfirmed
+08 11 05 8004 0000 08 00
+#
+# . CO2 Configuration
+#   Set Autocalibration period to 5 days and UNACTIVATED by default
+08 31 05 800C 8009 20 05
+#   Since VAQAO V2. A bit can activate(01)/inactivate(00). [and (02) for only under min ABC (under test)]
+#   Used to activated or deactivated by downlink or HMI without loosing clibration period. 
+#   Note: Calibration period must also be != 0, to validate 01 activation
+08 31 05 800C 800A 20 00
+# Set normal min concentration value: 430ppm (0x01AE)
+09 31 05 800C 8008 21 01AE
+# Set number of oversampling points to 5 (Mainly for CM1106NS sensor) (Effective used number is coerced in 1 to 32)
+08 31 05 800C 8011 20 05
+#
+# . IHM LED ON CO2 :
+#09 11 05 800C 8020 21 FFFF
+09 31 05 800C 8020 21 001E
+#
+# . IHM BUZZER ON CO2 :
+#   CO2 default unactivated : Alarm period=0xFFFF; Alarm pause period = (24 * 60) mn; Thresh High/Low UNHEALTHY/VERY_BAD 
+09 31 05 800C 8031 21 FFFF
+09 31 05 800C 8032 21 05A0
+08 31 05 800C 8033 20 05
+08 31 05 800C 8034 20 04
+#
+# LIS2DE TAP detection (Think about devopt LIS2DE et TAP bit activation (cf InfoMem.7010xxxVyy))
+# Note about TAP configuration examples:
+#  0x9410 : (b10 0101 00 / 0 0010000) Click/100Hz/2g/(16*16)=256mg
+#  0x5503 : (b01 0101 01 / 0 0000011) Chock/100Hz/4g/(3*32)=96mg
+#  0x5D03 : (b01 0111 10 / 0 0000011) Chock/400Hz/8g/(3*62)=186mg
+#  0x5703 : (b01 0101 11 / 0 0000011) Chock/100Hz/16g/(3*186)=558mg
+09 11 05 000c 8004 19 9410
+#
+# . Delete all report configurations (Batch and Standard)
+06 11 50 0050 02 03
+#
+# ----------------------- CONFIGURE ACTIONS -------------------------
+#
+#   ACTION 0: Starts a Fresh air calibration
+0D 11 05 0050 FF00 41 05 31 50 800C 03 
+#
+# ------------------------ STANDARD REPORTS -------------------------
+# . POWERDESC  [mV]
+#   . Periodic MAX = 1 J => 1440mn => x85A0; MIN = 10mn => 0x800A
+#   . Length of remaining payload (for 0x41 type ): 0x08
+#   . ALARM on power treshold : 2,9v (hyst 100mV)
+#     RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98 
+#     CSD : IsAlarm/OnExceed/OnFall/Threshold/Slot0 : b 1 1 1 10 000 ==> xF0
+#     Disposable battery field index : 0x04
+#     THRS: 2900 : 0x0B54; HYST: 100 mV : 0x0064
+#     OCC : 2
+14 11 06 0050 98 0006 41 800A 85A0 07 F0 04 0B54 0064 02
+#
+# . VIOLATION (Effraction based on sensor displacement) ([Binary state 0/1]
+#   . Configure POLLING PERIOD based on REPORT CONFIGURATION (0xFFFF)
+09 11 05 000F 0403 21 FFFF
+#   . Box openning and closing
+#     Min 10s => 0x000A, Max max, Delta=1
+0D 11 06 000F 00 0055 10 000A FFFF 01
+#
+# . CO2 CONCENTRATION  [ppm]
+#   STANDARD REPORT:
+#   . Periodic MAX = Inf => xFFFF; MIN = 10mn => 0x800A
+#   . ALARM on treshold HIGH: 1500; hyst 100
+#     RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98 
+#     CSD : IsAlarm/OnExceed/OnFall/Threshold/Slot0 : b 1 1 1 10 000 ==> xF0
+#     THRS: 1500 : 0x05DC; HYST: 100 : 0x0064
+#     OCC : 2
+12 31 06 800C 98 0000 21 800A FFFF F0 05DC 0064 02
+#
+#   Force a fresh air calibration if concentration is under Normal min concentration value (Under test) 
+#   . Periodic MAX = Inf => xFFFF; MIN = 10mn => 0x800A
+#   . ALARM on treshold LOW: 
+#     Fresh air band is : 430 +/-65 (based on error specification/and experiment of sensor: 40 + (5*430/100))
+#     Try to go back to correct fresh air if : reading is < 430 - 65, ie: 365 => Set a threshold at 360 +/- 5
+#     RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98 
+#     CSD : IsAlarm/OnExceed/OnFall/ThresholdWithAction/Slot1 : b 1 0 1 11 001 ==> xB9
+#     THRS: 360 : 0x0168; HYST: 5 : 0x0005
+#     OCC : 2
+#     ACTION: (Without report b1 / taille 2 b000 0010) (82) / Fresh air calibration (0000) 
+15 31 06 800C 98 0000 21 800A FFFF B9 0168 0005 02 82 0000
+#
+#   Report CALIBRATION STATUS, on calibration ended 
+#   . Periodic MAX = Inf => xFFFF; MIN = 10s => 0x000A
+#   . DELTA on treshold LOW: 430; hyst 50
+#     RP  : NewCfg/Reserved/ShortCause/SecuredIfAlarm/AllNotSecured/HeaderKept/NotBatch :  b 1 0 01 1 0 0 0 ==> x98 
+#     CSD : IsAlarm/OnExceed/NotOnFall/Delta/Slot0 : b 1 1 0 01 000 ==> 0xC8
+#     DELTA : EndClockS field (1) changed : 0x00000001
+#     OCC : 1
+13 31 06 800C 98 8000 41 000A FFFF 06 C8 01 00000001
+#
+# ------------------------- BATCH REPORT ---------------------------------------
+# . TEMPERATURE (SHTC3)
+#   Min 10mn => 0x800A, Max 1h, Delta=0.1degC,  resol=0.1degC, Tag Label 1, Tag Size 3, Type I16 7
+11 31 06 0402 15 0000 00 800A 803C 000A 000A 0B
+# . HYGROMETRY (SHTC3)
+#   Min 10mn => 0x800A, Max 1h, Delta=1%,    resol=1%,   Tag Label 2, Tag Size 3, Type U16 6
+11 31 06 0405 15 0000 00 800A 803C 0064 0064 13
+# . CO2 CONCENTRATION (CM1106NS)
+#   Min 10mn => 0x800A, Max 1h, Delta=10ppm,resol=10,   Tag Label 3, Tag Size 3, Type U16 6
+11 31 06 800C 15 0000 00 800A 803C 000A 000A 1B
+#
+# Typical batch decoding parameters:
+# ----------------------------------
+# Batch frame example: 303480878e3001a70858829068d7846940ca02da798223d0ae09d36e5912c002
+# Utilitaire windows: echo "<Hexadecimal string>>" | ./br_uncompress.exe -a 3 1,10,7 2,100,6 3,10,6  
+# Codec en ligne nke: 3 1,10,7,T 2,100,6,H 3,10,6,CO2  
+#---------------------------------------------------------------------------------------------
+# ------------------------------- CONFIGURATION SEPARATOR : byte 00 --------------------------
+00
+#---------------------------------------------------------------------------------------------
+# ------------ CFG 1: CONF FOR STANDARD REPORTS (Typically for HUb'O usage) ------------------
+# To Swap from Default to Alternate configuration: 11 50 0050 F1 01, and to get back: 11 50 0050 F1 00
+# All report unconfirmed
+08 11 05 8004 0000 08 00
+#
+# Remove current reports configuration (Standard and batchs)
+06 11 50 0050 02 03
+#
+# T: 30mn or variation of 0.4degC, no more than once per minute
+0F 31 06 0402 80 0000 29 8001 801E 48 0028
+#
+# RH: 30mn or variation of 4%, no more than onceper minute
+0F 31 06 0405 80 0000 21 8001 801E 48 0190
+#
+# VBATT: 24 h  ou or variation of 0.5V, no more than once per minute
+12 11 06 0050 00 0006 41 800a 85a0 05 00 04 01f4 00
+#
+# VIOLATION: 24 h or changing, no more than once per minute
+0D 11 06 000f 00 0055 10 8001 85a0 01
+#
+# CO2: Periodic report + calibration under normal min level
+#   1h ou ar variation of100ppm, no more than once per 10 minutes secured to avoid missed data
+0F 31 06 800c 84 0000 21 800a 803c 48 0064
+#   Force a fresh air calibration if concentration is under Normal min concentration value (see parameters in default CFG 0)
+15 31 06 800C 98 0000 21 800A FFFF B9 0168 0005 02 82 0000
+#   Report CALIBRATION STATUS, on calibration ended (see parameters in default CFG 0)
+13 31 06 800C 98 8000 41 000A FFFF 06 C8 01 00000001
+#---------------------------------------------------------------------------------------------
+# ------------------------------- CONFIGURATION SEPARATOR : byte 00 --------------------------
+00
+#---------------------------------------------------------------------------------------------
+# ------------ CFG 2: EVALUATE CO2/COV: T,H,CO2,SIAQ,IAQ,ECO2,Raw GAS only -------------------
+# ------------------------- BATCH REPORT -----------------------------------------------------
+# To Swap from Default to Alternate configuration: 11 50 0050 F1 02, and to get back: 11 50 0050 F1 00
+# All report unconfirmed
+08 11 05 8004 0000 08 00
+#
+# Remove current reports configuration (Standard and batchs)
+06 11 50 0050 02 03
+#
+# . VOC LEVEL (BME680) ** bVOC/tVOC  **
+#   Min 10mn => 0x800A, Max 1h, Delta=10,    resol=10,   Tag Label 0, Tag Size 3, Type U32 10
+15 31 06 800E 1D 0000 00 800A 803C 0000000A 0000000A 03
+# . TEMPERATURE (SHTC3)
+#   Min 10mn => 0x800A, Max 1h, Delta=0.1ï¿½,  resol=0.1ï¿½, Tag Label 1, Tag Size 3, Type I16 7
+11 31 06 0402 15 0000 00 800A 803C 000A 000A 0B
+# . HYGROMETRY (SHTC3)
+#   Min 10mn => 0x800A, Max 1h, Delta=1%,    resol=1%,   Tag Label 2, Tag Size 3, Type U16 6
+11 31 06 0405 15 0000 00 800A 803C 0064 0064 13
+# . CO2 CONCENTRATION (COZIR)
+#   Min 10mn => 0x800A, Max 1h, Delta=10ppm,resol=10,    Tag Label 3, Tag Size 3, Type U16 6
+11 31 06 800C 15 0000 00 800A 803C 000A 000A 1B
+# . VOC LEVEL (BME680) ** SIAQ **
+#   Min 10mn => 0x800A, Max 1h, Delta=10,    resol=10,   Tag Label 4, Tag Size 3, Type U16 6
+11 11 06 800C 15 0000 00 800A 803C 000A 000A 23
+# . VOC LEVEL (BME680) ** IAQ  **
+#   Min 10mn => 0x800A, Max 1h, Delta=10,    resol=10,   Tag Label 5, Tag Size 3, Type U16 6
+11 51 06 800C 15 0000 00 800A 803C 000A 000A 2B
+# . VOC LEVEL (BME680) ** eCO2  **
+#   Min 10mn => 0x800A, Max 1h, Delta=10,    resol=10,   Tag Label 6, Tag Size 3, Type U16 6
+11 71 06 800C 15 0000 00 800A 803C 000A 000A 33
+# . VOC LEVEL (BME680) ** RAW GAS  **
+#   Min 10mn => 0x800A, Max 1h, Delta=1,     resol=1,    Tag Label 7, Tag Size 3, Type U32 10
+15 11 06 800E 1D 0000 00 800A 803C 00000001 00000001 3B
+#
+# Codec params: 3  0,10,10,btVOC 1,10,7,T 2,100,6,H 3,10,6,CO2 4,10,6,SIAQ 5,10,6,IAQ 6,10,6,eCO2 7,1,10,RawGas
+#
+# --------------------------------------------------------------------------------------------
+# ------------------------------- CONFIGURATION END : byte FF --------------------------------
+FF

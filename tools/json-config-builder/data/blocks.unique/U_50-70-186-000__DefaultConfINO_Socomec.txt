@@ -1,0 +1,14 @@
+; UNIQUE scope: merged
+; Nombre de blocs fusionnés: 1
+; [tiator] [50-70-186-000_Capteur IN'O Classe C SOCOMEC (version CLIENT)]
+
+[ROM_DEFAULT_TARGET] V3.5.2.5602.5669_ips-ild.bsm.at.ClassC.lrctm.EU.chkpt.wdt2-dfp-br-fota.wtc-306-ild.306V4.sx-lr.ROMCfg-DefaultConfINO_Socomec.txt DefaultConfINO_Socomec
+@10a00
+06 11 50 00 50 02 03
+10 11 06 00 0f 00 04 02 23 00 01 80 3C 00 00 00 00
+10 31 06 00 0f 00 04 02 23 00 01 80 3C 00 00 00 00
+10 51 06 00 0f 00 04 02 23 00 01 80 3C 00 00 00 00
+0D 71 06 00 0f 00 00 55 10 80 0A ff ff 01
+0D 91 06 00 0f 00 00 55 10 80 0A ff ff 01
+0D B1 06 00 0f 00 00 55 10 80 0A ff ff 01
+11 11 06 00 50 80 00 06 41 a7 60 a7 60 04 48 04 00 00
