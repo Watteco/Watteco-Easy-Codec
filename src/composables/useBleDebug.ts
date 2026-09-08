@@ -17,6 +17,7 @@ import {
 } from '@/utils/BLE/blob';
 import { runOsaChallenge, readOsaChallenge } from '@/utils/BLE/osa';
 import { autoFetchModelFirmware as fetchModelFirmwareFromBle } from '@/utils/BLE/configReader';
+import { OsaKeyStore } from '@/plugins/osaKeyStore';
 
 type UseBleDebugOptions = {
   enabled: boolean;
@@ -198,6 +199,55 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
     firmwareInfo.value = result.firmwareInfo;
   }
 
+  async function runStoredOsaChallengeFe20() {
+    if (!ble.connectedDevice.value) return;
+    try {
+      const stored = await OsaKeyStore.get({ devEui: debugDevEuiHex.value });
+      pushDebugLog(`[OSA store] Using valid stored key for ${stored.devEui}; key hidden`);
+      await runOsaChallenge(ble.connectedDevice.value.deviceId, stored.keyHex, stored.devEui, pushDebugLog);
+    } catch (error: any) {
+      pushDebugLog(`[OSA store] Authentication unavailable — ${error?.message ?? error}`);
+    }
+  }
+
+  async function testSecureOsaStorage() {
+    pushDebugLog('[OSA store] Starting persistent write/read/reuse test…');
+    try {
+      const devEui = debugDevEuiHex.value;
+      const keyHex = debugOtaAppKeyHex.value.replace(/[^0-9a-f]/gi, '').toUpperCase();
+      const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      await OsaKeyStore.store({ devEui, keyHex, expiresAt });
+      const firstRead = await OsaKeyStore.get({ devEui });
+      const secondRead = await OsaKeyStore.get({ devEui });
+      const verified = firstRead.keyHex === keyHex.toUpperCase() && secondRead.keyHex === firstRead.keyHex;
+      pushDebugLog(`[OSA store] ${verified ? 'PASS' : 'FAIL'} — stored and read twice, expires ${new Date(firstRead.expiresAt).toLocaleString()}; key hidden`);
+    } catch (error: any) {
+      pushDebugLog(`[OSA store] FAIL — ${error?.message ?? error}`);
+    }
+  }
+
+  async function readStoredOsaKey() {
+    try {
+      const stored = await OsaKeyStore.get({ devEui: debugDevEuiHex.value });
+      debugOtaAppKeyHex.value = stored.keyHex;
+      pushDebugLog(`[OSA store] Key loaded for ${stored.devEui}; expires ${new Date(stored.expiresAt).toLocaleString()}; key hidden`);
+    } catch (error: any) { pushDebugLog(`[OSA store] Read failed — ${error?.message ?? error}`); }
+  }
+
+  async function deleteStoredOsaKey() {
+    try {
+      const result = await OsaKeyStore.delete({ devEui: debugDevEuiHex.value });
+      pushDebugLog(`[OSA store] ${result.deleted ? 'Key deleted' : 'No key found'} for ${result.devEui}`);
+    } catch (error: any) { pushDebugLog(`[OSA store] Delete failed — ${error?.message ?? error}`); }
+  }
+
+  async function purgeExpiredOsaKeys() {
+    try {
+      const result = await OsaKeyStore.purgeExpired();
+      pushDebugLog(`[OSA store] Purged ${result.purged ?? 0} expired/invalid record(s)`);
+    } catch (error: any) { pushDebugLog(`[OSA store] Purge failed — ${error?.message ?? error}`); }
+  }
+
   watch(
     () => ble.eventsLog.value[0],
     (line) => {
@@ -244,9 +294,14 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
     readFe21InFe20,
     readConfigurationBlob,
     runOsaChallengeFe20,
+    runStoredOsaChallengeFe20,
     readFe62,
     dumpServices,
     dumpServicesOnly,
     autoFetchModelFirmware,
+    testSecureOsaStorage,
+    readStoredOsaKey,
+    deleteStoredOsaKey,
+    purgeExpiredOsaKeys,
   };
 }

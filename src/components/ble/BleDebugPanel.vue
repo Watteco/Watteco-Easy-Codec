@@ -52,8 +52,15 @@
       <div class="button-row">
         <ion-button size="small" fill="solid" color="tertiary" @click="$emit('read-config-blob')" :disabled="!connected">Read config BLOB</ion-button>
         <ion-button size="small" fill="solid" color="success" @click="$emit('osa-challenge')" :disabled="!connected">OSA Challenge</ion-button>
+        <ion-button size="small" fill="solid" color="success" @click="$emit('osa-stored-challenge')" :disabled="!connected">OSA stored key</ion-button>
         <ion-button size="small" fill="clear" @click="$emit('dump-services-only')" :disabled="!connected">Dump services only</ion-button>
         <ion-button size="small" fill="clear" @click="$emit('dump-services')" :disabled="!connected">Dump services</ion-button>
+      </div>
+      <div class="button-row">
+        <ion-button size="small" fill="solid" color="warning" @click="$emit('test-osa-storage')">Test OSA secure store</ion-button>
+        <ion-button size="small" fill="outline" @click="$emit('read-osa-storage')">Load OSA key</ion-button>
+        <ion-button size="small" fill="outline" color="danger" @click="$emit('delete-osa-storage')">Delete OSA key</ion-button>
+        <ion-button size="small" fill="clear" @click="$emit('purge-osa-storage')">Purge expired</ion-button>
       </div>
     </div>
 
@@ -107,8 +114,13 @@ defineEmits<{
   (e: 'read-fe21'): void;
   (e: 'read-config-blob'): void;
   (e: 'osa-challenge'): void;
+  (e: 'osa-stored-challenge'): void;
   (e: 'dump-services-only'): void;
   (e: 'dump-services'): void;
+  (e: 'test-osa-storage'): void;
+  (e: 'read-osa-storage'): void;
+  (e: 'delete-osa-storage'): void;
+  (e: 'purge-osa-storage'): void;
 }>();
 </script>
 

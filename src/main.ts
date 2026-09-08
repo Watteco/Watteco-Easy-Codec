@@ -5,6 +5,7 @@ import router from './router';
 import { IonicVue } from '@ionic/vue';
 import { isPlatform } from '@ionic/vue';
 import { Capacitor } from '@capacitor/core';
+import { OsaKeyStore } from './plugins/osaKeyStore';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/vue/css/core.css';
@@ -28,6 +29,12 @@ import './theme/variables.css';
 const app = createApp(App)
   .use(IonicVue)
   .use(router);
+
+if (Capacitor.isNativePlatform()) {
+  void OsaKeyStore.purgeExpired().catch(() => {
+    // A failed cleanup must not prevent the application from starting.
+  });
+}
 
 router.isReady().then(() => {
   app.mount('#app');

@@ -1186,8 +1186,13 @@
     @read-fe21="readFe21InFe20"
     @read-config-blob="readConfigurationBlob"
     @osa-challenge="runOsaChallengeFe20"
+    @osa-stored-challenge="runStoredOsaChallengeFe20"
     @dump-services-only="dumpServicesOnly"
     @dump-services="dumpServices"
+    @test-osa-storage="testSecureOsaStorage"
+    @read-osa-storage="readStoredOsaKey"
+    @delete-osa-storage="deleteStoredOsaKey"
+    @purge-osa-storage="purgeExpiredOsaKeys"
   />
   <div class="language-switcher">
     <LanguageSwitcher 
@@ -1284,9 +1289,14 @@ const {
   readFe21InFe20,
   readConfigurationBlob,
   runOsaChallengeFe20,
+  runStoredOsaChallengeFe20,
   dumpServices,
   dumpServicesOnly,
   autoFetchModelFirmware,
+  testSecureOsaStorage,
+  readStoredOsaKey,
+  deleteStoredOsaKey,
+  purgeExpiredOsaKeys,
 } = useBleDebug(ble, { enabled: bleDebugEnabledByEnv });
 
 // Reactive variables to store application state
