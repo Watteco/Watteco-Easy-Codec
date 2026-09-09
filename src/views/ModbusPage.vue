@@ -134,7 +134,6 @@
 </template>
 
 <script setup lang="ts">
-// @ts-nocheck
 import { ref, onMounted, computed, watch } from 'vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import axios from 'axios';
@@ -165,7 +164,7 @@ const writeData = ref('');
 const isLittleEndian = ref(false);
 const generatedFrame = ref('');
 
-const endpointMapping = {
+const endpointMapping: Partial<Record<number, string>> = {
   0: '11',
   1: '31',
   2: '51',
@@ -181,9 +180,14 @@ const endpointMapping = {
 watch(
   [endpoint, slaveAddress, functionCode, startAddress, numRegisters, writeData, isLittleEndian],
   () => {
-    let frame = [];
+    const frame = [];
     // Add endpoint prefix
-    const endpointPrefix = `${endpointMapping[endpoint.value]} 05 8007 0000 41 06`;
+    const mappedEndpoint = endpointMapping[endpoint.value];
+    if (mappedEndpoint === undefined) {
+      generatedFrame.value = '';
+      return;
+    }
+    const endpointPrefix = `${mappedEndpoint} 05 8007 0000 41 06`;
     frame.push(endpointPrefix);
     
     frame.push(parseInt(slaveAddress.value.toString()).toString(16).padStart(2, '0'));
@@ -198,7 +202,7 @@ watch(
     else if (['0x05', '0x06'].includes(functionCode.value) && writeData.value) {
       let data = parseInt(writeData.value, 16).toString(16).padStart(4, '0');
       if (isLittleEndian.value) {
-        data = data.match(/.{2}/g).reverse().join('');
+        data = (data.match(/.{2}/g) ?? []).reverse().join('');
       }
       frame.push(data);
     }
@@ -208,7 +212,7 @@ watch(
       if (writeData.value) {
         let data = parseInt(writeData.value, 16).toString(16).padStart(4, '0');
         if (isLittleEndian.value) {
-          data = data.match(/.{2}/g).reverse().join('');
+          data = (data.match(/.{2}/g) ?? []).reverse().join('');
         }
         frame.push(data);
       }
@@ -264,7 +268,9 @@ const localize = (key: string): string => {
 const STORAGE_KEY = 'easycodec.language';
 const changeLanguage = (language: LanguageCode) => {
   currentLanguage.value = language;
-  try { localStorage.setItem(STORAGE_KEY, language); } catch (e) {}
+  try { localStorage.setItem(STORAGE_KEY, language); } catch (e) {
+    // La langue reste active pour cette session si sa sauvegarde échoue.
+  }
 };
 
 // Load localizations on mount and prefer stored selection
@@ -272,11 +278,13 @@ onMounted(() => {
   loadLocalizationFiles().then(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored && (languages.value as any)[stored]) {
+      if (stored && isLanguageCode(stored)) {
         currentLanguage.value = stored;
         return;
       }
-    } catch (e) {}
+    } catch (e) {
+      // Si le stockage est inaccessible, utiliser la langue du navigateur ci-dessous.
+    }
     const browserLanguage = navigator.language.split('-')[0];
     if (isLanguageCode(browserLanguage)) {
       currentLanguage.value = browserLanguage;

@@ -1575,7 +1575,9 @@ const localization = computed(() => {
 const STORAGE_KEY = 'easycodec.language';
 const changeLanguage = (language: LanguageCode) => {
   currentLanguage.value = language;
-  try { localStorage.setItem(STORAGE_KEY, language); } catch (e) {}
+  try { localStorage.setItem(STORAGE_KEY, language); } catch (e) {
+    // La persistance est facultative : la langue reste active pour cette session.
+  }
   if (selectedSensor.value == '') {
     const outputArea = document.getElementById("outputArea");
     if (outputArea) {
