@@ -137,20 +137,22 @@ import { bluetoothOutline, searchOutline, arrowForwardOutline } from 'ionicons/i
 import { useBle } from '@/composables/useBle';
 import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import { isLanguageCode } from '@/types/localization';
+import type { LanguageCode, Translations } from '@/types/localization';
 
 // Import language files
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
 
-const currentLanguage = ref('en');
-const languages = ref<Record<string, Record<string, string>>>({ en: {}, fr: {} });
+const currentLanguage = ref<LanguageCode>('en');
+const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
 
 const generateCacheBuster = () => `?v=${new Date().getTime()}`;
 
 const loadLocalizationFiles = async () => {
   try {
-    const enResp = await axios.get(enUS + generateCacheBuster());
-    const frResp = await axios.get(frFR + generateCacheBuster());
+    const enResp = await axios.get<Translations>(enUS + generateCacheBuster());
+    const frResp = await axios.get<Translations>(frFR + generateCacheBuster());
     languages.value.en = enResp.data;
     languages.value.fr = frResp.data;
   } catch (e) {
@@ -163,13 +165,13 @@ const localization = () => languages.value[currentLanguage.value] || {};
 const localize = (key: string) => {
   if (!key.startsWith('@')) return key;
   const k = key.substring(1);
-  const v = (localization() as any)[k];
+  const v = localization()[k];
   return v ?? key;
 };
 
 const STORAGE_KEY = 'easycodec.language';
 
-const changeLanguage = (lang: string) => {
+const changeLanguage = (lang: LanguageCode) => {
   currentLanguage.value = lang;
   try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) { /* ignore storage errors */ }
 };
@@ -188,11 +190,11 @@ onMounted(async () => {
   // Initialize language: prefer stored user selection, else try browser
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && (languages.value as any)[stored]) {
+    if (stored && isLanguageCode(stored)) {
       currentLanguage.value = stored;
     } else {
       const browser = navigator.language?.split('-')[0] || 'en';
-      currentLanguage.value = (languages.value as any)[browser] ? browser : 'en';
+      currentLanguage.value = isLanguageCode(browser) ? browser : 'en';
       try { localStorage.setItem(STORAGE_KEY, currentLanguage.value); } catch (e) { /* ignore storage errors */ }
     }
   } catch (e) {

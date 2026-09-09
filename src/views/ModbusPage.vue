@@ -138,6 +138,8 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import axios from 'axios';
+import { isLanguageCode } from '@/types/localization';
+import type { LanguageCode, Translations } from '@/types/localization';
 import {
   IonPage,
   IonContent,
@@ -226,8 +228,8 @@ const copyFrame = async () => {
 };
 
 // Language related code
-const currentLanguage = ref('en');
-const languages = ref({ en: {}, fr: {} });
+const currentLanguage = ref<LanguageCode>('en');
+const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
 
 // Import language files
 import enUS from '/localisation/en_US.json?url';
@@ -241,8 +243,8 @@ const generateCacheBuster = () => {
 // Load localization files
 const loadLocalizationFiles = async () => {
   try {
-    const enResponse = await axios.get(enUS + generateCacheBuster());
-    const frResponse = await axios.get(frFR + generateCacheBuster());
+    const enResponse = await axios.get<Translations>(enUS + generateCacheBuster());
+    const frResponse = await axios.get<Translations>(frFR + generateCacheBuster());
     languages.value.en = enResponse.data;
     languages.value.fr = frResponse.data;
   } catch (error) {
@@ -260,7 +262,7 @@ const localize = (key: string): string => {
 
 // Change language function (persist selection)
 const STORAGE_KEY = 'easycodec.language';
-const changeLanguage = (language: string) => {
+const changeLanguage = (language: LanguageCode) => {
   currentLanguage.value = language;
   try { localStorage.setItem(STORAGE_KEY, language); } catch (e) {}
 };
@@ -276,7 +278,7 @@ onMounted(() => {
       }
     } catch (e) {}
     const browserLanguage = navigator.language.split('-')[0];
-    if (languages.value[browserLanguage]) {
+    if (isLanguageCode(browserLanguage)) {
       currentLanguage.value = browserLanguage;
     }
   });

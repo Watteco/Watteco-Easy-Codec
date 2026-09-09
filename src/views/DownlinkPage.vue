@@ -593,21 +593,23 @@
                 <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('batch_params', groupName)"></div>
               </ion-card-content>
             </ion-card>
-            <ion-card class="global-batch-settings" v-if="sensorConfig.batch_params.global_params && batchChecked" v-for="(param, paramName) in sensorConfig.batch_params.global_params.fields" 
-                      :key="paramName"
-                      v-show="param.hidden !== 'true'">
-              <ion-item class="config-item">
-                <time-slider
-                  :label="param.HMI.label"
-                  :min="param.min_value"
-                  :max="param.max_value"
-                  :value="param.selectedValue"
-                  :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
-                  @update:value="onParamChange($event, 'batch_params', 'global_params', paramName)"
-                  @update:units="onToggleChange($event, 'batch_params', 'global_params', paramName)"
-                />
-              </ion-item>
-            </ion-card>
+            <template v-if="sensorConfig.batch_params.global_params && batchChecked">
+              <ion-card class="global-batch-settings" v-for="(param, paramName) in sensorConfig.batch_params.global_params.fields" 
+                        :key="paramName"
+                        v-show="param.hidden !== 'true'">
+                <ion-item class="config-item">
+                  <time-slider
+                    :label="param.HMI.label"
+                    :min="param.min_value"
+                    :max="param.max_value"
+                    :value="param.selectedValue"
+                    :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                    @update:value="onParamChange($event, 'batch_params', 'global_params', paramName)"
+                    @update:units="onToggleChange($event, 'batch_params', 'global_params', paramName)"
+                  />
+                </ion-item>
+              </ion-card>
+            </template>
           </div>
           
         </ion-card>
@@ -1173,7 +1175,7 @@
     v-model:debugDevEuiHex="debugDevEuiHex"
     :logs="debugLogs"
     :connected="ble.connected.value"
-    :subscribed="debugSubscribed.value"
+    :subscribed="debugSubscribed"
     @start="startDebugSubscriptions"
     @stop="stopDebugSubscriptions"
     @clear="clearDebugLogs"
@@ -1204,7 +1206,6 @@
 </template>
 
 <script setup lang="ts">
-// @ts-nocheck
 import { ref, onMounted, computed, watch, onUnmounted, nextTick, provide } from 'vue';
 import { 
   IonTabBar, 
@@ -1250,20 +1251,91 @@ import SensorImage from '@/components/SensorImage.vue';
 import BleDebugPanel from '@/components/ble/BleDebugPanel.vue';
 import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import { isLanguageCode } from '@/types/localization';
+import type { LanguageCode, Translations } from '@/types/localization';
 
 // Import language files
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
 
-// Import flag images
-import gbFlag from '@/assets/img/flags/gb.png';
-import frFlag from '@/assets/img/flags/fr.png';
+interface Product {
+  category: string;
+  file: string;
+  name: string;
+  apps?: string[];
+}
 
-// Language configuration
-const availableLanguages = [
-  { code: 'en', name: 'English', flag: gbFlag },
-  { code: 'fr', name: 'Français', flag: frFlag },
-];
+interface AvailableProductList {
+  products: Product[];
+}
+
+interface GroupRelationship {
+  type: string;
+  allow_none?: boolean;
+  default_group?: string | number;
+  groups: Array<string | number>;
+}
+
+interface SensorChangeEvent {
+  detail: {
+    value: string;
+  };
+}
+
+interface CheckedChangeEvent {
+  detail: {
+    checked: boolean;
+  };
+}
+
+interface ParamChangeEvent {
+  newValue?: string | number | boolean;
+  detail?: {
+    value: {
+      lower: string | number;
+      upper: string | number;
+    };
+  };
+}
+
+interface ImageSection {
+  image?: string;
+  [groupName: string]: unknown;
+}
+
+type SensorImageConfig = Record<string, ImageSection | undefined>;
+type ConfigBlockEntry = string | [frame: string, tooltip: string];
+
+interface SensorParameter {
+  HMI: Record<string, any>;
+  type: string;
+  isHours: boolean;
+  inverted: string;
+  default_value?: string;
+  selectedValue?: string;
+  max_value?: string | number;
+  originalMaxValue?: string | number;
+  [property: string]: unknown;
+}
+
+interface SensorParameterGroup {
+  default_state?: string;
+  mandatory?: boolean | string;
+  fields?: Record<string, SensorParameter>;
+  [property: string]: unknown;
+}
+
+type SensorStateConfig = Record<
+  string,
+  Record<string, SensorParameterGroup> | undefined
+>;
+
+const currentLanguage = ref<LanguageCode>('en');
+
+const languages = ref<Record<LanguageCode, Translations>>({
+  en: {},
+  fr: {},
+});
 
 const bleDebugEnabledByEnv = import.meta.env.DEV || import.meta.env.VITE_ENABLE_BLE_DEBUG === 'true';
 const bleHideInProd = Capacitor.getPlatform() === 'android' && !bleDebugEnabledByEnv;
@@ -1300,9 +1372,9 @@ const {
 } = useBleDebug(ble, { enabled: bleDebugEnabledByEnv });
 
 // Reactive variables to store application state
-const availableProducts = ref([]); // Stores the list of available products
-const categorizedProducts = computed(() => {
-  const categories = {};
+const availableProducts = ref<Product[]>([]); // Stores the list of available products
+const categorizedProducts = computed<Record<string, Product[]>>(() => {
+  const categories: Record<string, Product[]> = {};
   availableProducts.value.forEach(product => {
     if (!categories[product.category]) {
       categories[product.category] = [];
@@ -1321,11 +1393,10 @@ const configurationChecked = ref(true); // State of the configuration mode check
 const commandeChecked = ref(true); // State of the commande mode checkbox
 const generalChecked = ref(true); // State of the general mode checkbox
 const paramGroupChecked = ref<Record<string, boolean>>({}); // Tracks the state of group checkboxes
-const outputData: never[] = []; // Output data for rendering
+const outputData: Record<string, boolean> = {}; // Output data for rendering
 const outputVals: Record<string, string> = {}; // Output values derived from parameters
 const paramGroupList: Record<string, any> = {}; // List of parameter groups
 const currentErrors: never[] = []; // Tracks current errors
-const currentLanguage = ref('en'); // Reactive variable to store the current language
 const framesAvailable = ref(false);
 // Debug builds default to storing the BLOB without applying/rebooting it.
 const activateConfigurationAfterSend = ref(!bleDebugEnabledByEnv);
@@ -1370,8 +1441,12 @@ const setGroupEnabled = (bigGroupName: string, groupName: string | number, check
   outputData[groupName] = checked;
 };
 
-const getGroupRelationships = (bigGroupName: string) => {
-  const relationships = sensorConfig.value?.[bigGroupName]?.group_relationships;
+const getGroupRelationships = (
+  bigGroupName: string,
+): GroupRelationship[] => {
+  const relationships =
+    sensorConfig.value?.[bigGroupName]?.group_relationships;
+
   return Array.isArray(relationships) ? relationships : [];
 };
 
@@ -1428,8 +1503,11 @@ const initializeExclusiveGroups = (bigGroupName: string) => {
 // Initialize subcategoryVisible to show all subcategories by default
 watch(sensorConfig, async (newConfig) => {
   if (newConfig) {
-    // Check if the general_params has a folded property
-    if (newConfig.general_params && newConfig.general_params.hasOwnProperty('folded')) {
+    // Check if general_params has its own folded property
+    if (
+      newConfig.general_params &&
+      Object.prototype.hasOwnProperty.call(newConfig.general_params, 'folded')
+    ) {
       generalVisible.value = !newConfig.general_params.folded;
     }
     
@@ -1437,9 +1515,13 @@ watch(sensorConfig, async (newConfig) => {
     Object.keys(newConfig).forEach(bigGroupName => {
       if (typeof newConfig[bigGroupName] === 'object') {
         Object.keys(newConfig[bigGroupName]).forEach(groupName => {
-          if (typeof newConfig[bigGroupName][groupName] === 'object' && 
-              newConfig[bigGroupName][groupName].hasOwnProperty('folded')) {
-            subcategoryVisible.value[groupName] = !newConfig[bigGroupName][groupName].folded;
+          const group = newConfig[bigGroupName][groupName];
+
+          if (
+            typeof group === 'object' &&
+            Object.prototype.hasOwnProperty.call(group, 'folded')
+          ) {
+            subcategoryVisible.value[groupName] = !group.folded;
           }
         });
       }
@@ -1460,9 +1542,6 @@ watch(sensorConfig, async (newConfig) => {
   }
 });
 
-// Language files map
-const languages = ref({ en: {}, fr: {} });
-
 // Function to generate a cache-busting query parameter
 const generateCacheBuster = () => {
   return `?v=${new Date().getTime()}`;
@@ -1471,8 +1550,8 @@ const generateCacheBuster = () => {
 // Load localization files dynamically
 const loadLocalizationFiles = async () => {
   try {
-    const enResponse = await axios.get(enUS + generateCacheBuster());
-    const frResponse = await axios.get(frFR + generateCacheBuster());
+    const enResponse = await axios.get<Translations>(enUS + generateCacheBuster());
+    const frResponse = await axios.get<Translations>(frFR + generateCacheBuster());
     languages.value.en = enResponse.data;
     languages.value.fr = frResponse.data;
 
@@ -1494,7 +1573,7 @@ const localization = computed(() => {
 
 // Function to change the language and persist selection
 const STORAGE_KEY = 'easycodec.language';
-const changeLanguage = (language) => {
+const changeLanguage = (language: LanguageCode) => {
   currentLanguage.value = language;
   try { localStorage.setItem(STORAGE_KEY, language); } catch (e) {}
   if (selectedSensor.value == '') {
@@ -1545,7 +1624,9 @@ watch(currentLanguage, (newLang, oldLang) => {
 // Load available products from a remote JSON file
 const loadAvailableProducts = async () => {
   try {
-    const response = await axios.get(`${import.meta.env.BASE_URL}config/AvailableProductList.json` + generateCacheBuster());
+    const response = await axios.get<AvailableProductList>(
+      `${import.meta.env.BASE_URL}config/AvailableProductList.json` + generateCacheBuster()
+    );
     availableProducts.value = response.data.products.filter(product => 
       product.apps && product.apps.includes("EasyCodec")
     );
@@ -1560,7 +1641,7 @@ const loadAvailableProducts = async () => {
 };
 
 // Triggered when a new sensor is selected
-const onSensorChange = async (event) => {
+const onSensorChange = async (event: SensorChangeEvent) => {
   // Reset all states first
   sensorConfig.value = null;
   paramGroupChecked.value = {};
@@ -1573,7 +1654,7 @@ const onSensorChange = async (event) => {
   await nextTick();
   
   const selected = event.detail.value;
-  selectedSensor.value = event.detail.value;
+  selectedSensor.value = selected;
   resetCheckboxes();
   await loadSensorConfig(selected);
 };
@@ -1604,8 +1685,12 @@ const resetCheckboxes = () => {
 };
 
 // Reset all checkboxes to their default states // WIP
-const initializeStates = (config) => {
-  const setParentAndChildStates = (parentGroup, groupName, bigGroupName) => {
+const initializeStates = (config: SensorStateConfig) => {
+  const setParentAndChildStates = (
+    parentGroup: SensorParameterGroup,
+    groupName: string,
+    bigGroupName: string,
+  ) => {
     // Check parent default_state
     if (parentGroup.default_state === "true" || isTrueFlag(parentGroup.mandatory)) {
       if (bigGroupName === "general_params") {
@@ -1632,20 +1717,22 @@ const initializeStates = (config) => {
     }
 
     // Check children default_state
-    if (parentGroup.fields) {
-      Object.keys(parentGroup.fields).forEach((fieldName) => {
-        const field = parentGroup.fields[fieldName];
-        if (field.HMI && field.default_value) {
+    const fields = parentGroup.fields;
+    if (fields) {
+      Object.keys(fields).forEach((fieldName) => {
+        const field = fields[fieldName];
+        const defaultValue = field.default_value;
+        if (field.HMI && defaultValue) {
           // Initialize field value
-          field.selectedValue = field.default_value;
-          outputVals[fieldName] = convertToHexFrameValue(field.default_value, field);
+          field.selectedValue = defaultValue;
+          outputVals[fieldName] = convertToHexFrameValue(defaultValue, field);
 
           // Store the original max_value
           field.originalMaxValue = field.max_value;
 
           // Check individual default_state (if applicable)
           if (parentGroup.default_state === "true" || isTrueFlag(parentGroup.mandatory)) {
-            paramGroupList[fieldName] = parentGroup.fields[fieldName];
+            paramGroupList[fieldName] = field;
           }
         }
       });
@@ -1654,9 +1741,10 @@ const initializeStates = (config) => {
 
   // Iterate over big groups
   ["batch_params", "modbus_params", "standard_params", "configuration_params", "commande_params", "general_params"].forEach((bigGroupName) => {
-    if (config[bigGroupName]) {
-      Object.keys(config[bigGroupName]).forEach((groupName) => {
-        const parentGroup = config[bigGroupName][groupName];
+    const section = config[bigGroupName];
+    if (section) {
+      Object.keys(section).forEach((groupName) => {
+        const parentGroup = section[groupName];
         setParentAndChildStates(parentGroup, groupName, bigGroupName);
       });
     }
@@ -1705,7 +1793,7 @@ const loadSensorConfig = async (sensorFile: string) => {
 };
 
 // Function to find sensor image in the configuration
-const findSensorImage = (config) => {
+const findSensorImage = (config: SensorImageConfig | null | undefined): string => {
   if (!config) return '';
   
   // Check in all sections for an image property
@@ -1719,8 +1807,14 @@ const findSensorImage = (config) => {
 
     // Check each group in the section
     for (const groupKey in section) {
-      if (section[groupKey].image) {
-        return section[groupKey].image;
+      const group = section[groupKey];
+      if (
+        typeof group === 'object' &&
+        group !== null &&
+        'image' in group &&
+        typeof group.image === 'string'
+      ) {
+        return group.image;
       }
     }
   }
@@ -1790,7 +1884,7 @@ const updateOutput = () => {
 
     const cfgBlocks = sensorConfig.value[bigGroupName]?.cfg_block || [];
     
-    cfgBlocks.forEach((cfgEntry) => {
+    cfgBlocks.forEach((cfgEntry: ConfigBlockEntry) => {
       let frame = "";
       let tooltip = "";
       
@@ -1873,10 +1967,10 @@ const localMinutesToUtcMinutes = (localMinutes: number) => {
 // Convert a parameter value to a hex format for frames
 const convertToHexFrameValue = (value: string, param:{
   HMI: any; type: string; isHours: boolean; inverted: string;
-}) => {
+}): string => {
   if (param.type === 'frame') return "";
 
-  if (!value || !param) return;
+  if (!value) return "";
   let output = '';
 
   if (param.type === 'string') return value;
@@ -1934,7 +2028,7 @@ const convertToHexFrameValue = (value: string, param:{
 };
 
 // Update checkbox states and propagate changes to output
-const onCategoryCheckedChange = (event: CustomEvent, category: string) => {
+const onCategoryCheckedChange = (event: CheckedChangeEvent, category: string) => {
   if (sensorConfig.value[category].global_params) {
     Object.keys(sensorConfig.value[category].global_params.fields).forEach(field => {
       sensorConfig.value[category].global_params.fields[field].enabled = event.detail.checked;
@@ -1960,48 +2054,48 @@ const onCategoryCheckedChange = (event: CustomEvent, category: string) => {
 };
 
 // Update batch mode state
-const onBatchCheckedChange = (event: CustomEvent) => {
+const onBatchCheckedChange = (event: CheckedChangeEvent) => {
   const checked = hasMandatoryGroup("batch_params") || event.detail.checked;
   batchChecked.value = checked;
   onCategoryCheckedChange({ detail: { checked } }, "batch_params");
 };
 
 // Update standard mode state
-const onStandardCheckedChange = (event: CustomEvent) => {
+const onStandardCheckedChange = (event: CheckedChangeEvent) => {
   const checked = hasMandatoryGroup("standard_params") || event.detail.checked;
   standardChecked.value = checked;
   onCategoryCheckedChange({ detail: { checked } }, "standard_params");
 };
 
 // Update ModBus mode state
-const onModbusCheckedChange = (event: CustomEvent) => {
+const onModbusCheckedChange = (event: CheckedChangeEvent) => {
   const checked = hasMandatoryGroup("modbus_params") || event.detail.checked;
   modbusChecked.value = checked;
   onCategoryCheckedChange({ detail: { checked } }, "modbus_params");
 };
 
 // Update configuration mode state
-const onConfigurationCheckedChange = (event: CustomEvent) => {
+const onConfigurationCheckedChange = (event: CheckedChangeEvent) => {
   const checked = hasMandatoryGroup("configuration_params") || event.detail.checked;
   configurationChecked.value = checked;
   onCategoryCheckedChange({ detail: { checked } }, "configuration_params");
 };
 
 // Update commande mode state
-const onCommandeCheckedChange = (event: CustomEvent) => {
+const onCommandeCheckedChange = (event: CheckedChangeEvent) => {
   const checked = hasMandatoryGroup("commande_params") || event.detail.checked;
   commandeChecked.value = checked;
   onCategoryCheckedChange({ detail: { checked } }, "commande_params");
 };
 
 // Update general mode state
-const onGeneralCheckedChange = (event: CustomEvent) => {
+const onGeneralCheckedChange = (event: CheckedChangeEvent) => {
   generalChecked.value = event.detail.checked;
   onCategoryCheckedChange(event, "general_params");
 };
 
 // Handle group checkbox changes
-const onParamGroupCheckedChange = (event: CustomEvent, groupName: string | number, bigGroupName: string) => {
+const onParamGroupCheckedChange = (event: CheckedChangeEvent, groupName: string | number, bigGroupName: string) => {
   const requestedChecked = isMandatoryGroup(bigGroupName, groupName) || event.detail.checked;
   const checked = requestedChecked || !canDisableExclusiveGroup(bigGroupName, groupName);
 
@@ -2011,13 +2105,18 @@ const onParamGroupCheckedChange = (event: CustomEvent, groupName: string | numbe
 };
 
 // Handle parameter value changes
-const onParamChange = (event, bigGroupName, groupName, paramName) => {
+const onParamChange = (
+  event: ParamChangeEvent,
+  bigGroupName: string,
+  groupName: string | number,
+  paramName: string | number,
+) => {
   if (sensorConfig.value[bigGroupName][groupName]) {
     if (sensorConfig.value[bigGroupName][groupName].fields[paramName]) {
       let newVal = "0";
       if (event.newValue || event.newValue === false || event.newValue === 0) {
         newVal = event.newValue.toString();
-      } else if (event.detail.value) {
+      } else if (event.detail?.value) {
         newVal = `${event.detail.value.lower} ${event.detail.value.upper}`;
       }
       sensorConfig.value[bigGroupName][groupName].fields[paramName].selectedValue = newVal;
@@ -2045,7 +2144,10 @@ const onParamChange = (event, bigGroupName, groupName, paramName) => {
   updateOutput();
 };
 
-const enforceFieldRelationships = (bigGroupName, groupName) => {
+const enforceFieldRelationships = (
+  bigGroupName: string,
+  groupName: string | number,
+) => {
   if (isEnforcingRelationships.value) return;
   
   isEnforcingRelationships.value = true;
@@ -2116,20 +2218,24 @@ onMounted(() => {
   loadLocalizationFiles().then(() => {
     // Prefer stored user selection, else fallback to browser detection
     const STORAGE_KEY = 'easycodec.language';
+    const browserLanguage = navigator.language.split('-')[0];
+    currentLanguage.value = isLanguageCode(browserLanguage)
+      ? browserLanguage
+      : 'en';
+
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored && (languages.value as any)[stored]) {
+      if (stored && isLanguageCode(stored)) {
         currentLanguage.value = stored;
-      } else {
-        const browserLanguage = navigator.language.split('-')[0]; // Get the browser language
-        currentLanguage.value = languages.value[browserLanguage] ? browserLanguage : 'en';
       }
-    } catch (e) {
-      const browserLanguage = navigator.language.split('-')[0];
-      currentLanguage.value = languages.value[browserLanguage] ? browserLanguage : 'en';
+    } catch {
+      // Keep the fallback language if storage is unavailable.
     }
     const selectToStartText = localize("@selectToStart");
-    document.getElementById("outputArea").innerHTML = selectToStartText;
+    const outputArea = document.getElementById("outputArea");
+    if (outputArea) {
+      outputArea.innerHTML = selectToStartText;
+    }
   });
   // Initialize BLE on native platforms (no-op on web)
   ble.initialize();
@@ -2212,8 +2318,9 @@ const toggleVisibility = (category: string) => {
   }
 };
 
-const toggleSubcategoryVisibility = (groupName: string) => {
-  subcategoryVisible.value[groupName] = !subcategoryVisible.value[groupName];
+const toggleSubcategoryVisibility = (groupName: string | number) => {
+  const key = String(groupName);
+  subcategoryVisible.value[key] = !subcategoryVisible.value[key];
 };
 
 const updateMaxValues = (bigGroupName: string, groupName: string, paramName: string) => {
@@ -2275,9 +2382,10 @@ const generateModbusFrame = (frame: string, fields: any, enabled: boolean) => {
   return finalFrame;
 };
 
-const generateFramesForGroup = (bigGroupName: string, groupName: string) => {
+const generateFramesForGroup = (bigGroupName: string, groupName: string | number) => {
+  const groupKey = String(groupName);
   let frames = '';
-  const paramGroup = sensorConfig.value[bigGroupName][groupName];
+  const paramGroup = sensorConfig.value[bigGroupName][groupKey];
   const globalParams = sensorConfig.value[bigGroupName]?.global_params?.fields || {};
   const cfgBlocks = sensorConfig.value[bigGroupName]?.cfg_block || [];
   let frameCount = 0;
@@ -2296,7 +2404,7 @@ const generateFramesForGroup = (bigGroupName: string, groupName: string) => {
       // Special handling for Modbus frames
       if (frame.includes('8007 0000 41 06')) {
         const frameNumber = frame.split(' ')[0];
-        if (groupName === `modbusFrame${frameNumber}` && paramGroup.fields) {
+        if (groupKey === `modbusFrame${frameNumber}` && paramGroup.fields) {
           const fields = {
             slave: paramGroup.fields[`mb${frameNumber}Slave`],
             functionCode: paramGroup.fields[`mb${frameNumber}FunctionCode`],
@@ -2306,7 +2414,7 @@ const generateFramesForGroup = (bigGroupName: string, groupName: string) => {
           };
           const modbusFrame = generateModbusFrame(frame, fields, paramGroup.fields[`mb${frameNumber}Slave`]?.enabled);
           if (modbusFrame) {
-            const frameId = `frame-${bigGroupName}-${groupName}-${index}`;
+            const frameId = `frame-${bigGroupName}-${groupKey}-${index}`;
             frames += `<span class="frameArea" id="${frameId}"><span class="frame">${modbusFrame}</span>&nbsp;&nbsp;&nbsp;&nbsp;(${frameDesc}) <button class="copy-button" data-frame-id="${frameId}" data-no-spaces="true">${localize('@copyFrame')}</button></span><br>`;
             frameCount++;
           }
@@ -2343,7 +2451,9 @@ const generateFramesForGroup = (bigGroupName: string, groupName: string) => {
         if (!globalParam || !globalParam.selectedValue) return;
 
         if (frame.includes(`(${globalParamName}1)`) || frame.includes(`(${globalParamName}2)`)) {
-          const frameValues = globalParam.selectedValue.split(' ').map(value => convertToHexFrameValue(value, globalParam));
+          const frameValues = globalParam.selectedValue
+            .split(' ')
+            .map((value: string) => convertToHexFrameValue(value, globalParam));
           frame = replaceInFrame(frame, `${globalParamName}1`, frameValues[0], globalParam.enabled);
           frame = replaceInFrame(frame, `${globalParamName}2`, frameValues[1], globalParam.enabled);
           includeFrame = true;
@@ -2355,20 +2465,22 @@ const generateFramesForGroup = (bigGroupName: string, groupName: string) => {
       });
 
       if (includeFrame) {
-        const frameId = `frame-${bigGroupName}-${groupName}-${index}`;
+        const frameId = `frame-${bigGroupName}-${groupKey}-${index}`;
         frames += `<span class="frameArea" id="${frameId}"><span class="frame">${frame}</span>&nbsp;&nbsp;&nbsp;&nbsp;(${frameDesc}) <button class="copy-button" data-frame-id="${frameId}" data-no-spaces="true">${localize('@copyFrame')}</button></span><br>`;
         frameCount++;
       }
     });
   }
 
-  framesCount.value[groupName] = frameCount;
+  framesCount.value[groupKey] = frameCount;
   return frames;
 };
 
 // Update the copyFrame function to handle copying without spaces
-const copyFrame = (frameId, noSpaces = false) => {
-  const frameElement = document.getElementById(frameId)?.querySelector('.frame');
+const copyFrame = (frameId: string, noSpaces = false) => {
+  const frameElement = document
+    .getElementById(frameId)
+    ?.querySelector<HTMLElement>('.frame');
   if (frameElement) {
     let frameText = frameElement.textContent || frameElement.innerText;
     if (noSpaces) {
@@ -2381,7 +2493,9 @@ const copyFrame = (frameId, noSpaces = false) => {
 };
 
 // Update the handleCopyButtonClick function to handle the new button
-const handleCopyButtonClick = (event) => {
+const handleCopyButtonClick = (event: MouseEvent) => {
+  if (!(event.target instanceof Element)) return;
+
   const button = event.target.closest('.copy-button');
   if (button) {
     const frameId = button.getAttribute('data-frame-id');
@@ -2393,8 +2507,9 @@ const handleCopyButtonClick = (event) => {
 };
 
 // Function to toggle the visibility of frames
-const toggleFramesVisibility = (groupName) => {
-  framesVisible.value[groupName] = !framesVisible.value[groupName];
+const toggleFramesVisibility = (groupName: string | number) => {
+  const key = String(groupName);
+  framesVisible.value[key] = !framesVisible.value[key];
 };
 
 const resetToDefault = () => {
@@ -2404,12 +2519,12 @@ const resetToDefault = () => {
 };
 
 // Function to check if only custom-frame elements are present
-const onlyCustomFrame = (fields) => {
+const onlyCustomFrame = (fields: Record<string, SensorParameter>) => {
   return Object.values(fields).every(field => field.HMI?.visual_type === 'customFrame');
 };
 
 // Function to check if a paramGroup has an ion-range component
-const hasIonRange = (fields) => {
+const hasIonRange = (fields?: Record<string, SensorParameter>) => {
   if (!fields) return false;
   return Object.values(fields).some(field => field.HMI?.visual_type === 'timeSlider' || field.HMI?.visual_type === 'doubleSlider');
 };

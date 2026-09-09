@@ -19,19 +19,23 @@
 <script setup lang="ts">
 import gbFlag from '@/assets/img/flags/gb.png';
 import frFlag from '@/assets/img/flags/fr.png';
+import type { LanguageCode } from '@/types/localization';
 
 // Props
-defineProps({
-  currentLanguage: {
-    type: String,
-    required: true
-  }
-});
+defineProps<{
+  currentLanguage: LanguageCode;
+}>();
 
 // Emits
-defineEmits(['update:language']);
+defineEmits<{
+  (event: 'update:language', language: LanguageCode): void;
+}>();
 
-const availableLanguages = [
+const availableLanguages: Array<{
+  code: LanguageCode;
+  name: string;
+  flag: string;
+}> = [
   { code: 'en', name: 'English', flag: gbFlag },
   { code: 'fr', name: 'Français', flag: frFlag }
 ];
