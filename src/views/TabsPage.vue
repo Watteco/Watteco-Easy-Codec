@@ -11,7 +11,7 @@
           <ion-title 
             size="large"
             id="watteco-title">
-              Easy Codec v0.11.15d4
+              {{ isNativeApp ? `Easy Codec v${appVersion}` : `Easy Codec - BETA v${appVersion}` }}
           </ion-title>
         </ion-toolbar>
       </ion-header>
@@ -38,6 +38,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { appVersion } from '@/utils/appVersion';
+import { Capacitor } from '@capacitor/core';
+
+const isNativeApp = Capacitor.isNativePlatform();
+
 import { 
   IonTabBar, 
   IonTabButton, 

@@ -78,6 +78,22 @@ The project is currently hosted at: [Watteco Easy Codec](https://lora.watteco.fr
 
 ## Current State
 
+### Application version
+
+`package.json` is the source of the application version. Vite injects it into
+the header and BLE Settings; Android reads it as its `versionName`.
+Development versions use `0.11.15-dev.4` and display as `v0.11.15d4`.
+
+- `npm run android:debug` increments the development suffix before building,
+  updating both `package.json` and `package-lock.json`. A stable version starts
+  at `dev.0`; an existing `dev.N` becomes `dev.N+1`.
+- `npm run build:android:debug` builds the current version without incrementing it.
+- To set a release version, use `npm version 0.12.0 --no-git-tag-version`.
+- Test the increment script with `node --test scripts/increment-debug-version.test.mjs`.
+
+Android's numeric `versionCode` and the iOS bundle version settings remain managed
+separately in the native projects.
+
 ### Development Version
 The development version can be launched locally using `ionic serve` and currently supports:
 - Core configuration features.

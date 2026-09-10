@@ -1,24 +1,33 @@
-import { readFile, writeFile } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
+﻿import { readFile, writeFile } from 'node:fs/promises'
 
-const tabsPageUrl = new URL('../src/views/TabsPage.vue', import.meta.url)
-const tabsPagePath = fileURLToPath(tabsPageUrl)
-const versionPattern = /Easy Codec v(\d+\.\d+\.\d+)(?:d(\d+))?/
-
-const source = await readFile(tabsPageUrl, 'utf8')
-const match = source.match(versionPattern)
+const packageUrl = new URL('../package.json', import.meta.url)
+const lockUrl = new URL('../package-lock.json', import.meta.url)
+const packageSource = await readFile(packageUrl, 'utf8')
+const lockSource = await readFile(lockUrl, 'utf8')
+const manifest = JSON.parse(packageSource)
+const lock = JSON.parse(lockSource)
+const match = /^(\d+\.\d+\.\d+)(?:-dev\.(\d+))?$/.exec(manifest.version)
 
 if (!match) {
-  throw new Error(
-    `Version introuvable dans ${tabsPagePath}. Format attendu : Easy Codec v0.12.0 ou Easy Codec v0.12.0d2`,
-  )
+  throw new Error('Version invalide dans package.json. Format attendu : 0.12.0 ou 0.12.0-dev.2')
+}
+if (!lock.packages?.['']) {
+  throw new Error('Entree racine introuvable dans package-lock.json')
 }
 
 const [, baseVersion, debugNumber] = match
-const nextDebugNumber = debugNumber === undefined ? 0 : Number(debugNumber) + 1
-const currentVersion = match[0]
-const nextVersion = `Easy Codec v${baseVersion}d${nextDebugNumber}`
+const nextDebugNumber = debugNumber === undefined ? 0n : BigInt(debugNumber) + 1n
+const nextVersion = `${baseVersion}-dev.${nextDebugNumber}`
+const currentVersion = manifest.version
+manifest.version = nextVersion
+lock.version = nextVersion
+lock.packages[''].version = nextVersion
 
-await writeFile(tabsPageUrl, source.replace(versionPattern, nextVersion), 'utf8')
+function serialize(value, source) {
+  const newline = source.includes('\r\n') ? '\r\n' : '\n'
+  return (JSON.stringify(value, null, 2) + '\n').replace(/\n/g, newline)
+}
 
+await writeFile(packageUrl, serialize(manifest, packageSource), 'utf8')
+await writeFile(lockUrl, serialize(lock, lockSource), 'utf8')
 console.log(`${currentVersion} -> ${nextVersion}`)
