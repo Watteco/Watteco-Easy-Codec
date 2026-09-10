@@ -1196,7 +1196,7 @@
     @delete-osa-storage="deleteStoredOsaKey"
     @purge-osa-storage="purgeExpiredOsaKeys"
   />
-  <div class="language-switcher">
+  <div v-if="!ble.isNative.value" class="language-switcher">
     <LanguageSwitcher 
       :current-language="currentLanguage"
       @update:language="changeLanguage"
@@ -1251,7 +1251,7 @@ import SensorImage from '@/components/SensorImage.vue';
 import BleDebugPanel from '@/components/ble/BleDebugPanel.vue';
 import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
-import { isLanguageCode } from '@/types/localization';
+import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
 
 // Import language files
@@ -1330,7 +1330,7 @@ type SensorStateConfig = Record<
   Record<string, SensorParameterGroup> | undefined
 >;
 
-const currentLanguage = ref<LanguageCode>('en');
+const { currentLanguage, changeLanguage } = useLanguage();
 
 const languages = ref<Record<LanguageCode, Translations>>({
   en: {},
@@ -1571,21 +1571,6 @@ const localization = computed(() => {
   return languages.value[currentLanguage.value];
 });
 
-// Function to change the language and persist selection
-const STORAGE_KEY = 'easycodec.language';
-const changeLanguage = (language: LanguageCode) => {
-  currentLanguage.value = language;
-  try { localStorage.setItem(STORAGE_KEY, language); } catch (e) {
-    // La persistance est facultative : la langue reste active pour cette session.
-  }
-  if (selectedSensor.value == '') {
-    const outputArea = document.getElementById("outputArea");
-    if (outputArea) {
-      outputArea.innerHTML = localize("@selectToStart");
-    }
-  }
-};
-
 const localize = (key: string): string => {
   return key.split(' ').map(word => {
     if (word.startsWith('@')) {
@@ -1620,6 +1605,9 @@ watch(currentLanguage, (newLang, oldLang) => {
   if (selectedSensor.value) {
     updateOutput();
     onSensorChange({ detail: { value: selectedSensor.value } });
+  } else {
+    const outputArea = document.getElementById("outputArea");
+    if (outputArea) outputArea.innerHTML = localize("@selectToStart");
   }
 });
 
@@ -2218,21 +2206,6 @@ onMounted(() => {
   document.addEventListener('click', handleCopyButtonClick);
   loadAvailableProducts();
   loadLocalizationFiles().then(() => {
-    // Prefer stored user selection, else fallback to browser detection
-    const STORAGE_KEY = 'easycodec.language';
-    const browserLanguage = navigator.language.split('-')[0];
-    currentLanguage.value = isLanguageCode(browserLanguage)
-      ? browserLanguage
-      : 'en';
-
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored && isLanguageCode(stored)) {
-        currentLanguage.value = stored;
-      }
-    } catch {
-      // Keep the fallback language if storage is unavailable.
-    }
     const selectToStartText = localize("@selectToStart");
     const outputArea = document.getElementById("outputArea");
     if (outputArea) {

@@ -124,7 +124,7 @@
         </ion-card>
       </div>
     </ion-content>
-    <div class="language-switcher">
+    <div v-if="!Capacitor.isNativePlatform()" class="language-switcher">
       <LanguageSwitcher 
         :current-language="currentLanguage"
         @update:language="changeLanguage"
@@ -137,7 +137,8 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import axios from 'axios';
-import { isLanguageCode } from '@/types/localization';
+import { Capacitor } from '@capacitor/core';
+import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
 import {
   IonPage,
@@ -232,7 +233,7 @@ const copyFrame = async () => {
 };
 
 // Language related code
-const currentLanguage = ref<LanguageCode>('en');
+const { currentLanguage, changeLanguage } = useLanguage();
 const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
 
 // Import language files
@@ -264,32 +265,8 @@ const localize = (key: string): string => {
   return currentLang[translationKey] || key;
 };
 
-// Change language function (persist selection)
-const STORAGE_KEY = 'easycodec.language';
-const changeLanguage = (language: LanguageCode) => {
-  currentLanguage.value = language;
-  try { localStorage.setItem(STORAGE_KEY, language); } catch (e) {
-    // La langue reste active pour cette session si sa sauvegarde échoue.
-  }
-};
-
-// Load localizations on mount and prefer stored selection
 onMounted(() => {
-  loadLocalizationFiles().then(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored && isLanguageCode(stored)) {
-        currentLanguage.value = stored;
-        return;
-      }
-    } catch (e) {
-      // Si le stockage est inaccessible, utiliser la langue du navigateur ci-dessous.
-    }
-    const browserLanguage = navigator.language.split('-')[0];
-    if (isLanguageCode(browserLanguage)) {
-      currentLanguage.value = browserLanguage;
-    }
-  });
+  loadLocalizationFiles();
 });
 
 const functionCodeOptions = computed(() => [

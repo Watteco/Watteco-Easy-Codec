@@ -9,6 +9,11 @@
         <ion-title size="large" id="watteco-title">
           BLE Connection
         </ion-title>
+        <ion-buttons slot="end">
+          <ion-button router-link="/ble-settings" aria-label="BLE Settings">
+            <ion-icon slot="icon-only" :icon="settingsOutline" />
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
@@ -119,7 +124,7 @@
       Skip BLE (dev)
     </ion-button>
   </div>
-  <div class="language-switcher">
+  <div v-if="!ble.isNative.value" class="language-switcher">
     <LanguageSwitcher :current-language="currentLanguage" @update:language="changeLanguage" />
   </div>
   </ion-page>
@@ -130,21 +135,21 @@ import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonButton, IonChip, IonIcon, IonLabel, IonList, IonListHeader,
+  IonButton, IonButtons, IonChip, IonIcon, IonLabel, IonList, IonListHeader,
   IonItem, IonNote, IonSpinner, IonImg,
 } from '@ionic/vue';
-import { bluetoothOutline, searchOutline, arrowForwardOutline } from 'ionicons/icons';
+import { bluetoothOutline, searchOutline, arrowForwardOutline, settingsOutline } from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
 import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
-import { isLanguageCode } from '@/types/localization';
+import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
 
 // Import language files
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
 
-const currentLanguage = ref<LanguageCode>('en');
+const { currentLanguage, changeLanguage } = useLanguage();
 const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
 
 const generateCacheBuster = () => `?v=${new Date().getTime()}`;
@@ -169,13 +174,6 @@ const localize = (key: string) => {
   return v ?? key;
 };
 
-const STORAGE_KEY = 'easycodec.language';
-
-const changeLanguage = (lang: LanguageCode) => {
-  currentLanguage.value = lang;
-  try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) { /* ignore storage errors */ }
-};
-
 const ble = useBle();
 const router = useRouter();
 const bleDebugEnabledByEnv = import.meta.env.DEV || import.meta.env.VITE_ENABLE_BLE_DEBUG === 'true';
@@ -187,19 +185,6 @@ onMounted(async () => {
   logoSrc.value = `${import.meta.env.BASE_URL}img/LOGO-WATTECO_v2021_wbg_ctr.png`;
   await ble.initialize();
   await loadLocalizationFiles();
-  // Initialize language: prefer stored user selection, else try browser
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && isLanguageCode(stored)) {
-      currentLanguage.value = stored;
-    } else {
-      const browser = navigator.language?.split('-')[0] || 'en';
-      currentLanguage.value = isLanguageCode(browser) ? browser : 'en';
-      try { localStorage.setItem(STORAGE_KEY, currentLanguage.value); } catch (e) { /* ignore storage errors */ }
-    }
-  } catch (e) {
-    currentLanguage.value = 'en';
-  }
 });
 
 type DeviceLike = { deviceId: string; name?: string; uuids?: readonly string[] };
@@ -330,7 +315,8 @@ watch(() => ble.connected.value, (val) => {
 #watteco-title {
   font-size: 1.2rem;
   position: relative;
-  left: 90px;
+  left: 0;
+  padding-left: 90px;
   font-weight: bold;
 }
 

@@ -20,6 +20,11 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/ble-settings',
+    name: 'BLESettings',
+    component: () => import('@/views/BLESettings.vue')
+  },
+  {
     path: '/tabs/',
     component: TabsPage,
     children: [
