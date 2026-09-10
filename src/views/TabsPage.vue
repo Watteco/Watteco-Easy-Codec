@@ -11,7 +11,7 @@
           <ion-title 
             size="large"
             id="watteco-title">
-              Easy Codec - BETA v0.11.15
+              Easy Codec - BETA v{{ appVersion }}
           </ion-title>
         </ion-toolbar>
       </ion-header>
@@ -62,6 +62,8 @@ import {
   IonButton
 } from '@ionic/vue';
 import { arrowDownCircleOutline, arrowUpCircleOutline, batteryHalfOutline, serverOutline } from 'ionicons/icons';
+
+const appVersion = __APP_VERSION__;
 
 // Define a reactive variable for the logo's src
 const logoSrc = ref('');

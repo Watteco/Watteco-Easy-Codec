@@ -78,6 +78,11 @@ The project is currently hosted at: [Watteco Easy Codec](https://lora.watteco.fr
 
 ## Current State
 
+### Application version
+
+`package.json` is the source of the application version. Vite injects it into
+the header.
+
 ### Development Version
 The development version can be launched locally using `ionic serve` and currently supports:
 - Core configuration features.
