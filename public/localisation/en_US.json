@@ -33,6 +33,8 @@
     "bleSending": "Sending…",
     "bleActivateAfterSend": "Activate configuration after sending (sensor restart)",
     "bleDisconnect": "Disconnect",
+    "bleReconnect": "Reconnect",
+    "bleReconnecting": "Reconnecting…",
     "batchLabel": "Logging",
     "standLabel": "Notification",
     "generalLabel": "General parameters",

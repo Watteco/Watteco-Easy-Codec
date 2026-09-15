@@ -55,10 +55,14 @@ const scanning = ref(false);
 const connected = ref(false);
 const devices = ref<BleDevice[]>([]);
 const connectedDevice = ref<DeviceLike | undefined>(undefined);
+// Kept after an unexpected disconnect so the current page can reconnect
+// without sending the user back through device discovery.
+const lastConnectedDevice = ref<DeviceLike | undefined>(undefined);
 const statusMessage = ref('');
 const eventsLog = ref<string[]>([]);
 const sending = ref(false);
 const pairing = ref(false);
+const reconnecting = ref(false);
 const bondedDevices = ref<string[]>([]);
 
 const receivedFrames = ref<string[]>([]);
@@ -427,6 +431,7 @@ async function connectToDevice(device: DeviceLike) {
 
       connected.value = true;
       connectedDevice.value = device;
+      lastConnectedDevice.value = device;
       if (isAndroidNativePlatform()) {
         rememberBondedDevice(device.deviceId);
       }
@@ -520,6 +525,25 @@ async function disconnect() {
   clearConnectionTarget();
   pairing.value = false;
   statusMessage.value = 'Disconnected';
+}
+
+async function reconnectToLastDevice(): Promise<boolean> {
+  if (connected.value) return true;
+  if (reconnecting.value) return false;
+
+  const device = lastConnectedDevice.value;
+  if (!device) {
+    statusMessage.value = 'No previously connected device';
+    return false;
+  }
+
+  reconnecting.value = true;
+  try {
+    await connectToDevice(device);
+    return connected.value;
+  } finally {
+    reconnecting.value = false;
+  }
 }
 
 /* ================================================================== */
@@ -682,10 +706,12 @@ export function useBle() {
     connected:       readonly(connected),
     devices:         readonly(devices),
     connectedDevice: readonly(connectedDevice),
+    lastConnectedDevice: readonly(lastConnectedDevice),
     statusMessage,
     eventsLog:       readonly(eventsLog),
     sending:         readonly(sending),
     pairing:         readonly(pairing),
+    reconnecting:    readonly(reconnecting),
     bondedDevices:   readonly(bondedDevices),
 
     initialize,
@@ -694,6 +720,7 @@ export function useBle() {
     cancelScan,
     stopScan,
     connectToDevice,
+    reconnectToLastDevice,
     disconnect,
     sendOutputFrames,
     getDeviceName,

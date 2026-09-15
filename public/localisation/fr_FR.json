@@ -33,6 +33,8 @@
     "bleSending": "Envoi en cours…",
     "bleActivateAfterSend": "Activer la configuration après l'envoi (redémarrage du capteur)",
     "bleDisconnect": "Déconnecter",
+    "bleReconnect": "Reconnecter",
+    "bleReconnecting": "Reconnexion en cours…",
     "batchLabel": "Historisation",
     "standLabel": "Notification",
     "generalLabel": "Paramètres généraux",

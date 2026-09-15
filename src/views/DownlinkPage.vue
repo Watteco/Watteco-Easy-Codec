@@ -41,6 +41,7 @@
         <ion-card v-if="ble.isNative.value && !sensorConfig">
           <ion-card-content>
             <ion-button
+              v-if="ble.connected.value"
               @click="disconnectAndGoBack"
               size="small"
               fill="outline"
@@ -48,6 +49,16 @@
               :disabled="ble.pairing.value"
             >
               {{ localize('@bleDisconnect') }}
+            </ion-button>
+            <ion-button
+              v-else-if="ble.lastConnectedDevice.value"
+              @click="reconnect"
+              size="small"
+              fill="outline"
+              color="primary"
+              :disabled="ble.reconnecting.value || ble.pairing.value"
+            >
+              {{ ble.reconnecting.value ? localize('@bleReconnecting') : localize('@bleReconnect') }}
             </ion-button>
           </ion-card-content>
         </ion-card>
@@ -1141,8 +1152,18 @@
             <ion-button v-if="framesAvailable && ble.connected.value" @click="sendFramesBle" :disabled="ble.sending.value || ble.pairing.value" class="half-width" color="primary">
               {{ ble.pairing.value ? 'Pairing…' : (ble.sending.value ? localize('@bleSending') : localize('@bleSendFrames')) }}
             </ion-button>
-            <ion-button @click="disconnectAndGoBack" size="small" fill="outline" color="danger" :disabled="ble.pairing.value">
+            <ion-button v-if="ble.connected.value" @click="disconnectAndGoBack" size="small" fill="outline" color="danger" :disabled="ble.pairing.value">
               {{ localize('@bleDisconnect') }}
+            </ion-button>
+            <ion-button
+              v-else-if="ble.lastConnectedDevice.value"
+              @click="reconnect"
+              size="small"
+              fill="outline"
+              color="primary"
+              :disabled="ble.reconnecting.value || ble.pairing.value"
+            >
+              {{ ble.reconnecting.value ? localize('@bleReconnecting') : localize('@bleReconnect') }}
             </ion-button>
           </div>
           <ion-checkbox
@@ -2268,6 +2289,11 @@ const sendFramesBle = async () => {
     debugDevEuiHex.value,
     activateConfigurationAfterSend.value
   );
+};
+
+// Reconnect in place so all selected sensor settings and field values stay intact.
+const reconnect = async () => {
+  await ble.reconnectToLastDevice();
 };
 
 // Disconnect BLE and navigate back to connection page
