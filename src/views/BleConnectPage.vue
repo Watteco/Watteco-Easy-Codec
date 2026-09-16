@@ -198,13 +198,13 @@ async function onDeviceSelect(dev: DeviceLike) {
 }
 
 function proceed() {
-  router.replace('/tabs/downlink');
+  router.replace('/sensor-data');
 }
 
-// Auto-navigate to Easy Codec when BLE becomes connected
+// Auto-navigate to the sensor dashboard when BLE becomes connected
 watch(() => ble.connected.value, (val) => {
   if (val) {
-    router.replace('/tabs/downlink');
+    router.replace('/sensor-data');
   }
 });
 </script>
