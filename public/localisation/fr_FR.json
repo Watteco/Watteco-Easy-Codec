@@ -40,6 +40,16 @@
     "sensorDataComingSoonDescription": "Cette page est prête à accueillir les mesures et les graphiques.",
     "openSensorConfiguration": "Configurer le capteur",
     "chooseSensor": "Choisir",
+    "currentValues": "Valeurs actuelles",
+    "temperatureLabel": "Température",
+    "humidityLabel": "Humidité",
+    "batteryLevelLabel": "Batterie",
+    "counterLabel": "Comptage",
+    "historyLabel": "Historique",
+    "temperatureHistoryLabel": "Historique de température",
+    "humidityHistoryLabel": "Historique d'humidité",
+    "timestampedValuesLabel": "Valeurs Bluetooth horodatées",
+    "noHistoryData": "Aucune donnée historique pour le moment",
     "batchLabel": "Historisation",
     "standLabel": "Notification",
     "generalLabel": "Paramètres généraux",
@@ -190,6 +200,7 @@
     "cfgCommentREPORT_COMPTAGE_ELECTROVANNE_2": "Report comptage électrovanne 2",
     "cfgCommentaction_03_endpoint_0_entr_e_1_remove_report_comptage": "Action 03 endpoint 0 entrée 1 suppression report comptage",
     "cfgCommentaction_07_endpoint_1_entr_e_2_remove_report_comptage": "Action 07 endpoint 1 entrée 2 suppression report comptage",
-    "ConfigTrameLabel" : "Trames obligatoires"
+    "ConfigTrameLabel" : "Trames obligatoires",
+    "sensorConfigTitle": "Configuration du capteur"
 }
 

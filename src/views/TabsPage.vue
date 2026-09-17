@@ -11,11 +11,11 @@
           <ion-title 
             size="large"
             id="watteco-title">
-              {{ isNativeApp ? `Easy Codec v${appVersion}` : `Easy Codec - BETA v${appVersion}` }}
+              {{ isNativeApp ? localize("@sensorConfigTitle") : `Easy Codec - BETA v${appVersion}` }}
           </ion-title>
         </ion-toolbar>
       </ion-header>
-      <ion-tab-bar v-if="!isInIframe" slot="bottom">
+      <ion-tab-bar v-if="!isInIframe && !isNativeApp" slot="bottom">
         <ion-tab-button tab="downlink" href="/tabs/downlink">
           <ion-icon :icon="arrowDownCircleOutline" />
         </ion-tab-button>
@@ -40,6 +40,12 @@
 import { ref, onMounted } from 'vue';
 import { appVersion } from '@/utils/appVersion';
 import { Capacitor } from '@capacitor/core';
+import axios from 'axios';
+import { useLanguage } from '@/composables/useLanguage';
+import type { LanguageCode, Translations } from '@/types/localization';
+
+import enUS from '/localisation/en_US.json?url';
+import frFR from '/localisation/fr_FR.json?url';
 
 const isNativeApp = Capacitor.isNativePlatform();
 
@@ -70,6 +76,13 @@ import { arrowDownCircleOutline, arrowUpCircleOutline, batteryHalfOutline, serve
 
 // Define a reactive variable for the logo's src
 const logoSrc = ref('');
+const { currentLanguage } = useLanguage();
+const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
+
+const localize = (key: string): string => {
+  if (!key.startsWith('@')) return key;
+  return languages.value[currentLanguage.value][key.substring(1)] ?? key;
+};
 
 const isInIframe = (() => {
   if (typeof window === 'undefined') {
@@ -83,8 +96,20 @@ const isInIframe = (() => {
   }
 })();
 
-onMounted(() => {
+onMounted(async () => {
   loadImage();
+
+  try {
+    const cacheBuster = `?v=${Date.now()}`;
+    const [enResponse, frResponse] = await Promise.all([
+      axios.get<Translations>(enUS + cacheBuster),
+      axios.get<Translations>(frFR + cacheBuster),
+    ]);
+    languages.value.en = enResponse.data;
+    languages.value.fr = frResponse.data;
+  } catch (error) {
+    console.error('Failed to load localization files:', error);
+  }
 });
 
 const loadImage = async () => {

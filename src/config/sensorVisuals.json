@@ -1,0 +1,39 @@
+[
+  {
+    "ids": ["acc_temperature#8", "temperature#249", 
+            "Temperature#250", "Temperature#251", 
+            "Temperature#252", "Temperature#253", 
+            "Temperature#254", "Temperature#255", 
+            "Temperature#256", "temperature_1#257", 
+            "temperature_1#258", "temperature_1#259", 
+            "temperature_1#260", "temperature_1#261", 
+            "temperature_2#262", "temperature_2#263", 
+            "temperature_2#264", "temperature_2#265", 
+            "temperature_2#266"
+          ],
+    "accent": "#F47B20",
+    "icon": "thermometerOutline"
+  },
+  {
+    "ids": ["humidity#49", "humidity_1#50", "humidity_2#51"],
+    "accent": "#2997C8",
+    "icon": "waterOutline"
+  },
+  {
+    "ids": ["battery_voltage#30", "BatteryVoltage#31", 
+            "disposable_battery_voltage#39", "rechargeable_battery_voltage#230"
+          ],
+    "accent": "#57A66A",
+    "icon": "batteryHalfOutline"
+  },
+  {
+    "ids": ["index#54", "index_1#55", 
+            "index_10#56", "index_2#57", 
+            "index_3#58", "index_4#59", 
+            "index_5#60", "index_6#61", 
+            "index_7#62", "index_8#63", "index_9#64"
+          ],
+    "accent": "#7867B8",
+    "icon": "calculatorOutline"
+  }
+]

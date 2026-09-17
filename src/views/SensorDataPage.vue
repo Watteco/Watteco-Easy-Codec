@@ -11,13 +11,67 @@
 
     <ion-content :fullscreen="true" class="sensor-data-content">
       <div class="sensor-data-container">
-        <ion-card class="data-placeholder">
-          <ion-card-content>
-            <ion-icon :icon="analyticsOutline" class="placeholder-icon" />
-            <h2>{{ localize('@sensorDataComingSoon') }}</h2>
-            <p>{{ localize('@sensorDataComingSoonDescription') }}</p>
-          </ion-card-content>
-        </ion-card>
+        <section class="dashboard-section">
+          <h2 class="section-title">{{ localize('@currentValues') }}</h2>
+          <div class="sensor-grid">
+            <sensor-metric-card
+              :label="localize('@temperatureLabel')"
+              :value="displayedValues.temperature"
+              unit="°C"
+              :icon="temperatureVisual.icon"
+              :accent="temperatureVisual.accent"
+              :decimals="1"
+            />
+            <sensor-metric-card
+              :label="localize('@humidityLabel')"
+              :value="displayedValues.humidity"
+              unit="%"
+              :icon="humidityVisual.icon"
+              :accent="humidityVisual.accent"
+              :decimals="1"
+            />
+            <sensor-metric-card
+              :label="localize('@batteryLevelLabel')"
+              :value="displayedValues.battery"
+              unit="V"
+              :icon="batteryVisual.icon"
+              :accent="batteryVisual.accent"
+              :decimals="3"
+            />
+            <sensor-metric-card
+              :label="localize('@counterLabel')"
+              :value="displayedValues.counter"
+              unit=""
+              :icon="counterVisual.icon"
+              :accent="counterVisual.accent"
+              :decimals="0"
+            />
+          </div>
+        </section>
+
+        <section class="dashboard-section">
+          <h2 class="section-title">{{ localize('@historyLabel') }}</h2>
+          <div class="sensor-grid">
+            <sensor-history-card
+              :label="localize('@temperatureHistoryLabel')"
+              :subtitle="localize('@timestampedValuesLabel')"
+              :empty-label="localize('@noHistoryData')"
+              :points="displayedTemperatureHistory"
+              unit="°C"
+              :accent="temperatureVisual.accent"
+              :decimals="1"
+            />
+            <sensor-history-card
+              :label="localize('@humidityHistoryLabel')"
+              :subtitle="localize('@timestampedValuesLabel')"
+              :empty-label="localize('@noHistoryData')"
+              :points="displayedHumidityHistory"
+              unit="%"
+              :accent="humidityVisual.accent"
+              :decimals="1"
+            />
+          </div>
+        </section>
 
       </div>
     </ion-content>
@@ -77,6 +131,9 @@
       <ion-button size="small" fill="solid" color="medium" @click="cycleBannerPreview">
         Banner: {{ bannerPreviewLabel }}
       </ion-button>
+      <ion-button size="small" fill="solid" color="medium" @click="demoDataEnabled = !demoDataEnabled">
+        Demo data: {{ demoDataEnabled ? 'on' : 'off' }}
+      </ion-button>
     </div>
   </ion-page>
 </template>
@@ -87,8 +144,6 @@ import { useRouter } from 'vue-router';
 import axios from 'axios';
 import {
   IonButton,
-  IonCard,
-  IonCardContent,
   IonContent,
   IonHeader,
   IonIcon,
@@ -98,10 +153,17 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/vue';
-import { analyticsOutline, bluetoothOutline, refreshOutline, settingsOutline } from 'ionicons/icons';
+import {
+  bluetoothOutline,
+  refreshOutline,
+  settingsOutline,
+} from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
 import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
+import SensorHistoryCard from '@/components/sensor/SensorHistoryCard.vue';
+import SensorMetricCard from '@/components/sensor/SensorMetricCard.vue';
+import { getSensorVisual } from '@/utils/sensorVisuals';
 
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
@@ -112,6 +174,53 @@ const bleDebugEnabledByEnv = import.meta.env.DEV || import.meta.env.VITE_ENABLE_
 const { currentLanguage } = useLanguage();
 const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
 const logoSrc = ref('');
+
+const temperatureVisual = getSensorVisual('temperature#249');
+const humidityVisual = getSensorVisual('humidity#49');
+const batteryVisual = getSensorVisual('disposable_battery_voltage#39');
+const counterVisual = getSensorVisual('index#54');
+
+type SensorValues = {
+  temperature: number | null;
+  humidity: number | null;
+  battery: number | null;
+  counter: number | null;
+};
+
+type HistoryPoint = {
+  timestamp: number;
+  value: number;
+};
+
+const sensorValues = ref<SensorValues>({
+  temperature: null,
+  humidity: null,
+  battery: null,
+  counter: null,
+});
+const temperatureHistory = ref<HistoryPoint[]>([]);
+const humidityHistory = ref<HistoryPoint[]>([]);
+const demoDataEnabled = ref(false);
+const demoEndTimestamp = Date.now();
+const createDemoHistory = (values: number[]): HistoryPoint[] => values.map((value, index) => ({
+  timestamp: demoEndTimestamp - (values.length - index - 1) * 5 * 60 * 1000,
+  value,
+}));
+const demoTemperatureHistory = createDemoHistory([
+  20.4, 20.8, 21.1, 21.7, 22.3, 22.1, 22.8, 23.2, 22.9, 23.5, 23.1, 22.7,
+]);
+const demoHumidityHistory = createDemoHistory([
+  48.2, 49.1, 50.4, 49.8, 51.2, 52.6, 51.9, 50.7, 49.9, 50.5, 51.1, 50.8,
+]);
+const displayedValues = computed<SensorValues>(() => demoDataEnabled.value
+  ? { temperature: 22.7, humidity: 50.8, battery: 3.597, counter: 1248 }
+  : sensorValues.value);
+const displayedTemperatureHistory = computed(() => demoDataEnabled.value
+  ? demoTemperatureHistory
+  : temperatureHistory.value);
+const displayedHumidityHistory = computed(() => demoDataEnabled.value
+  ? demoHumidityHistory
+  : humidityHistory.value);
 
 type BannerState = 'connected' | 'reconnect' | 'choose';
 type BannerPreview = 'actual' | BannerState;
@@ -186,6 +295,24 @@ const cycleBannerPreview = () => {
   padding: 20px 12px 88px;
 }
 
+.dashboard-section + .dashboard-section {
+  margin-top: 24px;
+}
+
+.section-title {
+  margin: 0 4px 10px;
+  color: #3e4650;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.sensor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .connection-banner {
   position: fixed;
   right: 0;
@@ -215,20 +342,11 @@ const cycleBannerPreview = () => {
   min-width: 0;
 }
 
-.data-placeholder h2 {
-  margin: 0;
-  font-weight: 600;
-}
-
 .connection-status strong {
   overflow: hidden;
   font-size: 1rem;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.data-placeholder p {
-  margin: 8px 0 0;
 }
 
 .connection-icon {
@@ -266,26 +384,6 @@ const cycleBannerPreview = () => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-}
-
-.data-placeholder {
-  min-height: 260px;
-  margin: 0 0 20px;
-}
-
-.data-placeholder ion-card-content {
-  min-height: 260px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.placeholder-icon {
-  margin-bottom: 16px;
-  color: var(--ion-color-primary);
-  font-size: 54px;
 }
 
 #watteco-logo {
