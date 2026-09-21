@@ -17,32 +17,38 @@ const icons = {
 export type SensorVisual = {
   accent: string;
   icon: string;
+  history: boolean;
 };
 
-type SensorVisualGroup = SensorVisual & {
+type SensorVisualGroup = Omit<SensorVisual, 'history'> & {
   ids: string[];
+  history?: boolean;
 };
 
 const fallbackVisual: SensorVisual = {
   accent: '#888',
   icon: helpCircleOutline,
+  history: false,
 };
 
 const sensorVisuals = new Map<string, SensorVisual>();
 
-for (const { ids, accent, icon } of sensorVisualsConfig as SensorVisualGroup[]) {
+for (const { ids, accent, icon, history = false } of sensorVisualsConfig as SensorVisualGroup[]) {
   for (const id of ids) {
-    sensorVisuals.set(id, { accent, icon });
+    sensorVisuals.set(id, { accent, icon, history });
   }
 }
 
-export const getSensorVisual = (id: string): SensorVisual => {
-  const visual = sensorVisuals.get(id);
+export const hasSensorVisual = (id: string | number): boolean => sensorVisuals.has(String(id));
+
+export const getSensorVisual = (id: string | number): SensorVisual => {
+  const visual = sensorVisuals.get(String(id).split('#').at(-1) ?? '');
 
   if (!visual) return fallbackVisual;
 
   return {
     accent: visual.accent,
     icon: icons[visual.icon as keyof typeof icons] ?? fallbackVisual.icon,
+    history: visual.history,
   };
 };

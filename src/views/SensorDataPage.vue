@@ -15,60 +15,31 @@
           <h2 class="section-title">{{ localize('@currentValues') }}</h2>
           <div class="sensor-grid">
             <sensor-metric-card
-              :label="localize('@temperatureLabel')"
-              :value="displayedValues.temperature"
-              unit="°C"
-              :icon="temperatureVisual.icon"
-              :accent="temperatureVisual.accent"
-              :decimals="1"
-            />
-            <sensor-metric-card
-              :label="localize('@humidityLabel')"
-              :value="displayedValues.humidity"
-              unit="%"
-              :icon="humidityVisual.icon"
-              :accent="humidityVisual.accent"
-              :decimals="1"
-            />
-            <sensor-metric-card
-              :label="localize('@batteryLevelLabel')"
-              :value="displayedValues.battery"
-              unit="V"
-              :icon="batteryVisual.icon"
-              :accent="batteryVisual.accent"
-              :decimals="3"
-            />
-            <sensor-metric-card
-              :label="localize('@counterLabel')"
-              :value="displayedValues.counter"
-              unit=""
-              :icon="counterVisual.icon"
-              :accent="counterVisual.accent"
-              :decimals="0"
+              v-for="card in displayedCards"
+              :key="card.measId"
+              :label="card.name"
+              :value="card.value"
+              :unit="card.unit"
+              :icon="card.visual.icon"
+              :accent="card.visual.accent"
+              :decimals="card.decimals"
             />
           </div>
         </section>
 
-        <section class="dashboard-section">
+        <section v-if="historyCards.length" class="dashboard-section">
           <h2 class="section-title">{{ localize('@historyLabel') }}</h2>
           <div class="sensor-grid">
             <sensor-history-card
-              :label="localize('@temperatureHistoryLabel')"
+              v-for="card in historyCards"
+              :key="`history-${card.measId}`"
+              :label="card.name"
               :subtitle="localize('@timestampedValuesLabel')"
               :empty-label="localize('@noHistoryData')"
-              :points="displayedTemperatureHistory"
-              unit="°C"
-              :accent="temperatureVisual.accent"
-              :decimals="1"
-            />
-            <sensor-history-card
-              :label="localize('@humidityHistoryLabel')"
-              :subtitle="localize('@timestampedValuesLabel')"
-              :empty-label="localize('@noHistoryData')"
-              :points="displayedHumidityHistory"
-              unit="%"
-              :accent="humidityVisual.accent"
-              :decimals="1"
+              :points="card.history"
+              :unit="card.unit"
+              :accent="card.visual.accent"
+              :decimals="card.decimals"
             />
           </div>
         </section>
@@ -131,6 +102,9 @@
       <ion-button size="small" fill="solid" color="medium" @click="cycleBannerPreview">
         Banner: {{ bannerPreviewLabel }}
       </ion-button>
+      <ion-button size="small" fill="solid" color="medium" @click="openDebugSensorPicker">
+        Sensor: {{ ble.productReference.value ?? 'choose' }}
+      </ion-button>
       <ion-button size="small" fill="solid" color="medium" @click="demoDataEnabled = !demoDataEnabled">
         Demo data: {{ demoDataEnabled ? 'on' : 'off' }}
       </ion-button>
@@ -152,6 +126,7 @@ import {
   IonSpinner,
   IonTitle,
   IonToolbar,
+  alertController,
 } from '@ionic/vue';
 import {
   bluetoothOutline,
@@ -163,7 +138,8 @@ import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
 import SensorHistoryCard from '@/components/sensor/SensorHistoryCard.vue';
 import SensorMetricCard from '@/components/sensor/SensorMetricCard.vue';
-import { getSensorVisual } from '@/utils/sensorVisuals';
+import { getAvailableProductChoices, getProductMeasurements } from '@/utils/productMeasurements';
+import { getSensorVisual, hasSensorVisual } from '@/utils/sensorVisuals';
 
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
@@ -175,31 +151,13 @@ const { currentLanguage } = useLanguage();
 const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
 const logoSrc = ref('');
 
-const temperatureVisual = getSensorVisual('temperature#249');
-const humidityVisual = getSensorVisual('humidity#49');
-const batteryVisual = getSensorVisual('disposable_battery_voltage#39');
-const counterVisual = getSensorVisual('index#54');
-
-type SensorValues = {
-  temperature: number | null;
-  humidity: number | null;
-  battery: number | null;
-  counter: number | null;
-};
-
 type HistoryPoint = {
   timestamp: number;
   value: number;
 };
 
-const sensorValues = ref<SensorValues>({
-  temperature: null,
-  humidity: null,
-  battery: null,
-  counter: null,
-});
-const temperatureHistory = ref<HistoryPoint[]>([]);
-const humidityHistory = ref<HistoryPoint[]>([]);
+const measurementValues = ref<Record<number, number | string | null>>({});
+const measurementHistory = ref<Record<number, HistoryPoint[]>>({});
 const demoDataEnabled = ref(false);
 const demoEndTimestamp = Date.now();
 const createDemoHistory = (values: number[]): HistoryPoint[] => values.map((value, index) => ({
@@ -212,15 +170,37 @@ const demoTemperatureHistory = createDemoHistory([
 const demoHumidityHistory = createDemoHistory([
   48.2, 49.1, 50.4, 49.8, 51.2, 52.6, 51.9, 50.7, 49.9, 50.5, 51.1, 50.8,
 ]);
-const displayedValues = computed<SensorValues>(() => demoDataEnabled.value
-  ? { temperature: 22.7, humidity: 50.8, battery: 3.597, counter: 1248 }
-  : sensorValues.value);
-const displayedTemperatureHistory = computed(() => demoDataEnabled.value
-  ? demoTemperatureHistory
-  : temperatureHistory.value);
-const displayedHumidityHistory = computed(() => demoDataEnabled.value
-  ? demoHumidityHistory
-  : humidityHistory.value);
+const productMeasurements = computed(() => getProductMeasurements(ble.productReference.value));
+const sensorCards = computed(() => productMeasurements.value
+  .filter(measurement => hasSensorVisual(measurement.measId))
+  .map(measurement => ({
+    ...measurement,
+    visual: getSensorVisual(measurement.measId),
+  })));
+
+const getDemoValue = (measId: number): number | null => {
+  if (measId >= 54 && measId <= 64) return 1248 + ((measId - 54) * 137);
+  if ([30, 31, 39, 230].includes(measId)) return 3.597;
+  if ([49, 50, 51].includes(measId)) return 50.8;
+  if ([8, ...Array.from({ length: 18 }, (_, index) => 249 + index)].includes(measId)) return 22.7;
+  return null;
+};
+
+const displayedCards = computed(() => sensorCards.value.map(card => ({
+  ...card,
+  value: demoDataEnabled.value
+    ? getDemoValue(card.measId)
+    : measurementValues.value[card.measId] ?? null,
+})));
+
+const historyCards = computed(() => displayedCards.value
+  .filter(card => card.visual.history)
+  .map(card => ({
+    ...card,
+    history: demoDataEnabled.value
+      ? ([49, 50, 51].includes(card.measId) ? demoHumidityHistory : demoTemperatureHistory)
+      : measurementHistory.value[card.measId] ?? [],
+  })));
 
 type BannerState = 'connected' | 'reconnect' | 'choose';
 type BannerPreview = 'actual' | BannerState;
@@ -245,6 +225,28 @@ const bannerPreviewLabel = computed(() => ({
   reconnect: 'reconnect',
   choose: 'choose',
 }[bannerPreview.value]));
+
+const openDebugSensorPicker = async () => {
+  const alert = await alertController.create({
+    header: 'Choose a debug sensor',
+    inputs: getAvailableProductChoices().map(product => ({
+      type: 'radio',
+      label: product.label,
+      value: product.reference,
+      checked: product.reference === ble.productReference.value,
+    })),
+    buttons: [
+      { text: 'Cancel', role: 'cancel' },
+      {
+        text: 'Choose',
+        handler: (reference: string) => {
+          ble.setProductReference(reference);
+        },
+      },
+    ],
+  });
+  await alert.present();
+};
 
 const localize = (key: string): string => {
   if (!key.startsWith('@')) return key;

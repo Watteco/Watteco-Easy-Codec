@@ -30,6 +30,7 @@ export default defineConfig({
   base: process.env.CAPACITOR_BUILD === 'true' ? '/' : '/EasyCodec/',
   test: {
     globals: true,
-    environment: 'jsdom'
+    environment: 'jsdom',
+    include: ['src/**/*.spec.ts'],
   }
 })

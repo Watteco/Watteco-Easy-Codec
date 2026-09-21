@@ -1721,6 +1721,7 @@ const onSensorChange = async (event: SensorChangeEvent) => {
   
   const selected = event.detail.value;
   selectedSensor.value = selected;
+  ble.setProductReference(selected);
   resetCheckboxes();
   await loadSensorConfig(selected);
 };

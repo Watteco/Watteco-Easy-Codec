@@ -1,7 +1,7 @@
 {
   "name": "watteco-codec",
   "private": true,
-  "version": "0.11.15-dev.24",
+  "version": "0.11.15-dev.28",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,6 +16,7 @@
     "ios": "npm run build:ios && npm run sync:ios",
     "open:android": "npx cap open android",
     "preview": "vite preview",
+    "bacnet:meas-ids": "node scripts/get-product-meas-ids.mjs",
     "test:e2e": "cypress run",
     "test:unit": "vitest",
     "lint": "eslint .",

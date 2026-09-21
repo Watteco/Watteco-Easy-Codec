@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { BleClient, type BleDevice, type ScanResult } from '@capacitor-community/bluetooth-le';
 import { uploadConfigurationBlob } from '@/utils/BLE/blob';
 import { authenticateOsa } from '@/utils/BLE/osa';
+import { extractProductReference } from '@/utils/productMeasurements';
 
 type DeviceLike = {
   deviceId: string;
@@ -64,6 +65,7 @@ const sending = ref(false);
 const pairing = ref(false);
 const reconnecting = ref(false);
 const bondedDevices = ref<string[]>([]);
+const productReference = ref<string | null>(null);
 
 const receivedFrames = ref<string[]>([]);
 
@@ -410,6 +412,7 @@ async function cancelScan() {
 /*  Connect / Disconnect                                               */
 /* ================================================================== */
 async function connectToDevice(device: DeviceLike) {
+  if (connectedDevice.value?.deviceId !== device.deviceId) productReference.value = null;
   statusMessage.value = hasRememberedBond(device.deviceId)
     ? `Reconnecting to ${device.name || device.deviceId}…`
     : `Connecting to ${device.name || device.deviceId}…`;
@@ -480,10 +483,28 @@ async function connectToDevice(device: DeviceLike) {
                 (value: DataView) => {
                   const bytes = new Uint8Array(value.buffer);
                   const hex = toHex(bytes);
+                  const publicValue = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+                  const detectedReference = extractProductReference(publicValue);
+                  if (detectedReference) productReference.value = detectedReference;
                   log(`NOTIF ${hex}`);
                   receivedFrames.value = [hex, ...receivedFrames.value].slice(0, 50);
                 }
               );
+              try {
+                const modelRequest = hexToBytes('110000000005');
+                const requestView = new DataView(
+                  modelRequest.buffer,
+                  modelRequest.byteOffset,
+                  modelRequest.byteLength,
+                );
+                if (foundChar.properties?.writeWithoutResponse) {
+                  await BleClient.writeWithoutResponse(device.deviceId, foundService.uuid, foundChar.uuid, requestView);
+                } else {
+                  await BleClient.write(device.deviceId, foundService.uuid, foundChar.uuid, requestView);
+                }
+              } catch (modelError) {
+                console.warn('Public model reference request failed:', modelError);
+              }
               statusMessage.value += ' (ready, notifications on)';
             } catch (ne) {
               console.warn('startNotifications failed:', ne);
@@ -694,6 +715,10 @@ function getDeviceName(device: DeviceLike): string {
   return device.name || device.deviceId.substring(0, 8) + '…';
 }
 
+function setProductReference(value?: string | null) {
+  productReference.value = extractProductReference(value);
+}
+
 /* ================================================================== */
 /*  Composable (returns singleton state)                               */
 /* ================================================================== */
@@ -713,6 +738,7 @@ export function useBle() {
     pairing:         readonly(pairing),
     reconnecting:    readonly(reconnecting),
     bondedDevices:   readonly(bondedDevices),
+    productReference: readonly(productReference),
 
     initialize,
     startScan,
@@ -724,5 +750,6 @@ export function useBle() {
     disconnect,
     sendOutputFrames,
     getDeviceName,
+    setProductReference,
   };
 }
