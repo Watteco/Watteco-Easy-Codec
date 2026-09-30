@@ -1,0 +1,397 @@
+<style>
+  #watteco-redesign {
+    color-scheme: light dark;
+    display: grid;
+    place-items: start center;
+    width: 100%;
+    color: light-dark(#20252b, #eef1f4);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  #watteco-redesign * { box-sizing: border-box; }
+
+  #watteco-redesign .sensor-app {
+    width: min(100%, 430px);
+    overflow: hidden;
+    background: light-dark(#f4f5f7, #14171a);
+    border: 1px solid light-dark(#dfe2e6, #343a40);
+    border-radius: 22px;
+    box-shadow: 0 16px 40px light-dark(rgba(28, 33, 38, .14), rgba(0, 0, 0, .35));
+  }
+
+  #watteco-redesign .sensor-header {
+    padding: 20px 20px 18px;
+    color: #ffffff;
+    background: #ee7900;
+  }
+
+  #watteco-redesign .sensor-header-top,
+  #watteco-redesign .sensor-title-row,
+  #watteco-redesign .section-heading,
+  #watteco-redesign .channel-summary,
+  #watteco-redesign .channel-title,
+  #watteco-redesign .choice-row,
+  #watteco-redesign .connection,
+  #watteco-redesign .action-bar {
+    display: flex;
+    align-items: center;
+  }
+
+  #watteco-redesign .sensor-header-top,
+  #watteco-redesign .sensor-title-row,
+  #watteco-redesign .section-heading,
+  #watteco-redesign .channel-summary,
+  #watteco-redesign .action-bar { justify-content: space-between; }
+
+  #watteco-redesign .brand {
+    padding: 3px 7px;
+    border: 1px solid rgba(255,255,255,.9);
+    letter-spacing: .12em;
+    font-size: .72em;
+    font-weight: 500;
+  }
+
+  #watteco-redesign .connection {
+    gap: 6px;
+    font-size: .8em;
+  }
+
+  #watteco-redesign .connection-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #d9ffbd;
+  }
+
+  #watteco-redesign h2,
+  #watteco-redesign h3,
+  #watteco-redesign p { margin: 0; }
+
+  #watteco-redesign h2 { font-weight: 500; }
+  #watteco-redesign h3 { font-weight: 500; }
+
+  #watteco-redesign .sensor-title-row { margin-top: 18px; align-items: end; }
+  #watteco-redesign .sensor-kicker { opacity: .82; margin-bottom: 3px; font-size: .82em; }
+  #watteco-redesign .sensor-meta { opacity: .9; font-size: .8em; }
+
+  #watteco-redesign .sensor-body { padding: 14px; }
+
+  #watteco-redesign .settings-link,
+  #watteco-redesign .history-panel {
+    background: light-dark(#ffffff, #20252a);
+    border: 1px solid light-dark(#e1e4e8, #343a40);
+    border-radius: 15px;
+  }
+
+  #watteco-redesign .settings-link {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 12px;
+    padding: 15px 16px;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  #watteco-redesign .settings-link span:nth-child(2) { flex: 1; }
+  #watteco-redesign .settings-link small { display: block; opacity: .62; margin-top: 2px; }
+
+  #watteco-redesign .history-panel { margin-top: 12px; overflow: hidden; }
+  #watteco-redesign .section-heading { gap: 12px; padding: 16px; }
+  #watteco-redesign .section-heading > div:first-child { flex: 1; }
+  #watteco-redesign .section-heading p { opacity: .62; margin-top: 3px; font-size: .8em; }
+
+  #watteco-redesign .switch {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: 44px;
+    height: 26px;
+  }
+
+  #watteco-redesign .switch input { position: absolute; opacity: 0; }
+  #watteco-redesign .switch span {
+    width: 100%;
+    border-radius: 999px;
+    background: light-dark(#c8cdd2, #4c545c);
+    transition: background .18s ease;
+  }
+
+  #watteco-redesign .switch span::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.25);
+    transition: transform .18s ease;
+  }
+
+  #watteco-redesign .switch input:checked + span { background: #ee7900; }
+  #watteco-redesign .switch input:checked + span::after { transform: translateX(18px); }
+
+  #watteco-redesign .channel {
+    border-top: 1px solid light-dark(#e8eaed, #343a40);
+  }
+
+  #watteco-redesign .channel-summary {
+    width: 100%;
+    min-height: 68px;
+    gap: 10px;
+    padding: 12px 14px 12px 16px;
+    text-align: left;
+  }
+
+  #watteco-redesign .channel-title { gap: 11px; min-width: 0; }
+  #watteco-redesign .channel-title > div { min-width: 0; }
+  #watteco-redesign .channel-title p { margin-top: 3px; opacity: .64; font-size: .8em; }
+  #watteco-redesign .channel-title p strong { color: #d66d00; font-weight: 500; }
+
+  #watteco-redesign .channel-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    color: #d66d00;
+    background: light-dark(#fff2e5, #3b2b1b);
+    border-radius: 10px;
+  }
+
+  #watteco-redesign .summary-end { display: flex; align-items: center; gap: 8px; }
+  #watteco-redesign .expand-button {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    border-radius: 9px;
+    cursor: pointer;
+  }
+  #watteco-redesign .chevron { transition: transform .18s ease; }
+  #watteco-redesign .channel.is-open .chevron { transform: rotate(180deg); }
+
+  #watteco-redesign .channel-detail {
+    display: none;
+    padding: 4px 16px 17px 63px;
+  }
+
+  #watteco-redesign .channel.is-open .channel-detail { display: block; }
+  #watteco-redesign .field-label { margin-bottom: 9px; font-size: .82em; opacity: .72; }
+
+  #watteco-redesign .preset-group {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  #watteco-redesign .preset {
+    min-height: 36px;
+    padding: 7px 4px;
+    color: inherit;
+    background: light-dark(#f2f3f5, #2b3035);
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  #watteco-redesign .preset[aria-pressed="true"] {
+    color: #ffffff;
+    background: #ee7900;
+  }
+
+  #watteco-redesign .custom-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  #watteco-redesign .custom-row label { opacity: .72; font-size: .82em; }
+  #watteco-redesign .custom-row select {
+    max-width: 150px;
+    padding: 8px 28px 8px 10px;
+    color: inherit;
+    background: light-dark(#ffffff, #20252a);
+    border: 1px solid light-dark(#ccd1d6, #505860);
+    border-radius: 9px;
+    font: inherit;
+  }
+
+  #watteco-redesign .action-bar {
+    position: sticky;
+    bottom: 0;
+    gap: 12px;
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    background: light-dark(rgba(255,255,255,.96), rgba(24,28,31,.96));
+    border-top: 1px solid light-dark(#dfe2e6, #343a40);
+  }
+
+  #watteco-redesign .pending { font-size: .8em; opacity: .68; }
+  #watteco-redesign .save-button {
+    min-height: 44px;
+    padding: 0 18px;
+    color: #ffffff;
+    background: #ee7900;
+    border: 0;
+    border-radius: 11px;
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  #watteco-redesign button:focus-visible,
+  #watteco-redesign input:focus-visible,
+  #watteco-redesign select:focus-visible { outline: 3px solid light-dark(#192a43, #f6b36d); outline-offset: 2px; }
+
+  @media (max-width: 370px) {
+    #watteco-redesign .channel-detail { padding-left: 16px; }
+    #watteco-redesign .sensor-header { padding-inline: 16px; }
+    #watteco-redesign .sensor-body { padding: 10px; }
+    #watteco-redesign .action-bar { align-items: stretch; flex-direction: column; }
+    #watteco-redesign .save-button { width: 100%; }
+  }
+</style>
+
+<div id="watteco-redesign">
+  <section class="sensor-app" aria-label="Proposition de refonte de la configuration du capteur">
+    <header class="sensor-header">
+      <div class="sensor-header-top">
+        <span class="brand">WATTECO</span>
+        <span class="connection"><span class="connection-dot"></span>Capteur connecté</span>
+      </div>
+      <div class="sensor-title-row">
+        <div>
+          <p class="sensor-kicker">Configuration</p>
+          <h2>Pulse Senso</h2>
+        </div>
+        <p class="sensor-meta">50-70-014</p>
+      </div>
+    </header>
+
+    <main class="sensor-body">
+      <button class="settings-link" type="button">
+        <i data-lucide="settings-2" aria-hidden="true"></i>
+        <span><strong>Paramètres généraux</strong><small>Identification, réseau et mesure</small></span>
+        <i data-lucide="chevron-right" aria-hidden="true"></i>
+      </button>
+
+      <section class="history-panel" aria-labelledby="history-title">
+        <div class="section-heading">
+          <div>
+            <h3 id="history-title">Historisation</h3>
+            <p>Choisissez les données à enregistrer</p>
+          </div>
+          <label class="switch" aria-label="Activer l'historisation">
+            <input type="checkbox" checked>
+            <span aria-hidden="true"></span>
+          </label>
+        </div>
+
+        <article class="channel is-open">
+          <div class="channel-summary">
+            <span class="channel-title">
+              <span class="channel-icon"><i data-lucide="thermometer-sun" aria-hidden="true"></i></span>
+              <span><strong>Température + humidité</strong><p>Toutes les <strong data-summary>10 minutes</strong></p></span>
+            </span>
+            <span class="summary-end">
+              <label class="switch" aria-label="Activer température et humidité" onclick="event.stopPropagation()">
+                <input type="checkbox" checked>
+                <span aria-hidden="true"></span>
+              </label>
+              <button class="expand-button" type="button" aria-expanded="true" aria-label="Réduire les réglages de température et humidité"><i class="chevron" data-lucide="chevron-down" aria-hidden="true"></i></button>
+            </span>
+          </div>
+          <div class="channel-detail">
+            <p class="field-label">Période d’enregistrement</p>
+            <div class="preset-group" aria-label="Périodes suggérées">
+              <button class="preset" type="button" data-value="5 minutes" aria-pressed="false">5 min</button>
+              <button class="preset" type="button" data-value="10 minutes" aria-pressed="true">10 min</button>
+              <button class="preset" type="button" data-value="30 minutes" aria-pressed="false">30 min</button>
+              <button class="preset" type="button" data-value="1 heure" aria-pressed="false">1 h</button>
+            </div>
+            <div class="custom-row">
+              <label for="temperature-custom">Autre durée</label>
+              <select id="temperature-custom">
+                <option>Personnaliser…</option>
+                <option>2 heures</option>
+                <option>6 heures</option>
+                <option>12 heures</option>
+              </select>
+            </div>
+          </div>
+        </article>
+
+        <article class="channel">
+          <div class="channel-summary">
+            <span class="channel-title">
+              <span class="channel-icon"><i data-lucide="battery-medium" aria-hidden="true"></i></span>
+              <span><strong>Batterie</strong><p>Toutes les <strong data-summary>24 heures</strong></p></span>
+            </span>
+            <span class="summary-end">
+              <label class="switch" aria-label="Activer la batterie" onclick="event.stopPropagation()">
+                <input type="checkbox" checked>
+                <span aria-hidden="true"></span>
+              </label>
+              <button class="expand-button" type="button" aria-expanded="false" aria-label="Développer les réglages de batterie"><i class="chevron" data-lucide="chevron-down" aria-hidden="true"></i></button>
+            </span>
+          </div>
+          <div class="channel-detail">
+            <p class="field-label">Période d’enregistrement</p>
+            <div class="preset-group" aria-label="Périodes suggérées">
+              <button class="preset" type="button" data-value="1 heure" aria-pressed="false">1 h</button>
+              <button class="preset" type="button" data-value="6 heures" aria-pressed="false">6 h</button>
+              <button class="preset" type="button" data-value="12 heures" aria-pressed="false">12 h</button>
+              <button class="preset" type="button" data-value="24 heures" aria-pressed="true">24 h</button>
+            </div>
+            <div class="custom-row">
+              <label for="battery-custom">Autre durée</label>
+              <select id="battery-custom">
+                <option>Personnaliser…</option>
+                <option>2 jours</option>
+                <option>7 jours</option>
+              </select>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="action-bar">
+      <span class="pending">2 paramètres modifiés</span>
+      <button class="save-button" type="button">Enregistrer les modifications</button>
+    </footer>
+  </section>
+</div>
+
+<script>
+  (() => {
+    const root = document.getElementById('watteco-redesign');
+    root.querySelectorAll('.expand-button').forEach((button) => {
+      button.addEventListener('click', () => {
+        const channel = button.closest('.channel');
+        const open = channel.classList.toggle('is-open');
+        button.setAttribute('aria-expanded', String(open));
+      });
+    });
+
+    root.querySelectorAll('.preset').forEach((button) => {
+      button.addEventListener('click', () => {
+        const channel = button.closest('.channel');
+        channel.querySelectorAll('.preset').forEach((peer) => peer.setAttribute('aria-pressed', 'false'));
+        button.setAttribute('aria-pressed', 'true');
+        channel.querySelector('[data-summary]').textContent = button.dataset.value;
+      });
+    });
+  })();
+</script>

@@ -53,7 +53,8 @@
             }
         },
         "batch_B_params": {
-            "label": "@batt24h",
+            "label": "@battLabel",
+            "subtitle": "@batt24hSubTitle",
             "default_state": "true",
             "fields": {
                 "bBatchEchant": {

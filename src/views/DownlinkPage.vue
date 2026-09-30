@@ -70,39 +70,55 @@
       <div class="card-holder" v-show="sensorConfigLoaded">
         <!-- General (general_params) -->
         <ion-card v-if="sensorConfig && sensorConfig.general_params" class="category-card" :key="`general-${currentLanguage}-${selectedSensor}`">
-          <ion-item class="config-item">
+          <div class="config-item collapsible-header" :class="{ 'collapsible-header--disabled': !generalChecked }" @click="onCategoryHeaderClick('general_params', generalChecked)">
+            <ion-button class="visibility-button" :class="{ invisible: !generalChecked }" :aria-expanded="generalVisible" @click.stop="toggleVisibility('general_params')">
+              <ion-icon slot="icon-only" :icon="chevronForwardOutline" :class="{ 'chevron-expanded': generalVisible }" />
+            </ion-button>
             <ion-label>{{ localize("@generalLabel") }}</ion-label>
             <!-- <ion-checkbox :checked="generalChecked" @ionChange="onGeneralCheckedChange"></ion-checkbox> -->
             <ion-button
-              @click="resetToDefault"
+              @click.stop="resetToDefault"
               class="small-button reset-button"
               :aria-label="localize('@resetToDefault')"
             >
               <ion-icon slot="start" :icon="refreshOutline" />
               <span class="reset-button-label">{{ localize("@resetToDefault") }}</span>
             </ion-button>
-            <ion-button class="visibility-button" :class="{ invisible: !generalChecked }" @click="toggleVisibility('general_params')">{{ generalVisible ? '–' : '+' }}</ion-button>
-          </ion-item>
+          </div>
 
-          <div class="subcategory-card-holder" v-show="generalVisible">
+          <div class="subcategory-card-holder" v-show="generalVisible && generalChecked">
             <!-- General parameters (general_params) -->
             <ion-card v-for="(paramGroup, groupName) in sensorConfig.general_params" 
                       :key="groupName" 
                       v-show="generalChecked && paramGroup.label" 
                       :class="['subcategory-card', { 'full-width': hasIonRange(paramGroup.fields) }]">
-              <ion-item class="config-item">
-                <ion-label>{{ paramGroup.label }}</ion-label>
+              <div class="config-item collapsible-header" :class="{ 'collapsible-header--disabled': !paramGroupChecked[groupName] || !hasUserVisibleFields(paramGroup.fields) }" @click="onSubcategoryHeaderClick(groupName, paramGroup)">
+                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] || !hasUserVisibleFields(paramGroup.fields) }" :aria-expanded="subcategoryVisible[groupName]" @click.stop="toggleSubcategoryVisibility(groupName)">
+                  <ion-icon slot="icon-only" :icon="chevronForwardOutline" :class="{ 'chevron-expanded': subcategoryVisible[groupName] }" />
+                </ion-button>
+                <ion-label
+                  :class="{ 'frame-long-press-target': isNativeApp }"
+                  @pointerdown="startFrameLongPress(groupName)"
+                  @pointerup="cancelFrameLongPress"
+                  @pointercancel="cancelFrameLongPress"
+                  @pointerleave="cancelFrameLongPress"
+                  @contextmenu="preventNativeContextMenu"
+                >
+                  <span class="group-title">{{ paramGroup.label }}</span>
+                  <span v-if="paramGroup.subtitle" class="group-subtitle">{{ paramGroup.subtitle }}</span>
+                </ion-label>
 
-                <ion-checkbox 
+                <div class="header-toggle" @click.stop>
+                <ion-toggle
                   :checked="paramGroupChecked[groupName] || false"
                   :disabled="isMandatoryGroup('general_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'general_params')"
-                ></ion-checkbox>
-                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
-              </ion-item>
+                />
+                </div>
+              </div>
 
               <!-- Dynamic fields -->
-              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && !onlyCustomFrame(paramGroup.fields)">
+              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && hasUserVisibleFields(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
                           v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
@@ -252,12 +268,12 @@
                 </ion-card>
               </ul>
               <!-- Add frames display at the bottom of each paramGroup card -->
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName] && (!isNativeApp || framesVisible[groupName])" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
                 <ion-button v-if="!isNativeApp" @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
                 <ion-button v-else fill="clear" class="frame-icon-button" :aria-label="frameToggleLabel(groupName)" @click="toggleFramesVisibility(groupName)">
-                  <ion-icon slot="icon-only" :icon="framesVisible[groupName] ? closeOutline : codeSlashOutline" />
+                  <ion-icon slot="icon-only" :icon="closeOutline" />
                 </ion-button>
                 <div v-show="framesVisible[groupName]" class="frames-output" v-html="generateFramesForGroup('general_params', groupName.toString())"></div>
               </ion-card-content>
@@ -267,31 +283,49 @@
 
         <!-- ModBus (modbus_params) -->
         <ion-card v-if="sensorConfig?.modbus_params" class="category-card" :key="`modbus-${currentLanguage}-${selectedSensor}`">
-          <ion-item class="config-item">
+          <div class="config-item collapsible-header" :class="{ 'collapsible-header--disabled': !modbusChecked }" @click="onCategoryHeaderClick('modbus_params', modbusChecked)">
+            <ion-button class="visibility-button" :class="{ invisible: !modbusChecked }" :aria-expanded="modbusVisible" @click.stop="toggleVisibility('modbus_params')">
+              <ion-icon slot="icon-only" :icon="chevronForwardOutline" :class="{ 'chevron-expanded': modbusVisible }" />
+            </ion-button>
             <ion-label>{{ localize("@modbusLabel") }}</ion-label>
-            <ion-checkbox :checked="modbusChecked || hasMandatoryGroup('modbus_params')" :disabled="hasMandatoryGroup('modbus_params')" @ionChange="onModbusCheckedChange"></ion-checkbox>
-            <ion-button class="visibility-button" :class="{ invisible: !modbusChecked }" @click="toggleVisibility('modbus_params')">{{ modbusVisible ? '–' : '+' }}</ion-button>
-          </ion-item>
+            <div class="header-toggle" @click.stop>
+              <ion-toggle :checked="modbusChecked || hasMandatoryGroup('modbus_params')" :disabled="hasMandatoryGroup('modbus_params')" @ionChange="onModbusCheckedChange" />
+            </div>
+          </div>
 
-          <div class="subcategory-card-holder" v-show="modbusVisible">
+          <div class="subcategory-card-holder" v-show="modbusVisible && modbusChecked">
             <!-- Temperature, Humidity, Battery (modbus_params) -->
             <ion-card v-for="(paramGroup, groupName) in sensorConfig.modbus_params" 
                       :key="groupName" 
                       v-show="modbusChecked && paramGroup.label" 
                       :class="['subcategory-card', { 'full-width': hasIonRange(paramGroup.fields) }]">
-              <ion-item class="config-item">
-                <ion-label>{{ paramGroup.label }}</ion-label>
+              <div class="config-item collapsible-header" :class="{ 'collapsible-header--disabled': !paramGroupChecked[groupName] || !hasUserVisibleFields(paramGroup.fields) }" @click="onSubcategoryHeaderClick(groupName, paramGroup)">
+                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] || !hasUserVisibleFields(paramGroup.fields) }" :aria-expanded="subcategoryVisible[groupName]" @click.stop="toggleSubcategoryVisibility(groupName)">
+                  <ion-icon slot="icon-only" :icon="chevronForwardOutline" :class="{ 'chevron-expanded': subcategoryVisible[groupName] }" />
+                </ion-button>
+                <ion-label
+                  :class="{ 'frame-long-press-target': isNativeApp }"
+                  @pointerdown="startFrameLongPress(groupName)"
+                  @pointerup="cancelFrameLongPress"
+                  @pointercancel="cancelFrameLongPress"
+                  @pointerleave="cancelFrameLongPress"
+                  @contextmenu="preventNativeContextMenu"
+                >
+                  <span class="group-title">{{ paramGroup.label }}</span>
+                  <span v-if="paramGroup.subtitle" class="group-subtitle">{{ paramGroup.subtitle }}</span>
+                </ion-label>
 
-                <ion-checkbox 
+                <div class="header-toggle" @click.stop>
+                <ion-toggle
                   :checked="paramGroupChecked[groupName] || false"
                   :disabled="isMandatoryGroup('modbus_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'modbus_params')"
-                ></ion-checkbox>
-                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
-              </ion-item>
+                />
+                </div>
+              </div>
 
               <!-- Dynamic fields -->
-              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && !onlyCustomFrame(paramGroup.fields)">
+              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && hasUserVisibleFields(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
                           v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
@@ -432,12 +466,12 @@
                 </ion-card>
               </ul>
               <!-- Add frames display at the bottom of each paramGroup card -->
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName] && (!isNativeApp || framesVisible[groupName])" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
                 <ion-button v-if="!isNativeApp" @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
                 <ion-button v-else fill="clear" class="frame-icon-button" :aria-label="frameToggleLabel(groupName)" @click="toggleFramesVisibility(groupName)">
-                  <ion-icon slot="icon-only" :icon="framesVisible[groupName] ? closeOutline : codeSlashOutline" />
+                  <ion-icon slot="icon-only" :icon="closeOutline" />
                 </ion-button>
                 <div v-show="framesVisible[groupName]" class="frames-output" v-html="generateFramesForGroup('modbus_params', groupName)"></div>
               </ion-card-content>
@@ -449,31 +483,49 @@
 
         <!-- Batch (batch_params) -->
         <ion-card v-if="sensorConfig && sensorConfig.batch_params" class="category-card" :key="`batch-${currentLanguage}-${selectedSensor}`">
-          <ion-item class="config-item">
+          <div class="config-item collapsible-header" :class="{ 'collapsible-header--disabled': !batchChecked }" @click="onCategoryHeaderClick('batch_params', batchChecked)">
+            <ion-button class="visibility-button" :class="{ invisible: !batchChecked }" :aria-expanded="batchVisible" @click.stop="toggleVisibility('batch_params')">
+              <ion-icon slot="icon-only" :icon="chevronForwardOutline" :class="{ 'chevron-expanded': batchVisible }" />
+            </ion-button>
             <ion-label>{{ localize("@batchLabel") }}</ion-label>
-            <ion-checkbox :checked="batchChecked || hasMandatoryGroup('batch_params')" :disabled="hasMandatoryGroup('batch_params')" @ionChange="onBatchCheckedChange"></ion-checkbox>
-            <ion-button class="visibility-button" :class="{ invisible: !batchChecked }" @click="toggleVisibility('batch_params')">{{ batchVisible ? '–' : '+' }}</ion-button>
-          </ion-item>
+            <div class="header-toggle" @click.stop>
+              <ion-toggle :checked="batchChecked || hasMandatoryGroup('batch_params')" :disabled="hasMandatoryGroup('batch_params')" @ionChange="onBatchCheckedChange" />
+            </div>
+          </div>
 
-          <div class="subcategory-card-holder" v-show="batchVisible">
+          <div class="subcategory-card-holder" v-show="batchVisible && batchChecked">
             <!-- Temperature, Humidity, Battery (batch_params) -->
             <ion-card v-for="(paramGroup, groupName) in sensorConfig.batch_params" 
                       :key="groupName" 
                       v-show="batchChecked && paramGroup.label" 
                       :class="['subcategory-card', { 'full-width': hasIonRange(paramGroup.fields) }]">
-              <ion-item class="config-item">
-                <ion-label>{{ paramGroup.label }}</ion-label>
+              <div class="config-item collapsible-header" :class="{ 'collapsible-header--disabled': !paramGroupChecked[groupName] || !hasUserVisibleFields(paramGroup.fields) }" @click="onSubcategoryHeaderClick(groupName, paramGroup)">
+                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] || !hasUserVisibleFields(paramGroup.fields) }" :aria-expanded="subcategoryVisible[groupName]" @click.stop="toggleSubcategoryVisibility(groupName)">
+                  <ion-icon slot="icon-only" :icon="chevronForwardOutline" :class="{ 'chevron-expanded': subcategoryVisible[groupName] }" />
+                </ion-button>
+                <ion-label
+                  :class="{ 'frame-long-press-target': isNativeApp }"
+                  @pointerdown="startFrameLongPress(groupName)"
+                  @pointerup="cancelFrameLongPress"
+                  @pointercancel="cancelFrameLongPress"
+                  @pointerleave="cancelFrameLongPress"
+                  @contextmenu="preventNativeContextMenu"
+                >
+                  <span class="group-title">{{ paramGroup.label }}</span>
+                  <span v-if="paramGroup.subtitle" class="group-subtitle">{{ paramGroup.subtitle }}</span>
+                </ion-label>
 
-                <ion-checkbox 
+                <div class="header-toggle" @click.stop>
+                <ion-toggle
                   :checked="paramGroupChecked[groupName] || false"
                   :disabled="isMandatoryGroup('batch_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'batch_params')"
-                ></ion-checkbox>
-                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
-              </ion-item>
+                />
+                </div>
+              </div>
 
               <!-- Dynamic fields -->
-              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && !onlyCustomFrame(paramGroup.fields)">
+              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && hasUserVisibleFields(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
                           v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
@@ -614,12 +666,12 @@
                 </ion-card>
               </ul>
               <!-- Add frames display at the bottom of each paramGroup card -->
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName] && (!isNativeApp || framesVisible[groupName])" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
                 <ion-button v-if="!isNativeApp" @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
                 <ion-button v-else fill="clear" class="frame-icon-button" :aria-label="frameToggleLabel(groupName)" @click="toggleFramesVisibility(groupName)">
-                  <ion-icon slot="icon-only" :icon="framesVisible[groupName] ? closeOutline : codeSlashOutline" />
+                  <ion-icon slot="icon-only" :icon="closeOutline" />
                 </ion-button>
                 <div v-show="framesVisible[groupName]" class="frames-output" v-html="generateFramesForGroup('batch_params', groupName)"></div>
               </ion-card-content>
@@ -647,31 +699,49 @@
 
         <!-- Standard (standard_params) -->
         <ion-card v-if="sensorConfig && sensorConfig.standard_params" class="category-card" :key="`standard-${currentLanguage}-${selectedSensor}`">
-          <ion-item class="config-item">
+          <div class="config-item collapsible-header" :class="{ 'collapsible-header--disabled': !standardChecked }" @click="onCategoryHeaderClick('standard_params', standardChecked)">
+            <ion-button class="visibility-button" :class="{ invisible: !standardChecked }" :aria-expanded="standardVisible" @click.stop="toggleVisibility('standard_params')">
+              <ion-icon slot="icon-only" :icon="chevronForwardOutline" :class="{ 'chevron-expanded': standardVisible }" />
+            </ion-button>
             <ion-label>{{ localize("@standLabel") }}</ion-label>
-            <ion-checkbox :checked="standardChecked || hasMandatoryGroup('standard_params')" :disabled="hasMandatoryGroup('standard_params')" @ionChange="onStandardCheckedChange"></ion-checkbox>
-            <ion-button class="visibility-button" :class="{ invisible: !standardChecked }" @click="toggleVisibility('standard_params')">{{ standardVisible ? '–' : '+' }}</ion-button>
-          </ion-item>
+            <div class="header-toggle" @click.stop>
+              <ion-toggle :checked="standardChecked || hasMandatoryGroup('standard_params')" :disabled="hasMandatoryGroup('standard_params')" @ionChange="onStandardCheckedChange" />
+            </div>
+          </div>
 
-          <div class="subcategory-card-holder" v-show="standardVisible">
+          <div class="subcategory-card-holder" v-show="standardVisible && standardChecked">
             <!-- Temperature, Humidity, Battery (standard_params) -->
             <ion-card v-for="(paramGroup, groupName) in sensorConfig.standard_params" 
                       :key="groupName" 
                       v-show="standardChecked && paramGroup.label" 
                       :class="['subcategory-card', { 'full-width': hasIonRange(paramGroup.fields) }]">
-              <ion-item class="config-item">
-                <ion-label>{{ paramGroup.label }}</ion-label>
+              <div class="config-item collapsible-header" :class="{ 'collapsible-header--disabled': !paramGroupChecked[groupName] || !hasUserVisibleFields(paramGroup.fields) }" @click="onSubcategoryHeaderClick(groupName, paramGroup)">
+                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] || !hasUserVisibleFields(paramGroup.fields) }" :aria-expanded="subcategoryVisible[groupName]" @click.stop="toggleSubcategoryVisibility(groupName)">
+                  <ion-icon slot="icon-only" :icon="chevronForwardOutline" :class="{ 'chevron-expanded': subcategoryVisible[groupName] }" />
+                </ion-button>
+                <ion-label
+                  :class="{ 'frame-long-press-target': isNativeApp }"
+                  @pointerdown="startFrameLongPress(groupName)"
+                  @pointerup="cancelFrameLongPress"
+                  @pointercancel="cancelFrameLongPress"
+                  @pointerleave="cancelFrameLongPress"
+                  @contextmenu="preventNativeContextMenu"
+                >
+                  <span class="group-title">{{ paramGroup.label }}</span>
+                  <span v-if="paramGroup.subtitle" class="group-subtitle">{{ paramGroup.subtitle }}</span>
+                </ion-label>
 
-                <ion-checkbox 
+                <div class="header-toggle" @click.stop>
+                <ion-toggle
                   :checked="paramGroupChecked[groupName] || false"
                   :disabled="isMandatoryGroup('standard_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'standard_params')"
-                ></ion-checkbox>
-                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
-              </ion-item>
+                />
+                </div>
+              </div>
 
               <!-- Dynamic fileds -->
-              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && !onlyCustomFrame(paramGroup.fields)">
+              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && hasUserVisibleFields(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
                           v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
@@ -813,12 +883,12 @@
                 </ion-card>
               </ul>
               <!-- Add frames display at the bottom of each paramGroup card -->
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName] && (!isNativeApp || framesVisible[groupName])" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
                 <ion-button v-if="!isNativeApp" @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
                 <ion-button v-else fill="clear" class="frame-icon-button" :aria-label="frameToggleLabel(groupName)" @click="toggleFramesVisibility(groupName)">
-                  <ion-icon slot="icon-only" :icon="framesVisible[groupName] ? closeOutline : codeSlashOutline" />
+                  <ion-icon slot="icon-only" :icon="closeOutline" />
                 </ion-button>
                 <div v-show="framesVisible[groupName]" class="frames-output" v-html="generateFramesForGroup('standard_params', groupName)"></div>
               </ion-card-content>
@@ -827,29 +897,47 @@
         </ion-card>
         <!-- Configuration (configuration_params) -->
         <ion-card v-if="sensorConfig?.configuration_params" class="category-card" :key="`configuration-${currentLanguage}-${selectedSensor}`">
-          <ion-item class="config-item">
+          <div class="config-item collapsible-header" :class="{ 'collapsible-header--disabled': !configurationChecked }" @click="onCategoryHeaderClick('configuration_params', configurationChecked)">
+            <ion-button class="visibility-button" :class="{ invisible: !configurationChecked }" :aria-expanded="configurationVisible" @click.stop="toggleVisibility('configuration_params')">
+              <ion-icon slot="icon-only" :icon="chevronForwardOutline" :class="{ 'chevron-expanded': configurationVisible }" />
+            </ion-button>
             <ion-label>{{ localize("@configurationLabel") }}</ion-label>
-            <ion-checkbox :checked="configurationChecked || hasMandatoryGroup('configuration_params')" :disabled="hasMandatoryGroup('configuration_params')" @ionChange="onConfigurationCheckedChange"></ion-checkbox>
-            <ion-button class="visibility-button" :class="{ invisible: !configurationChecked }" @click="toggleVisibility('configuration_params')">{{ configurationVisible ? '–' : '+' }}</ion-button>
-          </ion-item>
+            <div class="header-toggle" @click.stop>
+              <ion-toggle :checked="configurationChecked || hasMandatoryGroup('configuration_params')" :disabled="hasMandatoryGroup('configuration_params')" @ionChange="onConfigurationCheckedChange" />
+            </div>
+          </div>
 
-          <div class="subcategory-card-holder" v-show="configurationVisible">
+          <div class="subcategory-card-holder" v-show="configurationVisible && configurationChecked">
             <ion-card v-for="(paramGroup, groupName) in sensorConfig.configuration_params" 
                       :key="groupName" 
                       v-show="configurationChecked && paramGroup.label" 
                       :class="['subcategory-card', { 'full-width': hasIonRange(paramGroup.fields) }]">
-              <ion-item class="config-item">
-                <ion-label>{{ paramGroup.label }}</ion-label>
+              <div class="config-item collapsible-header" :class="{ 'collapsible-header--disabled': !paramGroupChecked[groupName] || !hasUserVisibleFields(paramGroup.fields) }" @click="onSubcategoryHeaderClick(groupName, paramGroup)">
+                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] || !hasUserVisibleFields(paramGroup.fields) }" :aria-expanded="subcategoryVisible[groupName]" @click.stop="toggleSubcategoryVisibility(groupName)">
+                  <ion-icon slot="icon-only" :icon="chevronForwardOutline" :class="{ 'chevron-expanded': subcategoryVisible[groupName] }" />
+                </ion-button>
+                <ion-label
+                  :class="{ 'frame-long-press-target': isNativeApp }"
+                  @pointerdown="startFrameLongPress(groupName)"
+                  @pointerup="cancelFrameLongPress"
+                  @pointercancel="cancelFrameLongPress"
+                  @pointerleave="cancelFrameLongPress"
+                  @contextmenu="preventNativeContextMenu"
+                >
+                  <span class="group-title">{{ paramGroup.label }}</span>
+                  <span v-if="paramGroup.subtitle" class="group-subtitle">{{ paramGroup.subtitle }}</span>
+                </ion-label>
 
-                <ion-checkbox 
+                <div class="header-toggle" @click.stop>
+                <ion-toggle
                   :checked="paramGroupChecked[groupName] || false"
                   :disabled="isMandatoryGroup('configuration_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'configuration_params')"
-                ></ion-checkbox>
-                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
-              </ion-item>
+                />
+                </div>
+              </div>
 
-              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && !onlyCustomFrame(paramGroup.fields)">
+              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && hasUserVisibleFields(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
                           v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
@@ -979,12 +1067,12 @@
                   </ion-item>
                 </ion-card>
               </ul>
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName] && (!isNativeApp || framesVisible[groupName])" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
                 <ion-button v-if="!isNativeApp" @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
                 <ion-button v-else fill="clear" class="frame-icon-button" :aria-label="frameToggleLabel(groupName)" @click="toggleFramesVisibility(groupName)">
-                  <ion-icon slot="icon-only" :icon="framesVisible[groupName] ? closeOutline : codeSlashOutline" />
+                  <ion-icon slot="icon-only" :icon="closeOutline" />
                 </ion-button>
                 <div v-show="framesVisible[groupName]" class="frames-output" v-html="generateFramesForGroup('configuration_params', groupName)"></div>
               </ion-card-content>
@@ -994,29 +1082,47 @@
 
         <!-- Commande (commande_params) -->
         <ion-card v-if="sensorConfig?.commande_params" class="category-card" :key="`commande-${currentLanguage}-${selectedSensor}`">
-          <ion-item class="config-item">
+          <div class="config-item collapsible-header" :class="{ 'collapsible-header--disabled': !commandeChecked }" @click="onCategoryHeaderClick('commande_params', commandeChecked)">
+            <ion-button class="visibility-button" :class="{ invisible: !commandeChecked }" :aria-expanded="commandeVisible" @click.stop="toggleVisibility('commande_params')">
+              <ion-icon slot="icon-only" :icon="chevronForwardOutline" :class="{ 'chevron-expanded': commandeVisible }" />
+            </ion-button>
             <ion-label>{{ localize("@commandeLabel") }}</ion-label>
-            <ion-checkbox :checked="commandeChecked || hasMandatoryGroup('commande_params')" :disabled="hasMandatoryGroup('commande_params')" @ionChange="onCommandeCheckedChange"></ion-checkbox>
-            <ion-button class="visibility-button" :class="{ invisible: !commandeChecked }" @click="toggleVisibility('commande_params')">{{ commandeVisible ? '–' : '+' }}</ion-button>
-          </ion-item>
+            <div class="header-toggle" @click.stop>
+              <ion-toggle :checked="commandeChecked || hasMandatoryGroup('commande_params')" :disabled="hasMandatoryGroup('commande_params')" @ionChange="onCommandeCheckedChange" />
+            </div>
+          </div>
 
-          <div class="subcategory-card-holder commande-grid" v-show="commandeVisible">
+          <div class="subcategory-card-holder commande-grid" v-show="commandeVisible && commandeChecked">
             <ion-card v-for="(paramGroup, groupName) in sensorConfig.commande_params" 
                       :key="groupName" 
                       v-show="commandeChecked && paramGroup.label" 
                       class="subcategory-card commande-card">
-              <ion-item class="config-item">
-                <ion-label>{{ paramGroup.label }}</ion-label>
+              <div class="config-item collapsible-header" :class="{ 'collapsible-header--disabled': !paramGroupChecked[groupName] || !hasUserVisibleFields(paramGroup.fields) }" @click="onSubcategoryHeaderClick(groupName, paramGroup)">
+                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] || !hasUserVisibleFields(paramGroup.fields) }" :aria-expanded="subcategoryVisible[groupName]" @click.stop="toggleSubcategoryVisibility(groupName)">
+                  <ion-icon slot="icon-only" :icon="chevronForwardOutline" :class="{ 'chevron-expanded': subcategoryVisible[groupName] }" />
+                </ion-button>
+                <ion-label
+                  :class="{ 'frame-long-press-target': isNativeApp }"
+                  @pointerdown="startFrameLongPress(groupName)"
+                  @pointerup="cancelFrameLongPress"
+                  @pointercancel="cancelFrameLongPress"
+                  @pointerleave="cancelFrameLongPress"
+                  @contextmenu="preventNativeContextMenu"
+                >
+                  <span class="group-title">{{ paramGroup.label }}</span>
+                  <span v-if="paramGroup.subtitle" class="group-subtitle">{{ paramGroup.subtitle }}</span>
+                </ion-label>
 
-                <ion-checkbox 
+                <div class="header-toggle" @click.stop>
+                <ion-toggle
                   :checked="paramGroupChecked[groupName] || false"
                   :disabled="isMandatoryGroup('commande_params', groupName)"
                   @ionChange="onParamGroupCheckedChange($event, groupName, 'commande_params')"
-                ></ion-checkbox>
-                <ion-button class="visibility-button" :class="{ invisible: !paramGroupChecked[groupName] }" @click="toggleSubcategoryVisibility(groupName)">{{ subcategoryVisible[groupName] ? '–' : '+' }}</ion-button>
-              </ion-item>
+                />
+                </div>
+              </div>
 
-              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && !onlyCustomFrame(paramGroup.fields)">
+              <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && hasUserVisibleFields(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
                           v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
@@ -1146,12 +1252,12 @@
                   </ion-item>
                 </ion-card>
               </ul>
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName] && (!isNativeApp || framesVisible[groupName])" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
                 <ion-button v-if="!isNativeApp" @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
                 <ion-button v-else fill="clear" class="frame-icon-button" :aria-label="frameToggleLabel(groupName)" @click="toggleFramesVisibility(groupName)">
-                  <ion-icon slot="icon-only" :icon="framesVisible[groupName] ? closeOutline : codeSlashOutline" />
+                  <ion-icon slot="icon-only" :icon="closeOutline" />
                 </ion-button>
                 <div v-show="framesVisible[groupName]" class="frames-output" v-html="generateFramesForGroup('commande_params', groupName)"></div>
               </ion-card-content>
@@ -1334,7 +1440,7 @@ import {
   IonSpinner,
   IonText
 } from '@ionic/vue';
-import { bluetoothOutline, closeOutline, codeSlashOutline, refreshOutline, statsChartOutline } from 'ionicons/icons';
+import { bluetoothOutline, chevronForwardOutline, closeOutline, refreshOutline, statsChartOutline } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { Capacitor } from '@capacitor/core';
 import { useBle } from '@/composables/useBle';
@@ -1422,6 +1528,8 @@ interface SensorParameter {
 }
 
 interface SensorParameterGroup {
+  label?: string;
+  subtitle?: string;
   default_state?: string;
   mandatory?: boolean | string;
   fields?: Record<string, SensorParameter>;
@@ -1514,6 +1622,9 @@ const generalVisible = ref(false);
 const subcategoryVisible = ref<Record<string, boolean>>({});
 const framesVisible = ref<Record<string, boolean>>({});
 const framesCount = ref<Record<string, number>>({});
+const FRAME_LONG_PRESS_DELAY_MS = 650;
+let frameLongPressTimer: ReturnType<typeof setTimeout> | undefined;
+let suppressSubcategoryHeaderClickUntil = 0;
 const sensorConfigLoaded = ref(false); // Add a new reactive variable to track the loading state
 const sensorImage = ref(''); // Reactive variable to store the sensor image path
 const isEnforcingRelationships = ref(false);
@@ -2343,6 +2454,7 @@ onMounted(async () => {
 // Remove the event listener when the component is unmounted
 onUnmounted(() => {
   document.removeEventListener('click', handleCopyButtonClick);
+  cancelFrameLongPress();
 });
 
 // Calculate appropriate slider step sizes
@@ -2430,9 +2542,24 @@ const toggleVisibility = (category: string) => {
   }
 };
 
+const onCategoryHeaderClick = (category: string, enabled: boolean) => {
+  if (!enabled) return;
+  toggleVisibility(category);
+};
+
 const toggleSubcategoryVisibility = (groupName: string | number) => {
   const key = String(groupName);
   subcategoryVisible.value[key] = !subcategoryVisible.value[key];
+};
+
+const onSubcategoryHeaderClick = (groupName: string | number, group: SensorParameterGroup) => {
+  if (
+    Date.now() < suppressSubcategoryHeaderClickUntil
+    || !paramGroupChecked.value[String(groupName)]
+    || !hasUserVisibleFields(group.fields)
+  ) return;
+
+  toggleSubcategoryVisibility(groupName);
 };
 
 const updateMaxValues = (bigGroupName: string, groupName: string, paramName: string) => {
@@ -2624,6 +2751,33 @@ const toggleFramesVisibility = (groupName: string | number) => {
   framesVisible.value[key] = !framesVisible.value[key];
 };
 
+const cancelFrameLongPress = () => {
+  if (frameLongPressTimer !== undefined) {
+    clearTimeout(frameLongPressTimer);
+    frameLongPressTimer = undefined;
+  }
+};
+
+const startFrameLongPress = (groupName: string | number) => {
+  if (!isNativeApp) return;
+
+  const key = String(groupName);
+  cancelFrameLongPress();
+
+  if (!paramGroupChecked.value[key] || framesVisible.value[key]) return;
+
+  frameLongPressTimer = setTimeout(() => {
+    subcategoryVisible.value[key] = true;
+    framesVisible.value[key] = true;
+    suppressSubcategoryHeaderClickUntil = Date.now() + 500;
+    frameLongPressTimer = undefined;
+  }, FRAME_LONG_PRESS_DELAY_MS);
+};
+
+const preventNativeContextMenu = (event: Event) => {
+  if (isNativeApp) event.preventDefault();
+};
+
 const frameToggleLabel = (groupName: string | number) => {
   const key = String(groupName);
   const translationKey = framesVisible.value[key]
@@ -2639,9 +2793,12 @@ const resetToDefault = () => {
   }
 };
 
-// Function to check if only custom-frame elements are present
-const onlyCustomFrame = (fields: Record<string, SensorParameter>) => {
-  return Object.values(fields).every(field => field.HMI?.visual_type === 'customFrame');
+// Technical custom frames do not count as expandable user-facing content.
+const hasUserVisibleFields = (fields?: Record<string, SensorParameter>) => {
+  if (!fields) return false;
+  return Object.values(fields).some(
+    field => field.hidden !== 'true' && field.HMI?.visual_type !== 'customFrame',
+  );
 };
 
 // Function to check if a paramGroup has an ion-range component
@@ -2848,17 +3005,21 @@ ion-segment-button::part(indicator-background) {
 
 .category-card > .config-item {
   margin: 0;
-  padding: 4px 8px 4px 12px;
+  min-height: 58px;
+  padding: 4px 12px 4px 2px;
   color: #292d32;
   border-left: 4px solid var(--ion-color-primary);
   border-bottom: 1px solid #eceef0;
+  background: #fff;
   --background: #fff;
+  --padding-start: 0;
+  --inner-padding-end: 0;
   --min-height: 58px;
 }
 
 .category-card > .config-item ion-label {
-  font-size: 1.08rem;
-  font-weight: 750;
+  font-size: 1rem;
+  font-weight: 650;
   letter-spacing: -0.01em;
 }
 
@@ -2872,16 +3033,68 @@ ion-segment-button::part(indicator-background) {
 
 .subcategory-card > .config-item {
   margin: 0;
-  padding: 2px 6px 2px 10px;
+  min-height: 52px;
+  padding: 2px 12px 2px 0;
   color: #292d32;
   border-left: 4px solid var(--ion-color-primary);
   border-bottom: 1px solid #e5e7eb;
-  --background: #f7f8fa;
+  background: #fff;
+  --background: #fff;
+  --padding-start: 0;
+  --inner-padding-end: 0;
   --min-height: 52px;
 }
 
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.collapsible-header--disabled {
+  cursor: default;
+}
+
+.collapsible-header > ion-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.header-toggle {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  align-self: center;
+  height: 32px;
+  margin-left: auto;
+}
+
+.header-toggle ion-toggle {
+  margin: 0;
+  --track-background: rgba(var(--ion-color-primary-rgb), 0.22);
+  --track-background-checked: var(--ion-color-primary);
+  --handle-background: #fff;
+  --handle-background-checked: #fff;
+}
+
 .subcategory-card > .config-item ion-label {
-  font-weight: 700;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.group-title,
+.group-subtitle {
+  display: block;
+}
+
+.group-subtitle {
+  margin-top: 2px;
+  color: var(--ion-color-medium);
+  font-size: 0.78rem;
+  font-weight: 400;
   line-height: 1.25;
 }
 
@@ -2997,11 +3210,13 @@ ion-range::part(pin)::before {
 }
 
 .visibility-button {
-  width: 38px;
-  height: 38px;
-  margin: 0 0 0 4px;
-  --background: rgba(var(--ion-color-primary-rgb), 0.1);
-  --background-hover: rgba(var(--ion-color-primary-rgb), 0.18);
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  margin: 0 4px 0 0;
+  --background: transparent;
+  --background-hover: rgba(var(--ion-color-primary-rgb), 0.1);
+  --background-activated: rgba(var(--ion-color-primary-rgb), 0.14);
   --box-shadow: none;
   --padding-start: 0;
   --padding-end: 0;
@@ -3009,8 +3224,15 @@ ion-range::part(pin)::before {
   --padding-bottom: 0;
   --border-radius: 50%;
   --color: var(--ion-color-primary);
-  font-size: 1.5rem;
-  font-weight: 700;
+}
+
+.visibility-button ion-icon {
+  font-size: 1rem;
+  transition: transform 180ms ease;
+}
+
+.visibility-button ion-icon.chevron-expanded {
+  transform: rotate(90deg);
 }
 
 .visibility-button.invisible {
@@ -3028,6 +3250,12 @@ ion-range::part(pin)::before {
   flex-wrap: wrap;
   justify-content: flex-end;
   padding: 5px 8px 7px;
+}
+
+.frame-long-press-target {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .frame-icon-button {
@@ -3125,11 +3353,11 @@ ion-range::part(pin)::before {
   }
 
   .category-card > .config-item {
-    padding-left: 9px;
+    padding-left: 2px;
   }
 
   .category-card > .config-item ion-label {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
 
   .config-card > .config-item,

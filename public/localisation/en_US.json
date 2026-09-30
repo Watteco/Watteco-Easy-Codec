@@ -69,6 +69,7 @@
     "cfgCommentStandHum": "Configures humidity thresholds",
     "battLabel": "Battery",
     "batt24h": "Battery [Emission period fixed to 24h]",
+    "batt24hSubTitle": "Emission period fixed to 24h",
     "cfgCommentBatchBatt": "Configures battery logging",
     "cfgCommentStandBatt": "Configures battery thresholds",
     "powerLabel": "Power source",

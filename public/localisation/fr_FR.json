@@ -69,6 +69,7 @@
     "cfgCommentStandHum": "Configure les seuils d'humidité",
     "battLabel": "Batterie",
     "batt24h": "Batterie [Période d'émission fixé à 24h]",
+    "batt24hSubTitle": "Période d'émission fixée à 24h",
     "cfgCommentBatchBatt": "Configure l'historisation de la batterie",
     "cfgCommentStandBatt": "Configure les seuils de batterie",
     "powerLabel": "Source d'alimentation",
