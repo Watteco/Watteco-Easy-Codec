@@ -3,6 +3,7 @@ import {
   extractProductReference,
   getAvailableProductChoices,
   getProductConfigurationFile,
+  getProductDisplayName,
   getProductMeasurements,
 } from '@/utils/productMeasurements';
 import { hasSensorVisual } from '@/utils/sensorVisuals';
@@ -46,5 +47,11 @@ describe('productMeasurements', () => {
     expect(getProductConfigurationFile('50-70-451')).toBe('50-70-451-PulseSensoNeoTest');
     expect(getProductConfigurationFile('unknown')).toBeNull();
     expect(getProductConfigurationFile(null)).toBeNull();
+  });
+
+  it('resolves the human-readable sensor name', () => {
+    expect(getProductDisplayName('50-70-205')).toBe("HygroTemp'O");
+    expect(getProductDisplayName('50-70-014')).toBe("Pulse Sens'O");
+    expect(getProductDisplayName('unknown')).toBeNull();
   });
 });

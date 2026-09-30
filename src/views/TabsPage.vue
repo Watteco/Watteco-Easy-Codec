@@ -2,7 +2,7 @@
   <ion-page>
     <ion-tabs>
       <ion-router-outlet></ion-router-outlet>
-      <ion-header>
+      <ion-header v-if="!isNativeApp">
         <ion-toolbar>
           <ion-img 
             id="watteco-logo" 

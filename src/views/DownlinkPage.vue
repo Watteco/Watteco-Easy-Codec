@@ -1,9 +1,15 @@
 <template>
   <ion-page>
 
+    <sensor-mobile-navigation
+      v-if="ble.isNative.value"
+      active-page="config"
+      :localize="localize"
+    />
+
     <ion-content
       :fullscreen="true"
-      :class="{ 'native-with-connection-banner': ble.isNative.value }"
+      :class="{ 'native-with-sensor-navigation': ble.isNative.value }"
     >
       <ion-card v-show="false">
         <ion-range></ion-range>
@@ -1324,55 +1330,6 @@
       </ion-card>
     </ion-content>
 
-    <div
-      v-if="ble.isNative.value"
-      class="connection-banner"
-      :class="{ 'connection-banner--disconnected': !ble.connected.value }"
-    >
-      <div class="connection-status">
-        <ion-icon :icon="bluetoothOutline" class="connection-icon" />
-        <strong>
-          {{ ble.connected.value
-            ? localize('@bleConnectedTo') + ' ' + ble.getDeviceName(ble.connectedDevice.value!)
-            : localize('@bleNotConnected') }}
-        </strong>
-      </div>
-
-      <ion-button
-        v-if="!ble.connected.value && ble.lastConnectedDevice.value"
-        size="small"
-        color="primary"
-        class="banner-action"
-        :disabled="ble.reconnecting.value || ble.pairing.value"
-        @click="reconnect"
-      >
-        <ion-spinner v-if="ble.reconnecting.value" slot="start" name="crescent" />
-        <ion-icon v-else slot="start" :icon="refreshOutline" />
-        {{ ble.reconnecting.value ? localize('@bleReconnecting') : localize('@bleReconnect') }}
-      </ion-button>
-
-      <ion-button
-        v-else-if="!ble.connected.value"
-        size="small"
-        color="primary"
-        class="banner-action"
-        @click="chooseSensor"
-      >
-        {{ localize('@chooseSensor') }}
-      </ion-button>
-
-      <ion-button
-        v-else
-        fill="clear"
-        color="medium"
-        class="sensor-data-icon-button"
-        :aria-label="localize('@sensorDataTitle')"
-        @click="openSensorData"
-      >
-        <ion-icon slot="icon-only" :icon="statsChartOutline" />
-      </ion-button>
-    </div>
-
   <BleDebugPanel
     v-if="bleDebugEnabledByEnv && ble.isNative.value"
     v-model:visible="debugVisible"
@@ -1440,7 +1397,7 @@ import {
   IonSpinner,
   IonText
 } from '@ionic/vue';
-import { bluetoothOutline, chevronForwardOutline, closeOutline, refreshOutline, statsChartOutline } from 'ionicons/icons';
+import { chevronForwardOutline, closeOutline, refreshOutline } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { Capacitor } from '@capacitor/core';
 import { useBle } from '@/composables/useBle';
@@ -1457,6 +1414,7 @@ import SliderInput from '@/components/Slider.vue';
 import TextInput from '@/components/TextInput.vue';
 import SensorImage from '@/components/SensorImage.vue';
 import BleDebugPanel from '@/components/ble/BleDebugPanel.vue';
+import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.vue';
 import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import { useLanguage } from '@/composables/useLanguage';
@@ -2513,14 +2471,6 @@ const reconnect = async () => {
 
 // Disconnect BLE and navigate back to connection page
 const router = useRouter();
-const chooseSensor = () => {
-  router.replace('/ble-connect');
-};
-
-const openSensorData = () => {
-  router.push('/sensor-data');
-};
-
 const disconnectAndGoBack = async () => {
   await ble.disconnect();
   router.replace('/ble-connect');
@@ -2816,71 +2766,9 @@ ion-content {
   --background: var(--ion-background-color, #fff7ee);
 }
 
-.native-with-connection-banner {
-  --padding-bottom: calc(64px + env(safe-area-inset-bottom));
-}
-
-.connection-banner {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 52px;
-  padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(0, 0, 0, 0.14);
-  background: var(--ion-background-color, #fff7ee);
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.12);
-}
-
-.connection-banner--disconnected {
-  background: var(--ion-color-warning);
-}
-
-.connection-status {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.connection-status strong {
-  overflow: hidden;
-  font-size: 1rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.connection-icon {
-  flex: 0 0 auto;
-  font-size: 24px;
-}
-
-.banner-action {
-  flex: 0 0 auto;
-  min-height: 32px;
-  margin: 0;
-  --padding-start: 10px;
-  --padding-end: 10px;
-  font-weight: 600;
-}
-
-.sensor-data-icon-button {
-  flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  margin: 0;
-  --padding-start: 6px;
-  --padding-end: 6px;
-}
-
-.sensor-data-icon-button ion-icon {
-  font-size: 24px;
+.native-with-sensor-navigation {
+  --padding-top: calc(82px + env(safe-area-inset-top));
+  --padding-bottom: calc(62px + env(safe-area-inset-bottom));
 }
 
 .card-holder {

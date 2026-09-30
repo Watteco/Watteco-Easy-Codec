@@ -102,7 +102,7 @@ index_1;Pulse counter index 1;0;number;R;UINT32;0;;1;0;4294967295;atmo, ino, pul
 index_10;Pulse counter index 10;0;number;R;UINT32;0;;1;0;4294967295;ino;Pulse counter index 10 value;;56
 index_2;Pulse counter index 2;0;number;R;UINT32;0;;1;0;4294967295;atmo, ino, pulse-senso, pulse-senso-neo, pulse-senso-atex, torano-atex;Pulse counter index 2 value;;57
 index_3;Pulse counter index 3;0;number;R;UINT32;0;;1;0;4294967295;ino, pulse-senso, pulse-senso-neo, pulse-senso-atex, torano-atex;Pulse counter index 3 value;;58
-index_4;Pulse counter index 4;0;number;R;UINT32;0;;1;0;4294967295;ino;Pulse counter index 4 value;;59
+index_4;Pulse counter index 4;0;number;R;UINT32;0;;1;0;4294967295;ino, pulse-senso-neo;Pulse counter index 4 value;;59
 index_5;Pulse counter index 5;0;number;R;UINT32;0;;1;0;4294967295;ino;Pulse counter index 5 value;;60
 index_6;Pulse counter index 6;0;number;R;UINT32;0;;1;0;4294967295;ino;Pulse counter index 6 value;;61
 index_7;Pulse counter index 7;0;number;R;UINT32;0;;1;0;4294967295;ino;Pulse counter index 7 value;;62
@@ -218,7 +218,7 @@ pin_state_1;Digital input state 1;false;boolean;R;BOOL;;;;;;atmo, ino, pulse-sen
 pin_state_10;Digital input state 10;false;boolean;R;BOOL;;;;;;ino;State of digital input pin 10;;176
 pin_state_2;Digital input state 2;false;boolean;R;BOOL;;;;;;atmo, ino, pulse-senso, pulse-senso-neo, pulse-senso-atex, torano-atex;State of digital input pin 2;;177
 pin_state_3;Digital input state 3;false;boolean;R;BOOL;;;;;;ino, pulse-senso, pulse-senso-neo, pulse-senso-atex, torano-atex;State of digital input pin 3;;178
-pin_state_4;Digital input state 4;false;boolean;R;BOOL;;;;;;ino;State of digital input pin 4;;179
+pin_state_4;Digital input state 4;false;boolean;R;BOOL;;;;;;ino, pulse-senso-neo;State of digital input pin 4;;179
 pin_state_5;Digital input state 5;false;boolean;R;BOOL;;;;;;ino;State of digital input pin 5;;180
 pin_state_6;Digital input state 6;false;boolean;R;BOOL;;;;;;ino;State of digital input pin 6;;181
 pin_state_7;Digital input state 7;false;boolean;R;BOOL;;;;;;ino;State of digital input pin 7;;182

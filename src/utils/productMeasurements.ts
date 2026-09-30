@@ -23,6 +23,35 @@ export type AvailableProductChoice = {
   reference: string;
 };
 
+const getProductLabels = (product: Product): string[] => (
+  (Array.isArray(product.name) ? product.name : [product.name])
+    .filter((name): name is string => typeof name === 'string')
+);
+
+const labelContainsReference = (label: string, reference: string): boolean => {
+  if (label.toLowerCase().includes(reference.toLowerCase())) return true;
+
+  const parts = reference.split('-');
+  if (parts.length < 3) return false;
+
+  const family = `${parts[0]}-${parts[1]}-`;
+  const productCode = parts[2];
+  const groupStart = label.toLowerCase().indexOf(`${family.toLowerCase()}[`);
+  if (groupStart === -1) return false;
+
+  const groupedCodes = label.slice(groupStart + family.length + 1).split(']', 1)[0];
+  return groupedCodes?.split(/[/,]/).map(code => code.trim()).includes(productCode) ?? false;
+};
+
+const cleanProductLabel = (label: string): string => (
+  label
+    .replace(/^\[Deprecated]\s*/i, '')
+    .replace(/^BETA\s+/i, '')
+    .replace(/\s*\(50-\d{2,3}[^)]*\).*$/i, '')
+    .replace(/\s+50-\d{2,3}.*$/i, '')
+    .trim()
+);
+
 const parseCsvLine = (line: string): string[] => {
   const cells: string[] = [];
   let cell = '';
@@ -97,6 +126,18 @@ export const getAvailableProductChoices = (): AvailableProductChoice[] => (
     .filter((product): product is AvailableProductChoice => product !== null)
     .sort((left, right) => left.label.localeCompare(right.label))
 );
+
+export const getProductDisplayName = (productReference?: string | null): string | null => {
+  if (!productReference) return null;
+
+  const products = (availableProductList.products as Product[]);
+  const product = products.find(candidate => (
+    getProductLabels(candidate).some(label => labelContainsReference(label, productReference))
+  )) ?? products.find(candidate => productContainsReference(candidate, productReference));
+  const label = product ? getProductLabels(product)[0] : undefined;
+
+  return label ? cleanProductLabel(label) : null;
+};
 
 export const getProductConfigurationFile = (productReference?: string | null): string | null => {
   if (!productReference) return null;

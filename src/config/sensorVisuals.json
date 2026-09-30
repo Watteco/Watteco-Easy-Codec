@@ -13,9 +13,10 @@
     "history": true
   },
   {
-    "ids": ["30", "31", "39", "230"],
+    "ids": ["39", "230"],
     "accent": "#57A66A",
-    "icon": "batteryHalfOutline"
+    "icon": "batteryHalfOutline",
+    "category": "battery"
   },
   {
     "ids": ["54", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64"],

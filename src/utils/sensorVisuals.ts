@@ -18,6 +18,7 @@ export type SensorVisual = {
   accent: string;
   icon: string;
   history: boolean;
+  category?: string;
 };
 
 type SensorVisualGroup = Omit<SensorVisual, 'history'> & {
@@ -33,9 +34,15 @@ const fallbackVisual: SensorVisual = {
 
 const sensorVisuals = new Map<string, SensorVisual>();
 
-for (const { ids, accent, icon, history = false } of sensorVisualsConfig as SensorVisualGroup[]) {
+for (const {
+  ids,
+  accent,
+  icon,
+  history = false,
+  category,
+} of sensorVisualsConfig as SensorVisualGroup[]) {
   for (const id of ids) {
-    sensorVisuals.set(id, { accent, icon, history });
+    sensorVisuals.set(id, { accent, icon, history, category });
   }
 }
 
@@ -50,5 +57,6 @@ export const getSensorVisual = (id: string | number): SensorVisual => {
     accent: visual.accent,
     icon: icons[visual.icon as keyof typeof icons] ?? fallbackVisual.icon,
     history: visual.history,
+    category: visual.category,
   };
 };

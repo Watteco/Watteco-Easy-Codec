@@ -1,7 +1,8 @@
 <template>
   <ion-card
     class="state-card"
-    :class="{ 'state-card--wide': entries.length > 6 }"
+    :class="{ 'state-card--wide': entries.length > 3 }"
+    :style="{ '--state-columns': getColumnCount(entries.length) }"
     :aria-label="label"
   >
     <ion-card-content>
@@ -17,6 +18,11 @@
           v-for="entry in entries"
           :key="entry.measId"
           class="state-item"
+          :class="{
+            'state-item--active': normalizeState(entry.value) === true,
+            'state-item--inactive': normalizeState(entry.value) === false,
+            'state-item--empty': normalizeState(entry.value) === null,
+          }"
           :aria-label="`${entry.label}: ${formatState(entry.value)}`"
           :title="`${entry.label}: ${formatState(entry.value)}`"
         >
@@ -63,6 +69,10 @@ const normalizeState = (value: SensorStateValue): boolean | null => {
   if (['false', '0', 'off', 'inactive', 'closed', 'low'].includes(normalized)) return false;
   return null;
 };
+
+const getColumnCount = (entryCount: number): number => (
+  Math.max(1, entryCount > 6 ? Math.ceil(entryCount / 2) : entryCount)
+);
 
 const formatState = (value: SensorStateValue): string => {
   const state = normalizeState(value);
@@ -140,17 +150,36 @@ const formatState = (value: SensorStateValue): string => {
 .state-list {
   display: grid;
   width: 100%;
-  grid-template-columns: repeat(auto-fit, minmax(28px, 1fr));
-  gap: 14px 8px;
+  grid-template-columns: repeat(var(--state-columns), minmax(38px, 1fr));
+  gap: 8px 6px;
   margin-top: 12px;
 }
 
 .state-item {
   display: flex;
-  min-width: 28px;
+  min-width: 38px;
   align-items: center;
   flex-direction: column;
-  gap: 9px;
+  gap: 7px;
+  padding: 7px 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: #f7f6f3;
+}
+
+.state-item--active {
+  border-color: rgba(82, 151, 103, 0.16);
+  background: rgba(82, 151, 103, 0.09);
+}
+
+.state-item--inactive {
+  border-color: rgba(151, 145, 137, 0.12);
+  background: rgba(151, 145, 137, 0.07);
+}
+
+.state-item--empty {
+  border-color: rgba(174, 180, 187, 0.12);
+  background: rgba(174, 180, 187, 0.06);
 }
 
 .state-label {
@@ -160,22 +189,26 @@ const formatState = (value: SensorStateValue): string => {
 }
 
 .state-indicator {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border: 2px solid currentColor;
+  border-radius: 50%;
   background: transparent;
 }
 
 .state-indicator--active {
-  border-color: #2dbb3f;
-  background: #2dbb3f;
+  border-color: #529767;
+  background: #529767;
+  box-shadow: 0 0 0 4px rgba(82, 151, 103, 0.12);
 }
 
 .state-indicator--inactive {
-  border-color: #d71920;
+  border-color: #aaa49d;
+  background: #fff;
 }
 
 .state-indicator--empty {
   border-color: #aeb4bb;
+  border-style: dashed;
 }
 </style>

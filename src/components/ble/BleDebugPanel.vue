@@ -78,7 +78,7 @@
       @click="$emit('update:visible', !visible)"
       class="debug-toggle-button"
     >
-      <span v-if="!visible">DBG</span>
+      <span v-if="!visible">DEV</span>
       <span v-else>X</span>
     </ion-button>
   </div>

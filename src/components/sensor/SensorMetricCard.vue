@@ -1,5 +1,9 @@
 <template>
-  <ion-card class="metric-card" :style="{ '--metric-accent': accent }">
+  <ion-card
+    class="metric-card"
+    :class="{ 'metric-card--compact': compact }"
+    :style="{ '--metric-accent': accent }"
+  >
     <ion-card-content>
       <div class="metric-heading">
         <span class="metric-icon" aria-hidden="true">
@@ -27,10 +31,12 @@ const props = withDefaults(defineProps<{
   icon: string;
   accent?: string;
   decimals?: number;
+  compact?: boolean;
 }>(), {
   unit: '',
   accent: '#7867B8',
   decimals: 0,
+  compact: false,
 });
 
 const formattedValue = computed(() => {
@@ -50,7 +56,7 @@ const formattedValue = computed(() => {
   --metric-accent-soft: color-mix(in srgb, var(--metric-accent) 13%, transparent);
   position: relative;
   min-width: 0;
-  min-height: 132px;
+  min-height: 100px;
   margin: 0;
   overflow: hidden;
   border: 1px solid rgba(28, 35, 45, 0.08);
@@ -69,12 +75,38 @@ const formattedValue = computed(() => {
   content: '';
 }
 
+.metric-card--compact {
+  grid-column: 1 / -1;
+  min-height: 72px;
+}
+
 .metric-card ion-card-content {
   display: flex;
-  min-height: 132px;
+  min-height: 100px;
   flex-direction: column;
   justify-content: space-between;
-  padding: 14px;
+  padding: 12px 14px;
+}
+
+.metric-card--compact ion-card-content {
+  min-height: 72px;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  padding-right: 18px;
+}
+
+.metric-card--compact .metric-heading {
+  flex: 1 1 auto;
+}
+
+.metric-card--compact .metric-value {
+  flex: 0 0 auto;
+  margin-inline-start: 0;
+}
+
+.metric-card--compact .metric-value span {
+  font-size: 1.65rem;
 }
 
 .metric-heading {
@@ -109,6 +141,7 @@ const formattedValue = computed(() => {
   display: flex;
   align-items: baseline;
   gap: 5px;
+  margin-inline-start: 3px;
   color: #202631;
   line-height: 1;
 }
