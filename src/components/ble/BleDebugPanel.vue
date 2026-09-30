@@ -50,6 +50,7 @@
         <ion-button size="small" fill="outline" @click="$emit('read-fe21')" :disabled="!connected">Read FE21 (FE20)</ion-button>
       </div>
       <div class="button-row">
+        <ion-button size="small" fill="solid" color="tertiary" @click="$emit('read-product-id')" :disabled="!connected">Read ProductID</ion-button>
         <ion-button size="small" fill="solid" color="tertiary" @click="$emit('read-config-blob')" :disabled="!connected">Read config BLOB</ion-button>
         <ion-button size="small" fill="solid" color="success" @click="$emit('osa-challenge')" :disabled="!connected">OSA Challenge</ion-button>
         <ion-button size="small" fill="solid" color="success" @click="$emit('osa-stored-challenge')" :disabled="!connected">OSA stored key</ion-button>
@@ -112,6 +113,7 @@ defineEmits<{
   (e: 'read-fe61'): void;
   (e: 'read-ff01'): void;
   (e: 'read-fe21'): void;
+  (e: 'read-product-id'): void;
   (e: 'read-config-blob'): void;
   (e: 'osa-challenge'): void;
   (e: 'osa-stored-challenge'): void;
@@ -128,7 +130,7 @@ defineEmits<{
 .debug-panel {
   position: fixed;
   right: 12px;
-  bottom: 12px;
+  bottom: calc(74px + env(safe-area-inset-bottom));
   z-index: 1000;
   width: 320px;
   max-height: 40vh;
@@ -189,7 +191,7 @@ defineEmits<{
 .debug-toggle {
   position: fixed;
   left: 12px;
-  bottom: 12px;
+  bottom: calc(74px + env(safe-area-inset-bottom));
   z-index: 1100;
 }
 

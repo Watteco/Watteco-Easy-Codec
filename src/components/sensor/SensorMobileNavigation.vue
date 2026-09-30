@@ -32,28 +32,6 @@
     </button>
   </header>
 
-  <nav class="sensor-mobile-tabs" :aria-label="localize('@sensorNavigationLabel')">
-    <button
-      type="button"
-      class="sensor-mobile-tab"
-      :class="{ 'sensor-mobile-tab--active': activePage === 'data' }"
-      :aria-current="activePage === 'data' ? 'page' : undefined"
-      @click="goToData"
-    >
-      <ion-icon :icon="analyticsOutline" aria-hidden="true" />
-      <span>{{ localize('@sensorDataTab') }}</span>
-    </button>
-    <button
-      type="button"
-      class="sensor-mobile-tab"
-      :class="{ 'sensor-mobile-tab--active': activePage === 'config' }"
-      :aria-current="activePage === 'config' ? 'page' : undefined"
-      @click="goToConfiguration"
-    >
-      <ion-icon :icon="optionsOutline" aria-hidden="true" />
-      <span>{{ localize('@sensorConfigTab') }}</span>
-    </button>
-  </nav>
 </template>
 
 <script setup lang="ts">
@@ -61,10 +39,8 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { IonIcon, IonSpinner } from '@ionic/vue';
 import {
-  analyticsOutline,
   bluetoothOutline,
   logOutOutline,
-  optionsOutline,
   refreshOutline,
 } from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
@@ -131,13 +107,6 @@ const handleHeaderAction = async () => {
   await router.replace('/ble-connect');
 };
 
-const goToData = () => {
-  if (props.activePage !== 'data') void router.push('/sensor-data');
-};
-
-const goToConfiguration = () => {
-  if (props.activePage !== 'config') void router.push('/tabs/downlink');
-};
 </script>
 
 <style scoped>
@@ -236,56 +205,4 @@ const goToConfiguration = () => {
   height: 22px;
 }
 
-.sensor-mobile-tabs {
-  box-sizing: border-box;
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1000;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  min-height: calc(62px + env(safe-area-inset-bottom));
-  padding: 5px 8px calc(5px + env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(0, 0, 0, 0.14);
-  background: var(--ion-background-color, #fff7ee);
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.12);
-}
-
-.sensor-mobile-tab {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  min-width: 0;
-  padding: 4px 8px;
-  color: var(--ion-color-medium-shade);
-  background: transparent;
-  border: 0;
-  border-radius: 10px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.sensor-mobile-tab ion-icon {
-  width: 23px;
-  height: 23px;
-}
-
-.sensor-mobile-tab--active {
-  color: var(--ion-color-primary);
-  background: rgba(var(--ion-color-primary-rgb), 0.1);
-}
-
-.sensor-mobile-tab--active::before {
-  position: absolute;
-  top: -5px;
-  width: 42px;
-  height: 3px;
-  border-radius: 0 0 3px 3px;
-  background: var(--ion-color-primary);
-  content: '';
-}
 </style>

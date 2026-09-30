@@ -16,7 +16,10 @@ import {
   downloadConfigurationBlob,
 } from '@/utils/BLE/blob';
 import { runOsaChallenge, readOsaChallenge } from '@/utils/BLE/osa';
-import { autoFetchModelFirmware as fetchModelFirmwareFromBle } from '@/utils/BLE/configReader';
+import {
+  autoFetchModelFirmware as fetchModelFirmwareFromBle,
+  readProductId as readProductIdFromBle,
+} from '@/utils/BLE/configReader';
 import { OsaKeyStore } from '@/plugins/osaKeyStore';
 
 type UseBleDebugOptions = {
@@ -199,6 +202,11 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
     firmwareInfo.value = result.firmwareInfo;
   }
 
+  async function readProductId() {
+    if (!ble.connectedDevice.value) return;
+    await readProductIdFromBle(ble.connectedDevice.value.deviceId, pushDebugLog);
+  }
+
   async function runStoredOsaChallengeFe20() {
     if (!ble.connectedDevice.value) return;
     try {
@@ -298,6 +306,7 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
     readFe62,
     dumpServices,
     dumpServicesOnly,
+    readProductId,
     autoFetchModelFirmware,
     testSecureOsaStorage,
     readStoredOsaKey,

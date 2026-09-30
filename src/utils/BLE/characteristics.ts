@@ -9,6 +9,7 @@ export const FF_WRITE_SHORT = 'ff01';
 export const FF_NOTIFY_SHORT = 'ff02';
 
 export const OSA_ADMIN_SERVICE_UUID = '80018001-890d-4f4e-a197-3f9eb158ea95';
+export const PRODUCT_ID_CHAR_UUID = '8001c001-890d-4f4e-a197-3f9eb158ea95';
 export const OSA_CHALLENGE_CHAR_UUID = '8001c801-890d-4f4e-a197-3f9eb158ea95';
 export const OSA_RESPONSE_CHAR_UUID = '8001c802-890d-4f4e-a197-3f9eb158ea95';
 export const OSA_STATUS_CHAR_UUID = '8001c803-890d-4f4e-a197-3f9eb158ea95';

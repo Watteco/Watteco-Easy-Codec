@@ -89,6 +89,7 @@ import {
   IonContent,
   IonPage,
   alertController,
+  onIonViewDidEnter,
 } from '@ionic/vue';
 import { useBle } from '@/composables/useBle';
 import { useLanguage } from '@/composables/useLanguage';
@@ -99,6 +100,7 @@ import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.v
 import SensorStateCard from '@/components/sensor/SensorStateCard.vue';
 import { getAvailableProductChoices, getProductMeasurements } from '@/utils/productMeasurements';
 import { getSensorVisual, hasSensorVisual } from '@/utils/sensorVisuals';
+import { playSensorPageTransition } from '@/utils/sensorPageTransition';
 
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
@@ -108,6 +110,10 @@ const ble = useBle();
 const bleDebugEnabledByEnv = import.meta.env.DEV || import.meta.env.VITE_ENABLE_BLE_DEBUG === 'true';
 const { currentLanguage } = useLanguage();
 const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
+
+onIonViewDidEnter(() => {
+  playSensorPageTransition('data', '.sensor-data-content');
+});
 
 type HistoryPoint = {
   timestamp: number;

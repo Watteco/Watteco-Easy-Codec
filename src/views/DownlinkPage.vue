@@ -9,7 +9,7 @@
 
     <ion-content
       :fullscreen="true"
-      :class="{ 'native-with-sensor-navigation': ble.isNative.value }"
+      :class="['sensor-config-content', { 'native-with-sensor-navigation': ble.isNative.value }]"
     >
       <ion-card v-show="false">
         <ion-range></ion-range>
@@ -1349,6 +1349,7 @@
     @read-fe61="readFe61"
     @read-ff01="readFf01"
     @read-fe21="readFe21InFe20"
+    @read-product-id="readProductId"
     @read-config-blob="readConfigurationBlob"
     @osa-challenge="runOsaChallengeFe20"
     @osa-stored-challenge="runStoredOsaChallengeFe20"
@@ -1395,13 +1396,15 @@ import {
   IonSegmentButton,
   IonButton,
   IonSpinner,
-  IonText
+  IonText,
+  onIonViewDidEnter,
 } from '@ionic/vue';
 import { chevronForwardOutline, closeOutline, refreshOutline } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { Capacitor } from '@capacitor/core';
 import { useBle } from '@/composables/useBle';
 import { useBleDebug } from '@/composables/useBleDebug';
+import { playSensorPageTransition } from '@/utils/sensorPageTransition';
 import TimeSlider from '@/components/TimeSlider.vue';
 import DoubleSlider from '@/components/DoubleSlider.vue';
 import CheckBox from '@/components/CheckBox.vue';
@@ -1424,6 +1427,10 @@ import { getProductConfigurationFile } from '@/utils/productMeasurements';
 // Import language files
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
+
+onIonViewDidEnter(() => {
+  playSensorPageTransition('config', '.sensor-config-content');
+});
 
 interface Product {
   category: string;
@@ -1534,6 +1541,7 @@ const {
   runStoredOsaChallengeFe20,
   dumpServices,
   dumpServicesOnly,
+  readProductId,
   autoFetchModelFirmware,
   testSecureOsaStorage,
   readStoredOsaKey,

@@ -1,5 +1,9 @@
 import { BleClient } from '@capacitor-community/bluetooth-le';
-import { findCharacteristic } from '@/utils/BLE/connection';
+import { findCharacteristic, findCharacteristicByUuid } from '@/utils/BLE/connection';
+import {
+  OSA_ADMIN_SERVICE_UUID,
+  PRODUCT_ID_CHAR_UUID,
+} from '@/utils/BLE/characteristics';
 import {
   parseHexToUint8Array,
   toSpacedHex,
@@ -13,6 +17,49 @@ export function asciiRunsFromBytes(bytes: Uint8Array): string[] {
     output += (byte >= 32 && byte <= 126) ? String.fromCharCode(byte) : '\0';
   }
   return output.split('\0').filter((run) => run.length >= 3);
+}
+
+export type ProductIdReadResult = {
+  bytes: Uint8Array;
+  text: string | null;
+};
+
+export async function readProductId(
+  deviceId: string,
+  onLog: (line: string) => void
+): Promise<ProductIdReadResult | null> {
+  const productId = await findCharacteristicByUuid(
+    deviceId,
+    OSA_ADMIN_SERVICE_UUID,
+    PRODUCT_ID_CHAR_UUID,
+    onLog
+  );
+
+  if (!productId) {
+    onLog(`ProductID characteristic not found (${PRODUCT_ID_CHAR_UUID})`);
+    return null;
+  }
+
+  try {
+    const rawValue = await BleClient.read(deviceId, productId.service, productId.characteristic);
+    const bytes = toUint8ArrayFromBleValue(rawValue);
+    if (!bytes) {
+      onLog('[ProductID] Read succeeded, but the returned value could not be decoded');
+      return null;
+    }
+
+    const text = new TextDecoder('utf-8', { fatal: false })
+      .decode(bytes)
+      .replace(/\0+$/g, '')
+      .trim() || null;
+
+    onLog(`${new Date().toLocaleTimeString()} [ProductID] HEX: ${toSpacedHex(bytes)}`);
+    onLog(`[ProductID] Text: ${text ? `"${text}"` : 'not printable'}`);
+    return { bytes, text };
+  } catch (error: any) {
+    onLog(`[ProductID] Read failed: ${error?.message ?? error}`);
+    return null;
+  }
 }
 
 export function tryExtractInfoFromHex(hexStr: string): { model?: string | null; fw?: string | null; decoded?: string } {
@@ -31,7 +78,7 @@ export function tryExtractInfoFromHex(hexStr: string): { model?: string | null; 
     decoded = Array.from(bytes).map((b) => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '\0').join('');
   }
 
-  const parts = decoded.split(/\x00+/).map((part) => part.trim()).filter((part) => part.length > 0);
+  const parts = decoded.split('\0').map((part) => part.trim()).filter((part) => part.length > 0);
   let model: string | null = null;
   let fw: string | null = null;
 
@@ -41,7 +88,7 @@ export function tryExtractInfoFromHex(hexStr: string): { model?: string | null; 
       if (foundModel) model = foundModel[0];
     }
     if (!fw) {
-      const foundFw = part.match(/(\d+(?:\.\d+){1,}[\w\-\._]{2,})/);
+      const foundFw = part.match(/(\d+(?:\.\d+){1,}[\w\-._]{2,})/);
       if (foundFw) fw = foundFw[0];
     }
   }
@@ -54,7 +101,7 @@ export function tryExtractInfoFromHex(hexStr: string): { model?: string | null; 
         if (foundModel) model = foundModel[0];
       }
       if (!fw) {
-        const foundFw = run.match(/(\d+(?:\.\d+){1,}[\w\-\._]{2,})/);
+        const foundFw = run.match(/(\d+(?:\.\d+){1,}[\w\-._]{2,})/);
         if (foundFw) fw = foundFw[0];
       }
     }
