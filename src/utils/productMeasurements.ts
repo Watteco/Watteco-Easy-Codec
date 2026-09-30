@@ -5,6 +5,7 @@ type Product = {
   name?: string | string[];
   file?: string;
   mId?: string[];
+  apps?: string[];
 };
 
 type MappingRow = Record<string, string>;
@@ -96,6 +97,16 @@ export const getAvailableProductChoices = (): AvailableProductChoice[] => (
     .filter((product): product is AvailableProductChoice => product !== null)
     .sort((left, right) => left.label.localeCompare(right.label))
 );
+
+export const getProductConfigurationFile = (productReference?: string | null): string | null => {
+  if (!productReference) return null;
+
+  const product = (availableProductList.products as Product[])
+    .filter(candidate => candidate.apps?.includes('EasyCodec'))
+    .find(candidate => productContainsReference(candidate, productReference));
+
+  return product?.file ?? null;
+};
 
 export const getProductMeasurements = (productReference?: string | null): ProductMeasurement[] => {
   if (!productReference) return [];

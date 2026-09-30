@@ -92,6 +92,8 @@
 	"IndexLabel": "Index",
 	"PulseStateLabel": "Etat",
 	"InputLabel": "Entrée",
+	"activeState": "Actif",
+	"inactiveState": "Inactif",
 	"reportOnVariationState": "Sur variation d'état",
 	"cfgCommentStandState": "Configure le report d'état sur ",
 	"removeCurrentConfigLabel": "Supprimer la configuration actuelle",

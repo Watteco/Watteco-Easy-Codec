@@ -24,6 +24,13 @@
               :accent="card.visual.accent"
               :decimals="card.decimals"
             />
+            <sensor-state-card
+              v-if="stateEntries.length"
+              :label="localize('@PulseStateLabel')"
+              :active-label="localize('@activeState')"
+              :inactive-label="localize('@inactiveState')"
+              :entries="stateEntries"
+            />
           </div>
         </section>
 
@@ -138,6 +145,7 @@ import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
 import SensorHistoryCard from '@/components/sensor/SensorHistoryCard.vue';
 import SensorMetricCard from '@/components/sensor/SensorMetricCard.vue';
+import SensorStateCard from '@/components/sensor/SensorStateCard.vue';
 import { getAvailableProductChoices, getProductMeasurements } from '@/utils/productMeasurements';
 import { getSensorVisual, hasSensorVisual } from '@/utils/sensorVisuals';
 
@@ -156,7 +164,9 @@ type HistoryPoint = {
   value: number;
 };
 
-const measurementValues = ref<Record<number, number | string | null>>({});
+type SensorValue = boolean | number | string | null;
+
+const measurementValues = ref<Record<number, SensorValue>>({});
 const measurementHistory = ref<Record<number, HistoryPoint[]>>({});
 const demoDataEnabled = ref(false);
 const demoEndTimestamp = Date.now();
@@ -186,12 +196,37 @@ const getDemoValue = (measId: number): number | null => {
   return null;
 };
 
-const displayedCards = computed(() => sensorCards.value.map(card => ({
-  ...card,
-  value: demoDataEnabled.value
-    ? getDemoValue(card.measId)
-    : measurementValues.value[card.measId] ?? null,
-})));
+const displayedCards = computed(() => sensorCards.value.map((card) => {
+  const measuredValue = measurementValues.value[card.measId] ?? null;
+  return {
+    ...card,
+    value: demoDataEnabled.value
+      ? getDemoValue(card.measId)
+      : typeof measuredValue === 'boolean'
+        ? (measuredValue ? localize('@activeState') : localize('@inactiveState'))
+        : measuredValue,
+  };
+}));
+
+const stateEntries = computed(() => productMeasurements.value
+  .map((measurement) => {
+    const match = measurement.id.match(/^pin_state(?:_(\d+))?$/);
+    if (!match) return null;
+
+    const inputNumber = match[1] ? Number(match[1]) : null;
+    return {
+      measId: measurement.measId,
+      inputNumber,
+      label: inputNumber === null
+        ? localize('@InputLabel')
+        : String(inputNumber),
+      value: demoDataEnabled.value
+        ? (inputNumber ?? 1) % 2 === 1
+        : measurementValues.value[measurement.measId] ?? null,
+    };
+  })
+  .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+  .sort((left, right) => (left.inputNumber ?? 0) - (right.inputNumber ?? 0)));
 
 const historyCards = computed(() => displayedCards.value
   .filter(card => card.visual.history)

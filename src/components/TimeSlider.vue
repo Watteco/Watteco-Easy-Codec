@@ -10,7 +10,7 @@
       :step="step"
       pin="false"
       snaps="true"
-      color="primary"
+      :ticks="showTicks"
       @ionChange="onRangeChange"
       @ionInput="onRangeInput"
     ></ion-range>
@@ -36,6 +36,7 @@
 <script setup>
 import { ref, watch, computed, nextTick } from 'vue';
 import { IonIcon } from '@ionic/vue';
+import { useRangeTicks } from '@/composables/useRangeTicks';
 
 // Props
 const props = defineProps({
@@ -56,6 +57,11 @@ const currentValue = ref(Number(props.value) || 0);
 const timeInputValue = ref(formatMinutesToTimeString(Number(props.value) || 0));
 const isEditing = ref(false);
 const timeInputRef = ref(null);
+const showTicks = useRangeTicks(
+  () => props.min,
+  () => props.max,
+  () => props.step,
+);
 
 const emit = defineEmits(['update:value']);
 
@@ -257,24 +263,34 @@ watch(() => props.value, (newValue) => {
 .slider-container {
   display: flex;
   align-items: center;
+  gap: 8px;
   width: 100%;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .time-range {
   flex: 1;
-  --padding-end: 12px;
+  min-width: 0;
+  --bar-height: 5px;
+  --bar-border-radius: 999px;
+  --bar-background: rgba(var(--ion-color-primary-rgb), 0.2);
+  --bar-background-active: var(--ion-color-primary);
+  --knob-size: 28px;
+  --padding-start: 4px;
+  --padding-end: 4px;
 }
 
 .time-chip, .time-input {
   --background: var(--ion-color-primary);
   --color: white;
-  width: 90px;
-  justify-content: space-around;
-  border-radius: 10px;
-  --border-radius: 10px;
-  margin: 4px;
+  width: 86px;
+  justify-content: center;
+  border-radius: 999px;
+  --border-radius: 999px;
+  margin: 0;
   flex-shrink: 0;
+  font-weight: 700;
+  box-shadow: 0 3px 9px rgba(var(--ion-color-primary-rgb), 0.22);
 }
 
 .time-input {
@@ -313,7 +329,7 @@ ion-range::part(pin)::before {
 
 @media (max-width: 600px) {
   .time-chip, .time-input {
-    width: 80px;
+    width: 76px;
     font-size: 0.8rem;
   }
 

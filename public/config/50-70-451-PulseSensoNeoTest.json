@@ -13,9 +13,22 @@
                 }
             }
         },
+        "pullout_config": {
+            "label": "@reportOnSensorPulloutLabel",
+            "default_state": "false",
+            "fields": {
+                "reportOnSensorPullout": {
+                    "type": "frame",
+                    "HMI": {
+                        "label": "@reportOnSensorPulloutLabel",
+                        "visual_type": "customFrame"
+                    }
+                }
+            }
+        },
         "confirmed": {
             "label": "@confirmedLabel",
-            "default_state": "false",
+            "default_state": "true",
             "fields": {
                 "confirmed": {
                     "type": "bool",
@@ -29,40 +42,20 @@
         },
         "cfg_block": [
             ["11 50 00 50 02 03(removeCurrentConfig)", "@cfgCommentRemoveConfig"],
-            ["11 05 04 02 90 01 41 10 3A 76 B2 79 39 60 A2 64 33 A1 2E BF 46 1c 40 00","@cfgCommentCTNConfiguration"],
-            ["31 05 04 02 90 01 41 10 3A 76 B2 79 39 60 A2 64 33 A1 2E BF 46 1c 40 00","@cfgCommentCTNConfiguration"],
+            ["11 06 00 0F 00 00 55 10 00 01 ff ff 01(reportOnSensorPullout)", "@cfgCommentPullOut"],
             ["11 05 8004 0000 08 (confirmed)", "@cfgCommentConfirmed"]
         ]
     },
     "batch_params": {
-        "batch_T1_params": {
-            "label": "@tempLabel @probe 1",
+        "batch_P_params": {
+            "label": "@IndexLabel @InputLabel 1 + @IndexLabel @InputLabel 2 + @IndexLabel @InputLabel 3",
             "default_state": "true",
             "fields": {
-                "t1BatchEchant": {
+                "pBatchEchant": {
                     "type": "timeVal",
-                    "default_value": "10",
+                    "default_value": "60",
                     "min_value": "1",
-                    "max_value": "60",
-                    "step": "1",
-                    "depends_on": "gBatchEmission",
-                    "HMI": {
-                        "label": "@echantLabel",
-                        "visual_type": "timeSlider"
-                    }
-                }
-            }
-        },
-        "batch_T2_params": {
-            "label": "@tempLabel @probe 2",
-            "default_state": "true",
-            "fields": {
-                "t2BatchEchant": {
-                    "type": "timeVal",
-                    "default_value": "10",
-                    "min_value": "1",
-                    "max_value": "60",
-                    "step": "1",
+                    "max_value": "120",
                     "depends_on": "gBatchEmission",
                     "HMI": {
                         "label": "@echantLabel",
@@ -78,7 +71,6 @@
                 "bBatchEchant": {
                     "type": "timeVal",
                     "default_value": "1440",
-                    "default_unit": "1",
                     "min_value": "1",
                     "max_value": "1440",
                     "step": "30",
@@ -93,7 +85,7 @@
             "fields": {
                 "gBatchEmission": {
                     "type": "timeVal",
-                    "default_value": "60",
+                    "default_value": "240",
                     "min_value": "1",
                     "max_value": "1440",
                     "step": "1",
@@ -105,88 +97,98 @@
             }
         },
         "cfg_block": [
-            ["11 06 04 02 15 00 00 00 (t1BatchEchant) (gBatchEmission) 00 00 00 0A 03", "@cfgCommentBatchTemp - @probe 1"],
-            ["31 06 04 02 15 00 00 00 (t2BatchEchant) (gBatchEmission) 00 00 00 0A 0B", "@cfgCommentBatchTemp - @probe 2"],
-            ["11 06 00 50 15 00 06 04 (bBatchEchant) 85a0 00 00 00 64 2b", "@cfgCommentBatchBatt"]
+            ["11 06 00 0F 1D 04 02 00 (pBatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 04", "@cfgCommentBatchIndex @InputLabel 1"],
+            ["31 06 00 0F 1D 04 02 00 (pBatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 0C", "@cfgCommentBatchIndex @InputLabel 2"],
+            ["51 06 00 0F 1D 04 02 00 (pBatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 14", "@cfgCommentBatchIndex @InputLabel 3"],
+			["11 06 00 50 15 00 06 04 (bBatchEchant) 85A0 00 00 00 64 34", "@cfgCommentBatchBatt"]
         ]
     },
     "standard_params": {
-        "standard_T_params": {
-            "label": "@tempLabel @probe 1",
+        "standard_P1_params": {
+            "label": "@IndexLabel @InputLabel 1",
             "fields": {
-                "tStandEchant": {
+		
+                "p1StandEmission": {
                     "type": "timeVal",
-                    "default_value": "10",
-                    "min_value": "1",
-                    "max_value": "60",
-                    "depends_on": "tStandEmission",
-                    "HMI": {
-                        "label": "@measureLabel",
-                        "visual_type": "timeSlider"
-                    }
-                },
-                "tStandEmission": {
-                    "type": "timeVal",
-                    "default_value": "60",
+                    "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
                     }
-                },
-                "tNotification": {
-                    "type": "hex2B",
-                    "default_value": "15 30",
-                    "min_value": "1",
-                    "max_value": "55",
-                    "HMI": {
-                        "label": "@thresholdLabel",
-                        "visual_type": "doubleSlider",
-                        "unit": "°C",
-                        "multiplier": "100"
-                    }
                 }
             }
         },
-        "standard_T2_params": {
-            "label": "@tempLabel @probe 2",
+		"standard_P2_params": {
+            "label": "@IndexLabel @InputLabel 2",
             "fields": {
-                "t2StandEchant": {
+		
+                "p2StandEmission": {
                     "type": "timeVal",
-                    "default_value": "10",
-                    "min_value": "1",
-                    "max_value": "60",
-                    "depends_on": "t2StandEmission",
-                    "HMI": {
-                        "label": "@measureLabel",
-                        "visual_type": "timeSlider"
-                    }
-                },
-                "t2StandEmission": {
-                    "type": "timeVal",
-                    "default_value": "60",
+                    "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
                     }
-                },
-                "t2Notification": {
-                    "type": "hex2B",
-                    "default_value": "15 30",
+                }
+            }
+        },
+        "standard_P3_params": {
+            "label": "@IndexLabel @InputLabel 3",
+            "fields": {
+		
+                "p3StandEmission": {
+                    "type": "timeVal",
+                    "default_value": "1440",
                     "min_value": "1",
-                    "max_value": "55",
+                    "max_value": "1440",
                     "HMI": {
-                        "label": "@thresholdLabel",
-                        "visual_type": "doubleSlider",
-                        "unit": "°C",
-                        "multiplier": "100"
+                        "label": "@emitMaxLabel",
+                        "visual_type": "timeSlider"
                     }
                 }
             }
         },
+		"standard_PMultiState_params": {
+            "label": "@PulseStateLabel @InputLabel 1 + @InputLabel 2 + @InputLabel 3",
+            "fields": {
+				"pMultiStateStandEchant": {
+                    "type": "timeVal",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "60",
+                    "depends_on": "pMultiStateStandEmission",
+                    "HMI": {
+                        "label": "@measureLabel",
+                        "visual_type": "timeSlider"
+                    }
+                },
+		
+                "pMultiStateStandEmission": {
+                    "type": "timeVal",
+                    "default_value": "1440",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "HMI": {
+                        "label": "@emitMaxLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+				,
+				"pMultiStateNotification": {
+					"type": "bool",
+					"default_value": "true",
+					"HMI": {
+						"label": "@reportOnVariationState",
+						"visual_type": "checkbox"
+					}
+				}
+            }
+        }
+		,
         "standard_B_params": {
             "label": "@battLabel",
             "fields": {
@@ -225,16 +227,11 @@
             }
         },
         "cfg_block": [
-            ["11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tNotification1) 0000 0171 (tNotification2) 0000 01", "@cfgCommentStandTemp - @probe 1"],
-            ["31 06 0402 80 0000 29 (t2StandEchant) (t2StandEmission) 70 (t2Notification1) 0000 0171 (t2Notification2) 0000 01", "@cfgCommentStandTemp - @probe 2"],
+            ["11 06 000f 00 0402 23 (p1StandEmission) (p1StandEmission) 00000000", "@cfgCommentStandIndex @InputLabel 1"],
+			["31 06 000f 00 0402 23 (p2StandEmission) (p2StandEmission) 00000000", "@cfgCommentStandIndex @InputLabel 2"],
+			["51 06 000f 00 0402 23 (p3StandEmission) (p3StandEmission) 00000000", "@cfgCommentStandIndex @InputLabel 3"],
+			["11 06 8005 00 0000 19 (pMultiStateStandEchant) (pMultiStateStandEmission) 00(pMultiStateNotification)", "@cfgCommentStandState @InputLabel 1 + @InputLabel 2 + @InputLabel 3"],
             ["11 06 0050 80 0006 41 (bStandEchant) (bStandEmission) 0e 70 04 (bNotification1) 0000 0171 04 (bNotification2) 0000 01", "@cfgCommentStandBatt"]
-        ]
-    },
-    "cfg_check": {
-        "cfg_block": [
-            ["11 08 04 02 01 00 00", "11 09 04 02 00 15 00 00 00 (t1BatchEchant) (gBatchEmission) 00 00 00 0A 03"],
-            ["31 08 04 02 01 00 00", "31 09 04 02 00 15 00 00 00 (t2BatchEchant) (gBatchEmission) 00 00 00 0A 0B"],
-            ["11 08 00 50 01 00 06", "11 09 00 50 00 15 00 06 04 (bBatchEchant) 85a0 00 00 00 64 2b"]
         ]
     }
 }

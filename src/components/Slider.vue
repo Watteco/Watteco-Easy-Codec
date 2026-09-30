@@ -10,7 +10,7 @@
       :value="currentValue"
       pin="false"
       snaps="true"
-      color="primary"
+      :ticks="showTicks"
       @ionChange="onRangeChange"
       @ionInput="onRangeInput"
     ></ion-range>
@@ -39,6 +39,7 @@
 
 <script setup>
 import { ref, watch, nextTick } from 'vue';
+import { useRangeTicks } from '@/composables/useRangeTicks';
 
 const props = defineProps({
   label: String,
@@ -71,6 +72,11 @@ const isInvalid = ref(false);
 const errorMessage = ref('');
 const inputValue = ref('');
 const intInputRef = ref(null);
+const showTicks = useRangeTicks(
+  () => currentMin.value,
+  () => currentMax.value,
+  () => props.step,
+);
 
 const emit = defineEmits(['update:value']);
 
@@ -163,19 +169,32 @@ const finishEditing = () => {
 .slider-container {
   display: flex;
   align-items: center;
+  gap: 8px;
   width: 100%;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .int-range {
   flex: 1;
-  --padding-end: 12px;
+  min-width: 0;
+  --bar-height: 5px;
+  --bar-border-radius: 999px;
+  --bar-background: rgba(var(--ion-color-primary-rgb), 0.2);
+  --bar-background-active: var(--ion-color-primary);
+  --knob-size: 28px;
+  --padding-start: 4px;
+  --padding-end: 4px;
 }
 
 .int-chip {
   min-width: 56px;
   text-align: center;
   cursor: pointer;
+  margin: 0;
+  font-weight: 700;
+  --background: var(--ion-color-primary);
+  --color: white;
+  box-shadow: 0 3px 9px rgba(var(--ion-color-primary-rgb), 0.22);
 }
 
 .int-input {
@@ -185,6 +204,7 @@ const finishEditing = () => {
   --padding-end: 6px;
   border: 1px solid var(--ion-color-primary);
   border-radius: 8px;
+  background: #fff;
 }
 
 .invalid-input {

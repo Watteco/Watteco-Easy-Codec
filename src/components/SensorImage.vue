@@ -33,19 +33,19 @@ const imageSrc = computed(() => {
 .sensor-image-container {
   display: flex;
   justify-content: center;
-  margin: -10px 0;
+  margin: 0;
 }
 
 .sensor-image {
   max-width: 100%;
-  max-height: 200px;
+  max-height: 120px;
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 @media (max-width: 600px) {
   .sensor-image {
-    max-height: 150px;
+    max-height: 72px;
   }
 }
 </style>

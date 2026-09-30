@@ -12,9 +12,10 @@
       </ion-card>
 
         <!-- Sensor selection -->
-        <ion-card id="sensor-card">
+        <ion-card v-if="!ble.isNative.value || sensorImage" id="sensor-card">
           <ion-card-content class="sensor-select">
             <ion-select
+                v-if="!ble.isNative.value"
                 class="always-flip"
                 interface="popover"
                 :label="localize('@sensor')"
@@ -72,7 +73,14 @@
           <ion-item class="config-item">
             <ion-label>{{ localize("@generalLabel") }}</ion-label>
             <!-- <ion-checkbox :checked="generalChecked" @ionChange="onGeneralCheckedChange"></ion-checkbox> -->
-            <ion-button @click="resetToDefault" class="small-button">{{ localize("@resetToDefault") }}</ion-button>
+            <ion-button
+              @click="resetToDefault"
+              class="small-button reset-button"
+              :aria-label="localize('@resetToDefault')"
+            >
+              <ion-icon slot="start" :icon="refreshOutline" />
+              <span class="reset-button-label">{{ localize("@resetToDefault") }}</span>
+            </ion-button>
             <ion-button class="visibility-button" :class="{ invisible: !generalChecked }" @click="toggleVisibility('general_params')">{{ generalVisible ? '–' : '+' }}</ion-button>
           </ion-item>
 
@@ -244,11 +252,14 @@
                 </ion-card>
               </ul>
               <!-- Add frames display at the bottom of each paramGroup card -->
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" class="showFrameButton">
-                <ion-button @click="toggleFramesVisibility(groupName)" class="small-button">
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
+                <ion-button v-if="!isNativeApp" @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
-                <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('general_params', groupName.toString())"></div>
+                <ion-button v-else fill="clear" class="frame-icon-button" :aria-label="frameToggleLabel(groupName)" @click="toggleFramesVisibility(groupName)">
+                  <ion-icon slot="icon-only" :icon="framesVisible[groupName] ? closeOutline : codeSlashOutline" />
+                </ion-button>
+                <div v-show="framesVisible[groupName]" class="frames-output" v-html="generateFramesForGroup('general_params', groupName.toString())"></div>
               </ion-card-content>
             </ion-card>
           </div>
@@ -421,11 +432,14 @@
                 </ion-card>
               </ul>
               <!-- Add frames display at the bottom of each paramGroup card -->
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" class="showFrameButton">                
-                <ion-button @click="toggleFramesVisibility(groupName)" class="small-button">
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
+                <ion-button v-if="!isNativeApp" @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
-                <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('modbus_params', groupName)"></div>
+                <ion-button v-else fill="clear" class="frame-icon-button" :aria-label="frameToggleLabel(groupName)" @click="toggleFramesVisibility(groupName)">
+                  <ion-icon slot="icon-only" :icon="framesVisible[groupName] ? closeOutline : codeSlashOutline" />
+                </ion-button>
+                <div v-show="framesVisible[groupName]" class="frames-output" v-html="generateFramesForGroup('modbus_params', groupName)"></div>
               </ion-card-content>
             </ion-card>
           </div>
@@ -600,11 +614,14 @@
                 </ion-card>
               </ul>
               <!-- Add frames display at the bottom of each paramGroup card -->
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" class="showFrameButton">                
-                <ion-button @click="toggleFramesVisibility(groupName)" class="small-button">
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
+                <ion-button v-if="!isNativeApp" @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
-                <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('batch_params', groupName)"></div>
+                <ion-button v-else fill="clear" class="frame-icon-button" :aria-label="frameToggleLabel(groupName)" @click="toggleFramesVisibility(groupName)">
+                  <ion-icon slot="icon-only" :icon="framesVisible[groupName] ? closeOutline : codeSlashOutline" />
+                </ion-button>
+                <div v-show="framesVisible[groupName]" class="frames-output" v-html="generateFramesForGroup('batch_params', groupName)"></div>
               </ion-card-content>
             </ion-card>
             <template v-if="sensorConfig.batch_params.global_params && batchChecked">
@@ -796,11 +813,14 @@
                 </ion-card>
               </ul>
               <!-- Add frames display at the bottom of each paramGroup card -->
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" class="showFrameButton">
-                <ion-button @click="toggleFramesVisibility(groupName)" class="small-button">
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
+                <ion-button v-if="!isNativeApp" @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
-                <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('standard_params', groupName)"></div>
+                <ion-button v-else fill="clear" class="frame-icon-button" :aria-label="frameToggleLabel(groupName)" @click="toggleFramesVisibility(groupName)">
+                  <ion-icon slot="icon-only" :icon="framesVisible[groupName] ? closeOutline : codeSlashOutline" />
+                </ion-button>
+                <div v-show="framesVisible[groupName]" class="frames-output" v-html="generateFramesForGroup('standard_params', groupName)"></div>
               </ion-card-content>
             </ion-card>
           </div>
@@ -959,11 +979,14 @@
                   </ion-item>
                 </ion-card>
               </ul>
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" class="showFrameButton">                
-                <ion-button @click="toggleFramesVisibility(groupName)" class="small-button">
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
+                <ion-button v-if="!isNativeApp" @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
-                <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('configuration_params', groupName)"></div>
+                <ion-button v-else fill="clear" class="frame-icon-button" :aria-label="frameToggleLabel(groupName)" @click="toggleFramesVisibility(groupName)">
+                  <ion-icon slot="icon-only" :icon="framesVisible[groupName] ? closeOutline : codeSlashOutline" />
+                </ion-button>
+                <div v-show="framesVisible[groupName]" class="frames-output" v-html="generateFramesForGroup('configuration_params', groupName)"></div>
               </ion-card-content>
             </ion-card>
           </div>
@@ -1123,11 +1146,14 @@
                   </ion-item>
                 </ion-card>
               </ul>
-              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" class="showFrameButton">                
-                <ion-button @click="toggleFramesVisibility(groupName)" class="small-button">
+              <ion-card-content v-if="subcategoryVisible[groupName] && paramGroupChecked[groupName]" :class="['showFrameButton', { 'native-frame-controls': isNativeApp }]">
+                <ion-button v-if="!isNativeApp" @click="toggleFramesVisibility(groupName)" class="small-button">
                   {{ framesVisible[groupName] ? localize(framesCount[groupName] > 1 ? "@hideFrames" : "@hideFrame") : localize(framesCount[groupName] > 1 ? "@showFrames" : "@showFrame") }}
                 </ion-button>
-                <div v-show="framesVisible[groupName]" v-html="generateFramesForGroup('commande_params', groupName)"></div>
+                <ion-button v-else fill="clear" class="frame-icon-button" :aria-label="frameToggleLabel(groupName)" @click="toggleFramesVisibility(groupName)">
+                  <ion-icon slot="icon-only" :icon="framesVisible[groupName] ? closeOutline : codeSlashOutline" />
+                </ion-button>
+                <div v-show="framesVisible[groupName]" class="frames-output" v-html="generateFramesForGroup('commande_params', groupName)"></div>
               </ion-card-content>
             </ion-card>
           </div>
@@ -1308,7 +1334,7 @@ import {
   IonSpinner,
   IonText
 } from '@ionic/vue';
-import { bluetoothOutline, refreshOutline, statsChartOutline } from 'ionicons/icons';
+import { bluetoothOutline, closeOutline, codeSlashOutline, refreshOutline, statsChartOutline } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { Capacitor } from '@capacitor/core';
 import { useBle } from '@/composables/useBle';
@@ -1329,6 +1355,7 @@ import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
+import { getProductConfigurationFile } from '@/utils/productMeasurements';
 
 // Import language files
 import enUS from '/localisation/en_US.json?url';
@@ -1414,6 +1441,7 @@ const languages = ref<Record<LanguageCode, Translations>>({
 });
 
 const bleDebugEnabledByEnv = import.meta.env.DEV || import.meta.env.VITE_ENABLE_BLE_DEBUG === 'true';
+const isNativeApp = Capacitor.isNativePlatform();
 const bleHideInProd = Capacitor.getPlatform() === 'android' && !bleDebugEnabledByEnv;
 
 // BLE composable (only active on native platforms, no-op on web)
@@ -1461,6 +1489,7 @@ const categorizedProducts = computed<Record<string, Product[]>>(() => {
 });
 
 const selectedSensor = ref(''); // Stores the currently selected sensor
+const pageInitialized = ref(false);
 const sensorConfig = ref<any | null>(null); // Dynamic configuration for the selected sensor
 const batchChecked = ref(false); // State of the batch mode checkbox
 const standardChecked = ref(false); // State of the standard mode checkbox
@@ -1721,10 +1750,26 @@ const onSensorChange = async (event: SensorChangeEvent) => {
   
   const selected = event.detail.value;
   selectedSensor.value = selected;
-  ble.setProductReference(selected);
   resetCheckboxes();
   await loadSensorConfig(selected);
 };
+
+const selectNativeSensor = async (productReference = ble.productReference.value) => {
+  if (!ble.isNative.value || !pageInitialized.value || !productReference) return;
+
+  const sensorFile = getProductConfigurationFile(productReference);
+  if (!sensorFile) {
+    console.warn(`No Easy Codec configuration found for product ${productReference}`);
+    return;
+  }
+  if (selectedSensor.value === sensorFile && sensorConfig.value) return;
+
+  await onSensorChange({ detail: { value: sensorFile } });
+};
+
+watch(ble.productReference, (productReference) => {
+  void selectNativeSensor(productReference);
+});
 
 // Reset all checkboxes to their default states
 const resetCheckboxes = () => {
@@ -2279,18 +2324,20 @@ const onToggleChange = (event: { isHours: boolean; }, bigGroupName: string, grou
 };
 
 // Load available products when the component is mounted
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', handleCopyButtonClick);
-  loadAvailableProducts();
-  loadLocalizationFiles().then(() => {
-    const selectToStartText = localize("@selectToStart");
-    const outputArea = document.getElementById("outputArea");
-    if (outputArea) {
-      outputArea.innerHTML = selectToStartText;
-    }
-  });
   // Initialize BLE on native platforms (no-op on web)
   ble.initialize();
+
+  await Promise.all([loadAvailableProducts(), loadLocalizationFiles()]);
+  const selectToStartText = localize("@selectToStart");
+  const outputArea = document.getElementById("outputArea");
+  if (outputArea) {
+    outputArea.innerHTML = selectToStartText;
+  }
+
+  pageInitialized.value = true;
+  await selectNativeSensor();
 });
 
 // Remove the event listener when the component is unmounted
@@ -2577,6 +2624,15 @@ const toggleFramesVisibility = (groupName: string | number) => {
   framesVisible.value[key] = !framesVisible.value[key];
 };
 
+const frameToggleLabel = (groupName: string | number) => {
+  const key = String(groupName);
+  const translationKey = framesVisible.value[key]
+    ? (framesCount.value[key] > 1 ? '@hideFrames' : '@hideFrame')
+    : (framesCount.value[key] > 1 ? '@showFrames' : '@showFrame');
+
+  return localize(translationKey);
+};
+
 const resetToDefault = () => {
   if (selectedSensor.value) {
     onSensorChange({ detail: { value: selectedSensor.value } });
@@ -2599,6 +2655,10 @@ provide('localize', localize);
 </script>
 
 <style scoped>
+ion-content {
+  --background: var(--ion-background-color, #fff7ee);
+}
+
 .native-with-connection-banner {
   --padding-bottom: calc(64px + env(safe-area-inset-bottom));
 }
@@ -2669,26 +2729,61 @@ provide('localize', localize);
 .card-holder {
   display: block;
   width: 100%;
+  padding-bottom: 8px;
 }
 
 .sensor-select, .output-area {
   display: flex;
   justify-content: space-between;
-  margin: 10px 100px;
   flex-direction: column;
 }
 
 .sensor-select {
   align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
 }
 
 #sensor-card {
-  width: 70%;
+  width: min(88%, 1180px);
   position: -webkit-sticky;
   position: sticky;
   top: 0;
-  z-index: 5;
-  box-shadow: 0px 8px 20px 0px var(--ion-background-color);
+  z-index: 20;
+  margin-top: 14px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(44, 50, 56, 0.1);
+  box-shadow: 0 5px 16px rgba(35, 39, 43, 0.1);
+  --background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(12px);
+}
+
+#sensor-card ion-select {
+  width: min(100%, 720px);
+  min-height: 48px;
+  padding-inline: 14px;
+  border: 1px solid #d9dde2;
+  border-radius: 10px;
+  background: #f9fafb;
+  font-weight: 650;
+  --highlight-color-focused: var(--ion-color-primary);
+  --highlight-color-valid: var(--ion-color-primary);
+}
+
+@media (min-width: 601px) {
+  #sensor-card .sensor-select {
+    align-items: stretch;
+    padding: 7px 18px;
+  }
+
+  #sensor-card ion-select {
+    width: 100%;
+    padding-inline: 14px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
 }
 
 #config-card {
@@ -2702,13 +2797,13 @@ provide('localize', localize);
 }
 
 ion-card {
-  --background: var(--ion-color-darkGrey);
-  --color: var(--ion-color-darkGrey-contrast);
-  border-radius: 10px;
+  --background: #fff;
+  --color: #292d32;
+  border-radius: 14px;
 }
 
 ion-card-content {
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 ion-select.always-flip::part(icon) {
@@ -2739,32 +2834,64 @@ ion-segment-button::part(indicator-background) {
 }
 
 .category-card, .sensor-card, .outputCard, #sensor-card {
-  width: 70%;
+  width: min(88%, 1180px);
 }
 
 .category-card {
-  background-color: var(--ion-color-tertiary);
+  margin-top: 14px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  border: 1px solid #e1e4e8;
+  box-shadow: 0 3px 10px rgba(35, 39, 43, 0.06);
+  --background: #fff;
 }
 
 .category-card > .config-item {
-  color: var(--ion-color-tertiary-contrast);
+  margin: 0;
+  padding: 4px 8px 4px 12px;
+  color: #292d32;
+  border-left: 4px solid var(--ion-color-primary);
+  border-bottom: 1px solid #eceef0;
+  --background: #fff;
+  --min-height: 58px;
+}
+
+.category-card > .config-item ion-label {
+  font-size: 1.08rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
 }
 
 .subcategory-card {
-  background-color: var(--ion-color-lightGrey);
-  transition: width 0.3s ease;
+  overflow: hidden;
+  border: 1px solid #e2e5e9;
+  box-shadow: none;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  --background: #fff;
 }
 
 .subcategory-card > .config-item {
-  color: var(--ion-color-lightGrey-contrast);
+  margin: 0;
+  padding: 2px 6px 2px 10px;
+  color: #292d32;
+  border-left: 4px solid var(--ion-color-primary);
+  border-bottom: 1px solid #e5e7eb;
+  --background: #f7f8fa;
+  --min-height: 52px;
+}
+
+.subcategory-card > .config-item ion-label {
+  font-weight: 700;
+  line-height: 1.25;
 }
 
 .subcategory-card-holder {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 10px;
   width: 100%;
   padding: 10px;
+  background: #f4f5f7;
 }
 
 .commande-grid {
@@ -2793,7 +2920,33 @@ ion-segment-button::part(indicator-background) {
 }
 
 ul {
-  padding-left: 0;
+  margin: 0;
+  padding: 0 12px;
+  list-style: none;
+  background: #fff;
+}
+
+.config-card {
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid #eceef0;
+  border-radius: 0;
+  box-shadow: none;
+  --background: #fff;
+}
+
+.config-card:last-child {
+  border-bottom: 0;
+}
+
+.config-card > .config-item,
+.global-batch-settings > .config-item {
+  width: auto;
+  margin: 0;
+  padding: 12px 14px;
+  color: #292d32;
+  --background: transparent;
+  --min-height: 48px;
 }
 
 .config-card-content {
@@ -2812,10 +2965,7 @@ ul {
   flex: 1 1 45%;
   min-width: 200px;
   margin: 10px;
-}
-
-.config-item {
-  color: var(--ion-background-color);
+  color: #302a25;
 }
 
 #outputTitle {
@@ -2823,7 +2973,8 @@ ul {
 }
 
 #outputArea {
-  font-size: smaller;
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
   font-family: 'Courier New', Courier, monospace;
   font-weight: bold;
 }
@@ -2846,17 +2997,20 @@ ion-range::part(pin)::before {
 }
 
 .visibility-button {
-  --background: none;
+  width: 38px;
+  height: 38px;
+  margin: 0 0 0 4px;
+  --background: rgba(var(--ion-color-primary-rgb), 0.1);
+  --background-hover: rgba(var(--ion-color-primary-rgb), 0.18);
   --box-shadow: none;
-  --padding-start: 10px;
-  --padding-end: 3px;
+  --padding-start: 0;
+  --padding-end: 0;
   --padding-top: 0;
   --padding-bottom: 0;
-  --border-radius: 0;
+  --border-radius: 50%;
   --color: var(--ion-color-primary);
-  font-size: x-large;
-  font-weight: bolder;
-  color: black;
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 
 .visibility-button.invisible {
@@ -2864,21 +3018,60 @@ ion-range::part(pin)::before {
 }
 
 .showFrameButton {
-  padding-top: 0px;
+  padding: 12px 14px 14px;
+  border-top: 1px solid #eceef0;
+  background: #fff;
+}
+
+.native-frame-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  padding: 5px 8px 7px;
+}
+
+.frame-icon-button {
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  --background: rgba(var(--ion-color-primary-rgb), 0.1);
+  --background-hover: rgba(var(--ion-color-primary-rgb), 0.18);
+  --border-radius: 50%;
+  --box-shadow: none;
+  --color: var(--ion-color-primary);
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+.frame-icon-button ion-icon {
+  font-size: 1.2rem;
+}
+
+.frames-output {
+  flex-basis: 100%;
+  min-width: 0;
 }
 
 /* Add responsive styles for smartphones */
 @media (max-width: 600px) {
+  .card-holder {
+    padding-inline: 0;
+  }
+
   .sensor-select {
-    margin: 10px 20px;
+    gap: 8px;
+    padding: 9px 10px;
   }
 
   .category-card, .sensor-card, .outputCard, #sensor-card {
-    width: 95%;
+    width: calc(100% - 16px);
   }
 
   #sensor-card {
-    width: -webkit-fill-available;
+    top: 0;
+    margin-top: 8px;
+    margin-bottom: 18px;
+    border-radius: 12px;
   }
 
   #config-card {
@@ -2895,11 +3088,10 @@ ion-range::part(pin)::before {
 
   .config-item {
     flex: 1 1 100%;
-    min-width: 100%;
+    min-width: 0;
   }
 
   ion-chip {
-    width: 90px;
     font-size: 0.8rem;
   }
 
@@ -2922,17 +3114,66 @@ ion-range::part(pin)::before {
 
   .subcategory-card-holder {
     grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 7px;
+  }
+
+  .category-card {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+  }
+
+  .category-card > .config-item {
+    padding-left: 9px;
+  }
+
+  .category-card > .config-item ion-label {
+    font-size: 1rem;
+  }
+
+  .config-card > .config-item,
+  .global-batch-settings > .config-item {
+    padding: 13px 10px;
+  }
+
+  ul {
+    padding: 0 10px;
+  }
+
+  .reset-button {
+    width: 38px;
+    min-height: 38px;
+    margin-inline: 4px;
+    --padding-start: 0;
+    --padding-end: 0;
+    --border-radius: 50%;
+  }
+
+  .reset-button ion-icon {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+
+  .reset-button-label {
+    display: none;
   }
 }
 
 .small-button {
-  --padding-start: 5px;
-  --padding-end: 5px;
-  --padding-top: 2px;
-  --padding-bottom: 2px;
-  --border-radius: 5px;
-  --height: 24px;
-  font-size: x-small;
+  min-height: 32px;
+  --padding-start: 10px;
+  --padding-end: 10px;
+  --padding-top: 5px;
+  --padding-bottom: 5px;
+  --border-radius: 9px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  text-transform: none;
+}
+
+.reset-button ion-icon {
+  font-size: 1rem;
 }
 
 .button-group {
@@ -2942,6 +3183,19 @@ ion-range::part(pin)::before {
 
 .half-width {
   flex: 1;
+}
+
+.outputCard {
+  margin-top: 16px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(91, 80, 68, 0.12);
+  box-shadow: 0 8px 24px rgba(74, 51, 31, 0.08);
+}
+
+.output-area {
+  gap: 10px;
+  margin: 0;
+  padding: 18px;
 }
 
 .loading-message {

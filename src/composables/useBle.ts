@@ -483,28 +483,10 @@ async function connectToDevice(device: DeviceLike) {
                 (value: DataView) => {
                   const bytes = new Uint8Array(value.buffer);
                   const hex = toHex(bytes);
-                  const publicValue = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
-                  const detectedReference = extractProductReference(publicValue);
-                  if (detectedReference) productReference.value = detectedReference;
                   log(`NOTIF ${hex}`);
                   receivedFrames.value = [hex, ...receivedFrames.value].slice(0, 50);
                 }
               );
-              try {
-                const modelRequest = hexToBytes('110000000005');
-                const requestView = new DataView(
-                  modelRequest.buffer,
-                  modelRequest.byteOffset,
-                  modelRequest.byteLength,
-                );
-                if (foundChar.properties?.writeWithoutResponse) {
-                  await BleClient.writeWithoutResponse(device.deviceId, foundService.uuid, foundChar.uuid, requestView);
-                } else {
-                  await BleClient.write(device.deviceId, foundService.uuid, foundChar.uuid, requestView);
-                }
-              } catch (modelError) {
-                console.warn('Public model reference request failed:', modelError);
-              }
               statusMessage.value += ' (ready, notifications on)';
             } catch (ne) {
               console.warn('startNotifications failed:', ne);
