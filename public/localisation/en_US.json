@@ -40,7 +40,7 @@
     "bleConnectionFailed": "Unable to connect to this sensor.",
     "blePairingFailed": "Secure pairing failed.",
     "bleUnavailable": "Bluetooth is unavailable. Check that it is enabled and try again.",
-    "bleAddSimulatedSensor": "Add WS-123456",
+    "bleAddSimulatedSensor": "Add Simulated sensor",
     "bleSimulatedSensor": "Simulated sensor",
     "bleSkipDev": "Skip BLE (dev)",
     "bleConnectedTo": "Connected to",

@@ -28,7 +28,12 @@
           class="sensor-mobile-battery"
           :aria-label="`${localize('@batteryLevelLabel')}: ${displayedBatteryLevel}%`"
         >
-          <ion-icon :icon="batteryHalfOutline" aria-hidden="true" />
+          <span class="sensor-mobile-battery-gauge" aria-hidden="true">
+            <span
+              class="sensor-mobile-battery-level"
+              :style="{ width: `${displayedBatteryLevel}%` }"
+            ></span>
+          </span>
           {{ displayedBatteryLevel }}%
         </span>
       </span>
@@ -69,7 +74,6 @@ import { useRouter } from 'vue-router';
 import { IonIcon, IonSpinner } from '@ionic/vue';
 import {
   alertCircleOutline,
-  batteryHalfOutline,
   bluetoothOutline,
   logOutOutline,
   refreshOutline,
@@ -252,7 +256,7 @@ const disconnectAndGoBack = async () => {
 .sensor-mobile-battery {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 7px;
   margin-left: 4px;
   padding: 2px 6px;
   border-radius: 999px;
@@ -263,9 +267,36 @@ const disconnectAndGoBack = async () => {
   white-space: nowrap;
 }
 
-.sensor-mobile-battery ion-icon {
-  width: 14px;
-  height: 14px;
+.sensor-mobile-battery-gauge {
+  box-sizing: border-box;
+  position: relative;
+  display: inline-flex;
+  width: 15px;
+  height: 9px;
+  padding: 1px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+}
+
+.sensor-mobile-battery-gauge::after {
+  position: absolute;
+  top: 50%;
+  right: -3px;
+  width: 2px;
+  height: 5px;
+  border-radius: 0 1px 1px 0;
+  background: currentColor;
+  content: '';
+  transform: translateY(-50%);
+}
+
+.sensor-mobile-battery-level {
+  display: block;
+  max-width: 100%;
+  height: 100%;
+  border-radius: 1px;
+  background: currentColor;
+  transition: width 180ms ease-out;
 }
 
 .sensor-mobile-header--disconnected .sensor-mobile-status-dot {

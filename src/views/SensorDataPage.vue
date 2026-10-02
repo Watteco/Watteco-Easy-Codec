@@ -284,8 +284,8 @@ const bannerState = computed<BannerState>(() => (
   bannerPreview.value === 'actual' ? actualBannerState.value : bannerPreview.value
 ));
 const bannerDeviceName = computed(() => {
-  if (bannerPreview.value === 'connected' && !ble.connectedDevice.value) return 'WS-123456';
-  if (bannerPreview.value === 'reconnect' && !ble.lastConnectedDevice.value) return 'WS-123456';
+  if (bannerPreview.value === 'connected' && !ble.connectedDevice.value) return 'WS123456';
+  if (bannerPreview.value === 'reconnect' && !ble.lastConnectedDevice.value) return 'WS123456';
   const device = ble.connectedDevice.value ?? ble.lastConnectedDevice.value;
   return device ? ble.getDeviceName(device) : undefined;
 });
