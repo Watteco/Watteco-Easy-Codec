@@ -4,6 +4,7 @@ import mappingSource from '@/config/watteco-bacnet-mapping.csv?raw';
 type Product = {
   name?: string | string[];
   file?: string;
+  compatibleProducts?: string[];
   mId?: string[];
   apps?: string[];
 };
@@ -27,21 +28,6 @@ const getProductLabels = (product: Product): string[] => (
   (Array.isArray(product.name) ? product.name : [product.name])
     .filter((name): name is string => typeof name === 'string')
 );
-
-const labelContainsReference = (label: string, reference: string): boolean => {
-  if (label.toLowerCase().includes(reference.toLowerCase())) return true;
-
-  const parts = reference.split('-');
-  if (parts.length < 3) return false;
-
-  const family = `${parts[0]}-${parts[1]}-`;
-  const productCode = parts[2];
-  const groupStart = label.toLowerCase().indexOf(`${family.toLowerCase()}[`);
-  if (groupStart === -1) return false;
-
-  const groupedCodes = label.slice(groupStart + family.length + 1).split(']', 1)[0];
-  return groupedCodes?.split(/[/,]/).map(code => code.trim()).includes(productCode) ?? false;
-};
 
 const cleanProductLabel = (label: string): string => (
   label
@@ -95,12 +81,34 @@ const getSection = (source: string, marker: string): MappingRow[] => {
     });
 };
 
-const productContainsReference = (product: Product, reference: string): boolean => {
-  const normalizedReference = reference.trim().toLowerCase();
-  const names = Array.isArray(product.name) ? product.name : [product.name];
-  return [product.file, ...names]
-    .filter((value): value is string => typeof value === 'string')
-    .some(value => value.toLowerCase().includes(normalizedReference));
+const compatibleProductMatches = (compatibleProduct: string, productReference: string): boolean => {
+  const compatibleParts = compatibleProduct.toLowerCase().split('-');
+  const productParts = productReference.toLowerCase().split('-');
+
+  if (compatibleParts.length === 3) {
+    return compatibleParts.every((part, index) => productParts[index] === part);
+  }
+
+  return compatibleParts.length === productParts.length
+    && compatibleParts.every((part, index) => productParts[index] === part);
+};
+
+const getCompatibleProductMatch = (product: Product, value: string): string | null => {
+  const productReference = extractProductReference(value);
+  if (!productReference) return null;
+
+  return product.compatibleProducts
+    ?.filter(compatibleProduct => compatibleProductMatches(compatibleProduct, productReference))
+    .sort((left, right) => right.split('-').length - left.split('-').length)[0]
+    ?? null;
+};
+
+const findProductByReference = (products: Product[], value: string): Product | undefined => {
+  return products
+    .map(product => ({ product, match: getCompatibleProductMatch(product, value) }))
+    .filter((candidate): candidate is { product: Product; match: string } => candidate.match !== null)
+    .sort((left, right) => right.match.split('-').length - left.match.split('-').length)[0]
+    ?.product;
 };
 
 const modelRows = getSection(mappingSource, 'models');
@@ -110,14 +118,22 @@ export const extractProductReference = (value?: string | null): string | null =>
   value?.match(/\d{2,3}(?:-\d{2,3}){2,}/)?.[0] ?? null
 );
 
+export const resolveAvailableProductReference = (value?: string | null): string | null => {
+  const detectedReference = extractProductReference(value);
+  if (!detectedReference) return null;
+
+  const product = findProductByReference(availableProductList.products as Product[], detectedReference);
+  const compatibleProduct = product ? getCompatibleProductMatch(product, detectedReference) : null;
+
+  return compatibleProduct ?? (product ? detectedReference : null);
+};
+
 export const getAvailableProductChoices = (): AvailableProductChoice[] => (
   (availableProductList.products as Product[])
     .filter(product => product.mId?.some(Boolean))
     .map((product) => {
       const names = Array.isArray(product.name) ? product.name : [product.name];
-      const reference = extractProductReference(product.file)
-        ?? names.map(name => extractProductReference(name)).find(Boolean)
-        ?? null;
+      const reference = product.compatibleProducts?.[0] ?? null;
       const label = names.find((name): name is string => typeof name === 'string')
         ?? product.file
         ?? reference;
@@ -131,9 +147,7 @@ export const getProductDisplayName = (productReference?: string | null): string 
   if (!productReference) return null;
 
   const products = (availableProductList.products as Product[]);
-  const product = products.find(candidate => (
-    getProductLabels(candidate).some(label => labelContainsReference(label, productReference))
-  )) ?? products.find(candidate => productContainsReference(candidate, productReference));
+  const product = findProductByReference(products, productReference);
   const label = product ? getProductLabels(product)[0] : undefined;
 
   return label ? cleanProductLabel(label) : null;
@@ -142,9 +156,10 @@ export const getProductDisplayName = (productReference?: string | null): string 
 export const getProductConfigurationFile = (productReference?: string | null): string | null => {
   if (!productReference) return null;
 
-  const product = (availableProductList.products as Product[])
-    .filter(candidate => candidate.apps?.includes('EasyCodec'))
-    .find(candidate => productContainsReference(candidate, productReference));
+  const product = findProductByReference(
+    (availableProductList.products as Product[]).filter(candidate => candidate.apps?.includes('EasyCodec')),
+    productReference
+  );
 
   return product?.file ?? null;
 };
@@ -152,8 +167,7 @@ export const getProductConfigurationFile = (productReference?: string | null): s
 export const getProductMeasurements = (productReference?: string | null): ProductMeasurement[] => {
   if (!productReference) return [];
 
-  const product = (availableProductList.products as Product[])
-    .find(candidate => productContainsReference(candidate, productReference));
+  const product = findProductByReference(availableProductList.products as Product[], productReference);
   const mIds = product?.mId?.filter(Boolean) ?? [];
   if (mIds.length === 0) return [];
 

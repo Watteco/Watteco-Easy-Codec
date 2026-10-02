@@ -1,16 +1,18 @@
 import {
   batteryHalfOutline,
-  calculatorOutline,
   helpCircleOutline,
+  speedometerOutline,
   thermometerOutline,
+  toggleOutline,
   waterOutline,
 } from 'ionicons/icons';
 import sensorVisualsConfig from '@/config/sensorVisuals.json';
 
 const icons = {
   batteryHalfOutline,
-  calculatorOutline,
+  speedometerOutline,
   thermometerOutline,
+  toggleOutline,
   waterOutline,
 } as const;
 
@@ -18,7 +20,11 @@ export type SensorVisual = {
   accent: string;
   icon: string;
   history: boolean;
+  historyMin?: number;
+  historyMax?: number;
   category?: string;
+  labelKey?: string;
+  numbered?: boolean;
 };
 
 type SensorVisualGroup = Omit<SensorVisual, 'history'> & {
@@ -39,10 +45,23 @@ for (const {
   accent,
   icon,
   history = false,
+  historyMin,
+  historyMax,
   category,
+  labelKey,
+  numbered,
 } of sensorVisualsConfig as SensorVisualGroup[]) {
   for (const id of ids) {
-    sensorVisuals.set(id, { accent, icon, history, category });
+    sensorVisuals.set(id, {
+      accent,
+      icon,
+      history,
+      historyMin,
+      historyMax,
+      category,
+      labelKey,
+      numbered,
+    });
   }
 }
 
@@ -57,6 +76,24 @@ export const getSensorVisual = (id: string | number): SensorVisual => {
     accent: visual.accent,
     icon: icons[visual.icon as keyof typeof icons] ?? fallbackVisual.icon,
     history: visual.history,
+    historyMin: visual.historyMin,
+    historyMax: visual.historyMax,
     category: visual.category,
+    labelKey: visual.labelKey,
+    numbered: visual.numbered,
   };
+};
+
+export const getSensorCardLabel = (
+  measurementId: string,
+  officialName: string,
+  visual: SensorVisual,
+  localize: (key: string) => string,
+): string => {
+  if (!visual.labelKey) return officialName;
+
+  const shortName = localize(visual.labelKey);
+  const instanceNumber = visual.numbered ? measurementId.match(/_(\d+)$/)?.[1] : undefined;
+
+  return instanceNumber ? `${shortName} ${instanceNumber}` : shortName;
 };

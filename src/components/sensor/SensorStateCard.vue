@@ -2,13 +2,16 @@
   <ion-card
     class="state-card"
     :class="{ 'state-card--wide': entries.length > 3 }"
-    :style="{ '--state-columns': getColumnCount(entries.length) }"
+    :style="{
+      '--state-columns': getColumnCount(entries.length),
+      '--state-accent': accent,
+    }"
     :aria-label="label"
   >
     <ion-card-content>
       <div class="state-heading">
         <span class="state-icon" aria-hidden="true">
-          <ion-icon :icon="toggleOutline" />
+          <ion-icon :icon="icon" />
         </span>
         <span class="state-title">{{ label }}</span>
       </div>
@@ -48,16 +51,21 @@ import { toggleOutline } from 'ionicons/icons';
 
 type SensorStateValue = boolean | number | string | null;
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   label: string;
   activeLabel: string;
   inactiveLabel: string;
+  accent?: string;
+  icon?: string;
   entries: Array<{
     measId: number;
     label: string;
     value: SensorStateValue;
   }>;
-}>();
+}>(), {
+  accent: '#DB6F2B',
+  icon: toggleOutline,
+});
 
 const normalizeState = (value: SensorStateValue): boolean | null => {
   if (typeof value === 'boolean') return value;

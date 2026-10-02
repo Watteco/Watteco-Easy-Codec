@@ -1,14 +1,26 @@
 import { ref, readonly } from 'vue';
 import { Capacitor } from '@capacitor/core';
-import { BleClient, type BleDevice, type ScanResult } from '@capacitor-community/bluetooth-le';
+import { BleClient, ScanMode, type BleDevice, type ScanResult } from '@capacitor-community/bluetooth-le';
 import { uploadConfigurationBlob } from '@/utils/BLE/blob';
 import { authenticateOsa } from '@/utils/BLE/osa';
-import { extractProductReference } from '@/utils/productMeasurements';
+import { readProductId as readProductIdFromBle } from '@/utils/BLE/configReader';
+import {
+  MEASUREMENT_SOURCE_TO_ID,
+  startMeasurementMonitoring,
+  stopMeasurementMonitoring,
+  type BleMeasurementSubscription,
+} from '@/utils/BLE/measurements';
+import { resolveAvailableProductReference } from '@/utils/productMeasurements';
 
 type DeviceLike = {
   deviceId: string;
   name?: string;
   uuids?: readonly string[];
+};
+
+type MeasurementHistoryPoint = {
+  timestamp: number;
+  value: number;
 };
 
 /* ------------------------------------------------------------------ */
@@ -21,10 +33,16 @@ const MAX_RETRIES = 5;
 const MAX_CONNECT_ATTEMPTS = 2;
 const MAX_AUTO_SCAN_ATTEMPTS = 30;
 const SCAN_TIMEOUT_MS = 5000;
+// Normal-mode sensors advertise every 2 minutes. Leave enough time to catch
+// the next advertisement, including a small scheduling margin.
+const RECONNECT_TIMEOUT_MS = 130000;
+const RECONNECT_CONNECT_TIMEOUT_MS = 10000;
+const RECONNECT_RETRY_DELAY_MS = 1000;
 const BOND_TIMEOUT_MS = 15000;
 const FLUSH_INTERVAL_MS = 1000;
 const INTER_FRAME_DELAY_MS = 50;
 const INTER_CHUNK_DELAY_MS = 10;
+const MAX_MEASUREMENT_HISTORY_POINTS = 20;
 const BONDED_DEVICES_STORAGE_KEY = 'easycodec.androidBondedDevices';
 const BONDING_ENABLED = true; // set to true to enable bonding on connect
 
@@ -66,6 +84,9 @@ const pairing = ref(false);
 const reconnecting = ref(false);
 const bondedDevices = ref<string[]>([]);
 const productReference = ref<string | null>(null);
+const measurementValues = ref<Record<string, number | boolean | string>>({});
+const measurementHistory = ref<Record<string, MeasurementHistoryPoint[]>>({});
+let measurementHistoryDeviceId: string | undefined;
 
 const receivedFrames = ref<string[]>([]);
 
@@ -76,17 +97,44 @@ let scanTimeoutId: ReturnType<typeof setTimeout> | undefined;
 let scanResolve: (() => void) | undefined;
 let initialized = false;
 let autoScanCanceled = false;
+let reconnectCanceled = false;
+let reconnectScanActive = false;
+let reconnectScanTimeoutId: ReturnType<typeof setTimeout> | undefined;
+let reconnectScanResolve: ((found: boolean) => void) | undefined;
 
 let targetDeviceId: string | undefined;
 let targetServiceUuid: string | undefined;
 let targetCharUuid: string | undefined;
 let targetNotifyCharUuid: string | undefined;
+let measurementSubscriptions: BleMeasurementSubscription[] = [];
 
 /* ---- log helper ---- */
 function log(msg: string) {
   const ts = new Date().toLocaleTimeString();
   eventsLog.value.unshift(`${ts} ${msg}`);
-  if (eventsLog.value.length > 50) eventsLog.value.pop();
+  if (eventsLog.value.length > 200) eventsLog.value.pop();
+}
+
+function prepareMeasurementHistory(deviceId: string) {
+  if (measurementHistoryDeviceId === deviceId) return;
+  measurementHistory.value = {};
+  measurementHistoryDeviceId = deviceId;
+}
+
+function appendMeasurementHistory(measurementId: string, value: number) {
+  const points = measurementHistory.value[measurementId] ?? [];
+  measurementHistory.value = {
+    ...measurementHistory.value,
+    [measurementId]: [
+      ...points,
+      { timestamp: Date.now(), value },
+    ].slice(-MAX_MEASUREMENT_HISTORY_POINTS),
+  };
+}
+
+function clearMeasurementHistory() {
+  measurementHistory.value = {};
+  measurementHistoryDeviceId = undefined;
 }
 
 function isAndroidNativePlatform() {
@@ -359,6 +407,7 @@ async function startAutoScan(useFilters = true, maxAttempts = MAX_AUTO_SCAN_ATTE
   const attemptDuration = SCAN_TIMEOUT_MS;
   const totalDuration = Math.max(1, maxAttempts) * attemptDuration;
   let attempts = 0;
+  let scanFailed = false;
 
   try {
     const options: any = {};
@@ -394,11 +443,14 @@ async function startAutoScan(useFilters = true, maxAttempts = MAX_AUTO_SCAN_ATTE
 
     clearInterval(attemptTimer);
   } catch (e: any) {
+    scanFailed = true;
     statusMessage.value = 'Auto-scan failed: ' + (e?.message ?? e);
   } finally {
     if (scanTimeoutId) { clearTimeout(scanTimeoutId); scanTimeoutId = undefined; }
     scanning.value = false;
-    statusMessage.value = `Found ${devices.value.length} device(s) after ${Math.min(attempts || 1, maxAttempts)} attempt(s)`;
+    if (!scanFailed) {
+      statusMessage.value = `Found ${devices.value.length} device(s) after ${Math.min(attempts || 1, maxAttempts)} attempt(s)`;
+    }
     autoScanCanceled = false;
   }
 }
@@ -411,30 +463,81 @@ async function cancelScan() {
 /* ================================================================== */
 /*  Connect / Disconnect                                               */
 /* ================================================================== */
-async function connectToDevice(device: DeviceLike) {
+async function connectToDeviceUntil(
+  device: DeviceLike,
+  connectionDeadline?: number,
+  isCanceled?: () => boolean
+) {
   if (connectedDevice.value?.deviceId !== device.deviceId) productReference.value = null;
+  prepareMeasurementHistory(device.deviceId);
+  await stopMeasurementMonitoring(device.deviceId, measurementSubscriptions, log);
+  measurementValues.value = {};
+  measurementSubscriptions = [];
   statusMessage.value = hasRememberedBond(device.deviceId)
     ? `Reconnecting to ${device.name || device.deviceId}…`
     : `Connecting to ${device.name || device.deviceId}…`;
   clearConnectionTarget();
   for (let attempt = 1; attempt <= MAX_CONNECT_ATTEMPTS; attempt++) {
+    if (isCanceled?.()) return;
     const retryingInvalidBond = attempt > 1;
     try {
       if (isAndroidNativePlatform()) {
         await ensureBonded(device.deviceId, retryingInvalidBond);
       }
+      if (isCanceled?.()) return;
 
+      const connectionOptions = connectionDeadline === undefined
+        ? undefined
+        : { timeout: Math.max(1, connectionDeadline - Date.now()) };
       await BleClient.connect(device.deviceId, () => {
+        void stopMeasurementMonitoring(device.deviceId, measurementSubscriptions, log);
+        measurementSubscriptions = [];
         connected.value = false;
         connectedDevice.value = undefined;
         clearConnectionTarget();
         pairing.value = false;
         statusMessage.value = 'Device disconnected';
-      });
+      }, connectionOptions);
 
-      connected.value = true;
+      if (isCanceled?.()) {
+        try { await BleClient.disconnect(device.deviceId); } catch { /* ignore cancellation cleanup errors */ }
+        return;
+      }
+
       connectedDevice.value = device;
       lastConnectedDevice.value = device;
+
+      const productId = await readProductIdFromBle(device.deviceId, log);
+      productReference.value = resolveAvailableProductReference(productId?.text);
+      if (productId?.text && productReference.value) {
+        log(`ProductID ${productId.text} selected as ${productReference.value}`);
+      } else {
+        log('ProductID unavailable; no product selected automatically');
+      }
+
+      try {
+        measurementSubscriptions = await startMeasurementMonitoring(
+          device.deviceId,
+          (sample) => {
+            const measurementId = MEASUREMENT_SOURCE_TO_ID[sample.sourceId];
+            if (!measurementId) {
+              log(`[MEAS] Unknown source 0x${sample.sourceId.toString(16).padStart(4, '0')}`);
+              return;
+            }
+            measurementValues.value = {
+              ...measurementValues.value,
+              [measurementId]: sample.value,
+            };
+            if (typeof sample.value === 'number') {
+              appendMeasurementHistory(measurementId, sample.value);
+            }
+          },
+          log
+        );
+      } catch (error: any) {
+        log(`[MEAS] Discovery failed: ${error?.message ?? error}`);
+      }
+
       if (isAndroidNativePlatform()) {
         rememberBondedDevice(device.deviceId);
       }
@@ -502,6 +605,21 @@ async function connectToDevice(device: DeviceLike) {
       } catch (e) {
         console.warn('Service discovery failed:', e);
       }
+
+      if (isCanceled?.()) {
+        await stopMeasurementMonitoring(device.deviceId, measurementSubscriptions, log);
+        measurementSubscriptions = [];
+        try { await BleClient.disconnect(device.deviceId); } catch { /* ignore cancellation cleanup errors */ }
+        connectedDevice.value = undefined;
+        clearConnectionTarget();
+        return;
+      }
+
+      // Expose the connection only once its services and notifications are
+      // ready, so the UI can navigate straight to the sensor dashboard.
+      if (!isCanceled?.() && connectedDevice.value?.deviceId === device.deviceId) {
+        connected.value = true;
+      }
       return;
     } catch (e: any) {
       if (isAndroidNativePlatform() && attempt < MAX_CONNECT_ATTEMPTS && (hasRememberedBond(device.deviceId) || isLikelyBondIssue(e))) {
@@ -518,21 +636,99 @@ async function connectToDevice(device: DeviceLike) {
   }
 }
 
+async function connectToDevice(device: DeviceLike) {
+  await connectToDeviceUntil(device);
+}
+
 async function disconnect() {
   if (!connectedDevice.value) return;
+  await stopMeasurementMonitoring(
+    connectedDevice.value.deviceId,
+    measurementSubscriptions,
+    log
+  );
+  measurementSubscriptions = [];
   try {
     await BleClient.disconnect(connectedDevice.value.deviceId);
   } catch (e) { console.error('Disconnect error:', e); }
   connected.value = false;
   connectedDevice.value = undefined;
+  clearMeasurementHistory();
   clearConnectionTarget();
   pairing.value = false;
   statusMessage.value = 'Disconnected';
 }
 
+function finishReconnectScan(found: boolean) {
+  if (reconnectScanTimeoutId) {
+    clearTimeout(reconnectScanTimeoutId);
+    reconnectScanTimeoutId = undefined;
+  }
+  const resolve = reconnectScanResolve;
+  reconnectScanResolve = undefined;
+  resolve?.(found);
+}
+
+async function waitForReconnectAdvertisement(device: DeviceLike, deadline: number): Promise<boolean> {
+  const remainingTime = deadline - Date.now();
+  if (reconnectCanceled || remainingTime <= 0) return false;
+
+  statusMessage.value = `Waiting for ${device.name || device.deviceId}…`;
+  const resultPromise = new Promise<boolean>((resolve) => {
+    reconnectScanResolve = resolve;
+    reconnectScanTimeoutId = setTimeout(() => finishReconnectScan(false), remainingTime);
+  });
+
+  try {
+    await BleClient.requestLEScan({
+      allowDuplicates: true,
+      scanMode: ScanMode.SCAN_MODE_LOW_LATENCY,
+    }, (result: ScanResult) => {
+      if (result.device.deviceId === device.deviceId) {
+        log(`RECONNECT FOUND ${device.deviceId}`);
+        finishReconnectScan(true);
+      }
+    });
+    reconnectScanActive = true;
+    if (reconnectCanceled) finishReconnectScan(false);
+    return await resultPromise;
+  } catch (error: any) {
+    log(`RECONNECT SCAN ERROR ${error?.message ?? error}`);
+    finishReconnectScan(false);
+    return false;
+  } finally {
+    finishReconnectScan(false);
+    if (reconnectScanActive) {
+      reconnectScanActive = false;
+      try { await BleClient.stopLEScan(); } catch { /* ignore reconnect scan cleanup errors */ }
+    }
+  }
+}
+
+async function cancelReconnect() {
+  if (!reconnecting.value) return;
+
+  reconnectCanceled = true;
+  finishReconnectScan(false);
+
+  if (reconnectScanActive) {
+    reconnectScanActive = false;
+    try { await BleClient.stopLEScan(); } catch { /* ignore reconnect scan cancellation errors */ }
+  }
+
+  const deviceId = lastConnectedDevice.value?.deviceId;
+  if (deviceId) {
+    try { await BleClient.disconnect(deviceId); } catch { /* ignore pending connection cancellation errors */ }
+  }
+  statusMessage.value = 'Reconnection canceled';
+}
+
 async function reconnectToLastDevice(): Promise<boolean> {
   if (connected.value) return true;
-  if (reconnecting.value) return false;
+  if (reconnecting.value) {
+    await cancelReconnect();
+    return false;
+  }
 
   const device = lastConnectedDevice.value;
   if (!device) {
@@ -540,11 +736,42 @@ async function reconnectToLastDevice(): Promise<boolean> {
     return false;
   }
 
+  reconnectCanceled = false;
   reconnecting.value = true;
   try {
-    await connectToDevice(device);
-    return connected.value;
+    const reconnectDeadline = Date.now() + RECONNECT_TIMEOUT_MS;
+    do {
+      const deviceIsAdvertising = await waitForReconnectAdvertisement(device, reconnectDeadline);
+      if (reconnectCanceled) return false;
+
+      if (!deviceIsAdvertising) {
+        const remainingTime = reconnectDeadline - Date.now();
+        if (remainingTime > 0) {
+          await delay(Math.min(RECONNECT_RETRY_DELAY_MS, remainingTime));
+        }
+        continue;
+      }
+
+      // If the advertisement arrives near the end of the scan window, still
+      // grant the actual GATT connection its complete timeout.
+      const connectionDeadline = Date.now() + RECONNECT_CONNECT_TIMEOUT_MS;
+      await connectToDeviceUntil(device, connectionDeadline, () => reconnectCanceled);
+      if (connected.value) return true;
+
+      const remainingTime = reconnectDeadline - Date.now();
+      if (remainingTime > 0) {
+        await delay(Math.min(RECONNECT_RETRY_DELAY_MS, remainingTime));
+      }
+    } while (Date.now() < reconnectDeadline);
+
+    return false;
   } finally {
+    finishReconnectScan(false);
+    if (reconnectScanActive) {
+      reconnectScanActive = false;
+      try { await BleClient.stopLEScan(); } catch { /* ignore reconnect scan cleanup errors */ }
+    }
+    if (reconnectCanceled) statusMessage.value = 'Reconnection canceled';
     reconnecting.value = false;
   }
 }
@@ -698,7 +925,7 @@ function getDeviceName(device: DeviceLike): string {
 }
 
 function setProductReference(value?: string | null) {
-  productReference.value = extractProductReference(value);
+  productReference.value = resolveAvailableProductReference(value);
 }
 
 /* ================================================================== */
@@ -721,6 +948,8 @@ export function useBle() {
     reconnecting:    readonly(reconnecting),
     bondedDevices:   readonly(bondedDevices),
     productReference: readonly(productReference),
+    measurementValues: readonly(measurementValues),
+    measurementHistory: readonly(measurementHistory),
 
     initialize,
     startScan,
@@ -729,6 +958,7 @@ export function useBle() {
     stopScan,
     connectToDevice,
     reconnectToLastDevice,
+    cancelReconnect,
     disconnect,
     sendOutputFrames,
     getDeviceName,

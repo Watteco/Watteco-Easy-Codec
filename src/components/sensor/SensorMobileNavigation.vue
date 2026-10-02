@@ -20,16 +20,28 @@
       <strong>{{ localize('@noSensorConnected') }}</strong>
     </div>
 
-    <button
-      type="button"
-      class="sensor-mobile-header-action"
-      :aria-label="headerActionLabel"
-      :disabled="headerActionDisabled"
-      @click="handleHeaderAction"
-    >
-      <ion-spinner v-if="ble.reconnecting.value" name="crescent" />
-      <ion-icon v-else :icon="headerActionIcon" aria-hidden="true" />
-    </button>
+    <div class="sensor-mobile-header-actions">
+      <button
+        type="button"
+        class="sensor-mobile-header-action"
+        :aria-label="headerActionLabel"
+        :disabled="headerActionDisabled"
+        @click="handleHeaderAction"
+      >
+        <ion-spinner v-if="ble.reconnecting.value" name="crescent" />
+        <ion-icon v-else :icon="headerActionIcon" aria-hidden="true" />
+      </button>
+
+      <button
+        v-if="effectiveStatus === 'reconnect'"
+        type="button"
+        class="sensor-mobile-header-action"
+        :aria-label="localize('@bleDisconnect')"
+        @click="disconnectAndGoBack"
+      >
+        <ion-icon :icon="logOutOutline" aria-hidden="true" />
+      </button>
+    </div>
   </header>
 
 </template>
@@ -90,20 +102,29 @@ const headerActionIcon = computed(() => {
   if (effectiveStatus.value === 'reconnect') return refreshOutline;
   return bluetoothOutline;
 });
-const headerActionDisabled = computed(() => ble.reconnecting.value || ble.pairing.value);
+const headerActionDisabled = computed(() => ble.pairing.value && !ble.reconnecting.value);
 
 const handleHeaderAction = async () => {
   if (effectiveStatus.value === 'connected') {
-    await ble.disconnect();
-    await router.replace('/ble-connect');
+    await disconnectAndGoBack();
     return;
   }
 
   if (effectiveStatus.value === 'reconnect') {
+    if (ble.reconnecting.value) {
+      await ble.cancelReconnect();
+      return;
+    }
     await ble.reconnectToLastDevice();
     return;
   }
 
+  await router.replace('/ble-connect');
+};
+
+const disconnectAndGoBack = async () => {
+  await ble.cancelReconnect();
+  await ble.disconnect();
   await router.replace('/ble-connect');
 };
 
@@ -179,6 +200,11 @@ const handleHeaderAction = async () => {
 
 .sensor-mobile-header--disconnected .sensor-mobile-status-dot {
   background: transparent;
+}
+
+.sensor-mobile-header-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .sensor-mobile-header-action {

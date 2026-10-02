@@ -3,6 +3,7 @@
 		{
 			"name": "Acceler'O (50-70-197) [beta]",
 			"file": "50-70-197-Accelero",
+			"compatibleProducts": ["50-70-197"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
 			"mId": [""],
 			"category": "Accelerometric sensors",
@@ -12,6 +13,7 @@
 		{
 			"name": "Atm'O (50-70-099)",
 			"file": "50-70-099-Atmo",
+			"compatibleProducts": ["50-70-099"],
 			"apps": ["LoraEncoder","Decoder"],
 			"mId": ["atmo"],
 			"BatchUncompressParams": "3 0,1,7,Temperature 1,1,6,RelativeHumidity 2,1,7,Pressure 3,1,10,Index1 4,1,10,Index2 5,1,6,BatteryLevel",
@@ -23,6 +25,7 @@
 		{
 			"name": "Cels'O (50-70-049)",
 			"file": "50-70-049-Celso",
+			"compatibleProducts": ["50-70-049"],
 			"apps": ["LoraEncoder","Decoder"],
 			"mId": [""],
 			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel",
@@ -33,6 +36,7 @@
 		{
 			"name": "Flash'O (50-70-071)",
 			"file": "50-70-071-Flasho",
+			"compatibleProducts": ["50-70-071"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["flasho"],
 			"BatchUncompressParams": "1 0,1,10,Index 1,100,6,BatteryLevel",
@@ -43,6 +47,7 @@
 		{
 			"name": "Flash'O 3 probes (50-70-206)",
 			"file": "50-70-206-Flash'O-3-probes",
+			"compatibleProducts": ["50-70-206"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["flasho"],
 			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,100,6,BatteryLevel 7,1,6,MultiState",
@@ -53,6 +58,7 @@
 		{
 			"name": "HygroTemp'O (50-70-[205/232])",
 			"file": "50-70-205-232-HygroTemp'O",
+			"compatibleProducts": ["50-70-205","50-70-232"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["hygrotempo"],
 			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel 3,1,1,OpenCase",
@@ -63,6 +69,7 @@
 		{
 			"name": "Clim'O (50-70-247)",
 			"file": "50-70-247-Clim'O",
+			"compatibleProducts": ["50-70-247"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["climo"],
 			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel",
@@ -73,6 +80,7 @@
 		{
 			"name": "In'O (50-70-016-005)",
 			"file": "50-70-016-Ino",
+			"compatibleProducts": ["50-70-016-005"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
 			"mId": ["ino"],
 			"category": "Digital input/output sensors",
@@ -82,6 +90,7 @@
 		{
 			"name": "Inclin'O (50-70-201)",
 			"file": "50-70-201-Inclino",
+			"compatibleProducts": ["50-70-201"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
 			"mId": ["inclino"],
 			"BatchUncompressParams": "3 0,1,6,ACCmg 1,0.1,12,Deg",
@@ -93,6 +102,7 @@
 		{
 			"name": "Intens'O (50-70-098)",
 			"file": "50-70-098-Intenso",
+			"compatibleProducts": ["50-70-098"],
 			"apps": ["LoraEncoder","Decoder"],
 			"mId": ["intenso"],
 			"BatchUncompressParams": "2 0,0.1,12,Current 1,100,6,BatteryLevel",
@@ -103,6 +113,7 @@
 		{
 			"name": "Modbus (50-70-[080/109])",
 			"file": "50-70-080-Modbus",
+			"compatibleProducts": ["50-70-080","50-70-109"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["modbus"],
 			"category": "Serial monitoring sensors",
@@ -113,6 +124,7 @@
 		{
 			"name": "Modbus Field (50-70-287)",
 			"file": "50-70-287-Modbus-Field",
+			"compatibleProducts": ["50-70-287"],
 			"apps": ["EasyCodec"],
 			"mId": ["modbus"],
 			"category": "Serial monitoring sensors",
@@ -123,6 +135,7 @@
 		{
 			"name": "Monit'O (50-70-141)",
 			"file": "50-70-141-Batto",
+			"compatibleProducts": ["50-70-141"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
 			"mId": ["monito"],
 			"BatchUncompressParams": "3 0,0.02,12,0-100mV 1,17,12,0-70V 2,100,6,BatteryLevel 3,100,6,ExternalLevel",
@@ -133,6 +146,7 @@
 		{
 			"name": "[Deprecated] Move'O (50-70-220)",
 			"file": "50-70-220-000-Move'o",
+			"compatibleProducts": ["50-70-220"],
 			"apps": ["LoraEncoder","Decoder"],
 			"mId": [""],
 			"BatchUncompressParams": "3 0,1,4,OCC 1,10,7,T 2,100,6,H 5,10,6,LUX",
@@ -144,6 +158,7 @@
 		{
 			"name": "Move'O (50-70-225)",
 			"file": "50-70-225-Move'o",
+			"compatibleProducts": ["50-70-225"],
 			"apps": ["LoraEncoder","Decoder","LoraEncoderConfiguration","EasyCodec"],
 			"mId": ["moveo"],
 			"BatchUncompressParams": "3 0,1,4,OCC 1,10,7,T 2,100,6,H 5,10,6,LUX",
@@ -155,6 +170,7 @@
 		{
 			"name": "Temp'O Outdoor (50-70-164)",
 			"file": "50-70-164-RT",
+			"compatibleProducts": ["50-70-164"],
 			"apps": ["LoraEncoder","Decoder","LoraEncoderConfiguration","EasyCodec"],
 			"mId": ["tempo-outdoor"],
 			"BatchUncompressParams": "3 0,10,7,Temperature 5,100,6,BatteryLevel",
@@ -165,6 +181,7 @@
 		{
 			"name": "Temp'O Outdoor - 1 probe + 1 remote probe (50-70-268)",
 			"file": "50-70-268-Temp'O-Outdoor-1probe+1remote-probe",
+			"compatibleProducts": ["50-70-268"],
 			"apps": ["LoraEncoder","Decoder","LoraEncoderConfiguration","EasyCodec"],
 			"mId": ["tempo-outdoor"],
 			"category": "TH sensors (Outdoor)"
@@ -174,6 +191,7 @@
 			"apps": ["LoraEncoder","Decoder"],
 			"mId": ["smartpilot-wire"],
 			"file": "50-70-027-PW",
+			"compatibleProducts": ["50-70-027"],
 			"category": "AC power sensors & actuators",
 			"comment": ["Pilot wire actuator","Actionneur fil-pilote"],
 			"docLink": "https://support.watteco.com/pilote-wire-lora-remote/"
@@ -181,6 +199,7 @@
 		{
 			"name": "[Deprecated] Press'O 50-70-017-004",
 			"file": "50-70-017-004-Presso",
+			"compatibleProducts": ["50-70-017-004"],
 			"apps": ["LoraEncoder","Decoder"],
 			"mId": [""],
 			"BatchUncompressParams": "3 0,0.004,12,4-20mA 1,1,12,0-10V 2,100,6,BatteryLevel 3,100,6,ExtPowerLevel 4,1,10,Index",
@@ -191,6 +210,7 @@
 		{
 			"name": "Press'O (50-70-017-[≥ 005])/(50-70-189 Ext. Ant.)",
 			"file": "50-70-017-005-Presso",
+			"compatibleProducts": ["50-70-017","50-70-189"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
 			"mId": ["presso"],
 			"BatchUncompressParams": "3 0,0.004,12,4-20mA 1,1,12,0-10V 2,100,6,BatteryLevel 3,100,6,ExtPowerLevel 4,1,10,Index",
@@ -201,6 +221,7 @@
 		{
 			"name": "Pulse Sens'O ATEX zone 1 (50-70-[123,228])",
 			"file": "50-70-014-PulseSenso",
+			"compatibleProducts": ["50-70-123","50-70-228"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["pulse-senso-atex"],
 			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,100,6,BatteryLevel 7,1,6,MultiState",
@@ -211,6 +232,7 @@
 		{
 			"name": "Pulse Sens'O (50-70-[014/072/039/051/160])",
 			"file": "50-70-014-PulseSenso",
+			"compatibleProducts": ["50-70-014","50-70-072","50-70-039","50-70-051","50-70-160"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["pulse-senso"],
 			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,100,6,BatteryLevel 7,1,6,MultiState",
@@ -221,6 +243,7 @@
 		{
 			"name": "[Deprecated] Remote temperature (50-70-043-002)",
 			"file": "50-70-043-002-RT",
+			"compatibleProducts": ["50-70-043-002"],
 			"apps": ["LoraEncoder","Decoder"],
 			"mId": [""],
 			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel",
@@ -231,6 +254,7 @@
 		{
 			"name": "Temp'O - 1 remote probe (50-70-043-003)",
 			"file": "50-70-043-003-RT1CTN",
+			"compatibleProducts": ["50-70-043-003"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["tempo"],
 			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel",
@@ -242,6 +266,7 @@
 		{
 			"name": "PT1000 (50-70-126)",
 			"file": "50-70-126-PT1000",
+			"compatibleProducts": ["50-70-126"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["pt1000"],
 			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel",
@@ -252,6 +277,7 @@
 		{
 			"name": "PT1000 400°C (50-70-288)",
 			"file": "50-70-288-PT1000-400C",
+			"compatibleProducts": ["50-70-288"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["pt1000-400c"],
 			"BatchUncompressParams": "1 0,1,7,Temperature 1,100,6,BatteryLevel",
@@ -262,6 +288,7 @@
 		{
 			"name": "Temp'O - 2 remote probes (50-70-[139/163/184])",
 			"file": "50-70-139-000-RT2CTN",
+			"compatibleProducts": ["50-70-139","50-70-163","50-70-184"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["tempo"],
 			"BatchUncompressParams": "3 0,10,7,Temperature1 1,10,7,Temperature2 5,100,6,BatteryLevel",
@@ -273,6 +300,7 @@
 		{
 			"name": "HygroTemp'O - remote probe 1m (50-70-200)",
 			"file": "50-70-200-RTH",
+			"compatibleProducts": ["50-70-200"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["hygrotempo-remote"],
 			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel",
@@ -284,6 +312,7 @@
 		{
 			"name": "SmartPlug (50-70-003)",
 			"file": "50-70-003-SmartPlug",
+			"compatibleProducts": ["50-70-003"],
 			"apps": ["LoraEncoder","Decoder"],
 			"mId": ["smart-plug"],
 			"BatchUncompressParams": "1 0,1,9,ActiveEnergy",
@@ -294,6 +323,7 @@
 		{
 			"name": "[Deprecated] T (50-70-[085/167])",
 			"file": "50-70-085-T",
+			"compatibleProducts": ["50-70-085","50-70-167"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
 			"mId": [""],
 			"BatchUncompressParams": "2 0,10,7,Temperature  2,1,6,BatteryLevel 3,1,1,OpenCase",
@@ -303,6 +333,7 @@
 		{
 			"name": "Temp'O (50-70-231)",
 			"file": "50-70-231-Temp'O",
+			"compatibleProducts": ["50-70-231"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["tempo"],
 			"BatchUncompressParams": "2 0,10,7,Temperature 2,1,6,BatteryLevel 3,1,1,BreakIn",
@@ -314,6 +345,7 @@
 		{
 			"name": "[Deprecated] TH (50-70-[053/162])",
 			"file": "50-70-053-TH",
+			"compatibleProducts": ["50-70-053","50-70-162"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
 			"mId": ["th"],
 			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel 3,1,1,OpenCase",
@@ -324,6 +356,7 @@
 		{
 			"name": "TICs'O (50-70-045) [beta]",
 			"file": "50-70-045-TIC-PMEPMI",
+			"compatibleProducts": ["50-70-045"],
 			"apps": ["LoraEncoder","Decoder"],
 			"mId": ["ticso"],
 			"category": "AC power sensors & actuators",
@@ -334,6 +367,7 @@
 		{
 			"name": "Toran'O ATEX zone 1(50-70-124)",
 			"file": "50-70-124-Torano",
+			"compatibleProducts": ["50-70-124"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
 			"mId": ["torano-atex"],
 			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,0.004,12,4-20mA 7,1,12,0-5V[Measure-1] 8,1,12,0-5V[Measure-2] 9,1,12,ratio[Measure-1] 10,1,12,ratio[Measure-1] 11,100,6,BatteryLevel",
@@ -345,6 +379,7 @@
 		{
 			"name": "Triphas'O (50-70-[105/145/146])",
 			"file": "50-70-105-Triphaso",
+			"compatibleProducts": ["50-70-105","50-70-145","50-70-146"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
 			"mId": ["triphaso"],
 			"category": "AC power sensors & actuators",
@@ -355,6 +390,7 @@
 		{
 			"name": "Vaqa'O Lite (50-70-223)",
 			"file": "50-70-223-VAQAO Lt",
+			"compatibleProducts": ["50-70-223"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["vaqao-lite"],
 			"BatchUncompressParams": "3 1,10,7,T 2,100,6,H 3,10,6,CO2",
@@ -366,6 +402,7 @@
 		{
 			"name": "Vaqa'O + Lite (50-70-251)",
 			"file": "50-70-251-VAQAO+Lt",
+			"compatibleProducts": ["50-70-251"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder","EasyCodec"],
 			"mId": ["vaqao-plus-lite"],
 			"BatchUncompressParams": "3 0,1,4,OCC 1,10,7,T 2,100,6,H 3,10,6,CO2 5,10,6,LUX ",
@@ -377,6 +414,7 @@
 		{
 			"name": "[Deprecated] Vaqa'O + Plus (50-70-074)",
 			"file": "50-70-074-VAQAO+Plus",
+			"compatibleProducts": ["50-70-074"],
 			"apps": ["LoraEncoder","Decoder"],
 			"mId": ["vaqao-plus"],
 			"BatchUncompressParams": "3 0,1,4,OCC 1,10,7,T 2,100,6,H 3,10,6,CO2 4,10,6,COV 5,10,6,LUX 6,10,6,P",
@@ -388,6 +426,7 @@
 		{
 			"name": "[Deprecated] Vaqa'O (50-70-168)",
 			"file": "50-70-168-VAQAO",
+			"compatibleProducts": ["50-70-168"],
 			"apps": ["LoraEncoder","Decoder"],
 			"mId": ["vaqao"],
 			"BatchUncompressParams": "3 1,10,7,T 2,100,6,H 3,10,6,CO2 4,10,6,COV",
@@ -399,6 +438,7 @@
 		{
 			"name": "Ventil'O (50-70-[064/101/166])",
 			"file": "50-70-064-Ventil'o",
+			"compatibleProducts": ["50-70-064","50-70-101","50-70-166"],
 			"apps": ["LoraEncoder","LoraEncoderConfiguration","Decoder"],
 			"mId": ["ventilo"],
 			"BatchUncompressParams": "3 0,1,7,Mean_differential_pressure_since_last_report 1,1,7,Minimal_differential_pressure_since_last_report 2,1,7,Maximal_differential_pressure_since_last_report  3,1,6,BatteryLevel 4,10,7,Temperature 5,1,7,DifferentialPressure 6,1,10,Index 7,1,1,State",
@@ -410,6 +450,7 @@
 		{
 			"name": "Alt'O (50-70-236)",
 			"file": "50-70-236-Alt'o",
+			"compatibleProducts": ["50-70-236"],
 			"apps": ["EasyCodec"],
 			"mId": ["alto"],
 			"category": "Environnemental sensors",
@@ -420,6 +461,7 @@
 		{
 			"name": "Valv'O (50-70-291)",
 			"file": "50-70-291-Valv'O",
+			"compatibleProducts": ["50-70-291"],
 			"apps": [""],
 			"mId": [""],
 			"category": "zTest dev",
@@ -428,8 +470,9 @@
 			"docLink": "https://support.watteco.com/atmo/"
 		},
 		{
-			"name": "BETA Pulse Sens'O Neo (50-70-451)",
-			"file": "50-70-451-PulseSensoNeoTest",
+			"name": "BETA Pulse Sens'O Neo (50-70-260)",
+			"file": "50-70-260-PulseSensoNeoTest",
+			"compatibleProducts": ["50-70-260"],
 			"apps": ["EasyCodec"],
 			"mId": ["pulse-senso-neo"],
 			"category": "BETA",

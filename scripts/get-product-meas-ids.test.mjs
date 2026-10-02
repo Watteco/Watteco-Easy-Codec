@@ -4,9 +4,9 @@ import { readFile } from 'node:fs/promises'
 import { resolveMeasIds, run } from './get-product-meas-ids.mjs'
 
 test('resout les measIds de Pulse Sens\'O Neo depuis les fichiers du projet', async () => {
-  const result = await run(['50-70-451'])
+  const result = await run(['50-70-260'])
 
-  assert.equal(result.product, '50-70-451-PulseSensoNeoTest')
+  assert.equal(result.product, '50-70-260-PulseSensoNeoTest')
   assert.deepEqual(result.mIds, ['pulse-senso-neo'])
   assert.ok(result.models.includes('pulse-senso-neo'))
   assert.ok(result.models.includes('binary-input'))

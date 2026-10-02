@@ -4,23 +4,42 @@
             "258", "259", "260", "261", "262", "263", "264", "265", "266"],
     "accent": "#F47B20",
     "icon": "thermometerOutline",
+    "labelKey": "@temperatureLabel",
+    "numbered": true,
     "history": true
   },
   {
     "ids": ["49", "50", "51"],
     "accent": "#2997C8",
     "icon": "waterOutline",
+    "labelKey": "@humidityLabel",
+    "numbered": true,
     "history": true
   },
   {
     "ids": ["39", "230"],
     "accent": "#57A66A",
     "icon": "batteryHalfOutline",
-    "category": "battery"
+    "labelKey": "@batteryLevelLabel",
+    "category": "battery",
+    "history": true,
+    "historyMin": 0,
+    "historyMax": 100
   },
   {
     "ids": ["54", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64"],
     "accent": "#7867B8",
-    "icon": "calculatorOutline"
+    "icon": "speedometerOutline",
+    "labelKey": "@counterLabel",
+    "numbered": true
+  },
+  {
+    "ids": ["174", "175", "176", "177", "178", "179", "180", "181", "182", "183", "184"],
+    "accent": "#DB6F2B",
+    "icon": "toggleOutline",
+    "labelKey": "@PulseStateLabel",
+    "category": "state",
+    "numbered": true,
+    "history": false
   }
 ]

@@ -1,7 +1,35 @@
-diff --git a/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt b/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
---- a/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
-+++ b/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
-@@ -199,7 +199,8 @@
+diff --git a/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/BluetoothLe.kt b/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/BluetoothLe.kt
+index 87e589a..4faef0a 100644
+--- a/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/BluetoothLe.kt
++++ b/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/BluetoothLe.kt
+@@ -647,8 +647,9 @@ class BluetoothLe : Plugin() {
+     fun read(call: PluginCall) {
+         val device = getDevice(call) ?: return
+         val characteristic = getCharacteristic(call) ?: return
++        val characteristicIndex = call.getInt("characteristicIndex", 0) ?: 0
+         val timeout = call.getFloat("timeout", DEFAULT_TIMEOUT)!!.toLong()
+-        device.read(characteristic.first, characteristic.second, timeout) { response ->
++        device.read(characteristic.first, characteristic.second, characteristicIndex, timeout) { response ->
+             run {
+                 if (response.success) {
+                     val ret = JSObject()
+@@ -713,9 +714,10 @@ class BluetoothLe : Plugin() {
+     fun readDescriptor(call: PluginCall) {
+         val device = getDevice(call) ?: return
+         val descriptor = getDescriptor(call) ?: return
++        val characteristicIndex = call.getInt("characteristicIndex", 0) ?: 0
+         val timeout = call.getFloat("timeout", DEFAULT_TIMEOUT)!!.toLong()
+         device.readDescriptor(
+-            descriptor.first, descriptor.second, descriptor.third, timeout
++            descriptor.first, descriptor.second, characteristicIndex, descriptor.third, timeout
+         ) { response ->
+             run {
+                 if (response.success) {
+diff --git a/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt b/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
+index f09e6a0..e427d9d 100644
+--- a/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
++++ b/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
+@@ -199,7 +199,8 @@ class Device(
              if (status == BluetoothGatt.GATT_SUCCESS) {
                  resolve(key, "Characteristic successfully written.")
              } else {
@@ -11,3 +39,40 @@ diff --git a/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle
              }
  
          }
+@@ -486,13 +487,16 @@ class Device(
+     fun read(
+         serviceUUID: UUID,
+         characteristicUUID: UUID,
++        characteristicIndex: Int,
+         timeout: Long,
+         callback: (CallbackResponse) -> Unit
+     ) {
+         val key = "read|$serviceUUID|$characteristicUUID"
+         callbackMap[key] = callback
+         val service = bluetoothGatt?.getService(serviceUUID)
+-        val characteristic = service?.getCharacteristic(characteristicUUID)
++        val characteristic = service?.characteristics
++            ?.filter { it.uuid == characteristicUUID }
++            ?.getOrNull(characteristicIndex)
+         if (characteristic == null) {
+             reject(key, "Characteristic not found.")
+             return
+@@ -606,6 +610,7 @@ class Device(
+     fun readDescriptor(
+         serviceUUID: UUID,
+         characteristicUUID: UUID,
++        characteristicIndex: Int,
+         descriptorUUID: UUID,
+         timeout: Long,
+         callback: (CallbackResponse) -> Unit
+@@ -613,7 +618,9 @@ class Device(
+         val key = "readDescriptor|$serviceUUID|$characteristicUUID|$descriptorUUID"
+         callbackMap[key] = callback
+         val service = bluetoothGatt?.getService(serviceUUID)
+-        val characteristic = service?.getCharacteristic(characteristicUUID)
++        val characteristic = service?.characteristics
++            ?.filter { it.uuid == characteristicUUID }
++            ?.getOrNull(characteristicIndex)
+         if (characteristic == null) {
+             reject(key, "Characteristic not found.")
+             return

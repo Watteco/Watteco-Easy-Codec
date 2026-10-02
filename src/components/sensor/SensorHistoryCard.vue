@@ -11,30 +11,44 @@
         </div>
       </header>
 
-      <div v-if="normalizedPoints.length" class="chart">
+      <div v-if="chartPoints.length" class="chart">
+        <div class="chart-y-axis" aria-hidden="true">
+          <span>{{ formatAxisValue(scaleBounds.max) }}</span>
+          <span>{{ formatAxisValue((scaleBounds.min + scaleBounds.max) / 2) }}</span>
+          <span>{{ formatAxisValue(scaleBounds.min) }}</span>
+        </div>
         <div class="chart-grid" aria-hidden="true">
           <span />
           <span />
           <span />
         </div>
-        <div class="chart-bars" role="img" :aria-label="label">
-          <div
-            v-for="point in normalizedPoints"
-            :key="point.timestamp"
-            class="chart-bar-slot"
+        <svg
+          class="chart-line"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          role="img"
+          :aria-label="`${label}: ${formatAxisValue(scaleBounds.min)}–${formatAxisValue(scaleBounds.max)} ${unit}`"
+        >
+          <path class="chart-area" :d="areaPath" />
+          <path class="chart-stroke" :d="linePath" />
+        </svg>
+        <div class="chart-points" aria-hidden="true">
+          <span
+            v-for="(point, index) in chartPoints"
+            :key="`${point.timestamp}-${index}`"
+            class="chart-point"
+            :style="{ left: `${point.x}%`, top: `${point.y}%` }"
             :title="`${formatTimestamp(point.timestamp)} · ${formatValue(point.value)} ${unit}`"
-          >
-            <span class="chart-bar" :style="{ height: `${point.height}%` }" />
-          </div>
+          />
         </div>
         <div class="chart-axis">
-          <span>{{ formatTimestamp(normalizedPoints[0].timestamp) }}</span>
-          <span>{{ formatTimestamp(normalizedPoints[normalizedPoints.length - 1].timestamp) }}</span>
+          <span>{{ formatTimestamp(chartPoints[0].timestamp) }}</span>
+          <span>{{ formatTimestamp(chartPoints[chartPoints.length - 1].timestamp) }}</span>
         </div>
       </div>
 
       <div v-else class="chart-empty">
-        <ion-icon :icon="barChartOutline" />
+        <ion-icon :icon="analyticsOutline" />
         <span>{{ emptyLabel }}</span>
       </div>
     </ion-card-content>
@@ -44,7 +58,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { IonCard, IonCardContent, IonIcon } from '@ionic/vue';
-import { barChartOutline } from 'ionicons/icons';
+import { analyticsOutline } from 'ionicons/icons';
 
 type HistoryPoint = {
   timestamp: number;
@@ -55,35 +69,73 @@ const props = withDefaults(defineProps<{
   label: string;
   subtitle: string;
   emptyLabel: string;
-  points: HistoryPoint[];
+  points: readonly HistoryPoint[];
   unit?: string;
   accent?: string;
   decimals?: number;
+  minValue?: number;
+  maxValue?: number;
 }>(), {
   unit: '',
   accent: '#F47B20',
   decimals: 0,
 });
 
-const lastPoint = computed(() => props.points.at(-1));
-
-const normalizedPoints = computed(() => {
-  if (!props.points.length) return [];
+const scaleBounds = computed(() => {
+  if (!props.points.length) return { min: 0, max: 1 };
 
   const values = props.points.map(point => point.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
+  const automaticMin = Math.min(...values);
+  const automaticMax = Math.max(...values);
+  const configuredMin = Number.isFinite(props.minValue) ? props.minValue : undefined;
+  const configuredMax = Number.isFinite(props.maxValue) ? props.maxValue : undefined;
+  let min = configuredMin ?? automaticMin;
+  let max = configuredMax ?? automaticMax;
+  if (max <= min) {
+    min = automaticMin;
+    max = automaticMax;
+  }
 
-  return props.points.map(point => ({
+  return { min, max };
+});
+
+const chartPoints = computed(() => {
+  if (!props.points.length) return [];
+
+  const points = [...props.points].sort((left, right) => left.timestamp - right.timestamp);
+  const { min, max } = scaleBounds.value;
+  const valueRange = max - min || 1;
+  const firstTimestamp = points[0].timestamp;
+  const timeRange = points[points.length - 1].timestamp - firstTimestamp;
+
+  return points.map((point, index) => ({
     ...point,
-    height: 18 + ((point.value - min) / range) * 82,
+    x: timeRange
+      ? 1.5 + ((point.timestamp - firstTimestamp) / timeRange) * 97
+      : 50 + (index - (points.length - 1) / 2) * 3,
+    y: Math.min(92, Math.max(8, 92 - ((point.value - min) / valueRange) * 84)),
   }));
+});
+
+const lastPoint = computed(() => chartPoints.value.at(-1));
+
+const linePath = computed(() => chartPoints.value
+  .map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`)
+  .join(' '));
+
+const areaPath = computed(() => {
+  const points = chartPoints.value;
+  if (!points.length) return '';
+  return `${linePath.value} L ${points.at(-1)?.x} 100 L ${points[0].x} 100 Z`;
 });
 
 const formatValue = (value: number) => value.toLocaleString(undefined, {
   minimumFractionDigits: props.decimals,
   maximumFractionDigits: props.decimals,
+});
+
+const formatAxisValue = (value: number) => value.toLocaleString(undefined, {
+  maximumFractionDigits: Math.min(props.decimals, 1),
 });
 
 const formatTimestamp = (timestamp: number) => new Intl.DateTimeFormat(undefined, {
@@ -148,7 +200,7 @@ const formatTimestamp = (timestamp: number) => new Intl.DateTimeFormat(undefined
 
 .chart-grid {
   position: absolute;
-  inset: 0 0 22px;
+  inset: 0 0 22px 34px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -158,36 +210,65 @@ const formatTimestamp = (timestamp: number) => new Intl.DateTimeFormat(undefined
   border-top: 1px dashed #e2e5e8;
 }
 
-.chart-bars {
+.chart-line {
   position: absolute;
-  inset: 0 2px 22px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  gap: 4px;
+  inset: 0 0 22px 34px;
+  width: calc(100% - 34px);
+  height: calc(100% - 22px);
+  overflow: visible;
 }
 
-.chart-bar-slot {
-  display: flex;
-  height: 100%;
-  flex: 1 1 0;
-  align-items: flex-end;
-  justify-content: center;
+.chart-area {
+  fill: var(--history-accent);
+  opacity: 0.1;
 }
 
-.chart-bar {
-  width: min(72%, 22px);
-  min-height: 4px;
-  border-radius: 5px 5px 2px 2px;
-  background: linear-gradient(to top, var(--history-accent), color-mix(in srgb, var(--history-accent) 62%, white));
-  transition: height 180ms ease;
+.chart-stroke {
+  fill: none;
+  stroke: var(--history-accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart-points {
+  position: absolute;
+  inset: 0 0 22px 34px;
+  pointer-events: none;
+}
+
+.chart-point {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--history-accent);
+  border-radius: 50%;
+  background: #fff;
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+}
+
+.chart-y-axis {
+  position: absolute;
+  top: -6px;
+  bottom: 17px;
+  left: 0;
+  display: flex;
+  width: 28px;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  color: #969da5;
+  font-size: 0.64rem;
+  line-height: 1;
 }
 
 .chart-axis {
   position: absolute;
   right: 0;
   bottom: 0;
-  left: 0;
+  left: 34px;
   display: flex;
   justify-content: space-between;
   color: #969da5;

@@ -1,4 +1,5 @@
-import { ref, watch, onUnmounted } from 'vue';
+import { ref, watch, onUnmounted, toValue } from 'vue';
+import type { MaybeRef } from 'vue';
 import {
   startDebugSubscriptions as startBleDebugSubscriptions,
   stopDebugSubscriptions as stopBleDebugSubscriptions,
@@ -23,10 +24,11 @@ import {
 import { OsaKeyStore } from '@/plugins/osaKeyStore';
 
 type UseBleDebugOptions = {
-  enabled: boolean;
+  enabled: MaybeRef<boolean>;
 };
 
 export function useBleDebug(ble: any, options: UseBleDebugOptions) {
+  const isEnabled = () => toValue(options.enabled);
   const debugVisible = ref(false);
   const debugLogs = ref<string[]>([]);
   const debugSubscribed = ref(false);
@@ -45,7 +47,7 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
   };
 
   async function startDebugSubscriptions() {
-    if (!options.enabled) return;
+    if (!isEnabled()) return;
     if (!ble.connected.value || !ble.connectedDevice.value) return;
     if (debugSubscribed.value) return;
 
@@ -259,7 +261,7 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
   watch(
     () => ble.eventsLog.value[0],
     (line) => {
-      if (!options.enabled) return;
+      if (!isEnabled()) return;
       if (!line || line === lastMirroredBleEvent.value) return;
       if (!/\bERROR\b|ATT Application Error|BLE_WRITE_ERROR/i.test(line)) return;
       lastMirroredBleEvent.value = line;
@@ -270,14 +272,26 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
   watch(
     () => ble.connected.value,
     (connectedNow) => {
-      if (!options.enabled) return;
+      if (!isEnabled()) return;
       if (connectedNow) startDebugSubscriptions();
       else stopDebugSubscriptions();
     }
   );
 
+  watch(
+    isEnabled,
+    (enabled) => {
+      if (enabled) {
+        void startDebugSubscriptions();
+      } else {
+        debugVisible.value = false;
+        void stopDebugSubscriptions();
+      }
+    },
+    { immediate: true }
+  );
+
   onUnmounted(() => {
-    if (!options.enabled) return;
     void stopDebugSubscriptions();
   });
 

@@ -47,32 +47,6 @@
           </ion-card-content>
         </ion-card>
 
-        <!-- HERE -->
-        <ion-card v-if="ble.isNative.value && !sensorConfig">
-          <ion-card-content>
-            <ion-button
-              v-if="ble.connected.value"
-              @click="disconnectAndGoBack"
-              size="small"
-              fill="outline"
-              color="danger"
-              :disabled="ble.pairing.value"
-            >
-              {{ localize('@bleDisconnect') }}
-            </ion-button>
-            <ion-button
-              v-else-if="ble.lastConnectedDevice.value"
-              @click="reconnect"
-              size="small"
-              fill="outline"
-              color="primary"
-              :disabled="ble.reconnecting.value || ble.pairing.value"
-            >
-              {{ ble.reconnecting.value ? localize('@bleReconnecting') : localize('@bleReconnect') }}
-            </ion-button>
-          </ion-card-content>
-        </ion-card>
-        
       <div class="card-holder" v-show="sensorConfigLoaded">
         <!-- General (general_params) -->
         <ion-card v-if="sensorConfig && sensorConfig.general_params" class="category-card" :key="`general-${currentLanguage}-${selectedSensor}`">
@@ -1283,37 +1257,17 @@
         <!-- Native: BLE send (connection managed by BleConnectPage) -->
         <div v-if="ble.isNative.value" class="ble-panel">
           <div class="ble-actions">
-            <ion-chip :color="ble.connected.value ? 'success' : (ble.pairing.value ? 'warning' : 'warning')" size="small">
-              {{ ble.pairing.value
-                ? 'Secure pairing in progress'
-                : ble.connected.value
-                ? localize('@bleConnectedTo') + ' ' + ble.getDeviceName(ble.connectedDevice.value!)
-                : localize('@bleNotConnected') }}
-            </ion-chip>
-            <ion-button v-if="framesAvailable && ble.connected.value" @click="sendFramesBle" :disabled="ble.sending.value || ble.pairing.value" class="half-width" color="primary">
-              {{ ble.pairing.value ? 'Pairing…' : (ble.sending.value ? localize('@bleSending') : localize('@bleSendFrames')) }}
-            </ion-button>
-            <ion-button v-if="ble.connected.value" @click="disconnectAndGoBack" size="small" fill="outline" color="danger" :disabled="ble.pairing.value">
-              {{ localize('@bleDisconnect') }}
-            </ion-button>
-            <ion-button
-              v-else-if="ble.lastConnectedDevice.value"
-              @click="reconnect"
-              size="small"
-              fill="outline"
-              color="primary"
-              :disabled="ble.reconnecting.value || ble.pairing.value"
-            >
-              {{ ble.reconnecting.value ? localize('@bleReconnecting') : localize('@bleReconnect') }}
+            <ion-button v-if="framesAvailable" @click="sendFramesBle" :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value" class="half-width" color="primary">
+              {{ ble.pairing.value ? 'Pairing…' : (ble.sending.value ? localize('@bleSending') : localize('@bleSendConfig')) }}
             </ion-button>
           </div>
           <ion-checkbox
-            v-if="framesAvailable && ble.connected.value"
+            v-if="framesAvailable"
             class="ble-activation-option"
             label-placement="end"
             justify="start"
             :checked="activateConfigurationAfterSend"
-            :disabled="ble.sending.value || ble.pairing.value"
+            :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value"
             @ionChange="activateConfigurationAfterSend = $event.detail.checked"
           >
             {{ localize('@bleActivateAfterSend') }}
@@ -1331,7 +1285,7 @@
     </ion-content>
 
   <BleDebugPanel
-    v-if="bleDebugEnabledByEnv && ble.isNative.value"
+    v-if="developerModeEnabled && ble.isNative.value"
     v-model:visible="debugVisible"
     v-model:debugHex="debugHex"
     v-model:debugOtaAppKeyHex="debugOtaAppKeyHex"
@@ -1400,7 +1354,6 @@ import {
   onIonViewDidEnter,
 } from '@ionic/vue';
 import { chevronForwardOutline, closeOutline, refreshOutline } from 'ionicons/icons';
-import { useRouter } from 'vue-router';
 import { Capacitor } from '@capacitor/core';
 import { useBle } from '@/composables/useBle';
 import { useBleDebug } from '@/composables/useBleDebug';
@@ -1421,6 +1374,7 @@ import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.v
 import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import { useLanguage } from '@/composables/useLanguage';
+import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { getProductConfigurationFile } from '@/utils/productMeasurements';
 
@@ -1513,9 +1467,11 @@ const languages = ref<Record<LanguageCode, Translations>>({
   fr: {},
 });
 
-const bleDebugEnabledByEnv = import.meta.env.DEV || import.meta.env.VITE_ENABLE_BLE_DEBUG === 'true';
+const { developerModeEnabled } = useDeveloperMode();
 const isNativeApp = Capacitor.isNativePlatform();
-const bleHideInProd = Capacitor.getPlatform() === 'android' && !bleDebugEnabledByEnv;
+const bleHideInProd = computed(() => (
+  Capacitor.getPlatform() === 'android' && !developerModeEnabled.value
+));
 
 // BLE composable (only active on native platforms, no-op on web)
 const ble = useBle();
@@ -1547,7 +1503,7 @@ const {
   readStoredOsaKey,
   deleteStoredOsaKey,
   purgeExpiredOsaKeys,
-} = useBleDebug(ble, { enabled: bleDebugEnabledByEnv });
+} = useBleDebug(ble, { enabled: developerModeEnabled });
 
 // Reactive variables to store application state
 const availableProducts = ref<Product[]>([]); // Stores the list of available products
@@ -1577,8 +1533,11 @@ const outputVals: Record<string, string> = {}; // Output values derived from par
 const paramGroupList: Record<string, any> = {}; // List of parameter groups
 const currentErrors: never[] = []; // Tracks current errors
 const framesAvailable = ref(false);
-// Debug builds default to storing the BLOB without applying/rebooting it.
-const activateConfigurationAfterSend = ref(!bleDebugEnabledByEnv);
+// Developer mode defaults to storing the BLOB without applying/rebooting it.
+const activateConfigurationAfterSend = ref(!developerModeEnabled.value);
+watch(developerModeEnabled, enabled => {
+  activateConfigurationAfterSend.value = !enabled;
+});
 const batchVisible = ref(true);
 const standardVisible = ref(true);
 const modbusVisible = ref(true);
@@ -2470,18 +2429,6 @@ const sendFramesBle = async () => {
     debugDevEuiHex.value,
     activateConfigurationAfterSend.value
   );
-};
-
-// Reconnect in place so all selected sensor settings and field values stay intact.
-const reconnect = async () => {
-  await ble.reconnectToLastDevice();
-};
-
-// Disconnect BLE and navigate back to connection page
-const router = useRouter();
-const disconnectAndGoBack = async () => {
-  await ble.disconnect();
-  router.replace('/ble-connect');
 };
 
 const toggleVisibility = (category: string) => {

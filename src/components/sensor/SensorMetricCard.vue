@@ -9,7 +9,11 @@
         <span class="metric-icon" aria-hidden="true">
           <ion-icon :icon="icon" />
         </span>
-        <span class="metric-label">{{ label }}</span>
+        <span
+          class="metric-label"
+          :title="officialLabel || label"
+          :aria-label="officialLabel || label"
+        >{{ label }}</span>
       </div>
 
       <div class="metric-value" :class="{ 'metric-value--empty': value === null }">
@@ -26,6 +30,7 @@ import { IonCard, IonCardContent, IonIcon } from '@ionic/vue';
 
 const props = withDefaults(defineProps<{
   label: string;
+  officialLabel?: string;
   value: number | string | null;
   unit?: string;
   icon: string;
@@ -34,6 +39,7 @@ const props = withDefaults(defineProps<{
   compact?: boolean;
 }>(), {
   unit: '',
+  officialLabel: '',
   accent: '#7867B8',
   decimals: 0,
   compact: false,

@@ -16,6 +16,7 @@
               v-for="card in displayedCards"
               :key="card.measId"
               :label="card.name"
+              :official-label="card.officialName"
               :value="card.value"
               :unit="card.unit"
               :icon="card.visual.icon"
@@ -25,10 +26,12 @@
             />
             <sensor-state-card
               v-if="stateEntries.length"
-              :label="localize('@PulseStateLabel')"
+              :label="localize(stateCardVisual?.labelKey ?? '@PulseStateLabel')"
               :active-label="localize('@activeState')"
               :inactive-label="localize('@inactiveState')"
               :entries="stateEntries"
+              :accent="stateCardVisual?.accent"
+              :icon="stateCardVisual?.icon"
             />
           </div>
         </section>
@@ -46,6 +49,8 @@
               :unit="card.unit"
               :accent="card.visual.accent"
               :decimals="card.decimals"
+              :min-value="card.visual.historyMin"
+              :max-value="card.visual.historyMax"
             />
           </div>
         </section>
@@ -53,7 +58,7 @@
       </div>
     </ion-content>
 
-    <div v-if="bleDebugEnabledByEnv" class="debug-corner">
+    <div v-if="developerModeEnabled" class="debug-corner">
       <div v-show="debugToolsVisible" id="sensor-debug-actions" class="debug-actions">
         <ion-button size="small" fill="solid" color="medium" @click="openDebugSensorPicker">
           Sensor: {{ ble.productReference.value ?? 'choose' }}
@@ -63,6 +68,9 @@
         </ion-button>
         <ion-button size="small" fill="solid" color="medium" @click="demoDataEnabled = !demoDataEnabled">
           Demo data: {{ demoDataEnabled ? 'on' : 'off' }}
+        </ion-button>
+        <ion-button size="small" fill="solid" color="medium" @click="openBleMeasurementLog">
+          BLE values log
         </ion-button>
       </div>
       <button
@@ -93,13 +101,14 @@ import {
 } from '@ionic/vue';
 import { useBle } from '@/composables/useBle';
 import { useLanguage } from '@/composables/useLanguage';
+import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
 import SensorHistoryCard from '@/components/sensor/SensorHistoryCard.vue';
 import SensorMetricCard from '@/components/sensor/SensorMetricCard.vue';
 import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.vue';
 import SensorStateCard from '@/components/sensor/SensorStateCard.vue';
 import { getAvailableProductChoices, getProductMeasurements } from '@/utils/productMeasurements';
-import { getSensorVisual, hasSensorVisual } from '@/utils/sensorVisuals';
+import { getSensorCardLabel, getSensorVisual, hasSensorVisual } from '@/utils/sensorVisuals';
 import { playSensorPageTransition } from '@/utils/sensorPageTransition';
 
 import enUS from '/localisation/en_US.json?url';
@@ -107,7 +116,7 @@ import frFR from '/localisation/fr_FR.json?url';
 
 const router = useRouter();
 const ble = useBle();
-const bleDebugEnabledByEnv = import.meta.env.DEV || import.meta.env.VITE_ENABLE_BLE_DEBUG === 'true';
+const { developerModeEnabled } = useDeveloperMode();
 const { currentLanguage } = useLanguage();
 const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
 
@@ -122,11 +131,18 @@ type HistoryPoint = {
 
 type SensorValue = boolean | number | string | null;
 
-const measurementValues = ref<Record<number, SensorValue>>({});
-const measurementHistory = ref<Record<number, HistoryPoint[]>>({});
+const productMeasurements = computed(() => getProductMeasurements(ble.productReference.value));
+const measurementValues = computed<Record<number, SensorValue>>(() => {
+  const values: Record<number, SensorValue> = {};
+  for (const measurement of productMeasurements.value) {
+    const value = ble.measurementValues.value[measurement.id];
+    if (value !== undefined) values[measurement.measId] = value;
+  }
+  return values;
+});
 const demoDataEnabled = ref(false);
 const debugToolsStorageKey = 'sensor-debug-tools-visible';
-const debugToolsVisible = ref(sessionStorage.getItem(debugToolsStorageKey) !== 'false');
+const debugToolsVisible = ref(sessionStorage.getItem(debugToolsStorageKey) === 'true');
 const demoEndTimestamp = Date.now();
 const createDemoHistory = (values: number[]): HistoryPoint[] => values.map((value, index) => ({
   timestamp: demoEndTimestamp - (values.length - index - 1) * 5 * 60 * 1000,
@@ -138,13 +154,16 @@ const demoTemperatureHistory = createDemoHistory([
 const demoHumidityHistory = createDemoHistory([
   48.2, 49.1, 50.4, 49.8, 51.2, 52.6, 51.9, 50.7, 49.9, 50.5, 51.1, 50.8,
 ]);
-const productMeasurements = computed(() => getProductMeasurements(ble.productReference.value));
+const demoBatteryHistory = createDemoHistory([
+  96, 95, 95, 94, 93, 92, 91, 91, 90, 89, 88, 87,
+]);
 const sensorCards = computed(() => productMeasurements.value
   .filter(measurement => hasSensorVisual(measurement.measId))
   .map(measurement => ({
     ...measurement,
     visual: getSensorVisual(measurement.measId),
   }))
+  .filter(card => card.visual.category !== 'state')
   .sort((left, right) => (
     Number(right.visual.category === 'battery') - Number(left.visual.category === 'battery')
   )));
@@ -152,21 +171,29 @@ const batteryCardCount = computed(() => sensorCards.value
   .filter(card => card.visual.category === 'battery')
   .length);
 
-const getDemoValue = (measId: number): number | null => {
+const getDemoValue = (measId: number, category?: string): number | null => {
+  if (category === 'battery') return 87;
   if (measId >= 54 && measId <= 64) return 1248 + ((measId - 54) * 137);
-  if ([30, 31, 39, 230].includes(measId)) return 3.597;
   if ([49, 50, 51].includes(measId)) return 50.8;
   if ([8, ...Array.from({ length: 18 }, (_, index) => 249 + index)].includes(measId)) return 22.7;
   return null;
 };
 
 const displayedCards = computed(() => sensorCards.value.map((card) => {
-  const measuredValue = measurementValues.value[card.measId] ?? null;
+  const isBattery = card.visual.category === 'battery';
+  const batteryLevel = ble.measurementValues.value.battery_level_percent;
+  const measuredValue = isBattery
+    ? (typeof batteryLevel === 'number' ? batteryLevel : null)
+    : measurementValues.value[card.measId] ?? null;
   return {
     ...card,
-    compact: card.visual.category === 'battery' && batteryCardCount.value === 1,
+    officialName: card.name,
+    name: getSensorCardLabel(card.id, card.name, card.visual, localize),
+    unit: isBattery ? '%' : card.unit,
+    decimals: isBattery ? 0 : card.decimals,
+    compact: isBattery && batteryCardCount.value === 1,
     value: demoDataEnabled.value
-      ? getDemoValue(card.measId)
+      ? getDemoValue(card.measId, card.visual.category)
       : typeof measuredValue === 'boolean'
         ? (measuredValue ? localize('@activeState') : localize('@inactiveState'))
         : measuredValue,
@@ -175,12 +202,14 @@ const displayedCards = computed(() => sensorCards.value.map((card) => {
 
 const stateEntries = computed(() => productMeasurements.value
   .map((measurement) => {
-    const match = measurement.id.match(/^pin_state(?:_(\d+))?$/);
-    if (!match) return null;
+    const visual = getSensorVisual(measurement.measId);
+    if (visual.category !== 'state') return null;
 
-    const inputNumber = match[1] ? Number(match[1]) : null;
+    const match = measurement.id.match(/^pin_state(?:_(\d+))?$/);
+    const inputNumber = match?.[1] ? Number(match[1]) : null;
     return {
       measId: measurement.measId,
+      visual,
       inputNumber,
       label: inputNumber === null
         ? localize('@InputLabel')
@@ -193,14 +222,25 @@ const stateEntries = computed(() => productMeasurements.value
   .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
   .sort((left, right) => (left.inputNumber ?? 0) - (right.inputNumber ?? 0)));
 
+const stateCardVisual = computed(() => stateEntries.value[0]?.visual);
+
 const historyCards = computed(() => displayedCards.value
   .filter(card => card.visual.history)
-  .map(card => ({
-    ...card,
-    history: demoDataEnabled.value
-      ? ([49, 50, 51].includes(card.measId) ? demoHumidityHistory : demoTemperatureHistory)
-      : measurementHistory.value[card.measId] ?? [],
-  })));
+  .map((card) => {
+    const historyKey = card.visual.category === 'battery'
+      ? 'battery_level_percent'
+      : card.id;
+    return {
+      ...card,
+      history: demoDataEnabled.value
+        ? card.visual.category === 'battery'
+          ? demoBatteryHistory
+          : [49, 50, 51].includes(card.measId)
+            ? demoHumidityHistory
+            : demoTemperatureHistory
+        : ble.measurementHistory.value[historyKey] ?? [],
+    };
+  }));
 
 type BannerState = 'connected' | 'reconnect' | 'choose';
 type BannerPreview = 'actual' | BannerState;
@@ -246,6 +286,29 @@ const openDebugSensorPicker = async () => {
         },
       },
     ],
+  });
+  await alert.present();
+};
+
+const openBleMeasurementLog = async () => {
+  const currentValues = Object.entries(ble.measurementValues.value)
+    .filter(([measurementId]) => measurementId !== 'battery_level_percent')
+    .map(([measurementId, value]) => `${measurementId}: ${String(value)}`);
+  const lines = ble.eventsLog.value
+    .filter(line => line.includes('[MEAS') && !line.includes('00002a19'))
+    .slice(0, 80);
+  const message = [
+    'Current app values:',
+    ...(currentValues.length ? currentValues : ['No counter/state values']),
+    '',
+    'Recent counter/state BLE changes:',
+    ...(lines.length ? lines : ['No counter/state BLE changes']),
+  ].join('\n');
+  const alert = await alertController.create({
+    header: 'BLE measurement log',
+    message,
+    cssClass: 'ble-measurement-log-alert',
+    buttons: ['OK'],
   });
   await alert.present();
 };
@@ -354,6 +417,13 @@ const toggleDebugTools = () => {
 .debug-toggle--collapsed {
   min-width: 44px;
   opacity: 0.72;
+}
+
+:global(.ble-measurement-log-alert .alert-message) {
+  max-height: 50vh;
+  overflow: auto;
+  text-align: left;
+  white-space: pre-wrap;
 }
 
 </style>
