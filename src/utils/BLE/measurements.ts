@@ -1,10 +1,12 @@
 import { BleClient, type BleCharacteristic } from '@capacitor-community/bluetooth-le';
 import {
   BATTERY_LEVEL_CHAR_UUID,
+  HUMIDITY_CHAR_UUID,
   MEASURES_SERVICE_UUID,
   ON_OFF_CHAR_UUID,
   PRESENTATION_FORMAT_DESCRIPTOR_UUID,
   PULSE_COUNT_CHAR_UUID,
+  TEMPERATURE_CHAR_UUID,
   includesShortUuid,
   normalizeUuid,
 } from '@/utils/BLE/characteristics';
@@ -45,6 +47,8 @@ const FORMAT_FLOAT64 = 0x15;
 const FORMAT_UTF8 = 0x19;
 
 const SOURCE_BATTERY = 0x0000;
+const SOURCE_TEMP_IN = 0x0010;
+const SOURCE_HUMID_IN = 0x0011;
 const SOURCE_COUNT_1 = 0x0014;
 const SOURCE_ONOFF_1 = 0x0015;
 
@@ -175,6 +179,10 @@ export function decodeKnownMeasurementCharacteristic(
 
   const sourceId = uuid === BATTERY_LEVEL_CHAR_UUID
     ? SOURCE_BATTERY
+    : uuid === TEMPERATURE_CHAR_UUID
+      ? SOURCE_TEMP_IN
+      : uuid === HUMIDITY_CHAR_UUID
+        ? SOURCE_HUMID_IN
     : uuid === PULSE_COUNT_CHAR_UUID
       ? SOURCE_COUNT_1 + (occurrenceIndex * 2)
       : uuid === ON_OFF_CHAR_UUID
@@ -369,6 +377,8 @@ export async function stopMeasurementMonitoring(
 
 export const MEASUREMENT_SOURCE_TO_ID: Readonly<Record<number, string>> = {
   0x0000: 'battery_level_percent',
+  0x0010: 'temperature',
+  0x0011: 'humidity',
   0x0014: 'index_1',
   0x0015: 'pin_state_1',
   0x0016: 'index_2',

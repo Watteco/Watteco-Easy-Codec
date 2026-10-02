@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { getSensorCardLabel, getSensorVisual } from '@/utils/sensorVisuals';
+import {
+  getSensorCardLabel,
+  getSensorDisplayDecimals,
+  getSensorVisual,
+} from '@/utils/sensorVisuals';
 
 const localize = (key: string): string => ({
   '@batteryLevelLabel': 'Battery level',
@@ -14,7 +18,17 @@ describe('sensorVisuals', () => {
       history: true,
       historyMin: 0,
       historyMax: 100,
+      priority: 0,
     });
+  });
+
+  it('caps the displayed precision when configured', () => {
+    const temperatureVisual = getSensorVisual(249);
+
+    expect(temperatureVisual.maxDecimals).toBe(1);
+    expect(getSensorDisplayDecimals(2, temperatureVisual)).toBe(1);
+    expect(getSensorDisplayDecimals(0, temperatureVisual)).toBe(0);
+    expect(getSensorDisplayDecimals(3, getSensorVisual(54))).toBe(3);
   });
 
   it('classifies digital input states for their specialized card', () => {
@@ -22,8 +36,16 @@ describe('sensorVisuals', () => {
       category: 'state',
       history: false,
       labelKey: '@PulseStateLabel',
+      priority: 10,
       numbered: true,
     });
+  });
+
+  it('exposes the display priority configured for each card family', () => {
+    expect(getSensorVisual(8).priority).toBeGreaterThan(getSensorVisual(49).priority ?? 0);
+    expect(getSensorVisual(49).priority).toBeGreaterThan(getSensorVisual(54).priority ?? 0);
+    expect(getSensorVisual(54).priority).toBeGreaterThan(getSensorVisual(175).priority ?? 0);
+    expect(getSensorVisual(175).priority).toBeGreaterThan(getSensorVisual(39).priority ?? 0);
   });
 
   it('uses the short label configured for a card type', () => {

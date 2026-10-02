@@ -81,10 +81,21 @@ const props = withDefaults(defineProps<{
   decimals: 0,
 });
 
-const scaleBounds = computed(() => {
-  if (!props.points.length) return { min: 0, max: 1 };
+const roundedPoints = computed(() => {
+  const factor = 10 ** props.decimals;
 
-  const values = props.points.map(point => point.value);
+  return props.points.map(point => ({
+    ...point,
+    value: Math.sign(point.value)
+      * Math.round((Math.abs(point.value) + Number.EPSILON) * factor)
+      / factor,
+  }));
+});
+
+const scaleBounds = computed(() => {
+  if (!roundedPoints.value.length) return { min: 0, max: 1 };
+
+  const values = roundedPoints.value.map(point => point.value);
   const automaticMin = Math.min(...values);
   const automaticMax = Math.max(...values);
   const configuredMin = Number.isFinite(props.minValue) ? props.minValue : undefined;
@@ -95,14 +106,20 @@ const scaleBounds = computed(() => {
     min = automaticMin;
     max = automaticMax;
   }
+  const precisionStep = 10 ** -props.decimals;
+  if (max - min < precisionStep * 2) {
+    const middle = Math.round(((min + max) / 2) / precisionStep) * precisionStep;
+    min = middle - precisionStep;
+    max = middle + precisionStep;
+  }
 
   return { min, max };
 });
 
 const chartPoints = computed(() => {
-  if (!props.points.length) return [];
+  if (!roundedPoints.value.length) return [];
 
-  const points = [...props.points].sort((left, right) => left.timestamp - right.timestamp);
+  const points = [...roundedPoints.value].sort((left, right) => left.timestamp - right.timestamp);
   const { min, max } = scaleBounds.value;
   const valueRange = max - min || 1;
   const firstTimestamp = points[0].timestamp;
@@ -135,7 +152,7 @@ const formatValue = (value: number) => value.toLocaleString(undefined, {
 });
 
 const formatAxisValue = (value: number) => value.toLocaleString(undefined, {
-  maximumFractionDigits: Math.min(props.decimals, 1),
+  maximumFractionDigits: props.decimals,
 });
 
 const formatTimestamp = (timestamp: number) => new Intl.DateTimeFormat(undefined, {

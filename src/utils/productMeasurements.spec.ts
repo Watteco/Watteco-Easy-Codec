@@ -56,6 +56,9 @@ describe('productMeasurements', () => {
   it('prefers an exact revision over a revision-agnostic match', () => {
     expect(resolveAvailableProductReference('50-70-017-004')).toBe('50-70-017-004');
     expect(resolveAvailableProductReference('50-70-017-006')).toBe('50-70-017');
+    expect(resolveAvailableProductReference('50-70-260-067')).toBe('50-70-260-067');
+    expect(getProductDisplayName('50-70-260-067')).toBe("HygroTemp'O Neo");
+    expect(getProductConfigurationFile('50-70-260-067')).toBe("50-70-260-067-HygroTemp'O-Neo");
   });
 
   it('matches all revisions only when compatibleProducts omits the revision', () => {

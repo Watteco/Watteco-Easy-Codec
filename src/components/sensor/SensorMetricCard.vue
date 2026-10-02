@@ -61,8 +61,10 @@ const formattedValue = computed(() => {
 .metric-card {
   --metric-accent-soft: color-mix(in srgb, var(--metric-accent) 13%, transparent);
   position: relative;
+  display: flex;
   min-width: 0;
   min-height: 100px;
+  flex-direction: column;
   margin: 0;
   overflow: hidden;
   border: 1px solid rgba(28, 35, 45, 0.08);
@@ -89,8 +91,9 @@ const formattedValue = computed(() => {
 .metric-card ion-card-content {
   display: flex;
   min-height: 100px;
+  flex: 1;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 12px 14px;
 }
 
@@ -108,6 +111,7 @@ const formattedValue = computed(() => {
 
 .metric-card--compact .metric-value {
   flex: 0 0 auto;
+  margin-block: 0;
   margin-inline-start: 0;
 }
 
@@ -147,6 +151,7 @@ const formattedValue = computed(() => {
   display: flex;
   align-items: baseline;
   gap: 5px;
+  margin-block: auto;
   margin-inline-start: 3px;
   color: #202631;
   line-height: 1;

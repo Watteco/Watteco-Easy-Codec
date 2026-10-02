@@ -8,12 +8,29 @@
     <div v-if="effectiveStatus !== 'choose'" class="sensor-mobile-identity">
       <strong>{{ displayedProductName }}</strong>
       <span class="sensor-mobile-reference">
-        {{ displayedProductReference }}
-        <template v-if="displayedDeviceName"> · {{ displayedDeviceName }}</template>
+        <template v-if="effectiveStatus === 'connected'">
+          {{ displayedProductReference }}
+          <template v-if="displayedDeviceName"> · {{ displayedDeviceName }}</template>
+        </template>
+        <template v-else>{{ displayedDeviceName }}</template>
       </span>
       <span class="sensor-mobile-status">
-        <span class="sensor-mobile-status-dot" aria-hidden="true"></span>
-        {{ statusLabel }}
+        <ion-icon
+          v-if="effectiveStatus === 'reconnect'"
+          class="sensor-mobile-status-icon"
+          :icon="alertCircleOutline"
+          aria-hidden="true"
+        />
+        <span v-else class="sensor-mobile-status-dot" aria-hidden="true"></span>
+        <span class="sensor-mobile-status-label">{{ statusLabel }}</span>
+        <span
+          v-if="effectiveStatus === 'connected' && displayedBatteryLevel !== null"
+          class="sensor-mobile-battery"
+          :aria-label="`${localize('@batteryLevelLabel')}: ${displayedBatteryLevel}%`"
+        >
+          <ion-icon :icon="batteryHalfOutline" aria-hidden="true" />
+          {{ displayedBatteryLevel }}%
+        </span>
       </span>
     </div>
     <div v-else class="sensor-mobile-identity sensor-mobile-identity--empty">
@@ -51,12 +68,15 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { IonIcon, IonSpinner } from '@ionic/vue';
 import {
+  alertCircleOutline,
+  batteryHalfOutline,
   bluetoothOutline,
   logOutOutline,
   refreshOutline,
 } from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
-import { getProductDisplayName } from '@/utils/productMeasurements';
+import { getProductDisplayName, getProductMeasurements } from '@/utils/productMeasurements';
+import { getSensorVisual } from '@/utils/sensorVisuals';
 
 type SensorPage = 'data' | 'config';
 type ConnectionStatus = 'connected' | 'reconnect' | 'choose';
@@ -66,6 +86,7 @@ const props = defineProps<{
   localize: (key: string) => string;
   status?: ConnectionStatus;
   deviceName?: string;
+  batteryLevel?: number;
 }>();
 
 const router = useRouter();
@@ -87,6 +108,18 @@ const displayedProductReference = computed(() => ble.productReference.value ?? '
 const displayedProductName = computed(() => (
   getProductDisplayName(ble.productReference.value) ?? props.localize('@sensor')
 ));
+const displayedBatteryLevel = computed(() => {
+  const batteryMeasurementCount = getProductMeasurements(ble.productReference.value)
+    .filter(measurement => getSensorVisual(measurement.measId).category === 'battery')
+    .length;
+  const level = props.batteryLevel ?? ble.measurementValues.value.battery_level_percent;
+
+  if (batteryMeasurementCount !== 1 || typeof level !== 'number' || !Number.isFinite(level)) {
+    return null;
+  }
+
+  return Math.round(Math.min(100, Math.max(0, level)));
+});
 const statusLabel = computed(() => {
   if (effectiveStatus.value === 'connected') return props.localize('@bleConnected');
   if (effectiveStatus.value === 'reconnect') return props.localize('@bleConnectionLost');
@@ -142,8 +175,10 @@ const disconnectAndGoBack = async () => {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
+  height: calc(82px + env(safe-area-inset-top));
   min-height: calc(82px + env(safe-area-inset-top));
   padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
+  overflow: hidden;
   color: var(--ion-color-primary-contrast);
   background: var(--ion-color-primary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
@@ -176,18 +211,23 @@ const disconnectAndGoBack = async () => {
 }
 
 .sensor-mobile-reference {
+  overflow: hidden;
   margin-top: 2px;
   font-size: 0.78rem;
   font-weight: 600;
   opacity: 0.82;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sensor-mobile-status {
   display: flex;
   align-items: center;
   gap: 5px;
+  min-width: 0;
   margin-top: 5px;
   font-size: 0.76rem;
+  white-space: nowrap;
 }
 
 .sensor-mobile-status-dot {
@@ -196,6 +236,36 @@ const disconnectAndGoBack = async () => {
   border: 1px solid currentColor;
   border-radius: 50%;
   background: #4bd37b;
+}
+
+.sensor-mobile-status-icon {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+}
+
+.sensor-mobile-status-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sensor-mobile-battery {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sensor-mobile-battery ion-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .sensor-mobile-header--disconnected .sensor-mobile-status-dot {
@@ -229,6 +299,28 @@ const disconnectAndGoBack = async () => {
 .sensor-mobile-header-action ion-spinner {
   width: 22px;
   height: 22px;
+}
+
+@media (max-width: 380px) {
+  .sensor-mobile-header {
+    gap: 8px;
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .sensor-mobile-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .sensor-mobile-header-actions {
+    gap: 6px;
+  }
+
+  .sensor-mobile-header-action {
+    width: 40px;
+    height: 40px;
+  }
 }
 
 </style>

@@ -7,13 +7,51 @@ import {
 } from '@/utils/BLE/measurements';
 import {
   MEASURES_SERVICE_UUID,
+  HUMIDITY_CHAR_UUID,
   ON_OFF_CHAR_UUID,
   PULSE_COUNT_CHAR_UUID,
+  TEMPERATURE_CHAR_UUID,
 } from '@/utils/BLE/characteristics';
 
 describe('BLE measurements', () => {
   it('keeps the BLE battery percentage distinct from a voltage measurement', () => {
     expect(MEASUREMENT_SOURCE_TO_ID[0x0000]).toBe('battery_level_percent');
+  });
+
+  it('maps the indoor temperature and humidity source IDs', () => {
+    expect(MEASUREMENT_SOURCE_TO_ID[0x0010]).toBe('temperature');
+    expect(MEASUREMENT_SOURCE_TO_ID[0x0011]).toBe('humidity');
+  });
+
+  it('decodes temperature and humidity using their presentation formats', () => {
+    const temperature = decodeMeasurementValue(
+      new Uint8Array([0xde, 0x08]),
+      { format: 0x0e, exponent: -2, unit: 0x272f, namespace: 1, sourceId: 0x0010 }
+    );
+    const humidity = decodeMeasurementValue(
+      new Uint8Array([0xd8, 0x13]),
+      { format: 0x06, exponent: -2, unit: 0x27ad, namespace: 1, sourceId: 0x0011 }
+    );
+
+    expect(temperature[0]).toMatchObject({ sourceId: 0x0010, rawHex: 'de 08' });
+    expect(temperature[0].value).toBeCloseTo(22.7);
+    expect(humidity[0]).toMatchObject({ sourceId: 0x0011, rawHex: 'd8 13' });
+    expect(humidity[0].value).toBeCloseTo(50.8);
+  });
+
+  it('identifies standard temperature and humidity characteristics despite an incorrect descriptor source', () => {
+    const presentation = { format: 0x06, exponent: -2, unit: 0x2700, namespace: 1, sourceId: 0x0001 };
+
+    expect(decodeKnownMeasurementCharacteristic(
+      new Uint8Array([0xde, 0x08]),
+      presentation,
+      TEMPERATURE_CHAR_UUID
+    )[0]).toMatchObject({ sourceId: 0x0010 });
+    expect(decodeKnownMeasurementCharacteristic(
+      new Uint8Array([0xd8, 0x13]),
+      presentation,
+      HUMIDITY_CHAR_UUID
+    )[0]).toMatchObject({ sourceId: 0x0011 });
   });
 
   it('builds Watteco measure UUIDs from the 8003 service namespace', () => {

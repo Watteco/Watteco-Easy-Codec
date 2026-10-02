@@ -115,6 +115,7 @@
 	"cfgCommentStandIndex" : "Configure la périodicité d'émission de l'index",
 	"IndexLabel": "Index",
 	"PulseStateLabel": "Etats",
+	"SingleStateLabel": "Etat",
 	"InputLabel": "Entrée",
 	"activeState": "Actif",
 	"inactiveState": "Inactif",

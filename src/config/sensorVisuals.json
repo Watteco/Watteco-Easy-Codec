@@ -5,6 +5,8 @@
     "accent": "#F47B20",
     "icon": "thermometerOutline",
     "labelKey": "@temperatureLabel",
+    "maxDecimals": 1,
+    "priority": 40,
     "numbered": true,
     "history": true
   },
@@ -13,6 +15,8 @@
     "accent": "#2997C8",
     "icon": "waterOutline",
     "labelKey": "@humidityLabel",
+    "maxDecimals": 0,
+    "priority": 30,
     "numbered": true,
     "history": true
   },
@@ -22,6 +26,7 @@
     "icon": "batteryHalfOutline",
     "labelKey": "@batteryLevelLabel",
     "category": "battery",
+    "priority": 0,
     "history": true,
     "historyMin": 0,
     "historyMax": 100
@@ -31,6 +36,7 @@
     "accent": "#7867B8",
     "icon": "speedometerOutline",
     "labelKey": "@counterLabel",
+    "priority": 20,
     "numbered": true
   },
   {
@@ -39,6 +45,7 @@
     "icon": "toggleOutline",
     "labelKey": "@PulseStateLabel",
     "category": "state",
+    "priority": 10,
     "numbered": true,
     "history": false
   }

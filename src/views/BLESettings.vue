@@ -34,13 +34,6 @@
           </ion-label>
         </ion-item>
       </ion-list>
-      <ion-toast
-        :is-open="developerModeToastOpen"
-        :message="developerModeToastMessage"
-        :duration="1800"
-        position="bottom"
-        @didDismiss="developerModeToastOpen = false"
-      />
     </ion-content>
   </ion-page>
 </template>
@@ -50,7 +43,6 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import {
   IonBackButton, IonButtons, IonContent, IonHeader,
   IonPage, IonTitle, IonToolbar, IonList, IonItem, IonSelect, IonSelectOption, IonLabel, IonNote,
-  IonToast,
 } from '@ionic/vue';
 import axios from 'axios';
 import { appVersion } from '@/utils/appVersion';
@@ -68,8 +60,6 @@ const {
   toggleDeveloperMode,
 } = useDeveloperMode();
 const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
-const developerModeToastOpen = ref(false);
-const developerModeToastMessage = ref('');
 let versionTapCount = 0;
 let versionTapResetTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -85,12 +75,8 @@ function registerVersionTap() {
   if (versionTapResetTimer) clearTimeout(versionTapResetTimer);
 
   if (versionTapCount === 5) {
-    const enabled = toggleDeveloperMode();
+    toggleDeveloperMode();
     versionTapCount = 0;
-    developerModeToastMessage.value = localize(
-      enabled ? '@developerModeEnabled' : '@developerModeDisabled',
-    );
-    developerModeToastOpen.value = true;
     return;
   }
 

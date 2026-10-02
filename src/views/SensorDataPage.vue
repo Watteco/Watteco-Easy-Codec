@@ -5,34 +5,36 @@
       :localize="localize"
       :status="bannerState"
       :device-name="bannerDeviceName"
+      :battery-level="bannerBatteryLevel"
     />
 
     <ion-content :fullscreen="true" class="sensor-data-content native-with-sensor-navigation">
       <div class="sensor-data-container">
-        <section class="dashboard-section">
+        <section v-if="currentCards.length" class="dashboard-section">
           <h2 class="section-title">{{ localize('@currentValues') }}</h2>
           <div class="sensor-grid">
-            <sensor-metric-card
-              v-for="card in displayedCards"
-              :key="card.measId"
-              :label="card.name"
-              :official-label="card.officialName"
-              :value="card.value"
-              :unit="card.unit"
-              :icon="card.visual.icon"
-              :accent="card.visual.accent"
-              :decimals="card.decimals"
-              :compact="card.compact"
-            />
-            <sensor-state-card
-              v-if="stateEntries.length"
-              :label="localize(stateCardVisual?.labelKey ?? '@PulseStateLabel')"
-              :active-label="localize('@activeState')"
-              :inactive-label="localize('@inactiveState')"
-              :entries="stateEntries"
-              :accent="stateCardVisual?.accent"
-              :icon="stateCardVisual?.icon"
-            />
+            <template v-for="currentCard in currentCards" :key="currentCard.key">
+              <sensor-metric-card
+                v-if="currentCard.type === 'metric'"
+                :label="currentCard.card.name"
+                :official-label="currentCard.card.officialName"
+                :value="currentCard.card.value"
+                :unit="currentCard.card.unit"
+                :icon="currentCard.card.visual.icon"
+                :accent="currentCard.card.visual.accent"
+                :decimals="currentCard.card.decimals"
+                :compact="currentCard.card.compact"
+              />
+              <sensor-state-card
+                v-else
+                :label="stateCardLabel"
+                :active-label="localize('@activeState')"
+                :inactive-label="localize('@inactiveState')"
+                :entries="stateEntries"
+                :accent="stateCardVisual?.accent"
+                :icon="stateCardVisual?.icon"
+              />
+            </template>
           </div>
         </section>
 
@@ -108,7 +110,12 @@ import SensorMetricCard from '@/components/sensor/SensorMetricCard.vue';
 import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.vue';
 import SensorStateCard from '@/components/sensor/SensorStateCard.vue';
 import { getAvailableProductChoices, getProductMeasurements } from '@/utils/productMeasurements';
-import { getSensorCardLabel, getSensorVisual, hasSensorVisual } from '@/utils/sensorVisuals';
+import {
+  getSensorCardLabel,
+  getSensorDisplayDecimals,
+  getSensorVisual,
+  hasSensorVisual,
+} from '@/utils/sensorVisuals';
 import { playSensorPageTransition } from '@/utils/sensorPageTransition';
 
 import enUS from '/localisation/en_US.json?url';
@@ -163,13 +170,13 @@ const sensorCards = computed(() => productMeasurements.value
     ...measurement,
     visual: getSensorVisual(measurement.measId),
   }))
-  .filter(card => card.visual.category !== 'state')
-  .sort((left, right) => (
-    Number(right.visual.category === 'battery') - Number(left.visual.category === 'battery')
-  )));
+  .filter(card => card.visual.category !== 'state'));
 const batteryCardCount = computed(() => sensorCards.value
   .filter(card => card.visual.category === 'battery')
   .length);
+const bannerBatteryLevel = computed(() => (
+  demoDataEnabled.value && batteryCardCount.value === 1 ? 87 : undefined
+));
 
 const getDemoValue = (measId: number, category?: string): number | null => {
   if (category === 'battery') return 87;
@@ -190,7 +197,7 @@ const displayedCards = computed(() => sensorCards.value.map((card) => {
     officialName: card.name,
     name: getSensorCardLabel(card.id, card.name, card.visual, localize),
     unit: isBattery ? '%' : card.unit,
-    decimals: isBattery ? 0 : card.decimals,
+    decimals: isBattery ? 0 : getSensorDisplayDecimals(card.decimals, card.visual),
     compact: isBattery && batteryCardCount.value === 1,
     value: demoDataEnabled.value
       ? getDemoValue(card.measId, card.visual.category)
@@ -223,6 +230,26 @@ const stateEntries = computed(() => productMeasurements.value
   .sort((left, right) => (left.inputNumber ?? 0) - (right.inputNumber ?? 0)));
 
 const stateCardVisual = computed(() => stateEntries.value[0]?.visual);
+const stateCardLabel = computed(() => localize(
+  stateEntries.value.length === 1
+    ? '@SingleStateLabel'
+    : stateCardVisual.value?.labelKey ?? '@PulseStateLabel',
+));
+const currentCards = computed(() => [
+  ...displayedCards.value
+    .filter(card => batteryCardCount.value !== 1 || card.visual.category !== 'battery')
+    .map(card => ({
+      type: 'metric' as const,
+      key: `metric-${card.measId}`,
+      priority: card.visual.priority ?? 0,
+      card,
+    })),
+  ...(stateEntries.value.length ? [{
+    type: 'state' as const,
+    key: 'state',
+    priority: stateCardVisual.value?.priority ?? 0,
+  }] : []),
+].sort((left, right) => right.priority - left.priority));
 
 const historyCards = computed(() => displayedCards.value
   .filter(card => card.visual.history)
@@ -240,7 +267,8 @@ const historyCards = computed(() => displayedCards.value
             : demoTemperatureHistory
         : ble.measurementHistory.value[historyKey] ?? [],
     };
-  }));
+  })
+  .sort((left, right) => (right.visual.priority ?? 0) - (left.visual.priority ?? 0)));
 
 type BannerState = 'connected' | 'reconnect' | 'choose';
 type BannerPreview = 'actual' | BannerState;

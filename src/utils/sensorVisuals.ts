@@ -24,6 +24,8 @@ export type SensorVisual = {
   historyMax?: number;
   category?: string;
   labelKey?: string;
+  maxDecimals?: number;
+  priority?: number;
   numbered?: boolean;
 };
 
@@ -49,6 +51,8 @@ for (const {
   historyMax,
   category,
   labelKey,
+  maxDecimals,
+  priority,
   numbered,
 } of sensorVisualsConfig as SensorVisualGroup[]) {
   for (const id of ids) {
@@ -60,6 +64,8 @@ for (const {
       historyMax,
       category,
       labelKey,
+      maxDecimals,
+      priority,
       numbered,
     });
   }
@@ -80,9 +86,16 @@ export const getSensorVisual = (id: string | number): SensorVisual => {
     historyMax: visual.historyMax,
     category: visual.category,
     labelKey: visual.labelKey,
+    maxDecimals: visual.maxDecimals,
+    priority: visual.priority,
     numbered: visual.numbered,
   };
 };
+
+export const getSensorDisplayDecimals = (
+  measurementDecimals: number,
+  visual: SensorVisual,
+): number => Math.min(measurementDecimals, visual.maxDecimals ?? measurementDecimals);
 
 export const getSensorCardLabel = (
   measurementId: string,

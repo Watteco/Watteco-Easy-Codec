@@ -115,6 +115,7 @@
     "cfgCommentStandIndex": "Configures the periodicity of sending of index",
     "IndexLabel": "Index",
     "PulseStateLabel": "States",
+    "SingleStateLabel": "State",
     "InputLabel": "Input",
     "activeState": "Active",
     "inactiveState": "Inactive",

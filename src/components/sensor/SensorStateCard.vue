@@ -1,7 +1,11 @@
 <template>
   <ion-card
     class="state-card"
-    :class="{ 'state-card--wide': entries.length > 3 }"
+    :class="{
+      'state-card--compact': entries.length <= 3,
+      'state-card--single': entries.length === 1,
+      'state-card--wide': entries.length > 3,
+    }"
     :style="{
       '--state-columns': getColumnCount(entries.length),
       '--state-accent': accent,
@@ -108,6 +112,10 @@ const formatState = (value: SensorStateValue): string => {
   grid-column: 1 / -1;
 }
 
+.state-card--compact {
+  min-height: 108px;
+}
+
 .state-card::before {
   position: absolute;
   top: 0;
@@ -124,6 +132,11 @@ const formatState = (value: SensorStateValue): string => {
   flex-direction: column;
   justify-content: flex-start;
   padding: 14px;
+}
+
+.state-card--compact ion-card-content {
+  min-height: 108px;
+  padding: 10px 14px;
 }
 
 .state-heading {
@@ -163,6 +176,15 @@ const formatState = (value: SensorStateValue): string => {
   margin-top: 12px;
 }
 
+.state-card--single .state-list {
+  align-items: center;
+}
+
+.state-card--compact .state-list {
+  gap: 6px;
+  margin-top: 8px;
+}
+
 .state-item {
   display: flex;
   min-width: 38px;
@@ -173,6 +195,19 @@ const formatState = (value: SensorStateValue): string => {
   border: 1px solid transparent;
   border-radius: 12px;
   background: #f7f6f3;
+}
+
+.state-card--single .state-item {
+  min-height: 44px;
+  flex-direction: row;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 12px;
+}
+
+.state-card--compact:not(.state-card--single) .state-item {
+  gap: 5px;
+  padding: 5px 4px 6px;
 }
 
 .state-item--active {
