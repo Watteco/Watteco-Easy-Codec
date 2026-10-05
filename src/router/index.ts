@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
 import { Capacitor } from '@capacitor/core';
 import TabsPage from '../views/TabsPage.vue'
+import { useDeveloperMode } from '@/composables/useDeveloperMode';
 
 const isNative = Capacitor.isNativePlatform();
 
@@ -31,6 +32,16 @@ const routes: Array<RouteRecordRaw> = [
     beforeEnter: (_to, _from, next) => {
       // The sensor dashboard is only part of the native application flow.
       if (!isNative) { next('/tabs/downlink'); return; }
+      next();
+    }
+  },
+  {
+    path: '/sensor-tools',
+    name: 'SensorTools',
+    component: () => import('@/views/SensorToolsPage.vue'),
+    beforeEnter: (_to, _from, next) => {
+      const { developerModeEnabled } = useDeveloperMode();
+      if (!isNative || !developerModeEnabled.value) { next('/tabs/downlink'); return; }
       next();
     }
   },

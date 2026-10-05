@@ -1284,37 +1284,6 @@
       </ion-card>
     </ion-content>
 
-  <BleDebugPanel
-    v-if="developerModeEnabled && ble.isNative.value"
-    v-model:visible="debugVisible"
-    v-model:debugHex="debugHex"
-    v-model:debugOtaAppKeyHex="debugOtaAppKeyHex"
-    v-model:debugDevEuiHex="debugDevEuiHex"
-    :logs="debugLogs"
-    :connected="ble.connected.value"
-    :subscribed="debugSubscribed"
-    @start="startDebugSubscriptions"
-    @stop="stopDebugSubscriptions"
-    @clear="clearDebugLogs"
-    @fetch-model-firmware="autoFetchModelFirmware"
-    @write-fe62="writeToFe62"
-    @write-ff01="writeToFf01"
-    @write-ff02="writeToFf02"
-    @read-fe61="readFe61"
-    @read-ff01="readFf01"
-    @read-fe21="readFe21InFe20"
-    @read-lora-link="readLoraLinkInfo"
-    @read-product-id="readProductId"
-    @read-config-blob="readConfigurationBlob"
-    @osa-challenge="runOsaChallengeFe20"
-    @osa-stored-challenge="runStoredOsaChallengeFe20"
-    @dump-services-only="dumpServicesOnly"
-    @dump-services="dumpServices"
-    @test-osa-storage="testSecureOsaStorage"
-    @read-osa-storage="readStoredOsaKey"
-    @delete-osa-storage="deleteStoredOsaKey"
-    @purge-osa-storage="purgeExpiredOsaKeys"
-  />
   <div v-if="!ble.isNative.value" class="language-switcher">
     <LanguageSwitcher 
       :current-language="currentLanguage"
@@ -1357,7 +1326,7 @@ import {
 import { chevronForwardOutline, closeOutline, refreshOutline } from 'ionicons/icons';
 import { Capacitor } from '@capacitor/core';
 import { useBle } from '@/composables/useBle';
-import { useBleDebug } from '@/composables/useBleDebug';
+import { useBleDebugCredentials, updateDebugDevEuiFromDeviceName } from '@/composables/useBleDebug';
 import { playSensorPageTransition } from '@/utils/sensorPageTransition';
 import TimeSlider from '@/components/TimeSlider.vue';
 import DoubleSlider from '@/components/DoubleSlider.vue';
@@ -1370,7 +1339,6 @@ import FloatInput from '@/components/FloatInput.vue';
 import SliderInput from '@/components/Slider.vue';
 import TextInput from '@/components/TextInput.vue';
 import SensorImage from '@/components/SensorImage.vue';
-import BleDebugPanel from '@/components/ble/BleDebugPanel.vue';
 import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.vue';
 import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
@@ -1477,35 +1445,13 @@ const bleHideInProd = computed(() => (
 // BLE composable (only active on native platforms, no-op on web)
 const ble = useBle();
 
-const {
-  debugVisible,
-  debugLogs,
-  debugSubscribed,
-  debugHex,
-  debugOtaAppKeyHex,
-  debugDevEuiHex,
-  clearDebugLogs,
-  startDebugSubscriptions,
-  stopDebugSubscriptions,
-  writeToFe62,
-  writeToFf01,
-  writeToFf02,
-  readFe61,
-  readFf01,
-  readFe21InFe20,
-  readLoraLinkInfo,
-  readConfigurationBlob,
-  runOsaChallengeFe20,
-  runStoredOsaChallengeFe20,
-  dumpServices,
-  dumpServicesOnly,
-  readProductId,
-  autoFetchModelFirmware,
-  testSecureOsaStorage,
-  readStoredOsaKey,
-  deleteStoredOsaKey,
-  purgeExpiredOsaKeys,
-} = useBleDebug(ble, { enabled: developerModeEnabled });
+const { debugOtaAppKeyHex, debugDevEuiHex } = useBleDebugCredentials();
+
+watch(
+  () => ble.connectedDevice.value?.name,
+  deviceName => updateDebugDevEuiFromDeviceName(deviceName),
+  { immediate: true }
+);
 
 // Reactive variables to store application state
 const availableProducts = ref<Product[]>([]); // Stores the list of available products

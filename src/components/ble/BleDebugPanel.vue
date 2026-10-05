@@ -43,6 +43,7 @@
         <ion-button size="small" fill="solid" @click="$emit('write-fe62')" :disabled="!connected">Write FE62</ion-button>
         <ion-button size="small" fill="outline" @click="$emit('write-ff01')" :disabled="!connected">Write FF01</ion-button>
         <ion-button size="small" fill="outline" @click="$emit('write-ff02')" :disabled="!connected">Write FF02</ion-button>
+        <ion-button size="small" fill="outline" @click="$emit('write-lora-link-test')" :disabled="!connected">Write LinkTest</ion-button>
       </div>
       <div class="button-row">
         <ion-button size="small" fill="outline" @click="$emit('read-fe61')" :disabled="!connected">Read FE61</ion-button>
@@ -111,6 +112,7 @@ defineEmits<{
   (e: 'write-fe62'): void;
   (e: 'write-ff01'): void;
   (e: 'write-ff02'): void;
+  (e: 'write-lora-link-test'): void;
   (e: 'read-fe61'): void;
   (e: 'read-ff01'): void;
   (e: 'read-fe21'): void;

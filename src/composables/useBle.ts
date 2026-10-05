@@ -14,6 +14,10 @@ import { resolveAvailableProductReference } from '@/utils/productMeasurements';
 import {
   startLoraLinkMonitoring,
   stopLoraLinkMonitoring,
+  readLoraLinkStatus as readLoraLinkStatusFromBle,
+  sendLoraLinkTest as sendLoraLinkTestCommand,
+  type LoraLinkStatus,
+  type LoraLinkTestOptions,
   type LoraLinkSubscription,
 } from '@/utils/BLE/loraLink';
 
@@ -91,6 +95,9 @@ const reconnecting = ref(false);
 const bondedDevices = ref<string[]>([]);
 const productReference = ref<string | null>(null);
 const loraWanJoined = ref<boolean | null>(null);
+const loraLinkAvailable = ref<boolean | null>(null);
+const loraLinkTestAvailable = ref<boolean | null>(null);
+const loraLinkStatus = ref<LoraLinkStatus | null>(null);
 const measurementValues = ref<Record<string, number | boolean | string>>({});
 const measurementHistory = ref<Record<string, MeasurementHistoryPoint[]>>({});
 let measurementHistoryDeviceId: string | undefined;
@@ -486,6 +493,9 @@ async function connectToDeviceUntil(
   measurementSubscriptions = [];
   loraLinkSubscription = undefined;
   loraWanJoined.value = null;
+  loraLinkAvailable.value = null;
+  loraLinkTestAvailable.value = null;
+  loraLinkStatus.value = null;
   statusMessage.value = hasRememberedBond(device.deviceId)
     ? `Reconnecting to ${device.name || device.deviceId}…`
     : `Connecting to ${device.name || device.deviceId}…`;
@@ -507,6 +517,9 @@ async function connectToDeviceUntil(
         measurementSubscriptions = [];
         loraLinkSubscription = undefined;
         loraWanJoined.value = null;
+        loraLinkAvailable.value = null;
+        loraLinkTestAvailable.value = null;
+        loraLinkStatus.value = null;
         connected.value = false;
         connectedDevice.value = undefined;
         clearConnectionTarget();
@@ -556,10 +569,17 @@ async function connectToDeviceUntil(
       try {
         loraLinkSubscription = await startLoraLinkMonitoring(
           device.deviceId,
-          joined => { loraWanJoined.value = joined; },
+          status => {
+            loraLinkStatus.value = status;
+            loraWanJoined.value = status.joined;
+          },
           log
         );
+        loraLinkAvailable.value = loraLinkSubscription !== undefined;
+        loraLinkTestAvailable.value = loraLinkSubscription?.testAvailable ?? false;
       } catch (error: any) {
+        loraLinkAvailable.value = false;
+        loraLinkTestAvailable.value = false;
         log(`[LORA] Discovery failed: ${error?.message ?? error}`);
       }
 
@@ -637,6 +657,9 @@ async function connectToDeviceUntil(
         await stopLoraLinkMonitoring(device.deviceId, loraLinkSubscription, log);
         loraLinkSubscription = undefined;
         loraWanJoined.value = null;
+        loraLinkAvailable.value = null;
+        loraLinkTestAvailable.value = null;
+        loraLinkStatus.value = null;
         try { await BleClient.disconnect(device.deviceId); } catch { /* ignore cancellation cleanup errors */ }
         connectedDevice.value = undefined;
         clearConnectionTarget();
@@ -754,6 +777,9 @@ async function disconnect() {
   await stopLoraLinkMonitoring(connectedDevice.value.deviceId, loraLinkSubscription, log);
   loraLinkSubscription = undefined;
   loraWanJoined.value = null;
+  loraLinkAvailable.value = null;
+  loraLinkTestAvailable.value = null;
+  loraLinkStatus.value = null;
   try {
     await BleClient.disconnect(connectedDevice.value.deviceId);
   } catch (e) { console.error('Disconnect error:', e); }
@@ -1034,6 +1060,21 @@ async function sendOutputFrames(osaKeyHex: string, devEuiHex: string, activateAf
   }
 }
 
+async function sendLoraLinkTest(options: LoraLinkTestOptions): Promise<void> {
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) throw new Error('Not connected to a BLE device');
+  await sendLoraLinkTestCommand(deviceId, options, log);
+}
+
+async function refreshLoraLinkStatus(): Promise<LoraLinkStatus> {
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) throw new Error('Not connected to a BLE device');
+  const status = await readLoraLinkStatusFromBle(deviceId, loraLinkSubscription, log);
+  loraLinkStatus.value = status;
+  loraWanJoined.value = status.joined;
+  return status;
+}
+
 function getDeviceName(device: DeviceLike): string {
   return device.name || device.deviceId.substring(0, 8) + '…';
 }
@@ -1064,6 +1105,9 @@ export function useBle() {
     bondedDevices:   readonly(bondedDevices),
     productReference: readonly(productReference),
     loraWanJoined: readonly(loraWanJoined),
+    loraLinkAvailable: readonly(loraLinkAvailable),
+    loraLinkTestAvailable: readonly(loraLinkTestAvailable),
+    loraLinkStatus: readonly(loraLinkStatus),
     measurementValues: readonly(measurementValues),
     measurementHistory: readonly(measurementHistory),
 
@@ -1078,6 +1122,8 @@ export function useBle() {
     cancelReconnect,
     disconnect,
     sendOutputFrames,
+    sendLoraLinkTest,
+    refreshLoraLinkStatus,
     getDeviceName,
     setProductReference,
   };

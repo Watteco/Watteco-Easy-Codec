@@ -115,7 +115,7 @@ import { useBle } from '@/composables/useBle';
 import { getProductDisplayName, getProductMeasurements } from '@/utils/productMeasurements';
 import { getSensorVisual } from '@/utils/sensorVisuals';
 
-type SensorPage = 'data' | 'config';
+type SensorPage = 'data' | 'config' | 'tools';
 type ConnectionStatus = 'connected' | 'reconnect' | 'choose';
 
 const props = defineProps<{
@@ -303,7 +303,7 @@ const disconnectAndGoBack = async () => {
 }
 
 .sensor-mobile-status-dot--offline {
-  background: var(--ion-color-danger, #eb445a);
+  background: var(--ion-color-danger, #ff0000);
 }
 
 .sensor-mobile-status-unknown {

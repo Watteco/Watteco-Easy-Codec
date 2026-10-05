@@ -14,18 +14,19 @@ export async function runOsaChallenge(
   otaAppKeyHex: string,
   devEuiHex: string,
   onLog: (line: string) => void
-): Promise<void> {
+): Promise<boolean> {
   const otaAppKey = parseHexToUint8Array(otaAppKeyHex);
   const devEui = parseHexToUint8Array(devEuiHex);
 
   if (!otaAppKey || otaAppKey.length !== 16) {
     onLog('OSA failed: OTA AppKey must be exactly 16 bytes');
-    return;
+    return false;
   }
   if (!devEui || devEui.length !== 8) {
     onLog('OSA failed: DevEUI must be exactly 8 bytes');
-    return;
+    return false;
   }
+  onLog(`[OSA] DevEUI used: ${toSpacedHex(devEui).replace(/ /g, '').toUpperCase()}`);
 
   const challengeChar = await findCharacteristicByUuid(
     deviceId,
@@ -39,14 +40,24 @@ export async function runOsaChallenge(
     OSA_RESPONSE_CHAR_UUID,
     onLog
   );
+  const statusChar = await findCharacteristicByUuid(
+    deviceId,
+    OSA_ADMIN_SERVICE_UUID,
+    OSA_STATUS_CHAR_UUID,
+    onLog
+  );
 
   if (!challengeChar) {
     onLog('OSA failed: challenge characteristic not found in admin service');
-    return;
+    return false;
   }
   if (!responseChar) {
     onLog('OSA failed: response characteristic not found in admin service');
-    return;
+    return false;
+  }
+  if (!statusChar) {
+    onLog('OSA failed: status characteristic not found in admin service');
+    return false;
   }
 
   try {
@@ -54,11 +65,11 @@ export async function runOsaChallenge(
     const challenge = toUint8ArrayFromBleValue(challengeRaw);
     if (!challenge) {
       onLog('OSA failed: unable to decode challenge value');
-      return;
+      return false;
     }
     if (challenge.length !== 16) {
       onLog(`OSA failed: challenge must be 16 bytes (got ${challenge.length})`);
-      return;
+      return false;
     }
 
     onLog(`${new Date().toLocaleTimeString()} [READ OSA/CHALLENGE] ${toSpacedHex(challenge)}`);
@@ -74,12 +85,21 @@ export async function runOsaChallenge(
       onLog(`${new Date().toLocaleTimeString()} [WRITE OSA/RESPONSE] ${toSpacedHex(response)}`);
     } else {
       onLog('OSA failed: response characteristic is not writable');
-      return;
+      return false;
     }
 
-    onLog('OSA challenge-response completed');
+    const statusRaw = await BleClient.read(deviceId, statusChar.service, statusChar.characteristic);
+    const status = toUint8ArrayFromBleValue(statusRaw);
+    if (!status || status.length !== 1 || status[0] !== 0x02) {
+      onLog(`OSA failed: AuthStatus=${status ? toSpacedHex(status) : 'unreadable'}`);
+      return false;
+    }
+
+    onLog('OSA authentication successful (AuthStatus=02)');
+    return true;
   } catch (error: any) {
     onLog(`OSA failed: ${error?.message ?? error}`);
+    return false;
   }
 }
 

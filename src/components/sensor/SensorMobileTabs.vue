@@ -1,8 +1,12 @@
 <template>
-  <nav class="sensor-mobile-tabs" :aria-label="labels.navigation">
+  <nav
+    class="sensor-mobile-tabs"
+    :style="{ '--sensor-tab-count': String(availablePages.length) }"
+    :aria-label="labels.navigation"
+  >
     <span
       class="sensor-mobile-tab-selection"
-      :class="{ 'sensor-mobile-tab-selection--config': displayedActivePage === 'config' }"
+      :style="selectionStyle"
       aria-hidden="true"
     ></span>
     <button
@@ -25,6 +29,17 @@
       <ion-icon :icon="optionsOutline" aria-hidden="true" />
       <span>{{ labels.config }}</span>
     </button>
+    <button
+      v-if="developerModeEnabled"
+      type="button"
+      class="sensor-mobile-tab"
+      :class="{ 'sensor-mobile-tab--active': displayedActivePage === 'tools' }"
+      :aria-current="activePage === 'tools' ? 'page' : undefined"
+      @click="navigateTo('tools')"
+    >
+      <ion-icon :icon="buildOutline" aria-hidden="true" />
+      <span>{{ labels.tools }}</span>
+    </button>
   </nav>
 </template>
 
@@ -32,8 +47,9 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { IonIcon } from '@ionic/vue';
-import { analyticsOutline, optionsOutline } from 'ionicons/icons';
+import { analyticsOutline, buildOutline, optionsOutline } from 'ionicons/icons';
 import { useLanguage } from '@/composables/useLanguage';
+import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import {
   cancelSensorPageTransition,
   requestSensorPageTransition,
@@ -43,14 +59,21 @@ import {
 const route = useRoute();
 const router = useRouter();
 const { currentLanguage } = useLanguage();
+const { developerModeEnabled } = useDeveloperMode();
 const activePage = computed<SensorPage>(() => (
-  route.path === '/sensor-data' ? 'data' : 'config'
+  route.path === '/sensor-data' ? 'data' : route.path === '/sensor-tools' ? 'tools' : 'config'
 ));
 const displayedActivePage = ref<SensorPage>(activePage.value);
 const navigationPending = ref(false);
 const labels = computed(() => currentLanguage.value === 'fr'
-  ? { navigation: 'Navigation du capteur', data: 'Données', config: 'Configuration' }
-  : { navigation: 'Sensor navigation', data: 'Data', config: 'Configuration' });
+  ? { navigation: 'Navigation du capteur', data: 'Données', config: 'Configuration', tools: 'Outils' }
+  : { navigation: 'Sensor navigation', data: 'Data', config: 'Configuration', tools: 'Tools' });
+const availablePages = computed<SensorPage[]>(() => (
+  developerModeEnabled.value ? ['data', 'config', 'tools'] : ['data', 'config']
+));
+const selectionStyle = computed(() => ({
+  transform: `translate3d(${Math.max(0, availablePages.value.indexOf(displayedActivePage.value)) * 100}%, 0, 0)`,
+}));
 
 watch(activePage, page => {
   displayedActivePage.value = page;
@@ -64,7 +87,10 @@ const navigateTo = async (page: SensorPage) => {
   requestSensorPageTransition(page);
 
   try {
-    await router.push(page === 'data' ? '/sensor-data' : '/tabs/downlink');
+    const destination = page === 'data'
+      ? '/sensor-data'
+      : page === 'tools' ? '/sensor-tools' : '/tabs/downlink';
+    await router.push(destination);
   } catch (error) {
     cancelSensorPageTransition();
     displayedActivePage.value = activePage.value;
@@ -137,11 +163,10 @@ const onTouchEnd = (event: TouchEvent) => {
 
   if (elapsed > 700 || Math.abs(deltaX) < 60 || Math.abs(deltaX) < Math.abs(deltaY) * 1.35) return;
 
-  if (deltaX < 0) {
-    void navigateTo('config');
-  } else {
-    void navigateTo('data');
-  }
+  const currentIndex = availablePages.value.indexOf(activePage.value);
+  const nextIndex = currentIndex + (deltaX < 0 ? 1 : -1);
+  const nextPage = availablePages.value[nextIndex];
+  if (nextPage) void navigateTo(nextPage);
 };
 
 const cancelSwipe = () => {
@@ -170,7 +195,7 @@ onUnmounted(() => {
   left: 0;
   z-index: 1000;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--sensor-tab-count, 2), minmax(0, 1fr));
   min-height: calc(62px + env(safe-area-inset-bottom));
   padding: 5px 8px calc(5px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--app-nav-border);
@@ -183,16 +208,12 @@ onUnmounted(() => {
   top: 5px;
   bottom: calc(5px + env(safe-area-inset-bottom));
   left: 8px;
-  width: calc((100% - 16px) / 2);
+  width: calc((100% - 16px) / var(--sensor-tab-count, 2));
   pointer-events: none;
   background: rgba(var(--ion-color-primary-rgb), 0.1);
   border-radius: 10px;
   transform: translate3d(0, 0, 0);
   transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.sensor-mobile-tab-selection--config {
-  transform: translate3d(100%, 0, 0);
 }
 
 .sensor-mobile-tab-selection::before {

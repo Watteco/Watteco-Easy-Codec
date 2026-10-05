@@ -13,7 +13,7 @@ import { IonApp, IonRouterOutlet } from '@ionic/vue';
 import SensorMobileTabs from '@/components/sensor/SensorMobileTabs.vue';
 
 const route = useRoute();
-const sensorPaths = new Set(['/sensor-data', '/tabs/downlink']);
+const sensorPaths = new Set(['/sensor-data', '/tabs/downlink', '/sensor-tools']);
 const showSensorTabs = computed(() => Capacitor.isNativePlatform() && (
   sensorPaths.has(route.path)
 ));

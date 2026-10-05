@@ -1,4 +1,4 @@
-export type SensorPage = 'data' | 'config';
+export type SensorPage = 'data' | 'config' | 'tools';
 
 let pendingPage: SensorPage | null = null;
 

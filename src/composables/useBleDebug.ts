@@ -23,10 +23,25 @@ import {
   readProductId as readProductIdFromBle,
 } from '@/utils/BLE/configReader';
 import { OsaKeyStore } from '@/plugins/osaKeyStore';
+import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
 
 type UseBleDebugOptions = {
   enabled: MaybeRef<boolean>;
 };
+
+const debugOtaAppKeyHex = ref('2B7E151628AED2A6ABF7158809CF4F3C');
+const debugDevEuiHex = ref('');
+
+export function useBleDebugCredentials() {
+  return { debugOtaAppKeyHex, debugDevEuiHex };
+}
+
+export function updateDebugDevEuiFromDeviceName(deviceName?: string): boolean {
+  const derivedDevEui = deriveDevEuiFromDeviceName(deviceName);
+  if (!derivedDevEui) return false;
+  debugDevEuiHex.value = derivedDevEui;
+  return true;
+}
 
 export function useBleDebug(ble: any, options: UseBleDebugOptions) {
   const isEnabled = () => toValue(options.enabled);
@@ -37,8 +52,6 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
   const debugSubscriptionTargets = ref<BleSubscriptionTarget[]>([]);
 
   const debugHex = ref('01');
-  const debugOtaAppKeyHex = ref('2B7E151628AED2A6ABF7158809CF4F3C');
-  const debugDevEuiHex = ref('70B3D5E75F006761');
   const modelInfo = ref<string | null>(null);
   const firmwareInfo = ref<string | null>(null);
 
@@ -128,6 +141,22 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
     await writeToCharacteristicInService(ble.connectedDevice.value.deviceId, 'ff00', 'ff02', bytes, pushDebugLog);
   }
 
+  async function writeToLoraLinkTest() {
+    if (!ble.connectedDevice.value) return;
+    const bytes = parseHexToUint8Array(debugHex.value);
+    if (!bytes) {
+      pushDebugLog('Invalid hex');
+      return;
+    }
+    await writeToCharacteristicInService(
+      ble.connectedDevice.value.deviceId,
+      '8002',
+      'c002',
+      bytes,
+      pushDebugLog,
+    );
+  }
+
   async function readFe61() {
     if (!ble.connectedDevice.value) return;
     await readCharacteristicByShort(ble.connectedDevice.value.deviceId, 'fe61', pushDebugLog);
@@ -169,7 +198,7 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
 
   async function runOsaChallengeFe20() {
     if (!ble.connectedDevice.value) return;
-    await runOsaChallenge(
+    return runOsaChallenge(
       ble.connectedDevice.value.deviceId,
       debugOtaAppKeyHex.value,
       debugDevEuiHex.value,
@@ -224,9 +253,10 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
     try {
       const stored = await OsaKeyStore.get({ devEui: debugDevEuiHex.value });
       pushDebugLog(`[OSA store] Using valid stored key for ${stored.devEui}; key hidden`);
-      await runOsaChallenge(ble.connectedDevice.value.deviceId, stored.keyHex, stored.devEui, pushDebugLog);
+      return await runOsaChallenge(ble.connectedDevice.value.deviceId, stored.keyHex, stored.devEui, pushDebugLog);
     } catch (error: any) {
       pushDebugLog(`[OSA store] Authentication unavailable — ${error?.message ?? error}`);
+      return false;
     }
   }
 
@@ -289,6 +319,15 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
   );
 
   watch(
+    () => ble.connectedDevice.value?.name,
+    (deviceName) => {
+      if (!updateDebugDevEuiFromDeviceName(deviceName)) return;
+      pushDebugLog(`[OSA] DevEUI inferred from ${deviceName}: ${debugDevEuiHex.value}`);
+    },
+    { immediate: true }
+  );
+
+  watch(
     isEnabled,
     (enabled) => {
       if (enabled) {
@@ -321,6 +360,7 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
     writeToFe62,
     writeToFf01,
     writeToFf02,
+    writeToLoraLinkTest,
     readFe61,
     readFf01,
     readFe21InFe20,
