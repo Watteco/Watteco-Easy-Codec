@@ -89,6 +89,7 @@ const lastConnectedDevice = ref<DeviceLike | undefined>(undefined);
 const statusMessage = ref('');
 const eventsLog = ref<string[]>([]);
 const sending = ref(false);
+const osaAuthenticating = ref(false);
 const pairing = ref(false);
 const connecting = ref(false);
 const reconnecting = ref(false);
@@ -1041,9 +1042,11 @@ async function sendOutputFrames(osaKeyHex: string, devEuiHex: string, activateAf
   if (sending.value) return 0;
 
   sending.value = true;
+  osaAuthenticating.value = true;
   statusMessage.value = 'Authenticating configuration transfer…';
   try {
     await authenticateOsa(deviceId, osaKeyHex, devEuiHex, log);
+    osaAuthenticating.value = false;
     statusMessage.value = `Sending ${validFrames.length} configuration frame(s)…`;
     await uploadConfigurationBlob(deviceId, validFrames, log, activateAfterCommit);
     statusMessage.value = activateAfterCommit
@@ -1056,6 +1059,7 @@ async function sendOutputFrames(osaKeyHex: string, devEuiHex: string, activateAf
     statusMessage.value = `Configuration transfer failed: ${message}`;
     return -1;
   } finally {
+    osaAuthenticating.value = false;
     sending.value = false;
   }
 }
@@ -1099,6 +1103,7 @@ export function useBle() {
     statusMessage,
     eventsLog:       readonly(eventsLog),
     sending:         readonly(sending),
+    osaAuthenticating: readonly(osaAuthenticating),
     pairing:         readonly(pairing),
     connecting:      readonly(connecting),
     reconnecting:    readonly(reconnecting),

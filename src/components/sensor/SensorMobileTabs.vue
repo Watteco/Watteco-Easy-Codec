@@ -30,7 +30,6 @@
       <span>{{ labels.config }}</span>
     </button>
     <button
-      v-if="developerModeEnabled"
       type="button"
       class="sensor-mobile-tab"
       :class="{ 'sensor-mobile-tab--active': displayedActivePage === 'tools' }"
@@ -49,7 +48,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { IonIcon } from '@ionic/vue';
 import { analyticsOutline, buildOutline, optionsOutline } from 'ionicons/icons';
 import { useLanguage } from '@/composables/useLanguage';
-import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import {
   cancelSensorPageTransition,
   requestSensorPageTransition,
@@ -59,7 +57,6 @@ import {
 const route = useRoute();
 const router = useRouter();
 const { currentLanguage } = useLanguage();
-const { developerModeEnabled } = useDeveloperMode();
 const activePage = computed<SensorPage>(() => (
   route.path === '/sensor-data' ? 'data' : route.path === '/sensor-tools' ? 'tools' : 'config'
 ));
@@ -68,9 +65,7 @@ const navigationPending = ref(false);
 const labels = computed(() => currentLanguage.value === 'fr'
   ? { navigation: 'Navigation du capteur', data: 'Données', config: 'Configuration', tools: 'Outils' }
   : { navigation: 'Sensor navigation', data: 'Data', config: 'Configuration', tools: 'Tools' });
-const availablePages = computed<SensorPage[]>(() => (
-  developerModeEnabled.value ? ['data', 'config', 'tools'] : ['data', 'config']
-));
+const availablePages = computed<SensorPage[]>(() => ['data', 'config', 'tools']);
 const selectionStyle = computed(() => ({
   transform: `translate3d(${Math.max(0, availablePages.value.indexOf(displayedActivePage.value)) * 100}%, 0, 0)`,
 }));

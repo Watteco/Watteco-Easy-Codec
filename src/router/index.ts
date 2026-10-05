@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
 import { Capacitor } from '@capacitor/core';
 import TabsPage from '../views/TabsPage.vue'
-import { useDeveloperMode } from '@/composables/useDeveloperMode';
 
 const isNative = Capacitor.isNativePlatform();
 
@@ -40,8 +39,7 @@ const routes: Array<RouteRecordRaw> = [
     name: 'SensorTools',
     component: () => import('@/views/SensorToolsPage.vue'),
     beforeEnter: (_to, _from, next) => {
-      const { developerModeEnabled } = useDeveloperMode();
-      if (!isNative || !developerModeEnabled.value) { next('/tabs/downlink'); return; }
+      if (!isNative) { next('/tabs/downlink'); return; }
       next();
     }
   },

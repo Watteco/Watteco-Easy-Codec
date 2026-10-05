@@ -1258,7 +1258,17 @@
         <div v-if="ble.isNative.value" class="ble-panel">
           <div class="ble-actions">
             <ion-button v-if="framesAvailable" @click="sendFramesBle" :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value" class="half-width" color="primary">
-              {{ ble.pairing.value ? 'Pairing…' : (ble.sending.value ? localize('@bleSending') : localize('@bleSendConfig')) }}
+              <ion-icon
+                slot="start"
+                :icon="configurationOsaAuthenticated === true ? lockOpenOutline : lockClosedOutline"
+              />
+              {{ ble.pairing.value
+                ? 'Pairing…'
+                : ble.osaAuthenticating.value
+                  ? localize('@bleAuthenticating')
+                  : ble.sending.value
+                    ? localize('@bleSending')
+                    : localize('@bleSendConfig') }}
             </ion-button>
           </div>
           <ion-checkbox
@@ -1323,7 +1333,7 @@ import {
   IonText,
   onIonViewDidEnter,
 } from '@ionic/vue';
-import { chevronForwardOutline, closeOutline, refreshOutline } from 'ionicons/icons';
+import { chevronForwardOutline, closeOutline, lockClosedOutline, lockOpenOutline, refreshOutline } from 'ionicons/icons';
 import { Capacitor } from '@capacitor/core';
 import { useBle } from '@/composables/useBle';
 import { useBleDebugCredentials, updateDebugDevEuiFromDeviceName } from '@/composables/useBleDebug';
@@ -1346,6 +1356,7 @@ import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { getProductConfigurationFile } from '@/utils/productMeasurements';
+import { readAdminDeviceStatus } from '@/utils/BLE/adminStatus';
 
 // Import language files
 import enUS from '/localisation/en_US.json?url';
@@ -1353,6 +1364,7 @@ import frFR from '/localisation/fr_FR.json?url';
 
 onIonViewDidEnter(() => {
   playSensorPageTransition('config', '.sensor-config-content');
+  void refreshConfigurationOsaStatus();
 });
 
 interface Product {
@@ -1446,10 +1458,34 @@ const bleHideInProd = computed(() => (
 const ble = useBle();
 
 const { debugOtaAppKeyHex, debugDevEuiHex } = useBleDebugCredentials();
+const configurationOsaAuthenticated = ref<boolean | null>(null);
+
+async function refreshConfigurationOsaStatus(): Promise<void> {
+  const deviceId = ble.connectedDevice.value?.deviceId;
+  if (!ble.connected.value || !deviceId) {
+    configurationOsaAuthenticated.value = null;
+    return;
+  }
+  try {
+    const status = await readAdminDeviceStatus(deviceId, line => console.debug(line));
+    configurationOsaAuthenticated.value = status.osaAuthenticated;
+  } catch {
+    configurationOsaAuthenticated.value = null;
+  }
+}
 
 watch(
   () => ble.connectedDevice.value?.name,
   deviceName => updateDebugDevEuiFromDeviceName(deviceName),
+  { immediate: true }
+);
+
+watch(
+  () => ble.connected.value,
+  connectedNow => {
+    if (connectedNow) void refreshConfigurationOsaStatus();
+    else configurationOsaAuthenticated.value = null;
+  },
   { immediate: true }
 );
 
@@ -2372,11 +2408,12 @@ const copyFramesNoSpaces = () => {
 
 // Send frames via BLE (native only)
 const sendFramesBle = async () => {
-  await ble.sendOutputFrames(
+  const sentFrameCount = await ble.sendOutputFrames(
     debugOtaAppKeyHex.value,
     debugDevEuiHex.value,
     activateConfigurationAfterSend.value
   );
+  if (sentFrameCount > 0) configurationOsaAuthenticated.value = true;
 };
 
 const toggleVisibility = (category: string) => {

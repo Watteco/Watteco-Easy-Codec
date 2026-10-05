@@ -7,6 +7,7 @@
         <section>
           <details open>
             <summary class="section-summary">
+              <ion-icon class="section-chevron" :icon="chevronForwardOutline" />
               <span class="section-title">{{ localize('@toolsDeviceStatus') }}</span>
             </summary>
             <ion-card class="tool-card">
@@ -35,15 +36,6 @@
               </div>
               <div class="status-actions">
                 <ion-button
-                  v-if="deviceStatus.osaAuthenticated !== true"
-                  size="small"
-                  fill="outline"
-                  :disabled="osaAuthenticating || deviceStatusLoading || !ble.connected.value"
-                  @click="runManualOsaChallenge"
-                >
-                  {{ osaAuthenticating ? localize('@toolsOsaAuthenticating') : localize('@toolsOsaAuthenticate') }}
-                </ion-button>
-                <ion-button
                   size="small"
                   fill="clear"
                   :disabled="deviceStatusLoading || !ble.connected.value"
@@ -60,6 +52,7 @@
         <section>
           <details open>
             <summary class="section-summary">
+              <ion-icon class="section-chevron" :icon="chevronForwardOutline" />
               <span class="section-title">{{ localize('@toolsCampaignTitle') }}</span>
             </summary>
             <ion-card class="tool-card">
@@ -76,7 +69,15 @@
                   :disabled="!canRunTests"
                   @click="startCampaign"
                 >
-                  {{ campaignSamples.length ? localize('@toolsRestartCampaign') : localize('@toolsStartCampaign') }}
+                  <ion-icon
+                    slot="start"
+                    :icon="deviceStatus.osaAuthenticated === true ? lockOpenOutline : lockClosedOutline"
+                  />
+                  {{ osaAuthenticating
+                    ? localize('@toolsOsaAuthenticating')
+                    : campaignSamples.length
+                      ? localize('@toolsRestartCampaign')
+                      : localize('@toolsStartCampaign') }}
                 </ion-button>
                 <ion-button v-else expand="block" color="medium" @click="cancelCampaign">
                   {{ localize('@toolsCancelCampaign') }}
@@ -129,17 +130,12 @@
         <section>
           <details open>
             <summary class="section-summary">
+              <ion-icon class="section-chevron" :icon="chevronForwardOutline" />
               <span class="section-title">{{ localize('@toolsManualUplink') }}</span>
             </summary>
             <ion-card class="tool-card">
             <ion-card-content>
               <p class="card-description">{{ localize('@toolsManualFrameDescription') }}</p>
-              <p
-                v-if="ble.connected.value && deviceStatus.osaAuthenticated !== true"
-                class="card-description validation-error"
-              >
-                {{ localize('@toolsManualFrameRequiresOsa') }}
-              </p>
               <label class="field-label" for="tools-payload">{{ localize('@toolsHexPayload') }}</label>
               <textarea
                 id="tools-payload"
@@ -154,7 +150,15 @@
               </p>
 
               <ion-button expand="block" :disabled="!canSendManualFrame" @click="sendManualFrame">
-                {{ manualFrameSending ? localize('@toolsSendingFrame') : localize('@toolsSendFrame') }}
+                <ion-icon
+                  slot="start"
+                  :icon="deviceStatus.osaAuthenticated === true ? lockOpenOutline : lockClosedOutline"
+                />
+                {{ osaAuthenticating
+                  ? localize('@toolsOsaAuthenticating')
+                  : manualFrameSending
+                    ? localize('@toolsSendingFrame')
+                    : localize('@toolsSendFrame') }}
               </ion-button>
 
               <label class="field-label" for="tools-command-response">
@@ -180,6 +184,7 @@
     </ion-content>
 
     <ble-debug-panel
+      v-if="developerModeEnabled"
       v-model:visible="debugVisible"
       v-model:debugHex="debugHex"
       v-model:debugOtaAppKeyHex="debugOtaAppKeyHex"
@@ -216,7 +221,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import axios from 'axios';
-import { IonButton, IonCard, IonCardContent, IonContent, IonPage, onIonViewDidEnter } from '@ionic/vue';
+import { IonButton, IonCard, IonCardContent, IonContent, IonIcon, IonPage, onIonViewDidEnter } from '@ionic/vue';
+import { chevronForwardOutline, lockClosedOutline, lockOpenOutline } from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
 import { useBleDebug } from '@/composables/useBleDebug';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
@@ -307,9 +313,9 @@ let campaignCancelled = false;
 const status = computed(() => ble.loraLinkStatus.value);
 const canRunTests = computed(() => (
   ble.connected.value
-  && deviceStatus.value.osaAuthenticated === true
   && ble.loraLinkTestAvailable.value === true
   && status.value?.joined === true
+  && !osaAuthenticating.value
 ));
 const joinLabel = computed(() => status.value
   ? localize(status.value.joined ? '@loraWanJoined' : '@loraWanNotJoined')
@@ -336,9 +342,9 @@ const snrHistory = computed(() => campaignSamples.value.flatMap(sample => (
 const manualFrame = computed(() => parseAppFrameHex(manualFrameHex.value));
 const canSendManualFrame = computed(() => (
   ble.connected.value
-  && deviceStatus.value.osaAuthenticated === true
   && manualFrame.value !== null
   && !manualFrameSending.value
+  && !osaAuthenticating.value
 ));
 
 function localize(key: string): string {
@@ -412,11 +418,26 @@ function receiveAppFrame(frame: Uint8Array): void {
 }
 
 async function runManualOsaChallenge(): Promise<void> {
-  if (osaAuthenticating.value || !ble.connected.value) return;
+  await authenticateWithDebugCredentials(true);
+}
+
+async function authenticateWithDebugCredentials(force = false): Promise<boolean> {
+  if (!force && deviceStatus.value.osaAuthenticated === true) return true;
+  if (osaAuthenticating.value || !ble.connected.value) return false;
   osaAuthenticating.value = true;
+  feedback.value = '';
+  feedbackError.value = false;
   try {
-    await runOsaChallengeFe20();
+    const authenticated = await runOsaChallengeFe20();
     await refreshDeviceStatusAfterChallenge();
+    if (authenticated && deviceStatus.value.osaAuthenticated === true) return true;
+    feedbackError.value = true;
+    feedback.value = localize('@toolsOsaUnauthorized');
+    return false;
+  } catch (error: any) {
+    feedbackError.value = true;
+    feedback.value = error?.message ?? localize('@toolsOsaUnauthorized');
+    return false;
   } finally {
     osaAuthenticating.value = false;
   }
@@ -456,6 +477,7 @@ async function sendManualFrame(): Promise<void> {
   const deviceId = ble.connectedDevice.value?.deviceId;
   const frame = manualFrame.value;
   if (!canSendManualFrame.value || !deviceId || !frame) return;
+  if (!await authenticateWithDebugCredentials()) return;
 
   manualFrameSending.value = true;
   awaitingManualResponse.value = true;
@@ -481,6 +503,7 @@ async function sendManualFrame(): Promise<void> {
 
 async function startCampaign() {
   if (!canRunTests.value || campaignRunning.value) return;
+  if (!await authenticateWithDebugCredentials()) return;
   campaignCancelled = false;
   campaignRunning.value = true;
   campaignSamples.value = [];
@@ -590,21 +613,21 @@ onBeforeUnmount(() => {
 .section-summary {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   margin: 0 4px 10px;
   cursor: pointer;
   list-style: none;
 }
 
 .section-summary::-webkit-details-marker { display: none; }
-.section-summary::after {
-  content: '⌄';
-  color: var(--app-text-muted);
-  font-size: 1.2rem;
+.section-chevron {
+  flex: 0 0 auto;
+  color: var(--ion-color-primary);
+  font-size: 1rem;
   transition: transform 160ms ease;
 }
 
-details:not([open]) > .section-summary::after { transform: rotate(-90deg); }
+details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
 .section-summary:focus-visible {
   border-radius: 6px;
   outline: 2px solid var(--ion-color-primary);

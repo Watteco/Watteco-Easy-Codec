@@ -121,6 +121,21 @@ export async function authenticateOsa(
   ]);
   if (!challengeChar || !responseChar || !statusChar) throw new Error('OSA characteristics not found');
 
+  try {
+    const currentStatusRaw = await BleClient.read(
+      deviceId,
+      statusChar.service,
+      statusChar.characteristic,
+    );
+    const currentStatus = toUint8ArrayFromBleValue(currentStatusRaw);
+    if (currentStatus?.length === 1 && currentStatus[0] === 0x02) {
+      onLog('OSA session already authenticated');
+      return;
+    }
+  } catch (error: any) {
+    onLog(`OSA status check failed; starting challenge: ${error?.message ?? error}`);
+  }
+
   const challengeRaw = await BleClient.read(deviceId, challengeChar.service, challengeChar.characteristic);
   const challenge = toUint8ArrayFromBleValue(challengeRaw);
   if (!challenge || challenge.length !== 16) throw new Error(`Invalid OSA challenge length: ${challenge?.length ?? 0}`);
