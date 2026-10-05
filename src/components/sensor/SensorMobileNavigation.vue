@@ -27,8 +27,26 @@
           :icon="alertCircleOutline"
           aria-hidden="true"
         />
-        <span v-else class="sensor-mobile-status-dot" aria-hidden="true"></span>
-        <span class="sensor-mobile-status-label" aria-live="polite">{{ statusLabel }}</span>
+        <template v-else-if="effectiveStatus === 'connected'">
+          <span class="sensor-mobile-network-status" :aria-label="connectedNetworksLabel" aria-live="polite">
+            <span class="sensor-mobile-status-dot" aria-hidden="true"></span>
+            <span>BLE</span>
+            <span class="sensor-mobile-status-separator" aria-hidden="true">&middot;</span>
+            <span
+              v-if="ble.loraWanJoined.value !== null"
+              class="sensor-mobile-status-dot"
+              :class="{ 'sensor-mobile-status-dot--offline': !ble.loraWanJoined.value }"
+              aria-hidden="true"
+            ></span>
+            <span v-else class="sensor-mobile-status-unknown" aria-hidden="true">?</span>
+            <span>LoRaWAN</span>
+          </span>
+        </template>
+        <span
+          v-if="effectiveStatus !== 'connected' || isDisconnecting"
+          class="sensor-mobile-status-label"
+          aria-live="polite"
+        >{{ statusLabel }}</span>
         <span
           v-if="effectiveStatus === 'connected' && displayedBatteryLevel !== null"
           class="sensor-mobile-battery"
@@ -145,6 +163,12 @@ const statusLabel = computed(() => {
   if (effectiveStatus.value === 'connected') return props.localize('@bleConnected');
   if (effectiveStatus.value === 'reconnect') return props.localize('@bleConnectionLost');
   return props.localize('@bleNotConnected');
+});
+const connectedNetworksLabel = computed(() => {
+  const loraWanStatus = ble.loraWanJoined.value === null
+    ? props.localize('@loraWanStatusUnknown')
+    : props.localize(ble.loraWanJoined.value ? '@loraWanJoined' : '@loraWanNotJoined');
+  return `${props.localize('@bleConnected')}. ${loraWanStatus}`;
 });
 const headerActionLabel = computed(() => {
   if (isDisconnecting.value) return props.localize('@bleDisconnecting');
@@ -264,11 +288,41 @@ const disconnectAndGoBack = async () => {
 }
 
 .sensor-mobile-status-dot {
+  flex: 0 0 auto;
   width: 7px;
   height: 7px;
   border: 1px solid currentColor;
   border-radius: 50%;
   background: #4bd37b;
+}
+
+.sensor-mobile-network-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sensor-mobile-status-dot--offline {
+  background: var(--ion-color-danger, #eb445a);
+}
+
+.sensor-mobile-status-unknown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 11px;
+  height: 11px;
+  color: var(--ion-color-medium-contrast, #fff);
+  background: var(--ion-color-medium, #92949c);
+  border-radius: 50%;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.sensor-mobile-status-separator {
+  margin: 0 1px;
+  opacity: 0.75;
 }
 
 .sensor-mobile-status-icon {

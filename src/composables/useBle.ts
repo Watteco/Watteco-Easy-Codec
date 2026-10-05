@@ -11,6 +11,11 @@ import {
   type BleMeasurementSubscription,
 } from '@/utils/BLE/measurements';
 import { resolveAvailableProductReference } from '@/utils/productMeasurements';
+import {
+  startLoraLinkMonitoring,
+  stopLoraLinkMonitoring,
+  type LoraLinkSubscription,
+} from '@/utils/BLE/loraLink';
 
 type DeviceLike = {
   deviceId: string;
@@ -81,9 +86,11 @@ const statusMessage = ref('');
 const eventsLog = ref<string[]>([]);
 const sending = ref(false);
 const pairing = ref(false);
+const connecting = ref(false);
 const reconnecting = ref(false);
 const bondedDevices = ref<string[]>([]);
 const productReference = ref<string | null>(null);
+const loraWanJoined = ref<boolean | null>(null);
 const measurementValues = ref<Record<string, number | boolean | string>>({});
 const measurementHistory = ref<Record<string, MeasurementHistoryPoint[]>>({});
 let measurementHistoryDeviceId: string | undefined;
@@ -97,6 +104,8 @@ let scanTimeoutId: ReturnType<typeof setTimeout> | undefined;
 let scanResolve: (() => void) | undefined;
 let initialized = false;
 let autoScanCanceled = false;
+let connectionCanceled = false;
+let connectingDevice: DeviceLike | undefined;
 let reconnectCanceled = false;
 let reconnectScanActive = false;
 let reconnectScanTimeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -107,6 +116,7 @@ let targetServiceUuid: string | undefined;
 let targetCharUuid: string | undefined;
 let targetNotifyCharUuid: string | undefined;
 let measurementSubscriptions: BleMeasurementSubscription[] = [];
+let loraLinkSubscription: LoraLinkSubscription | undefined;
 
 /* ---- log helper ---- */
 function log(msg: string) {
@@ -471,8 +481,11 @@ async function connectToDeviceUntil(
   if (connectedDevice.value?.deviceId !== device.deviceId) productReference.value = null;
   prepareMeasurementHistory(device.deviceId);
   await stopMeasurementMonitoring(device.deviceId, measurementSubscriptions, log);
+  await stopLoraLinkMonitoring(device.deviceId, loraLinkSubscription, log);
   measurementValues.value = {};
   measurementSubscriptions = [];
+  loraLinkSubscription = undefined;
+  loraWanJoined.value = null;
   statusMessage.value = hasRememberedBond(device.deviceId)
     ? `Reconnecting to ${device.name || device.deviceId}…`
     : `Connecting to ${device.name || device.deviceId}…`;
@@ -492,6 +505,8 @@ async function connectToDeviceUntil(
       await BleClient.connect(device.deviceId, () => {
         void stopMeasurementMonitoring(device.deviceId, measurementSubscriptions, log);
         measurementSubscriptions = [];
+        loraLinkSubscription = undefined;
+        loraWanJoined.value = null;
         connected.value = false;
         connectedDevice.value = undefined;
         clearConnectionTarget();
@@ -536,6 +551,16 @@ async function connectToDeviceUntil(
         );
       } catch (error: any) {
         log(`[MEAS] Discovery failed: ${error?.message ?? error}`);
+      }
+
+      try {
+        loraLinkSubscription = await startLoraLinkMonitoring(
+          device.deviceId,
+          joined => { loraWanJoined.value = joined; },
+          log
+        );
+      } catch (error: any) {
+        log(`[LORA] Discovery failed: ${error?.message ?? error}`);
       }
 
       if (isAndroidNativePlatform()) {
@@ -609,6 +634,9 @@ async function connectToDeviceUntil(
       if (isCanceled?.()) {
         await stopMeasurementMonitoring(device.deviceId, measurementSubscriptions, log);
         measurementSubscriptions = [];
+        await stopLoraLinkMonitoring(device.deviceId, loraLinkSubscription, log);
+        loraLinkSubscription = undefined;
+        loraWanJoined.value = null;
         try { await BleClient.disconnect(device.deviceId); } catch { /* ignore cancellation cleanup errors */ }
         connectedDevice.value = undefined;
         clearConnectionTarget();
@@ -636,8 +664,83 @@ async function connectToDeviceUntil(
   }
 }
 
-async function connectToDevice(device: DeviceLike) {
-  await connectToDeviceUntil(device);
+async function connectToDevice(device: DeviceLike): Promise<boolean> {
+  if (connected.value) return true;
+  if (connecting.value) return false;
+
+  // Device discovery and the targeted connection scan cannot run at the same
+  // time on the native BLE stack.
+  await cancelScan();
+  connectionCanceled = false;
+  connectingDevice = device;
+  connecting.value = true;
+
+  try {
+    const connectionDeadline = Date.now() + RECONNECT_TIMEOUT_MS;
+
+    // Keep the fast path for a sensor that is still in the advertising window
+    // in which it was discovered.
+    await connectToDeviceUntil(
+      device,
+      Date.now() + RECONNECT_CONNECT_TIMEOUT_MS,
+      () => connectionCanceled,
+    );
+    if (connected.value) return true;
+
+    // Normal-mode sensors only advertise once every 120 seconds. Listen for
+    // the next window, then retry the GATT connection while the sensor is awake.
+    while (!connectionCanceled && Date.now() < connectionDeadline) {
+      const deviceIsAdvertising = await waitForTargetAdvertisement(
+        device,
+        connectionDeadline,
+        () => connectionCanceled,
+      );
+      if (connectionCanceled) return false;
+
+      if (deviceIsAdvertising) {
+        await connectToDeviceUntil(
+          device,
+          Date.now() + RECONNECT_CONNECT_TIMEOUT_MS,
+          () => connectionCanceled,
+        );
+        if (connected.value) return true;
+      }
+
+      const remainingTime = connectionDeadline - Date.now();
+      if (remainingTime > 0) {
+        await delay(Math.min(RECONNECT_RETRY_DELAY_MS, remainingTime));
+      }
+    }
+
+    if (!connectionCanceled) statusMessage.value = 'Connection failed: timeout';
+    return false;
+  } finally {
+    finishReconnectScan(false);
+    if (reconnectScanActive) {
+      reconnectScanActive = false;
+      try { await BleClient.stopLEScan(); } catch { /* ignore connection scan cleanup errors */ }
+    }
+    if (connectionCanceled) statusMessage.value = 'Connection canceled';
+    connecting.value = false;
+    connectingDevice = undefined;
+  }
+}
+
+async function cancelConnect() {
+  if (!connecting.value) return;
+
+  connectionCanceled = true;
+  finishReconnectScan(false);
+
+  if (reconnectScanActive) {
+    reconnectScanActive = false;
+    try { await BleClient.stopLEScan(); } catch { /* ignore connection scan cancellation errors */ }
+  }
+
+  if (connectingDevice) {
+    try { await BleClient.disconnect(connectingDevice.deviceId); } catch { /* ignore pending connection cancellation errors */ }
+  }
+  statusMessage.value = 'Connection canceled';
 }
 
 async function disconnect() {
@@ -648,6 +751,9 @@ async function disconnect() {
     log
   );
   measurementSubscriptions = [];
+  await stopLoraLinkMonitoring(connectedDevice.value.deviceId, loraLinkSubscription, log);
+  loraLinkSubscription = undefined;
+  loraWanJoined.value = null;
   try {
     await BleClient.disconnect(connectedDevice.value.deviceId);
   } catch (e) { console.error('Disconnect error:', e); }
@@ -669,9 +775,13 @@ function finishReconnectScan(found: boolean) {
   resolve?.(found);
 }
 
-async function waitForReconnectAdvertisement(device: DeviceLike, deadline: number): Promise<boolean> {
+async function waitForTargetAdvertisement(
+  device: DeviceLike,
+  deadline: number,
+  isCanceled: () => boolean,
+): Promise<boolean> {
   const remainingTime = deadline - Date.now();
-  if (reconnectCanceled || remainingTime <= 0) return false;
+  if (isCanceled() || remainingTime <= 0) return false;
 
   statusMessage.value = `Waiting for ${device.name || device.deviceId}…`;
   const resultPromise = new Promise<boolean>((resolve) => {
@@ -690,7 +800,7 @@ async function waitForReconnectAdvertisement(device: DeviceLike, deadline: numbe
       }
     });
     reconnectScanActive = true;
-    if (reconnectCanceled) finishReconnectScan(false);
+    if (isCanceled()) finishReconnectScan(false);
     return await resultPromise;
   } catch (error: any) {
     log(`RECONNECT SCAN ERROR ${error?.message ?? error}`);
@@ -741,7 +851,11 @@ async function reconnectToLastDevice(): Promise<boolean> {
   try {
     const reconnectDeadline = Date.now() + RECONNECT_TIMEOUT_MS;
     do {
-      const deviceIsAdvertising = await waitForReconnectAdvertisement(device, reconnectDeadline);
+      const deviceIsAdvertising = await waitForTargetAdvertisement(
+        device,
+        reconnectDeadline,
+        () => reconnectCanceled,
+      );
       if (reconnectCanceled) return false;
 
       if (!deviceIsAdvertising) {
@@ -945,9 +1059,11 @@ export function useBle() {
     eventsLog:       readonly(eventsLog),
     sending:         readonly(sending),
     pairing:         readonly(pairing),
+    connecting:      readonly(connecting),
     reconnecting:    readonly(reconnecting),
     bondedDevices:   readonly(bondedDevices),
     productReference: readonly(productReference),
+    loraWanJoined: readonly(loraWanJoined),
     measurementValues: readonly(measurementValues),
     measurementHistory: readonly(measurementHistory),
 
@@ -957,6 +1073,7 @@ export function useBle() {
     cancelScan,
     stopScan,
     connectToDevice,
+    cancelConnect,
     reconnectToLastDevice,
     cancelReconnect,
     disconnect,

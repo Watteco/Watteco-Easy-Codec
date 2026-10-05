@@ -3,6 +3,9 @@ import {
   CABLE_REPLACEMENT_RX_SHORT,
   CABLE_REPLACEMENT_SERVICE_SHORT,
   CABLE_REPLACEMENT_TX_SHORT,
+  LORA_LINK_STATUS_CHAR_UUID,
+  LORA_LINK_TEST_CHAR_UUID,
+  LORA_SERVICE_UUID,
   includesShortUuid,
   normalizeUuid,
 } from '@/utils/BLE/characteristics';
@@ -200,5 +203,52 @@ export async function dumpServicesOnly(deviceId: string, onLog: (line: string) =
 
   for (const service of services) {
     onLog(`Service ${service.uuid}`);
+  }
+}
+
+export async function inspectLoraLinkCharacteristics(
+  deviceId: string,
+  onLog: (line: string) => void
+): Promise<void> {
+  const services: any[] = await BleClient.getServices(deviceId);
+  const service = services.find(candidate => (
+    normalizeUuid(candidate.uuid || '') === LORA_SERVICE_UUID
+  ));
+
+  onLog(`--- LoRa link (service 8002) ---`);
+  if (!service) {
+    onLog('LoRa service 8002 not found');
+    return;
+  }
+
+  const targets = [
+    { uuid: LORA_LINK_STATUS_CHAR_UUID, short: 'C001', label: 'Link Status' },
+    { uuid: LORA_LINK_TEST_CHAR_UUID, short: 'C002', label: 'Link Test' },
+  ];
+
+  for (const target of targets) {
+    const characteristic = service.characteristics?.find((candidate: any) => (
+      normalizeUuid(candidate.uuid || '') === target.uuid
+    ));
+    if (!characteristic) {
+      onLog(`${target.label} (8002/${target.short}) not found`);
+      continue;
+    }
+
+    const properties = characteristic.properties || {};
+    const enabledProperties = Object.keys(properties).filter(key => properties[key]);
+    onLog(`${target.label} (8002/${target.short}) props:${enabledProperties.join(',') || 'none'}`);
+
+    if (!properties.read) {
+      onLog(`${target.label} is not readable${properties.write || properties.writeWithoutResponse ? ' (write command)' : ''}`);
+      continue;
+    }
+
+    try {
+      const value = await BleClient.read(deviceId, service.uuid, characteristic.uuid);
+      onLog(`${new Date().toLocaleTimeString()} [READ 8002/${target.short}] ${valueToHex(value)}`);
+    } catch (error: any) {
+      onLog(`Read failed 8002/${target.short}: ${error?.message ?? error}`);
+    }
   }
 }

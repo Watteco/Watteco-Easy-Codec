@@ -48,6 +48,7 @@
         <ion-button size="small" fill="outline" @click="$emit('read-fe61')" :disabled="!connected">Read FE61</ion-button>
         <ion-button size="small" fill="outline" @click="$emit('read-ff01')" :disabled="!connected">Read FF01</ion-button>
         <ion-button size="small" fill="outline" @click="$emit('read-fe21')" :disabled="!connected">Read FE21 (FE20)</ion-button>
+        <ion-button size="small" fill="outline" @click="$emit('read-lora-link')" :disabled="!connected">Inspect LoRa link</ion-button>
       </div>
       <div class="button-row">
         <ion-button size="small" fill="solid" color="tertiary" @click="$emit('read-product-id')" :disabled="!connected">Read ProductID</ion-button>
@@ -113,6 +114,7 @@ defineEmits<{
   (e: 'read-fe61'): void;
   (e: 'read-ff01'): void;
   (e: 'read-fe21'): void;
+  (e: 'read-lora-link'): void;
   (e: 'read-product-id'): void;
   (e: 'read-config-blob'): void;
   (e: 'osa-challenge'): void;

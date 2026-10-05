@@ -1303,6 +1303,7 @@
     @read-fe61="readFe61"
     @read-ff01="readFf01"
     @read-fe21="readFe21InFe20"
+    @read-lora-link="readLoraLinkInfo"
     @read-product-id="readProductId"
     @read-config-blob="readConfigurationBlob"
     @osa-challenge="runOsaChallengeFe20"
@@ -1492,6 +1493,7 @@ const {
   readFe61,
   readFf01,
   readFe21InFe20,
+  readLoraLinkInfo,
   readConfigurationBlob,
   runOsaChallengeFe20,
   runStoredOsaChallengeFe20,

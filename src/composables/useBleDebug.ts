@@ -5,6 +5,7 @@ import {
   stopDebugSubscriptions as stopBleDebugSubscriptions,
   dumpServices as dumpBleServices,
   dumpServicesOnly as dumpBleServicesOnly,
+  inspectLoraLinkCharacteristics,
 } from '@/utils/BLE/connection';
 import type { BleSubscriptionTarget } from '@/utils/BLE/connection';
 import {
@@ -140,6 +141,15 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
   async function readFe21InFe20() {
     if (!ble.connectedDevice.value) return;
     await readOsaChallenge(ble.connectedDevice.value.deviceId, pushDebugLog);
+  }
+
+  async function readLoraLinkInfo() {
+    if (!ble.connectedDevice.value) return;
+    try {
+      await inspectLoraLinkCharacteristics(ble.connectedDevice.value.deviceId, pushDebugLog);
+    } catch (error: any) {
+      pushDebugLog(`LoRa link inspection failed: ${error?.message ?? error}`);
+    }
   }
 
   async function readConfigurationBlob() {
@@ -314,6 +324,7 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
     readFe61,
     readFf01,
     readFe21InFe20,
+    readLoraLinkInfo,
     readConfigurationBlob,
     runOsaChallengeFe20,
     runStoredOsaChallengeFe20,

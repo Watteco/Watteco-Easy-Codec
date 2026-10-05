@@ -49,17 +49,17 @@
           </div>
 
           <ion-button
-            @click="toggleScan"
+            @click="connecting ? cancelConnection() : toggleScan()"
             expand="block"
-            :color="ble.scanning.value ? 'medium' : 'primary'"
-            :disabled="connecting || ble.pairing.value"
+            :color="ble.scanning.value || connecting ? 'medium' : 'primary'"
+            :disabled="ble.pairing.value && !connecting"
             class="scan-button"
           >
             <ion-icon
               slot="start"
-              :icon="ble.scanning.value ? closeOutline : searchOutline"
+              :icon="ble.scanning.value || connecting ? closeOutline : searchOutline"
             />
-            {{ localize(ble.scanning.value ? '@bleCancelScan' : '@bleScan') }}
+            {{ localize(connecting ? '@bleCancelConnection' : ble.scanning.value ? '@bleCancelScan' : '@bleScan') }}
           </ion-button>
 
           <div
@@ -107,6 +107,16 @@
             </div>
           </div>
           <p>{{ localize('@bleScanning') }}</p>
+        </div>
+
+        <div
+          v-if="connecting"
+          class="connection-waiting"
+          role="status"
+          aria-live="polite"
+        >
+          <ion-spinner name="crescent" />
+          <p>{{ localize('@bleConnectionWaiting') }}</p>
         </div>
 
         <div
@@ -275,9 +285,16 @@ async function onDeviceSelect(dev: DeviceLike) {
 
   connecting.value = true;
   connectingDeviceId.value = dev.deviceId;
-  await ble.connectToDevice(dev);
-  connecting.value = false;
-  connectingDeviceId.value = '';
+  try {
+    await ble.connectToDevice(dev);
+  } finally {
+    connecting.value = false;
+    connectingDeviceId.value = '';
+  }
+}
+
+async function cancelConnection() {
+  await ble.cancelConnect();
 }
 
 function proceed() {
@@ -506,6 +523,25 @@ watch(() => ble.connected.value, (val) => {
   margin-top: 16px;
   font-size: 0.85em;
   color: var(--ion-color-medium);
+}
+
+.connection-waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 4px 0 16px;
+  color: var(--ion-color-medium-shade);
+  text-align: center;
+}
+
+.connection-waiting ion-spinner {
+  flex: 0 0 auto;
+}
+
+.connection-waiting p {
+  margin: 0;
+  font-size: 0.9rem;
 }
 
 .debug-corner {
