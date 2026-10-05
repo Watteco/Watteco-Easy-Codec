@@ -104,6 +104,7 @@ import {
 import { useBle } from '@/composables/useBle';
 import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
+import { useTheme } from '@/composables/useTheme';
 import type { LanguageCode, Translations } from '@/types/localization';
 import SensorHistoryCard from '@/components/sensor/SensorHistoryCard.vue';
 import SensorMetricCard from '@/components/sensor/SensorMetricCard.vue';
@@ -124,6 +125,7 @@ import frFR from '/localisation/fr_FR.json?url';
 const router = useRouter();
 const ble = useBle();
 const { developerModeEnabled } = useDeveloperMode();
+const { isDarkMode } = useTheme();
 const { currentLanguage } = useLanguage();
 const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
 
@@ -168,7 +170,7 @@ const sensorCards = computed(() => productMeasurements.value
   .filter(measurement => hasSensorVisual(measurement.measId))
   .map(measurement => ({
     ...measurement,
-    visual: getSensorVisual(measurement.measId),
+    visual: getSensorVisual(measurement.measId, isDarkMode.value),
   }))
   .filter(card => card.visual.category !== 'state'));
 const batteryCardCount = computed(() => sensorCards.value
@@ -209,7 +211,7 @@ const displayedCards = computed(() => sensorCards.value.map((card) => {
 
 const stateEntries = computed(() => productMeasurements.value
   .map((measurement) => {
-    const visual = getSensorVisual(measurement.measId);
+    const visual = getSensorVisual(measurement.measId, isDarkMode.value);
     if (visual.category !== 'state') return null;
 
     const match = measurement.id.match(/^pin_state(?:_(\d+))?$/);
@@ -376,7 +378,7 @@ const toggleDebugTools = () => {
 
 <style scoped>
 .sensor-data-content {
-  --background: #fff7ee;
+  --background: var(--app-page-background);
 }
 
 .native-with-sensor-navigation {
@@ -396,7 +398,7 @@ const toggleDebugTools = () => {
 
 .section-title {
   margin: 0 4px 10px;
-  color: #3e4650;
+  color: var(--app-text-secondary);
   font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.02em;

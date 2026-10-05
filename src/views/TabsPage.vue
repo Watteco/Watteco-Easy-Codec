@@ -127,7 +127,6 @@ const loadImage = async () => {
 :root {
   --ion-item-background: #00000000;
   --ion-item-border-color: #00000000;
-  --ion-background-color: #FFF7EE;
 }
 
 ion-tab-bar {

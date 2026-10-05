@@ -67,10 +67,10 @@ const formattedValue = computed(() => {
   flex-direction: column;
   margin: 0;
   overflow: hidden;
-  border: 1px solid rgba(28, 35, 45, 0.08);
+  border: 1px solid var(--app-border);
   border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 3px 12px rgba(28, 35, 45, 0.08);
+  background: var(--app-surface);
+  box-shadow: var(--app-card-shadow);
 }
 
 .metric-card::before {
@@ -140,7 +140,7 @@ const formattedValue = computed(() => {
 
 .metric-label {
   overflow: hidden;
-  color: #626b75;
+  color: var(--app-text-secondary);
   font-size: 0.82rem;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -153,7 +153,7 @@ const formattedValue = computed(() => {
   gap: 5px;
   margin-block: auto;
   margin-inline-start: 3px;
-  color: #202631;
+  color: var(--app-text);
   line-height: 1;
 }
 
@@ -166,12 +166,12 @@ const formattedValue = computed(() => {
 }
 
 .metric-value small {
-  color: #737c86;
+  color: var(--app-text-muted);
   font-size: 0.88rem;
   font-weight: 600;
 }
 
 .metric-value--empty {
-  color: #aeb4bb;
+  color: var(--app-text-faint);
 }
 </style>

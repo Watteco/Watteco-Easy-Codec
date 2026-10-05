@@ -2753,9 +2753,9 @@ ion-content {
   margin-top: 14px;
   margin-bottom: 20px;
   overflow: hidden;
-  border: 1px solid rgba(44, 50, 56, 0.1);
-  box-shadow: 0 5px 16px rgba(35, 39, 43, 0.1);
-  --background: rgba(255, 255, 255, 0.97);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-card-shadow);
+  --background: color-mix(in srgb, var(--app-surface) 97%, transparent);
   backdrop-filter: blur(12px);
 }
 
@@ -2763,9 +2763,9 @@ ion-content {
   width: min(100%, 720px);
   min-height: 48px;
   padding-inline: 14px;
-  border: 1px solid #d9dde2;
+  border: 1px solid var(--app-border-strong);
   border-radius: 10px;
-  background: #f9fafb;
+  background: var(--app-surface-subtle);
   font-weight: 650;
   --highlight-color-focused: var(--ion-color-primary);
   --highlight-color-valid: var(--ion-color-primary);
@@ -2797,8 +2797,8 @@ ion-content {
 }
 
 ion-card {
-  --background: #fff;
-  --color: #292d32;
+  --background: var(--app-surface);
+  --color: var(--app-text);
   border-radius: 14px;
 }
 
@@ -2841,20 +2841,20 @@ ion-segment-button::part(indicator-background) {
   margin-top: 14px;
   margin-bottom: 14px;
   overflow: hidden;
-  border: 1px solid #e1e4e8;
-  box-shadow: 0 3px 10px rgba(35, 39, 43, 0.06);
-  --background: #fff;
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-card-shadow);
+  --background: var(--app-surface);
 }
 
 .category-card > .config-item {
   margin: 0;
   min-height: 58px;
   padding: 4px 12px 4px 2px;
-  color: #292d32;
+  color: var(--app-text);
   border-left: 4px solid var(--ion-color-primary);
-  border-bottom: 1px solid #eceef0;
-  background: #fff;
-  --background: #fff;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-surface);
+  --background: var(--app-surface);
   --padding-start: 0;
   --inner-padding-end: 0;
   --min-height: 58px;
@@ -2868,21 +2868,21 @@ ion-segment-button::part(indicator-background) {
 
 .subcategory-card {
   overflow: hidden;
-  border: 1px solid #e2e5e9;
+  border: 1px solid var(--app-border);
   box-shadow: none;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
-  --background: #fff;
+  --background: var(--app-surface);
 }
 
 .subcategory-card > .config-item {
   margin: 0;
   min-height: 52px;
   padding: 2px 12px 2px 0;
-  color: #292d32;
+  color: var(--app-text);
   border-left: 4px solid var(--ion-color-primary);
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
-  --background: #fff;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-surface);
+  --background: var(--app-surface);
   --padding-start: 0;
   --inner-padding-end: 0;
   --min-height: 52px;
@@ -2947,7 +2947,7 @@ ion-segment-button::part(indicator-background) {
   gap: 10px;
   width: 100%;
   padding: 10px;
-  background: #f4f5f7;
+  background: var(--app-surface-subtle);
 }
 
 .commande-grid {
@@ -2979,16 +2979,16 @@ ul {
   margin: 0;
   padding: 0 12px;
   list-style: none;
-  background: #fff;
+  background: var(--app-surface);
 }
 
 .config-card {
   margin: 0;
   border: 0;
-  border-bottom: 1px solid #eceef0;
+  border-bottom: 1px solid var(--app-border);
   border-radius: 0;
   box-shadow: none;
-  --background: #fff;
+  --background: var(--app-surface);
 }
 
 .config-card:last-child {
@@ -3000,7 +3000,7 @@ ul {
   width: auto;
   margin: 0;
   padding: 12px 14px;
-  color: #292d32;
+  color: var(--app-text);
   --background: transparent;
   --min-height: 48px;
 }
@@ -3021,7 +3021,7 @@ ul {
   flex: 1 1 45%;
   min-width: 200px;
   margin: 10px;
-  color: #302a25;
+  color: var(--app-text);
 }
 
 #outputTitle {
@@ -3084,8 +3084,8 @@ ion-range::part(pin)::before {
 
 .showFrameButton {
   padding: 12px 14px 14px;
-  border-top: 1px solid #eceef0;
-  background: #fff;
+  border-top: 1px solid var(--app-border);
+  background: var(--app-surface);
 }
 
 .native-frame-controls {
@@ -3321,7 +3321,7 @@ ion-range::part(pin)::before {
 }
 
 .frameArea {
-  color: black;
+  color: var(--app-text);
   font-size: small;
   user-select: none; /* Prevent selection of the entire line */
 }

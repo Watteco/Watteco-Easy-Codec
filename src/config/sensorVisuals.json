@@ -2,7 +2,8 @@
   {
     "ids": ["8", "249", "250", "251", "252", "253", "254", "255", "256", "257", 
             "258", "259", "260", "261", "262", "263", "264", "265", "266"],
-    "accent": "#F47B20",
+    "lightAccent": "#F47B20",
+    "darkAccent": "#FF9A4A",
     "icon": "thermometerOutline",
     "labelKey": "@temperatureLabel",
     "maxDecimals": 1,
@@ -12,7 +13,8 @@
   },
   {
     "ids": ["49", "50", "51"],
-    "accent": "#2997C8",
+    "lightAccent": "#2997C8",
+    "darkAccent": "#4ABCE8",
     "icon": "waterOutline",
     "labelKey": "@humidityLabel",
     "maxDecimals": 0,
@@ -22,7 +24,8 @@
   },
   {
     "ids": ["39", "230"],
-    "accent": "#57A66A",
+    "lightAccent": "#B58A00",
+    "darkAccent": "#E3B72F",
     "icon": "batteryHalfOutline",
     "labelKey": "@batteryLevelLabel",
     "category": "battery",
@@ -33,7 +36,8 @@
   },
   {
     "ids": ["54", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64"],
-    "accent": "#7867B8",
+    "lightAccent": "#7867B8",
+    "darkAccent": "#A998E8",
     "icon": "speedometerOutline",
     "labelKey": "@counterLabel",
     "priority": 20,
@@ -41,7 +45,8 @@
   },
   {
     "ids": ["174", "175", "176", "177", "178", "179", "180", "181", "182", "183", "184"],
-    "accent": "#DB6F2B",
+    "lightAccent": "#509665",
+    "darkAccent": "#72C58A",
     "icon": "toggleOutline",
     "labelKey": "@PulseStateLabel",
     "category": "state",

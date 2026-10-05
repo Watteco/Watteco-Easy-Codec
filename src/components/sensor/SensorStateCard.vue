@@ -102,10 +102,10 @@ const formatState = (value: SensorStateValue): string => {
   min-height: 132px;
   margin: 0;
   overflow: hidden;
-  border: 1px solid rgba(28, 35, 45, 0.08);
+  border: 1px solid var(--app-border);
   border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 3px 12px rgba(28, 35, 45, 0.08);
+  background: var(--app-surface);
+  box-shadow: var(--app-card-shadow);
 }
 
 .state-card--wide {
@@ -161,7 +161,7 @@ const formatState = (value: SensorStateValue): string => {
 
 .state-title {
   overflow: hidden;
-  color: #626b75;
+  color: var(--app-text-secondary);
   font-size: 0.82rem;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -194,7 +194,7 @@ const formatState = (value: SensorStateValue): string => {
   padding: 7px 4px 8px;
   border: 1px solid transparent;
   border-radius: 12px;
-  background: #f7f6f3;
+  background: var(--app-surface-subtle);
 }
 
 .state-card--single .state-item {
@@ -226,7 +226,7 @@ const formatState = (value: SensorStateValue): string => {
 }
 
 .state-label {
-  color: #303740;
+  color: var(--app-text);
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -247,7 +247,7 @@ const formatState = (value: SensorStateValue): string => {
 
 .state-indicator--inactive {
   border-color: #aaa49d;
-  background: #fff;
+  background: var(--app-surface);
 }
 
 .state-indicator--empty {

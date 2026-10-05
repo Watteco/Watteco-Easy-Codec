@@ -15,14 +15,20 @@
         <template v-else>{{ displayedDeviceName }}</template>
       </span>
       <span class="sensor-mobile-status">
+        <ion-spinner
+          v-if="isDisconnecting"
+          class="sensor-mobile-status-icon"
+          name="crescent"
+          aria-hidden="true"
+        />
         <ion-icon
-          v-if="effectiveStatus === 'reconnect'"
+          v-else-if="effectiveStatus === 'reconnect'"
           class="sensor-mobile-status-icon"
           :icon="alertCircleOutline"
           aria-hidden="true"
         />
         <span v-else class="sensor-mobile-status-dot" aria-hidden="true"></span>
-        <span class="sensor-mobile-status-label">{{ statusLabel }}</span>
+        <span class="sensor-mobile-status-label" aria-live="polite">{{ statusLabel }}</span>
         <span
           v-if="effectiveStatus === 'connected' && displayedBatteryLevel !== null"
           class="sensor-mobile-battery"
@@ -46,11 +52,16 @@
       <button
         type="button"
         class="sensor-mobile-header-action"
+        :class="{ 'sensor-mobile-header-action--pending': isDisconnecting }"
         :aria-label="headerActionLabel"
+        :aria-busy="isDisconnecting || ble.reconnecting.value"
         :disabled="headerActionDisabled"
         @click="handleHeaderAction"
       >
-        <ion-spinner v-if="ble.reconnecting.value" name="crescent" />
+        <ion-spinner
+          v-if="ble.reconnecting.value || (isDisconnecting && effectiveStatus === 'connected')"
+          name="crescent"
+        />
         <ion-icon v-else :icon="headerActionIcon" aria-hidden="true" />
       </button>
 
@@ -58,10 +69,14 @@
         v-if="effectiveStatus === 'reconnect'"
         type="button"
         class="sensor-mobile-header-action"
-        :aria-label="localize('@bleDisconnect')"
+        :class="{ 'sensor-mobile-header-action--pending': isDisconnecting }"
+        :aria-label="isDisconnecting ? localize('@bleDisconnecting') : localize('@bleDisconnect')"
+        :aria-busy="isDisconnecting"
+        :disabled="isDisconnecting"
         @click="disconnectAndGoBack"
       >
-        <ion-icon :icon="logOutOutline" aria-hidden="true" />
+        <ion-spinner v-if="isDisconnecting" name="crescent" />
+        <ion-icon v-else :icon="logOutOutline" aria-hidden="true" />
       </button>
     </div>
   </header>
@@ -69,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { IonIcon, IonSpinner } from '@ionic/vue';
 import {
@@ -95,6 +110,7 @@ const props = defineProps<{
 
 const router = useRouter();
 const ble = useBle();
+const isDisconnecting = ref(false);
 const logoSrc = `${import.meta.env.BASE_URL}img/icon.png`;
 
 const actualStatus = computed<ConnectionStatus>(() => {
@@ -125,11 +141,13 @@ const displayedBatteryLevel = computed(() => {
   return Math.round(Math.min(100, Math.max(0, level)));
 });
 const statusLabel = computed(() => {
+  if (isDisconnecting.value) return props.localize('@bleDisconnecting');
   if (effectiveStatus.value === 'connected') return props.localize('@bleConnected');
   if (effectiveStatus.value === 'reconnect') return props.localize('@bleConnectionLost');
   return props.localize('@bleNotConnected');
 });
 const headerActionLabel = computed(() => {
+  if (isDisconnecting.value) return props.localize('@bleDisconnecting');
   if (effectiveStatus.value === 'connected') return props.localize('@bleDisconnect');
   if (effectiveStatus.value === 'reconnect') return props.localize('@bleReconnect');
   return props.localize('@chooseSensor');
@@ -139,7 +157,9 @@ const headerActionIcon = computed(() => {
   if (effectiveStatus.value === 'reconnect') return refreshOutline;
   return bluetoothOutline;
 });
-const headerActionDisabled = computed(() => ble.pairing.value && !ble.reconnecting.value);
+const headerActionDisabled = computed(() => (
+  isDisconnecting.value || (ble.pairing.value && !ble.reconnecting.value)
+));
 
 const handleHeaderAction = async () => {
   if (effectiveStatus.value === 'connected') {
@@ -160,9 +180,18 @@ const handleHeaderAction = async () => {
 };
 
 const disconnectAndGoBack = async () => {
-  await ble.cancelReconnect();
-  await ble.disconnect();
-  await router.replace('/ble-connect');
+  if (isDisconnecting.value) return;
+
+  isDisconnecting.value = true;
+  await nextTick();
+
+  try {
+    await ble.cancelReconnect();
+    await ble.disconnect();
+    await router.replace('/ble-connect');
+  } finally {
+    isDisconnecting.value = false;
+  }
 };
 
 </script>
@@ -320,6 +349,16 @@ const disconnectAndGoBack = async () => {
   background: rgba(255, 255, 255, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 50%;
+  transition: background-color 120ms ease, opacity 120ms ease, transform 80ms ease;
+}
+
+.sensor-mobile-header-action:active:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0.92);
+}
+
+.sensor-mobile-header-action--pending {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 .sensor-mobile-header-action:disabled {

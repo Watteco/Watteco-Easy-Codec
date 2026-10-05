@@ -294,7 +294,7 @@ watch(() => ble.connected.value, (val) => {
 
 <style scoped>
 .ble-connect-content {
-  --background: #FFF7EE;
+  --background: var(--app-page-background);
 }
 
 .ble-connect-container {
@@ -461,7 +461,7 @@ watch(() => ble.connected.value, (val) => {
 }
 
 .device-list ion-item {
-  --background: white;
+  --background: var(--app-surface);
   border-radius: 8px;
   margin-bottom: 6px;
   --padding-start: 12px;

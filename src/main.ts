@@ -6,6 +6,7 @@ import { IonicVue } from '@ionic/vue';
 import { isPlatform } from '@ionic/vue';
 import { Capacitor } from '@capacitor/core';
 import { OsaKeyStore } from './plugins/osaKeyStore';
+import { initializeTheme } from './composables/useTheme';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/vue/css/core.css';
@@ -22,9 +23,12 @@ import '@ionic/vue/css/text-alignment.css';
 import '@ionic/vue/css/text-transformation.css';
 import '@ionic/vue/css/flex-utils.css';
 import '@ionic/vue/css/display.css';
+import '@ionic/vue/css/palettes/dark.class.css';
 
 /* Theme variables */
 import './theme/variables.css';
+
+initializeTheme();
 
 const app = createApp(App)
   .use(IonicVue)

@@ -30,7 +30,53 @@ http://ionicframework.com/docs/theming/ */
 	--ion-color-lightGrey-contrast: #000000;
 
 	--knob-size: 30px;
-	--ion-text-color-rgb: #FFFFFF;
+	--ion-background-color: #FFF7EE;
+	--ion-background-color-rgb: 255,247,238;
+	--ion-text-color: #202631;
+	--ion-text-color-rgb: 32,38,49;
+	--ion-item-background: transparent;
+	--ion-item-border-color: rgba(28, 35, 45, 0.1);
+
+	--app-page-background: #FFF7EE;
+	--app-surface: #FFFFFF;
+	--app-surface-subtle: #F7F6F3;
+	--app-text: #202631;
+	--app-text-secondary: #626B75;
+	--app-text-muted: #858D96;
+	--app-text-faint: #969DA5;
+	--app-border: rgba(28, 35, 45, 0.08);
+	--app-border-strong: #D9DDE1;
+	--app-chart-grid: #E2E5E8;
+	--app-card-shadow: 0 3px 12px rgba(28, 35, 45, 0.08);
+	--app-nav-border: rgba(0, 0, 0, 0.14);
+	--app-nav-shadow: 0 -2px 8px rgba(0, 0, 0, 0.12);
+}
+
+:root.ion-palette-dark {
+	--ion-color-primary: #D07424;
+	--ion-color-primary-rgb: 208,116,36;
+	--ion-color-primary-shade: #B76620;
+	--ion-color-primary-tint: #D8823A;
+	--ion-background-color: #14181F;
+	--ion-background-color-rgb: 20,24,31;
+	--ion-text-color: #F2F4F7;
+	--ion-text-color-rgb: 242,244,247;
+	--ion-item-background: transparent;
+	--ion-item-border-color: rgba(255, 255, 255, 0.09);
+
+	--app-page-background: #14181F;
+	--app-surface: #202631;
+	--app-surface-subtle: #292F39;
+	--app-text: #F2F4F7;
+	--app-text-secondary: #C3C9D1;
+	--app-text-muted: #A6AEB8;
+	--app-text-faint: #8F98A4;
+	--app-border: rgba(255, 255, 255, 0.09);
+	--app-border-strong: #414955;
+	--app-chart-grid: #3A424E;
+	--app-card-shadow: 0 3px 14px rgba(0, 0, 0, 0.24);
+	--app-nav-border: rgba(255, 255, 255, 0.1);
+	--app-nav-shadow: 0 -2px 10px rgba(0, 0, 0, 0.32);
 }
 
 ion-popover {

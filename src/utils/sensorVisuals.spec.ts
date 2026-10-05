@@ -22,6 +22,15 @@ describe('sensorVisuals', () => {
     });
   });
 
+  it('selects the accent for the active color scheme', () => {
+    const lightVisual = getSensorVisual(39);
+    const darkVisual = getSensorVisual(39, true);
+
+    expect(lightVisual.accent).toBe(lightVisual.lightAccent);
+    expect(darkVisual.accent).toBe(darkVisual.darkAccent);
+    expect(darkVisual.accent).not.toBe(lightVisual.accent);
+  });
+
   it('caps the displayed precision when configured', () => {
     const temperatureVisual = getSensorVisual(249);
 

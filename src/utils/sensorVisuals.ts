@@ -18,6 +18,8 @@ const icons = {
 
 export type SensorVisual = {
   accent: string;
+  lightAccent: string;
+  darkAccent: string;
   icon: string;
   history: boolean;
   historyMin?: number;
@@ -29,13 +31,15 @@ export type SensorVisual = {
   numbered?: boolean;
 };
 
-type SensorVisualGroup = Omit<SensorVisual, 'history'> & {
+type SensorVisualGroup = Omit<SensorVisual, 'accent' | 'history'> & {
   ids: string[];
   history?: boolean;
 };
 
 const fallbackVisual: SensorVisual = {
   accent: '#888',
+  lightAccent: '#888',
+  darkAccent: '#B0B6BE',
   icon: helpCircleOutline,
   history: false,
 };
@@ -44,7 +48,8 @@ const sensorVisuals = new Map<string, SensorVisual>();
 
 for (const {
   ids,
-  accent,
+  lightAccent,
+  darkAccent,
   icon,
   history = false,
   historyMin,
@@ -57,7 +62,9 @@ for (const {
 } of sensorVisualsConfig as SensorVisualGroup[]) {
   for (const id of ids) {
     sensorVisuals.set(id, {
-      accent,
+      accent: lightAccent,
+      lightAccent,
+      darkAccent,
       icon,
       history,
       historyMin,
@@ -73,13 +80,20 @@ for (const {
 
 export const hasSensorVisual = (id: string | number): boolean => sensorVisuals.has(String(id));
 
-export const getSensorVisual = (id: string | number): SensorVisual => {
+export const getSensorVisual = (id: string | number, darkMode = false): SensorVisual => {
   const visual = sensorVisuals.get(String(id).split('#').at(-1) ?? '');
 
-  if (!visual) return fallbackVisual;
+  if (!visual) {
+    return {
+      ...fallbackVisual,
+      accent: darkMode ? fallbackVisual.darkAccent : fallbackVisual.lightAccent,
+    };
+  }
 
   return {
-    accent: visual.accent,
+    accent: darkMode ? visual.darkAccent : visual.lightAccent,
+    lightAccent: visual.lightAccent,
+    darkAccent: visual.darkAccent,
     icon: icons[visual.icon as keyof typeof icons] ?? fallbackVisual.icon,
     history: visual.history,
     historyMin: visual.historyMin,

@@ -173,9 +173,9 @@ onUnmounted(() => {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   min-height: calc(62px + env(safe-area-inset-bottom));
   padding: 5px 8px calc(5px + env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(0, 0, 0, 0.14);
-  background: var(--ion-background-color, #fff7ee);
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.12);
+  border-top: 1px solid var(--app-nav-border);
+  background: var(--app-page-background);
+  box-shadow: var(--app-nav-shadow);
 }
 
 .sensor-mobile-tab-selection {

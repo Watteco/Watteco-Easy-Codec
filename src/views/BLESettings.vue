@@ -20,6 +20,15 @@
             <ion-select-option value="en">English</ion-select-option>
           </ion-select>
         </ion-item>
+        <ion-item>
+          <ion-toggle
+            :checked="isDarkMode"
+            justify="space-between"
+            @ionChange="setDarkMode($event.detail.checked)"
+          >
+            {{ localize('@darkMode') }}
+          </ion-toggle>
+        </ion-item>
         <ion-item
           :button="developerModeAvailable"
           :detail="false"
@@ -43,17 +52,20 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import {
   IonBackButton, IonButtons, IonContent, IonHeader,
   IonPage, IonTitle, IonToolbar, IonList, IonItem, IonSelect, IonSelectOption, IonLabel, IonNote,
+  IonToggle,
 } from '@ionic/vue';
 import axios from 'axios';
 import { appVersion } from '@/utils/appVersion';
 import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
+import { useTheme } from '@/composables/useTheme';
 import type { LanguageCode, Translations } from '@/types/localization';
 
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
 
 const { currentLanguage, changeLanguage } = useLanguage();
+const { isDarkMode, setDarkMode } = useTheme();
 const {
   developerModeAvailable,
   developerModeEnabled,
@@ -107,6 +119,14 @@ onUnmounted(() => {
 <style scoped>
 .settings-header {
   box-shadow: none;
+}
+
+ion-content {
+  --background: var(--app-page-background);
+}
+
+ion-list {
+  background: transparent;
 }
 
 .settings-toolbar {

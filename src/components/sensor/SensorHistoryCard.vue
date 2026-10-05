@@ -167,10 +167,10 @@ const formatTimestamp = (timestamp: number) => new Intl.DateTimeFormat(undefined
   grid-column: 1 / -1;
   margin: 0;
   overflow: hidden;
-  border: 1px solid rgba(28, 35, 45, 0.08);
+  border: 1px solid var(--app-border);
   border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 3px 12px rgba(28, 35, 45, 0.08);
+  background: var(--app-surface);
+  box-shadow: var(--app-card-shadow);
 }
 
 .history-card ion-card-content {
@@ -187,14 +187,14 @@ const formatTimestamp = (timestamp: number) => new Intl.DateTimeFormat(undefined
 
 .history-header h2 {
   margin: 0;
-  color: #202631;
+  color: var(--app-text);
   font-size: 1rem;
   font-weight: 700;
 }
 
 .history-header p {
   margin: 4px 0 0;
-  color: #858d96;
+  color: var(--app-text-muted);
   font-size: 0.75rem;
 }
 
@@ -224,7 +224,7 @@ const formatTimestamp = (timestamp: number) => new Intl.DateTimeFormat(undefined
 }
 
 .chart-grid span {
-  border-top: 1px dashed #e2e5e8;
+  border-top: 1px dashed var(--app-chart-grid);
 }
 
 .chart-line {
@@ -261,7 +261,7 @@ const formatTimestamp = (timestamp: number) => new Intl.DateTimeFormat(undefined
   height: 7px;
   border: 2px solid var(--history-accent);
   border-radius: 50%;
-  background: #fff;
+  background: var(--app-surface);
   box-sizing: border-box;
   transform: translate(-50%, -50%);
 }
@@ -276,7 +276,7 @@ const formatTimestamp = (timestamp: number) => new Intl.DateTimeFormat(undefined
   flex-direction: column;
   align-items: flex-end;
   justify-content: space-between;
-  color: #969da5;
+  color: var(--app-text-faint);
   font-size: 0.64rem;
   line-height: 1;
 }
@@ -288,7 +288,7 @@ const formatTimestamp = (timestamp: number) => new Intl.DateTimeFormat(undefined
   left: 34px;
   display: flex;
   justify-content: space-between;
-  color: #969da5;
+  color: var(--app-text-faint);
   font-size: 0.68rem;
 }
 
@@ -299,9 +299,9 @@ const formatTimestamp = (timestamp: number) => new Intl.DateTimeFormat(undefined
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px dashed #d9dde1;
+  border: 1px dashed var(--app-border-strong);
   border-radius: 12px;
-  color: #a0a7af;
+  color: var(--app-text-faint);
   font-size: 0.8rem;
 }
 

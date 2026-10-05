@@ -204,7 +204,7 @@ const finishEditing = () => {
   --padding-end: 6px;
   border: 1px solid var(--ion-color-primary);
   border-radius: 8px;
-  background: #fff;
+  background: var(--app-surface);
 }
 
 .invalid-input {
