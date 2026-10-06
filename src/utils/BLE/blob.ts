@@ -38,12 +38,33 @@ export type BlobStatus = {
   crc32: number;
 };
 
+export function appendBlobOnlyConfigurations(
+  primaryFrames: readonly string[],
+  additionalConfigurations: readonly (readonly string[])[],
+): string[] {
+  const combinedFrames = [...primaryFrames];
+  for (const configuration of additionalConfigurations) {
+    if (configuration.length === 0) continue;
+    combinedFrames.push('00', ...configuration);
+  }
+  return combinedFrames;
+}
+
 export function buildConfigurationBlob(frames: readonly string[]): Uint8Array {
   const records: Uint8Array[] = [];
   let size = 1; // terminal 0xff
-  for (const frame of frames) {
+  for (const [index, frame] of frames.entries()) {
     const compact = frame.replace(/\s+/g, '');
     if (!/^(?:[0-9a-fA-F]{2})+$/.test(compact)) throw new Error(`Invalid hexadecimal frame: ${frame}`);
+    if (compact === '00') {
+      const previousIsSeparator = index > 0 && frames[index - 1].replace(/\s+/g, '') === '00';
+      if (index === 0 || index === frames.length - 1 || previousIsSeparator) {
+        throw new Error(`Invalid configuration separator at frame ${index + 1}`);
+      }
+      records.push(new Uint8Array([0x00]));
+      size++;
+      continue;
+    }
     const bytes = parseHexToUint8Array(compact);
     if (!bytes || bytes.length === 0) throw new Error(`Invalid empty/hexadecimal frame: ${frame}`);
     if (bytes.length > 0xfe) throw new Error(`Configuration frame is too long (${bytes.length} bytes)`);

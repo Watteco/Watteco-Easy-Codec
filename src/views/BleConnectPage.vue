@@ -88,8 +88,11 @@
           >
             <ion-icon :icon="bluetoothOutline" slot="start" color="primary" />
             <ion-label>
-              <h2>{{ ble.getDeviceName(dev) }}</h2>
-              <p>{{ dev.isSimulated ? localize('@bleSimulatedSensor') : dev.deviceId }}</p>
+              <h2>{{ dev.productName ?? ble.getDeviceName(dev) }}</h2>
+              <p v-if="formatDevEui(dev.devEui)">
+                DevEUI: {{ formatDevEui(dev.devEui) }}
+              </p>
+              <p v-else-if="dev.isSimulated">{{ localize('@bleSimulatedSensor') }}</p>
             </ion-label>
             <ion-spinner v-if="(connecting || ble.pairing.value) && connectingDeviceId === dev.deviceId" slot="end" name="crescent" />
           </ion-item>
@@ -166,12 +169,13 @@ import {
   searchOutline,
   settingsOutline,
 } from 'ionicons/icons';
-import { useBle } from '@/composables/useBle';
+import { useBle, type DeviceLike } from '@/composables/useBle';
 import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
+import { deriveDevEuiFromDeviceName, formatDevEui } from '@/utils/BLE/deviceIdentity';
 
 // Import language files
 import enUS from '/localisation/en_US.json?url';
@@ -208,9 +212,11 @@ const { developerModeEnabled } = useDeveloperMode();
 const logoSrc = `${import.meta.env.BASE_URL}img/icon.png`;
 const connecting = ref(false);
 const connectingDeviceId = ref('');
-const simulatedDevices = ref<DeviceLike[]>([]);
+type DisplayDevice = DeviceLike & { isSimulated?: boolean };
+
+const simulatedDevices = ref<DisplayDevice[]>([]);
 const nextSimulatedSensorNumber = ref(123456);
-const displayedDevices = computed<DeviceLike[]>(() => {
+const displayedDevices = computed<DisplayDevice[]>(() => {
   const realDevices = [...ble.devices.value];
   const realDeviceNames = new Set(realDevices.map(device => device.name));
   const uniqueSimulatedDevices = simulatedDevices.value.filter(
@@ -244,25 +250,22 @@ onMounted(async () => {
   await loadLocalizationFiles();
 });
 
-type DeviceLike = {
-  deviceId: string;
-  name?: string;
-  uuids?: readonly string[];
-  isSimulated?: boolean;
-};
-
 function addSimulatedSensor() {
   if (!developerModeEnabled.value) return;
 
-  let name = `WS-${nextSimulatedSensorNumber.value}`;
+  let name = `WS5F${nextSimulatedSensorNumber.value}`;
   while (displayedDevices.value.some(device => device.name === name)) {
     nextSimulatedSensorNumber.value += 1;
-    name = `WS-${nextSimulatedSensorNumber.value}`;
+    name = `WS5F${nextSimulatedSensorNumber.value}`;
   }
 
   simulatedDevices.value.push({
     deviceId: `debug:${name}`,
     name,
+    advertisedProductId: '50-70-260-001',
+    productReference: '50-70-260',
+    productName: "Pulse Sens'O Neo",
+    devEui: deriveDevEuiFromDeviceName(name) ?? undefined,
     isSimulated: true,
   });
   nextSimulatedSensorNumber.value += 1;
@@ -276,7 +279,7 @@ async function toggleScan() {
   await ble.startAutoScan();
 }
 
-async function onDeviceSelect(dev: DeviceLike) {
+async function onDeviceSelect(dev: DisplayDevice) {
   if (dev.isSimulated) {
     await ble.cancelScan();
     proceed();

@@ -8,11 +8,7 @@
     <div v-if="effectiveStatus !== 'choose'" class="sensor-mobile-identity">
       <strong>{{ displayedProductName }}</strong>
       <span class="sensor-mobile-reference">
-        <template v-if="effectiveStatus === 'connected'">
-          {{ displayedProductReference }}
-          <template v-if="displayedDeviceName"> · {{ displayedDeviceName }}</template>
-        </template>
-        <template v-else>{{ displayedDeviceName }}</template>
+        {{ displayedSecondaryIdentity }}
       </span>
       <span class="sensor-mobile-status">
         <ion-spinner
@@ -33,9 +29,9 @@
             <span>BLE</span>
             <span class="sensor-mobile-status-separator" aria-hidden="true">&middot;</span>
             <span
-              v-if="ble.loraWanJoined.value !== null"
+              v-if="effectiveLoraWanJoined !== null"
               class="sensor-mobile-status-dot"
-              :class="{ 'sensor-mobile-status-dot--offline': !ble.loraWanJoined.value }"
+              :class="{ 'sensor-mobile-status-dot--offline': !effectiveLoraWanJoined }"
               aria-hidden="true"
             ></span>
             <span v-else class="sensor-mobile-status-unknown" aria-hidden="true">?</span>
@@ -114,9 +110,11 @@ import {
 import { useBle } from '@/composables/useBle';
 import { getProductDisplayName, getProductMeasurements } from '@/utils/productMeasurements';
 import { getSensorVisual } from '@/utils/sensorVisuals';
+import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
 
 type SensorPage = 'data' | 'config' | 'tools';
 type ConnectionStatus = 'connected' | 'reconnect' | 'choose';
+type LoraWanStatus = 'joined' | 'not-joined' | 'unknown';
 
 const props = defineProps<{
   activePage: SensorPage;
@@ -124,6 +122,7 @@ const props = defineProps<{
   status?: ConnectionStatus;
   deviceName?: string;
   batteryLevel?: number;
+  loraWanStatus?: LoraWanStatus;
 }>();
 
 const router = useRouter();
@@ -137,14 +136,31 @@ const actualStatus = computed<ConnectionStatus>(() => {
 });
 
 const effectiveStatus = computed(() => props.status ?? actualStatus.value);
+const effectiveLoraWanJoined = computed<boolean | null>(() => {
+  if (props.loraWanStatus === 'joined') return true;
+  if (props.loraWanStatus === 'not-joined') return false;
+  if (props.loraWanStatus === 'unknown') return null;
+  return ble.loraWanJoined.value;
+});
 const displayedDeviceName = computed(() => {
   if (props.deviceName) return props.deviceName;
   const device = ble.connectedDevice.value ?? ble.lastConnectedDevice.value;
   return device ? ble.getDeviceName(device) : props.localize('@sensor');
 });
-const displayedProductReference = computed(() => ble.productReference.value ?? '50-70-…');
+const displayedDevEui = computed(() => {
+  const device = ble.connectedDevice.value ?? ble.lastConnectedDevice.value;
+  return deriveDevEuiFromDeviceName(props.deviceName)
+    ?? device?.devEui
+    ?? deriveDevEuiFromDeviceName(device?.name);
+});
 const displayedProductName = computed(() => (
-  getProductDisplayName(ble.productReference.value) ?? props.localize('@sensor')
+  getProductDisplayName(ble.productReference.value) ?? displayedDeviceName.value
+));
+const displayedSecondaryIdentity = computed(() => (
+  [ble.productReference.value, displayedDevEui.value]
+    .filter((value): value is string => Boolean(value))
+    .join(' · ')
+  || displayedDeviceName.value
 ));
 const displayedBatteryLevel = computed(() => {
   const batteryMeasurementCount = getProductMeasurements(ble.productReference.value)
@@ -165,9 +181,9 @@ const statusLabel = computed(() => {
   return props.localize('@bleNotConnected');
 });
 const connectedNetworksLabel = computed(() => {
-  const loraWanStatus = ble.loraWanJoined.value === null
+  const loraWanStatus = effectiveLoraWanJoined.value === null
     ? props.localize('@loraWanStatusUnknown')
-    : props.localize(ble.loraWanJoined.value ? '@loraWanJoined' : '@loraWanNotJoined');
+    : props.localize(effectiveLoraWanJoined.value ? '@loraWanJoined' : '@loraWanNotJoined');
   return `${props.localize('@bleConnected')}. ${loraWanStatus}`;
 });
 const headerActionLabel = computed(() => {

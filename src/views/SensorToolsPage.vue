@@ -14,6 +14,10 @@
             <ion-card-content>
               <div class="status-grid">
                 <div class="status-item">
+                  <span>{{ localize('@toolsBleName') }}</span>
+                  <strong>{{ bleDeviceName }}</strong>
+                </div>
+                <div class="status-item">
                   <span>{{ localize('@toolsJoinStatus') }}</span>
                   <strong :class="{ 'value-ok': status?.joined, 'value-error': status && !status.joined }">
                     {{ joinLabel }}
@@ -312,6 +316,10 @@ let appRxSubscription: AppRxSubscription | undefined;
 let campaignCancelled = false;
 
 const status = computed(() => ble.loraLinkStatus.value);
+const bleDeviceName = computed(() => {
+  const device = ble.connectedDevice.value ?? ble.lastConnectedDevice.value;
+  return device ? ble.getDeviceName(device) : '—';
+});
 const canRunTests = computed(() => (
   ble.connected.value
   && ble.loraLinkTestAvailable.value === true

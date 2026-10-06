@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
+import { deriveDevEuiFromDeviceName, formatDevEui } from '@/utils/BLE/deviceIdentity';
 
 describe('Watteco BLE device identity', () => {
   it('reconstructs the DevEUI from a WS identifier', () => {
@@ -20,5 +20,11 @@ describe('Watteco BLE device identity', () => {
     expect(deriveDevEuiFromDeviceName('WS6763')).toBeNull();
     expect(deriveDevEuiFromDeviceName('WTC12345678')).toBeNull();
     expect(deriveDevEuiFromDeviceName()).toBeNull();
+  });
+
+  it('formats a DevEUI for display', () => {
+    expect(formatDevEui('70B3D5E75F006799')).toBe('70:B3:D5:E7:5F:00:67:99');
+    expect(formatDevEui('70:b3:d5:e7:5f:00:67:99')).toBe('70:B3:D5:E7:5F:00:67:99');
+    expect(formatDevEui('invalid')).toBeNull();
   });
 });

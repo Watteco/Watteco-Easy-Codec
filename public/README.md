@@ -43,9 +43,31 @@ Objectif: partir d'une configuration par défaut sous forme de trames hexadécim
     "standard_params": {
         "standard_X_params": {},
         "cfg_block": []
-    }
+    },
+    "blob_only_configurations": []
 }
 ```
+
+### Configurations supplémentaires réservées au BLOB
+
+La propriété racine optionnelle `blob_only_configurations` permet d'ajouter des configurations fixes qui ne créent aucun champ dans l'interface et ne sont jamais envoyées via `APP_TX`.
+
+Chaque sous-tableau représente une configuration distincte. Renseignez les trames sans leur octet de longueur et sans ajouter vous-même les séparateurs `00` ou le marqueur final `FF` :
+
+```json
+"blob_only_configurations": [
+    [
+        "11 50 00 50 02 03",
+        "15 11 02 0050 FB1E 41 0D 01 1E 05 0014 00FA 0014 007D 003C"
+    ],
+    [
+        "11 50 00 50 02 03",
+        "71 06 000F 1D 0402 00 803C 80F0 00000000 00000001 14"
+    ]
+]
+```
+
+Lorsqu'au moins une trame générée est envoyée par BLOB, ces configurations sont toujours ajoutées à sa suite. L'application insère un séparateur `00` avant chacune d'elles, ajoute les longueurs des trames et termine le BLOB par `FF`.
 
 ## Méthode pas à pas
 

@@ -1,16 +1,25 @@
 import { ref, readonly } from 'vue';
 import { Capacitor } from '@capacitor/core';
-import { BleClient, ScanMode, type BleDevice, type ScanResult } from '@capacitor-community/bluetooth-le';
-import { uploadConfigurationBlob } from '@/utils/BLE/blob';
+import { BleClient, ScanMode, type ScanResult } from '@capacitor-community/bluetooth-le';
+import {
+  appendBlobOnlyConfigurations,
+  buildConfigurationBlob,
+  formatConfigurationBlob,
+  toSpacedHex,
+  uploadConfigurationBlob,
+} from '@/utils/BLE/blob';
+import { takeFirstConfigurationFrames, writeAppTx } from '@/utils/BLE/appFrames';
 import { authenticateOsa } from '@/utils/BLE/osa';
 import { readProductId as readProductIdFromBle } from '@/utils/BLE/configReader';
+import { decodeAdvertisedProductId } from '@/utils/BLE/advertising';
+import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
 import {
   MEASUREMENT_SOURCE_TO_ID,
   startMeasurementMonitoring,
   stopMeasurementMonitoring,
   type BleMeasurementSubscription,
 } from '@/utils/BLE/measurements';
-import { resolveAvailableProductReference } from '@/utils/productMeasurements';
+import { getProductDisplayName, resolveAvailableProductReference } from '@/utils/productMeasurements';
 import {
   startLoraLinkMonitoring,
   stopLoraLinkMonitoring,
@@ -21,10 +30,14 @@ import {
   type LoraLinkSubscription,
 } from '@/utils/BLE/loraLink';
 
-type DeviceLike = {
+export type DeviceLike = {
   deviceId: string;
   name?: string;
   uuids?: readonly string[];
+  advertisedProductId?: string;
+  productReference?: string;
+  productName?: string;
+  devEui?: string;
 };
 
 type MeasurementHistoryPoint = {
@@ -81,7 +94,7 @@ const isNative = ref(Capacitor.isNativePlatform());
 const bleInitialized = ref(false);
 const scanning = ref(false);
 const connected = ref(false);
-const devices = ref<BleDevice[]>([]);
+const devices = ref<DeviceLike[]>([]);
 const connectedDevice = ref<DeviceLike | undefined>(undefined);
 // Kept after an unexpected disconnect so the current page can reconnect
 // without sending the user back through device discovery.
@@ -118,6 +131,41 @@ let reconnectCanceled = false;
 let reconnectScanActive = false;
 let reconnectScanTimeoutId: ReturnType<typeof setTimeout> | undefined;
 let reconnectScanResolve: ((found: boolean) => void) | undefined;
+
+function recordScanResult(result: ScanResult, useFilters: boolean) {
+  const name = result.localName ?? result.device.name;
+  if (useFilters && !hasAllowedScanPrefix(name)) return;
+
+  const advertisedProductId = decodeAdvertisedProductId(result.manufacturerData) ?? undefined;
+  const advertisedProductReference = resolveAvailableProductReference(advertisedProductId) ?? undefined;
+  const advertisedProductName = getProductDisplayName(advertisedProductReference) ?? undefined;
+  const index = devices.value.findIndex(device => device.deviceId === result.device.deviceId);
+  const previous = index >= 0 ? devices.value[index] : undefined;
+  const device: DeviceLike = {
+    ...previous,
+    ...result.device,
+    name: name ?? previous?.name,
+    uuids: previous?.uuids ?? result.uuids ?? result.device.uuids,
+    advertisedProductId: advertisedProductId ?? previous?.advertisedProductId,
+    productReference: advertisedProductReference ?? previous?.productReference,
+    productName: advertisedProductName ?? previous?.productName,
+    devEui: deriveDevEuiFromDeviceName(name) ?? previous?.devEui,
+  };
+
+  if (index < 0) {
+    devices.value = [...devices.value, device];
+  } else if (
+    previous?.name !== device.name
+    || previous?.advertisedProductId !== device.advertisedProductId
+    || previous?.productReference !== device.productReference
+    || previous?.productName !== device.productName
+    || previous?.devEui !== device.devEui
+  ) {
+    devices.value = devices.value.map((current, currentIndex) => (
+      currentIndex === index ? device : current
+    ));
+  }
+}
 
 let targetDeviceId: string | undefined;
 let targetServiceUuid: string | undefined;
@@ -383,17 +431,12 @@ async function startScan(useFilters = true) {
   const prom = new Promise<void>((resolve) => { scanResolve = resolve; });
 
   try {
-    const options: any = {};
+    const options: any = { allowDuplicates: true };
     if (useFilters && SCAN_NAME_PREFIXES.length === 1) {
       options.namePrefix = SCAN_NAME_PREFIXES[0];
     }
     await BleClient.requestLEScan(options, (result: ScanResult) => {
-      if (useFilters && !hasAllowedScanPrefix(result.device.name)) {
-        return;
-      }
-      if (!devices.value.find(d => d.deviceId === result.device.deviceId)) {
-        devices.value = [...devices.value, result.device];
-      }
+      recordScanResult(result, useFilters);
     });
     scanTimeoutId = setTimeout(() => stopScan(), SCAN_TIMEOUT_MS);
   } catch (e: any) {
@@ -428,16 +471,11 @@ async function startAutoScan(useFilters = true, maxAttempts = MAX_AUTO_SCAN_ATTE
   let scanFailed = false;
 
   try {
-    const options: any = {};
+    const options: any = { allowDuplicates: true };
     if (useFilters && SCAN_NAME_PREFIXES.length === 1) options.namePrefix = SCAN_NAME_PREFIXES[0];
 
     await BleClient.requestLEScan(options, async (result: ScanResult) => {
-      if (useFilters && !hasAllowedScanPrefix(result.device.name)) {
-        return;
-      }
-      if (!devices.value.find(d => d.deviceId === result.device.deviceId)) {
-        devices.value = [...devices.value, result.device];
-      }
+      recordScanResult(result, useFilters);
       // stop early when we detected at least one device
       /*if (devices.value.length > 0 && scanning.value) {
         try { await stopScan(); } catch { /* ignore stop scan errors  }
@@ -1017,14 +1055,9 @@ async function writeChunkWithRetries(chunk: Uint8Array) {
 /* ================================================================== */
 /*  High-level: send frames from output area                           */
 /* ================================================================== */
-async function sendOutputFrames(osaKeyHex: string, devEuiHex: string, activateAfterCommit = true): Promise<number> {
-  const deviceId = connectedDevice.value?.deviceId;
-  if (!connected.value || !deviceId) {
-    statusMessage.value = 'Not connected to a BLE device';
-    return -1;
-  }
+function getOutputFrameHexes(): string[] {
   const outputArea = document.getElementById('outputArea');
-  if (!outputArea) return 0;
+  if (!outputArea) return [];
 
   const text = (outputArea.innerText || outputArea.textContent || '').replace(/ /g, '');
   const lines = text.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
@@ -1035,8 +1068,78 @@ async function sendOutputFrames(osaKeyHex: string, devEuiHex: string, activateAf
       validFrames.push(clean);
     }
   }
+  return validFrames;
+}
+
+function getDefaultConfigurationPreview(
+  blobOnlyConfigurations: readonly (readonly string[])[] = [],
+): string[] {
+  const outputFrames = getOutputFrameHexes();
+  if (outputFrames.length === 0) return [];
+  const blobFrames = appendBlobOnlyConfigurations(outputFrames, blobOnlyConfigurations);
+  return formatConfigurationBlob(buildConfigurationBlob(blobFrames));
+}
+
+function getCurrentConfigurationPreview(): string[] {
+  return takeFirstConfigurationFrames(getOutputFrameHexes())
+    .map(frame => toSpacedHex(hexToBytes(frame)).toUpperCase());
+}
+
+async function sendOutputFrames(
+  osaKeyHex: string,
+  devEuiHex: string,
+  activateAfterCommit = true,
+  blobOnlyConfigurations: readonly (readonly string[])[] = [],
+): Promise<number> {
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) {
+    statusMessage.value = 'Not connected to a BLE device';
+    return -1;
+  }
+  const validFrames = getOutputFrameHexes();
   if (validFrames.length === 0) {
     statusMessage.value = 'No valid frames to send';
+    return 0;
+  }
+  const blobFrames = appendBlobOnlyConfigurations(validFrames, blobOnlyConfigurations);
+  if (sending.value) return 0;
+
+  sending.value = true;
+  osaAuthenticating.value = true;
+  statusMessage.value = 'Authenticating configuration transfer…';
+  let osaAuthenticated = false;
+  try {
+    await authenticateOsa(deviceId, osaKeyHex, devEuiHex, log);
+    osaAuthenticated = true;
+    osaAuthenticating.value = false;
+    statusMessage.value = `Sending ${blobFrames.length} configuration record(s)…`;
+    await uploadConfigurationBlob(deviceId, blobFrames, log, activateAfterCommit);
+    statusMessage.value = activateAfterCommit
+      ? 'Configuration committed; sensor is restarting'
+      : 'Configuration stored without activation';
+    return blobFrames.length;
+  } catch (error: any) {
+    const message = error?.message ?? String(error);
+    log(`BLOB ERROR ${message}`);
+    statusMessage.value = osaAuthenticated
+      ? `Configuration transfer failed: ${message}`
+      : 'Configuration authorization failed';
+    return osaAuthenticated ? -1 : -2;
+  } finally {
+    osaAuthenticating.value = false;
+    sending.value = false;
+  }
+}
+
+async function sendCurrentConfigurationFrames(osaKeyHex: string, devEuiHex: string): Promise<number> {
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) {
+    statusMessage.value = 'Not connected to a BLE device';
+    return -1;
+  }
+  const currentConfigurationFrames = takeFirstConfigurationFrames(getOutputFrameHexes());
+  if (currentConfigurationFrames.length === 0) {
+    statusMessage.value = 'No frames found before the first configuration separator';
     return 0;
   }
   if (sending.value) return 0;
@@ -1049,17 +1152,18 @@ async function sendOutputFrames(osaKeyHex: string, devEuiHex: string, activateAf
     await authenticateOsa(deviceId, osaKeyHex, devEuiHex, log);
     osaAuthenticated = true;
     osaAuthenticating.value = false;
-    statusMessage.value = `Sending ${validFrames.length} configuration frame(s)…`;
-    await uploadConfigurationBlob(deviceId, validFrames, log, activateAfterCommit);
-    statusMessage.value = activateAfterCommit
-      ? 'Configuration committed; sensor is restarting'
-      : 'Configuration stored without activation';
-    return validFrames.length;
+    statusMessage.value = `Applying ${currentConfigurationFrames.length} configuration frame(s)…`;
+    for (const frameHex of currentConfigurationFrames) {
+      await writeAppTx(deviceId, hexToBytes(frameHex), log);
+      await delay(INTER_FRAME_DELAY_MS);
+    }
+    statusMessage.value = 'Current configuration applied';
+    return currentConfigurationFrames.length;
   } catch (error: any) {
     const message = error?.message ?? String(error);
-    log(`BLOB ERROR ${message}`);
+    log(`APP TX ERROR ${message}`);
     statusMessage.value = osaAuthenticated
-      ? `Configuration transfer failed: ${message}`
+      ? `Current configuration transfer failed: ${message}`
       : 'Configuration authorization failed';
     return osaAuthenticated ? -1 : -2;
   } finally {
@@ -1130,7 +1234,10 @@ export function useBle() {
     reconnectToLastDevice,
     cancelReconnect,
     disconnect,
+    getDefaultConfigurationPreview,
+    getCurrentConfigurationPreview,
     sendOutputFrames,
+    sendCurrentConfigurationFrames,
     sendLoraLinkTest,
     refreshLoraLinkStatus,
     getDeviceName,

@@ -20,6 +20,11 @@ export function parseAppFrameHex(value: string): Uint8Array | null {
   return Uint8Array.from(compact.match(/.{2}/g) ?? [], byte => Number.parseInt(byte, 16));
 }
 
+export function takeFirstConfigurationFrames(frames: readonly string[]): string[] {
+  const separatorIndex = frames.findIndex(frame => frame.replace(/\s+/g, '') === '00');
+  return frames.slice(0, separatorIndex < 0 ? frames.length : separatorIndex);
+}
+
 export async function startAppRxMonitoring(
   deviceId: string,
   onFrame: (frame: Uint8Array) => void,

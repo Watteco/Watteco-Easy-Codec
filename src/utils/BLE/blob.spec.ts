@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  appendBlobOnlyConfigurations,
   buildBlobChunk,
   buildBlobCommand,
   buildConfigurationBlob,
@@ -10,15 +11,36 @@ import {
 } from './blob';
 
 describe('Watteco Admin BLOB protocol', () => {
+  it('appends BLOB-only configurations with separators', () => {
+    expect(appendBlobOnlyConfigurations(
+      ['11 50', '11 05'],
+      [['15 11', '31 06'], [], ['71 06']],
+    )).toEqual(['11 50', '11 05', '00', '15 11', '31 06', '00', '71 06']);
+  });
+
   it('encodes configuration lines and the terminal marker', () => {
     expect(Array.from(buildConfigurationBlob(['11 05', 'aa']))).toEqual([
       0x02, 0x11, 0x05, 0x01, 0xaa, 0xff,
     ]);
   });
 
+  it('encodes 00 entries as configuration separators', () => {
+    expect(Array.from(buildConfigurationBlob(['11 05', '00', 'aa', '00', 'bb cc']))).toEqual([
+      0x02, 0x11, 0x05,
+      0x00,
+      0x01, 0xaa,
+      0x00,
+      0x02, 0xbb, 0xcc,
+      0xff,
+    ]);
+  });
+
   it('rejects malformed configuration frames', () => {
     expect(() => buildConfigurationBlob(['11 XX 05'])).toThrow(/Invalid hexadecimal frame/);
     expect(() => buildConfigurationBlob([])).toThrow(/no frames/);
+    expect(() => buildConfigurationBlob(['00', '11 05'])).toThrow(/separator/);
+    expect(() => buildConfigurationBlob(['11 05', '00'])).toThrow(/separator/);
+    expect(() => buildConfigurationBlob(['11 05', '00', '00', 'aa'])).toThrow(/separator/);
   });
 
   it('computes the standard CRC32 vector', () => {

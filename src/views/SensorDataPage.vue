@@ -6,6 +6,7 @@
       :status="bannerState"
       :device-name="bannerDeviceName"
       :battery-level="bannerBatteryLevel"
+      :lora-wan-status="demoDataEnabled ? 'joined' : undefined"
     />
 
     <ion-content :fullscreen="true" class="sensor-data-content native-with-sensor-navigation">
@@ -286,8 +287,8 @@ const bannerState = computed<BannerState>(() => (
   bannerPreview.value === 'actual' ? actualBannerState.value : bannerPreview.value
 ));
 const bannerDeviceName = computed(() => {
-  if (bannerPreview.value === 'connected' && !ble.connectedDevice.value) return 'WS123456';
-  if (bannerPreview.value === 'reconnect' && !ble.lastConnectedDevice.value) return 'WS123456';
+  if (bannerPreview.value === 'connected' && !ble.connectedDevice.value) return 'WS12345678';
+  if (bannerPreview.value === 'reconnect' && !ble.lastConnectedDevice.value) return 'WS12345678';
   const device = ble.connectedDevice.value ?? ble.lastConnectedDevice.value;
   return device ? ble.getDeviceName(device) : undefined;
 });

@@ -1257,31 +1257,57 @@
         <!-- Native: BLE send (connection managed by BleConnectPage) -->
         <div v-if="ble.isNative.value" class="ble-panel">
           <div class="ble-actions">
-            <ion-button v-if="framesAvailable" @click="sendFramesBle" :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value" class="half-width" color="primary">
-              <ion-icon
-                slot="start"
-                :icon="configurationOsaAuthenticated === true ? lockOpenOutline : lockClosedOutline"
-              />
-              {{ ble.pairing.value
-                ? 'Pairing…'
-                : ble.osaAuthenticating.value
-                  ? localize('@bleAuthenticating')
-                  : ble.sending.value
-                    ? localize('@bleSending')
-                    : localize('@bleSendConfig') }}
-            </ion-button>
+            <div v-if="framesAvailable" class="ble-action">
+              <ion-button @click="sendDefaultConfigurationBle" :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value" expand="block" color="primary">
+                <ion-icon
+                  slot="start"
+                  :icon="configurationOsaAuthenticated === true ? lockOpenOutline : lockClosedOutline"
+                />
+                {{ configurationSendMode === 'default' && ble.pairing.value
+                  ? 'Pairing…'
+                  : configurationSendMode === 'default' && ble.osaAuthenticating.value
+                    ? localize('@bleAuthenticating')
+                    : configurationSendMode === 'default' && ble.sending.value
+                      ? localize('@bleSending')
+                      : localize('@bleWriteDefaultConfig') }}
+              </ion-button>
+              <ion-checkbox
+                class="ble-activation-option"
+                label-placement="end"
+                justify="start"
+                :checked="activateConfigurationAfterSend"
+                :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value"
+                @ionChange="activateConfigurationAfterSend = $event.detail.checked"
+              >
+                {{ localize('@bleActivateDefaultAfterSend') }}
+              </ion-checkbox>
+              <ion-button v-if="developerModeEnabled" size="small" fill="clear" class="ble-preview-toggle" @click="toggleDefaultConfigurationPreview">
+                <ion-icon slot="start" :icon="defaultConfigurationPreviewVisible ? eyeOffOutline : eyeOutline" />
+                {{ localize(defaultConfigurationPreviewVisible ? '@bleHideBlobPreview' : '@bleShowBlobPreview') }}
+              </ion-button>
+              <pre v-if="developerModeEnabled && defaultConfigurationPreviewVisible" class="ble-payload-preview">{{ defaultConfigurationPreview }}</pre>
+            </div>
+            <div v-if="framesAvailable" class="ble-action">
+              <ion-button @click="sendCurrentConfigurationBle" :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value" expand="block" color="secondary">
+                <ion-icon
+                  slot="start"
+                  :icon="configurationOsaAuthenticated === true ? lockOpenOutline : lockClosedOutline"
+                />
+                {{ configurationSendMode === 'current' && ble.pairing.value
+                  ? 'Pairing…'
+                  : configurationSendMode === 'current' && ble.osaAuthenticating.value
+                    ? localize('@bleAuthenticating')
+                    : configurationSendMode === 'current' && ble.sending.value
+                      ? localize('@bleSending')
+                      : localize('@bleWriteCurrentConfig') }}
+              </ion-button>
+              <ion-button v-if="developerModeEnabled" size="small" fill="clear" class="ble-preview-toggle" @click="toggleCurrentConfigurationPreview">
+                <ion-icon slot="start" :icon="currentConfigurationPreviewVisible ? eyeOffOutline : eyeOutline" />
+                {{ localize(currentConfigurationPreviewVisible ? '@bleHideAppTxPreview' : '@bleShowAppTxPreview') }}
+              </ion-button>
+              <pre v-if="developerModeEnabled && currentConfigurationPreviewVisible" class="ble-payload-preview">{{ currentConfigurationPreview }}</pre>
+            </div>
           </div>
-          <ion-checkbox
-            v-if="framesAvailable"
-            class="ble-activation-option"
-            label-placement="end"
-            justify="start"
-            :checked="activateConfigurationAfterSend"
-            :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value"
-            @ionChange="activateConfigurationAfterSend = $event.detail.checked"
-          >
-            {{ localize('@bleActivateAfterSend') }}
-          </ion-checkbox>
           <div v-if="ble.pairing.value" class="ble-status-msg">
             <ion-text color="warning">Confirm the secure Bluetooth pairing on Android to continue.</ion-text>
           </div>
@@ -1333,7 +1359,7 @@ import {
   IonText,
   onIonViewDidEnter,
 } from '@ionic/vue';
-import { chevronForwardOutline, closeOutline, lockClosedOutline, lockOpenOutline, refreshOutline } from 'ionicons/icons';
+import { chevronForwardOutline, closeOutline, eyeOffOutline, eyeOutline, lockClosedOutline, lockOpenOutline, refreshOutline } from 'ionicons/icons';
 import { Capacitor } from '@capacitor/core';
 import { useBle } from '@/composables/useBle';
 import { useBleDebugCredentials, updateDebugDevEuiFromDeviceName } from '@/composables/useBleDebug';
@@ -1518,6 +1544,11 @@ const outputVals: Record<string, string> = {}; // Output values derived from par
 const paramGroupList: Record<string, any> = {}; // List of parameter groups
 const currentErrors: never[] = []; // Tracks current errors
 const framesAvailable = ref(false);
+const configurationSendMode = ref<'default' | 'current' | null>(null);
+const defaultConfigurationPreviewVisible = ref(false);
+const currentConfigurationPreviewVisible = ref(false);
+const defaultConfigurationPreview = ref('');
+const currentConfigurationPreview = ref('');
 // Developer mode defaults to storing the BLOB without applying/rebooting it.
 const activateConfigurationAfterSend = ref(!developerModeEnabled.value);
 watch(developerModeEnabled, enabled => {
@@ -2069,6 +2100,9 @@ const updateOutput = () => {
     outputArea.innerHTML = outputFrameTxt.trim() === "" ? localize("@selectAtLeastOneMode") : outputFrameTxt;
   }
   framesAvailable.value = outputFrameTxt.trim() !== "";
+  if (defaultConfigurationPreviewVisible.value || currentConfigurationPreviewVisible.value) {
+    refreshConfigurationPreviews();
+  }
 };
 
 // Replace placeholders in frame templates with actual values
@@ -2408,16 +2442,70 @@ const copyFramesNoSpaces = () => {
 };
 
 // Send frames via BLE (native only)
-const sendFramesBle = async () => {
-  const sentFrameCount = await ble.sendOutputFrames(
-    debugOtaAppKeyHex.value,
-    debugDevEuiHex.value,
-    activateConfigurationAfterSend.value
-  );
+const handleConfigurationSendResult = async (sentFrameCount: number) => {
   if (sentFrameCount > 0) configurationOsaAuthenticated.value = true;
   if (sentFrameCount === -2) {
     configurationOsaAuthenticated.value = false;
     await presentAuthorizationDeniedAlert(localize);
+  }
+};
+
+const getBlobOnlyConfigurations = (): readonly (readonly string[])[] => (
+  Array.isArray(sensorConfig.value?.blob_only_configurations)
+    ? sensorConfig.value.blob_only_configurations
+    : []
+);
+
+const refreshConfigurationPreviews = () => {
+  if (defaultConfigurationPreviewVisible.value) {
+    try {
+      defaultConfigurationPreview.value = ble
+        .getDefaultConfigurationPreview(getBlobOnlyConfigurations())
+        .join('\n');
+    } catch (error: any) {
+      defaultConfigurationPreview.value = error?.message ?? String(error);
+    }
+  }
+  if (currentConfigurationPreviewVisible.value) {
+    currentConfigurationPreview.value = ble.getCurrentConfigurationPreview().join('\n');
+  }
+};
+
+const toggleDefaultConfigurationPreview = () => {
+  defaultConfigurationPreviewVisible.value = !defaultConfigurationPreviewVisible.value;
+  refreshConfigurationPreviews();
+};
+
+const toggleCurrentConfigurationPreview = () => {
+  currentConfigurationPreviewVisible.value = !currentConfigurationPreviewVisible.value;
+  refreshConfigurationPreviews();
+};
+
+const sendDefaultConfigurationBle = async () => {
+  configurationSendMode.value = 'default';
+  try {
+    const sentFrameCount = await ble.sendOutputFrames(
+      debugOtaAppKeyHex.value,
+      debugDevEuiHex.value,
+      activateConfigurationAfterSend.value,
+      getBlobOnlyConfigurations()
+    );
+    await handleConfigurationSendResult(sentFrameCount);
+  } finally {
+    configurationSendMode.value = null;
+  }
+};
+
+const sendCurrentConfigurationBle = async () => {
+  configurationSendMode.value = 'current';
+  try {
+    const sentFrameCount = await ble.sendCurrentConfigurationFrames(
+      debugOtaAppKeyHex.value,
+      debugDevEuiHex.value
+    );
+    await handleConfigurationSendResult(sentFrameCount);
+  } finally {
+    configurationSendMode.value = null;
   }
 };
 
@@ -3276,7 +3364,36 @@ ion-range::part(pin)::before {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
+}
+
+.ble-action {
+  flex: 1 1 240px;
+}
+
+.ble-preview-toggle {
+  min-height: 28px;
+  margin: 4px 0 0;
+  font-size: 0.72rem;
+}
+
+.ble-payload-preview {
+  width: 100%;
+  max-height: 240px;
+  margin: 4px 0 0;
+  padding: 10px;
+  overflow: auto;
+  box-sizing: border-box;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: var(--app-surface-subtle);
+  color: var(--app-text);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
 }
 
 .ble-status-msg {
@@ -3285,7 +3402,7 @@ ion-range::part(pin)::before {
 }
 
 .ble-activation-option {
-  margin-top: 10px;
+  margin-top: 6px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
