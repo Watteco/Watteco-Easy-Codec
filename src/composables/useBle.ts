@@ -1044,8 +1044,10 @@ async function sendOutputFrames(osaKeyHex: string, devEuiHex: string, activateAf
   sending.value = true;
   osaAuthenticating.value = true;
   statusMessage.value = 'Authenticating configuration transfer…';
+  let osaAuthenticated = false;
   try {
     await authenticateOsa(deviceId, osaKeyHex, devEuiHex, log);
+    osaAuthenticated = true;
     osaAuthenticating.value = false;
     statusMessage.value = `Sending ${validFrames.length} configuration frame(s)…`;
     await uploadConfigurationBlob(deviceId, validFrames, log, activateAfterCommit);
@@ -1056,8 +1058,10 @@ async function sendOutputFrames(osaKeyHex: string, devEuiHex: string, activateAf
   } catch (error: any) {
     const message = error?.message ?? String(error);
     log(`BLOB ERROR ${message}`);
-    statusMessage.value = `Configuration transfer failed: ${message}`;
-    return -1;
+    statusMessage.value = osaAuthenticated
+      ? `Configuration transfer failed: ${message}`
+      : 'Configuration authorization failed';
+    return osaAuthenticated ? -1 : -2;
   } finally {
     osaAuthenticating.value = false;
     sending.value = false;

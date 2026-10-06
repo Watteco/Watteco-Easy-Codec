@@ -1,6 +1,10 @@
-const WATTECO_DEV_EUI_PREFIX = '70B3D5E75F';
+const WATTECO_DEV_EUI_PREFIX = '70B3D5E7';
 
 export function deriveDevEuiFromDeviceName(deviceName?: string): string | null {
-  const match = deviceName?.trim().toUpperCase().match(/^(?:WS|WTC)([0-9A-F]{6})$/);
-  return match ? `${WATTECO_DEV_EUI_PREFIX}${match[1]}` : null;
+  const normalizedName = deviceName?.trim().toUpperCase();
+  const extendedWsMatch = normalizedName?.match(/^WS([0-9A-F]{8})$/);
+  if (extendedWsMatch) return `${WATTECO_DEV_EUI_PREFIX}${extendedWsMatch[1]}`;
+
+  const legacyMatch = normalizedName?.match(/^(?:WS|WTC)([0-9A-F]{6})$/);
+  return legacyMatch ? `${WATTECO_DEV_EUI_PREFIX}5F${legacyMatch[1]}` : null;
 }

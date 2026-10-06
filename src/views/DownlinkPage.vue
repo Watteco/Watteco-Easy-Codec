@@ -1357,6 +1357,7 @@ import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { getProductConfigurationFile } from '@/utils/productMeasurements';
 import { readAdminDeviceStatus } from '@/utils/BLE/adminStatus';
+import { presentAuthorizationDeniedAlert } from '@/utils/authorizationAlert';
 
 // Import language files
 import enUS from '/localisation/en_US.json?url';
@@ -2414,6 +2415,10 @@ const sendFramesBle = async () => {
     activateConfigurationAfterSend.value
   );
   if (sentFrameCount > 0) configurationOsaAuthenticated.value = true;
+  if (sentFrameCount === -2) {
+    configurationOsaAuthenticated.value = false;
+    await presentAuthorizationDeniedAlert(localize);
+  }
 };
 
 const toggleVisibility = (category: string) => {

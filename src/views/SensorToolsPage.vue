@@ -230,6 +230,7 @@ import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
 import type { LoraLinkStatus } from '@/utils/BLE/loraLink';
 import { readAdminDeviceStatus, type AdminDeviceStatus } from '@/utils/BLE/adminStatus';
+import { presentAuthorizationDeniedAlert } from '@/utils/authorizationAlert';
 import {
   parseAppFrameHex,
   readAppRx,
@@ -433,10 +434,13 @@ async function authenticateWithDebugCredentials(force = false): Promise<boolean>
     if (authenticated && deviceStatus.value.osaAuthenticated === true) return true;
     feedbackError.value = true;
     feedback.value = localize('@toolsOsaUnauthorized');
+    await presentAuthorizationDeniedAlert(localize);
     return false;
   } catch (error: any) {
+    console.debug(`[OSA] Authentication failed: ${error?.message ?? error}`);
     feedbackError.value = true;
-    feedback.value = error?.message ?? localize('@toolsOsaUnauthorized');
+    feedback.value = localize('@toolsOsaUnauthorized');
+    await presentAuthorizationDeniedAlert(localize);
     return false;
   } finally {
     osaAuthenticating.value = false;

@@ -10,9 +10,15 @@ describe('Watteco BLE device identity', () => {
     expect(deriveDevEuiFromDeviceName('wtc00a1bf')).toBe('70B3D5E75F00A1BF');
   });
 
+  it('reconstructs the DevEUI from an extended WS identifier', () => {
+    expect(deriveDevEuiFromDeviceName('ws5f006763')).toBe('70B3D5E75F006763');
+    expect(deriveDevEuiFromDeviceName('WS12345678')).toBe('70B3D5E712345678');
+  });
+
   it('does not infer a DevEUI from an unrecognized or incomplete name', () => {
     expect(deriveDevEuiFromDeviceName('Sensor 006763')).toBeNull();
     expect(deriveDevEuiFromDeviceName('WS6763')).toBeNull();
+    expect(deriveDevEuiFromDeviceName('WTC12345678')).toBeNull();
     expect(deriveDevEuiFromDeviceName()).toBeNull();
   });
 });
