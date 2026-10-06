@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Watteco Easy Codec</string>
-    <string name="title_activity_main">Watteco Easy Codec</string>
+    <string name="app_name">Neo Connect</string>
+    <string name="title_activity_main">Neo Connect</string>
     <string name="package_name">wattecoDev.easycodec</string>
     <string name="custom_url_scheme">wattecoDev.easycodec</string>
 </resources>

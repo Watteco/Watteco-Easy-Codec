@@ -5,7 +5,7 @@
         <img class="ble-home-logo" :src="logoSrc" alt="Watteco" />
 
         <div class="ble-home-identity">
-          <strong>Easy Codec</strong>
+          <strong>Neo Connect</strong>
           <span class="ble-home-context">{{ localize('@bleConnectionTitle') }}</span>
         </div>
 
