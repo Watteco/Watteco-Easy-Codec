@@ -20,11 +20,11 @@ describe('useDeveloperMode', () => {
     expect(developerMode.developerModeEnabled.value).toBe(false);
   });
 
-  it('restores the voluntarily enabled mode from local storage', async () => {
+  it('does not restore developer mode from a previous app launch', async () => {
     localStorage.setItem('easycodec.developerMode', 'true');
 
     const { useDeveloperMode } = await import('./useDeveloperMode');
 
-    expect(useDeveloperMode().developerModeEnabled.value).toBe(true);
+    expect(useDeveloperMode().developerModeEnabled.value).toBe(false);
   });
 });

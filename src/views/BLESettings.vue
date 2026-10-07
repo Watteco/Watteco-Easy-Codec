@@ -21,13 +21,15 @@
           </ion-select>
         </ion-item>
         <ion-item>
-          <ion-toggle
-            :checked="isDarkMode"
-            justify="space-between"
-            @ionChange="setDarkMode($event.detail.checked)"
+          <ion-select
+            :label="localize('@darkMode')"
+            :value="themeMode"
+            @ionChange="setThemeMode($event.detail.value)"
           >
-            {{ localize('@darkMode') }}
-          </ion-toggle>
+            <ion-select-option value="off">{{ localize('@themeOff') }}</ion-select-option>
+            <ion-select-option value="on">{{ localize('@themeOn') }}</ion-select-option>
+            <ion-select-option value="system">{{ localize('@themeSystem') }}</ion-select-option>
+          </ion-select>
         </ion-item>
         <ion-item
           :button="developerModeAvailable"
@@ -52,7 +54,6 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import {
   IonBackButton, IonButtons, IonContent, IonHeader,
   IonPage, IonTitle, IonToolbar, IonList, IonItem, IonSelect, IonSelectOption, IonLabel, IonNote,
-  IonToggle,
 } from '@ionic/vue';
 import axios from 'axios';
 import { appVersion } from '@/utils/appVersion';
@@ -65,7 +66,7 @@ import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
 
 const { currentLanguage, changeLanguage } = useLanguage();
-const { isDarkMode, setDarkMode } = useTheme();
+const { themeMode, setThemeMode } = useTheme();
 const {
   developerModeAvailable,
   developerModeEnabled,
