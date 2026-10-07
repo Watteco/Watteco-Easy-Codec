@@ -1,5 +1,6 @@
 import { BleClient } from '@capacitor-community/bluetooth-le';
 import {
+  ADMIN_FW_LONG_NAME_CHAR_UUID,
   ADMIN_RUNNING_TIME_CHAR_UUID,
   ADMIN_UNIX_TIME_CHAR_UUID,
   DATE_TIME_CHAR_UUID,
@@ -10,10 +11,20 @@ import {
 import { toUint8ArrayFromBleValue } from '@/utils/BLE/blob';
 
 export type AdminDeviceStatus = {
+  firmwareLongName: string | null;
   sensorTime: number | null;
   runningTimeSeconds: number | null;
   osaAuthenticated: boolean | null;
 };
+
+export function decodeFirmwareLongName(value: unknown): string | null {
+  const bytes = toUint8ArrayFromBleValue(value);
+  if (!bytes?.length) return null;
+  const nulIndex = bytes.indexOf(0);
+  const textBytes = nulIndex >= 0 ? bytes.subarray(0, nulIndex) : bytes;
+  const decoded = new TextDecoder().decode(textBytes).trim();
+  return decoded || null;
+}
 
 export function decodeUnixTime(value: unknown): number | null {
   const bytes = toUint8ArrayFromBleValue(value);
@@ -72,15 +83,17 @@ export async function readAdminDeviceStatus(
     }
   };
 
-  const [unixTimeRaw, dateTimeRaw, runningTimeRaw, authStatusRaw] = await Promise.all([
+  const [firmwareLongNameRaw, unixTimeRaw, dateTimeRaw, runningTimeRaw, authStatusRaw] = await Promise.all([
+    read(ADMIN_FW_LONG_NAME_CHAR_UUID),
     read(ADMIN_UNIX_TIME_CHAR_UUID),
     read(DATE_TIME_CHAR_UUID),
     read(ADMIN_RUNNING_TIME_CHAR_UUID),
     read(OSA_STATUS_CHAR_UUID),
   ]);
+  const firmwareLongName = decodeFirmwareLongName(firmwareLongNameRaw);
   const sensorTime = decodeUnixTime(unixTimeRaw) ?? decodeDateTime(dateTimeRaw);
   const runningTimeSeconds = decodeRunningTime(runningTimeRaw);
   const osaAuthenticated = decodeOsaAuthenticated(authStatusRaw);
   onLog('[ADMIN] Device status refreshed');
-  return { sensorTime, runningTimeSeconds, osaAuthenticated };
+  return { firmwareLongName, sensorTime, runningTimeSeconds, osaAuthenticated };
 }

@@ -41,6 +41,7 @@
     "icon": "speedometerOutline",
     "labelKey": "@counterLabel",
     "priority": 20,
+    "history": true,
     "numbered": true
   },
   {

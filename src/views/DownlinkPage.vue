@@ -1326,6 +1326,35 @@
       @update:language="changeLanguage"
     />
   </div>
+
+  <div v-if="developerModeEnabled && ble.isNative.value" class="app-frame-debug-corner">
+    <div v-show="appFrameDebugVisible" class="app-frame-debug-panel">
+      <div class="app-frame-debug-header">
+        <strong>APP TX / RX</strong>
+        <ion-button size="small" fill="clear" @click="ble.clearConfigurationFrameLogs()">
+          Clear
+        </ion-button>
+      </div>
+      <div class="app-frame-debug-logs" aria-live="polite">
+        <div v-for="(line, index) in ble.configurationFrameLogs.value" :key="`${index}-${line}`">
+          {{ line }}
+        </div>
+        <div v-if="ble.configurationFrameLogs.value.length === 0" class="app-frame-debug-empty">
+          No APP frames yet
+        </div>
+      </div>
+    </div>
+    <ion-button
+      size="small"
+      fill="solid"
+      color="medium"
+      class="app-frame-debug-toggle"
+      :aria-expanded="appFrameDebugVisible"
+      @click="appFrameDebugVisible = !appFrameDebugVisible"
+    >
+      {{ appFrameDebugVisible ? 'Close' : 'APP TX/RX' }}
+    </ion-button>
+  </div>
   </ion-page>
 </template>
 
@@ -1486,6 +1515,7 @@ const ble = useBle();
 
 const { debugOtaAppKeyHex, debugDevEuiHex } = useBleDebugCredentials();
 const configurationOsaAuthenticated = ref<boolean | null>(null);
+const appFrameDebugVisible = ref(false);
 
 async function refreshConfigurationOsaStatus(): Promise<void> {
   const deviceId = ble.connectedDevice.value?.deviceId;
@@ -2498,6 +2528,7 @@ const sendDefaultConfigurationBle = async () => {
 
 const sendCurrentConfigurationBle = async () => {
   configurationSendMode.value = 'current';
+  if (developerModeEnabled.value) appFrameDebugVisible.value = true;
   try {
     const sentFrameCount = await ble.sendCurrentConfigurationFrames(
       debugOtaAppKeyHex.value,
@@ -3417,6 +3448,57 @@ ion-range::part(pin)::before {
   white-space: normal;
   overflow-wrap: anywhere;
   line-height: 1.3;
+}
+
+.app-frame-debug-corner {
+  position: fixed;
+  right: 12px;
+  bottom: calc(74px + env(safe-area-inset-bottom));
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.app-frame-debug-panel {
+  width: min(360px, calc(100vw - 24px));
+  max-height: 34vh;
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface);
+  color: var(--app-text);
+  box-shadow: 0 8px 24px rgba(28, 35, 45, 0.24);
+}
+
+.app-frame-debug-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 4px 12px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.app-frame-debug-logs {
+  max-height: 26vh;
+  padding: 8px 10px;
+  overflow: auto;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.app-frame-debug-empty {
+  color: var(--app-text-muted);
+  font-style: italic;
+}
+
+.app-frame-debug-toggle {
+  margin: 0;
+  font-size: 0.68rem;
 }
 </style>
 

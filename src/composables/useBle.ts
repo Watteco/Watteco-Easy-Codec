@@ -8,7 +8,14 @@ import {
   toSpacedHex,
   uploadConfigurationBlob,
 } from '@/utils/BLE/blob';
-import { takeFirstConfigurationFrames, writeAppTx } from '@/utils/BLE/appFrames';
+import {
+  readAppRx,
+  startAppRxMonitoring,
+  stopAppRxMonitoring,
+  takeFirstConfigurationFrames,
+  writeAppTx,
+  type AppRxSubscription,
+} from '@/utils/BLE/appFrames';
 import { authenticateOsa } from '@/utils/BLE/osa';
 import { readProductId as readProductIdFromBle } from '@/utils/BLE/configReader';
 import { decodeAdvertisedProductId } from '@/utils/BLE/advertising';
@@ -62,7 +69,7 @@ const RECONNECT_CONNECT_TIMEOUT_MS = 10000;
 const RECONNECT_RETRY_DELAY_MS = 1000;
 const BOND_TIMEOUT_MS = 15000;
 const FLUSH_INTERVAL_MS = 1000;
-const INTER_FRAME_DELAY_MS = 50;
+const INTER_FRAME_DELAY_MS = 500;
 const INTER_CHUNK_DELAY_MS = 10;
 const MAX_MEASUREMENT_HISTORY_POINTS = 20;
 const BONDED_DEVICES_STORAGE_KEY = 'easycodec.androidBondedDevices';
@@ -101,6 +108,7 @@ const connectedDevice = ref<DeviceLike | undefined>(undefined);
 const lastConnectedDevice = ref<DeviceLike | undefined>(undefined);
 const statusMessage = ref('');
 const eventsLog = ref<string[]>([]);
+const configurationFrameLogs = ref<string[]>([]);
 const sending = ref(false);
 const osaAuthenticating = ref(false);
 const pairing = ref(false);
@@ -179,6 +187,17 @@ function log(msg: string) {
   const ts = new Date().toLocaleTimeString();
   eventsLog.value.unshift(`${ts} ${msg}`);
   if (eventsLog.value.length > 200) eventsLog.value.pop();
+}
+
+function logConfigurationFrame(msg: string) {
+  const ts = new Date().toLocaleTimeString();
+  configurationFrameLogs.value.unshift(`${ts} ${msg}`);
+  if (configurationFrameLogs.value.length > 100) configurationFrameLogs.value.pop();
+  log(msg);
+}
+
+function clearConfigurationFrameLogs() {
+  configurationFrameLogs.value = [];
 }
 
 function prepareMeasurementHistory(deviceId: string) {
@@ -1132,6 +1151,7 @@ async function sendOutputFrames(
 }
 
 async function sendCurrentConfigurationFrames(osaKeyHex: string, devEuiHex: string): Promise<number> {
+  clearConfigurationFrameLogs();
   const deviceId = connectedDevice.value?.deviceId;
   if (!connected.value || !deviceId) {
     statusMessage.value = 'Not connected to a BLE device';
@@ -1148,25 +1168,49 @@ async function sendCurrentConfigurationFrames(osaKeyHex: string, devEuiHex: stri
   osaAuthenticating.value = true;
   statusMessage.value = 'Authenticating configuration transfer…';
   let osaAuthenticated = false;
+  let appRxSubscription: AppRxSubscription | undefined;
   try {
     await authenticateOsa(deviceId, osaKeyHex, devEuiHex, log);
     osaAuthenticated = true;
     osaAuthenticating.value = false;
+    try {
+      appRxSubscription = await startAppRxMonitoring(
+        deviceId,
+        () => undefined,
+        logConfigurationFrame,
+      );
+      logConfigurationFrame(
+        appRxSubscription.notifications
+          ? '[APP RX] Live notifications enabled'
+          : '[APP RX] Notifications unavailable; reading after each TX',
+      );
+    } catch (error: any) {
+      logConfigurationFrame(`[APP RX] Monitoring unavailable: ${error?.message ?? error}`);
+    }
     statusMessage.value = `Applying ${currentConfigurationFrames.length} configuration frame(s)…`;
     for (const frameHex of currentConfigurationFrames) {
-      await writeAppTx(deviceId, hexToBytes(frameHex), log);
+      await writeAppTx(deviceId, hexToBytes(frameHex), logConfigurationFrame);
       await delay(INTER_FRAME_DELAY_MS);
+      if (appRxSubscription && !appRxSubscription.notifications) {
+        try {
+          const response = await readAppRx(deviceId, appRxSubscription);
+          logConfigurationFrame(`[APP RX] ${toSpacedHex(response)}`);
+        } catch (error: any) {
+          logConfigurationFrame(`[APP RX] Read failed: ${error?.message ?? error}`);
+        }
+      }
     }
     statusMessage.value = 'Current configuration applied';
     return currentConfigurationFrames.length;
   } catch (error: any) {
     const message = error?.message ?? String(error);
-    log(`APP TX ERROR ${message}`);
+    logConfigurationFrame(`APP TX ERROR ${message}`);
     statusMessage.value = osaAuthenticated
       ? `Current configuration transfer failed: ${message}`
       : 'Configuration authorization failed';
     return osaAuthenticated ? -1 : -2;
   } finally {
+    await stopAppRxMonitoring(appRxSubscription, logConfigurationFrame);
     osaAuthenticating.value = false;
     sending.value = false;
   }
@@ -1201,6 +1245,7 @@ function setProductReference(value?: string | null) {
 export function useBle() {
   return {
     receivedFrames:   readonly(receivedFrames),
+    configurationFrameLogs: readonly(configurationFrameLogs),
     isNative:        readonly(isNative),
     bleInitialized:  readonly(bleInitialized),
     scanning:        readonly(scanning),
@@ -1236,6 +1281,7 @@ export function useBle() {
     disconnect,
     getDefaultConfigurationPreview,
     getCurrentConfigurationPreview,
+    clearConfigurationFrameLogs,
     sendOutputFrames,
     sendCurrentConfigurationFrames,
     sendLoraLinkTest,

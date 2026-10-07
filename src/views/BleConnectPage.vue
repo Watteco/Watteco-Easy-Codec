@@ -5,7 +5,7 @@
         <img class="ble-home-logo" :src="logoSrc" alt="Watteco" />
 
         <div class="ble-home-identity">
-          <strong>Watteco Neo</strong>
+          <strong>Watteco Neo (Beta)</strong>
           <span class="ble-home-context">{{ localize('@bleConnectionTitle') }}</span>
         </div>
 
@@ -89,7 +89,10 @@
             <ion-icon :icon="bluetoothOutline" slot="start" color="primary" />
             <ion-label>
               <h2>{{ dev.productName ?? ble.getDeviceName(dev) }}</h2>
-              <p v-if="formatDevEui(dev.devEui)">
+              <p
+                v-if="formatDevEui(dev.devEui)"
+                :class="{ 'device-eui--connecting': isDeviceConnecting(dev) }"
+              >
                 DevEUI: {{ formatDevEui(dev.devEui) }}
               </p>
               <p v-else-if="dev.isSimulated">{{ localize('@bleSimulatedSensor') }}</p>
@@ -269,6 +272,11 @@ function addSimulatedSensor() {
     isSimulated: true,
   });
   nextSimulatedSensorNumber.value += 1;
+}
+
+function isDeviceConnecting(device: DisplayDevice): boolean {
+  return (connecting.value || ble.pairing.value)
+    && connectingDeviceId.value === device.deviceId;
 }
 
 async function toggleScan() {
@@ -491,9 +499,17 @@ watch(() => ble.connected.value, (val) => {
   font-weight: 600;
 }
 
+.device-list ion-label { min-width: 0; }
+
 .device-list ion-item p {
   font-size: 0.8rem;
   color: var(--ion-color-medium);
+}
+
+.device-list ion-item .device-eui--connecting {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .empty-state {

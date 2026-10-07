@@ -18,6 +18,12 @@
                   <strong>{{ bleDeviceName }}</strong>
                 </div>
                 <div class="status-item">
+                  <span>{{ localize('@toolsOsaAuthentication') }}</span>
+                  <strong :class="{ 'value-ok': deviceStatus.osaAuthenticated === true }">
+                    {{ osaAuthenticationLabel }}
+                  </strong>
+                </div>
+                <div class="status-item">
                   <span>{{ localize('@toolsJoinStatus') }}</span>
                   <strong :class="{ 'value-ok': status?.joined, 'value-error': status && !status.joined }">
                     {{ joinLabel }}
@@ -31,11 +37,9 @@
                   <span>{{ localize('@toolsUptime') }}</span>
                   <strong>{{ formatDuration(deviceStatus.runningTimeSeconds) }}</strong>
                 </div>
-                <div class="status-item">
-                  <span>{{ localize('@toolsOsaAuthentication') }}</span>
-                  <strong :class="{ 'value-ok': deviceStatus.osaAuthenticated === true }">
-                    {{ osaAuthenticationLabel }}
-                  </strong>
+                <div class="status-item status-item--firmware">
+                  <span>{{ localize('@toolsFirmwareLongName') }}</span>
+                  <strong>{{ deviceStatus.firmwareLongName || '—' }}</strong>
                 </div>
               </div>
               <div class="status-actions">
@@ -49,6 +53,99 @@
                 </ion-button>
               </div>
             </ion-card-content>
+            </ion-card>
+          </details>
+        </section>
+
+        <section>
+          <details open>
+            <summary class="section-summary">
+              <ion-icon class="section-chevron" :icon="chevronForwardOutline" />
+              <span class="section-title">{{ localize('@toolsDeviceCommands') }}</span>
+            </summary>
+            <ion-card class="tool-card">
+              <ion-card-content>
+                <div class="command-list">
+                  <div class="rejoin-command">
+                    <div class="split-command">
+                      <ion-button
+                        class="split-command__action"
+                        expand="block"
+                        :disabled="!canSendRejoin"
+                        @click="sendRejoin"
+                      >
+                        <ion-icon slot="start" :icon="lockIcon" />
+                        {{ commandSending === 'rejoin'
+                          ? localize('@toolsSendingCommand')
+                          : localize('@toolsLoraRejoin') }}
+                      </ion-button>
+                      <ion-button
+                        class="split-command__toggle"
+                        :aria-label="localize('@toolsToggleRejoinDelay')"
+                        :aria-expanded="rejoinOptionsVisible"
+                        aria-controls="tools-rejoin-options"
+                        @click="rejoinOptionsVisible = !rejoinOptionsVisible"
+                      >
+                        <ion-icon
+                          :class="{ 'split-command__chevron--open': rejoinOptionsVisible }"
+                          :icon="chevronDownOutline"
+                        />
+                      </ion-button>
+                    </div>
+                    <div
+                      v-show="rejoinOptionsVisible"
+                      id="tools-rejoin-options"
+                      class="rejoin-options"
+                    >
+                      <label class="field-label" for="tools-rejoin-delay">
+                        {{ localize('@toolsRejoinDelay') }}
+                      </label>
+                      <input
+                        id="tools-rejoin-delay"
+                        v-model="rejoinDelay"
+                        class="tool-input command-duration"
+                        maxlength="7"
+                        placeholder="00:00"
+                        aria-describedby="tools-rejoin-hint"
+                      />
+                      <p id="tools-rejoin-hint" class="field-hint">
+                        {{ localize('@toolsHoursMinutesHint') }}
+                      </p>
+                      <p v-if="rejoinDelay && !rejoinFrame" class="validation-error">
+                        {{ localize('@toolsInvalidDuration') }}
+                      </p>
+                    </div>
+                  </div>
+                  <ion-button
+                    expand="block"
+                    :disabled="!canSendCommand"
+                    @click="sendSensorReboot"
+                  >
+                    <ion-icon slot="start" :icon="lockIcon" />
+                    {{ commandSending === 'reboot'
+                      ? localize('@toolsSendingCommand')
+                      : localize('@toolsSensorReboot') }}
+                  </ion-button>
+                  <ion-button
+                    expand="block"
+                    :disabled="!canSendCommand"
+                    @click="sendFactoryReset"
+                  >
+                    <ion-icon slot="start" :icon="lockIcon" />
+                    {{ commandSending === 'factory-reset'
+                      ? localize('@toolsSendingCommand')
+                      : localize('@toolsFactoryReset') }}
+                  </ion-button>
+                </div>
+                <p
+                  v-if="feedback && feedbackContext === 'commands'"
+                  class="feedback"
+                  :class="{ 'feedback--error': feedbackError }"
+                  aria-live="polite"
+                >
+                  {{ feedback }}
+                </p>
+              </ion-card-content>
             </ion-card>
           </details>
         </section>
@@ -87,6 +184,14 @@
                   {{ localize('@toolsCancelCampaign') }}
                 </ion-button>
               </div>
+              <p
+                v-if="feedback && feedbackContext === 'network-test'"
+                class="feedback"
+                :class="{ 'feedback--error': feedbackError }"
+                aria-live="polite"
+              >
+                {{ feedback }}
+              </p>
             </ion-card-content>
             </ion-card>
 
@@ -176,14 +281,19 @@
                 rows="3"
                 readonly
               ></textarea>
+              <p
+                v-if="feedback && feedbackContext === 'manual-frame'"
+                class="feedback"
+                :class="{ 'feedback--error': feedbackError }"
+                aria-live="polite"
+              >
+                {{ feedback }}
+              </p>
             </ion-card-content>
             </ion-card>
           </details>
         </section>
 
-        <p v-if="feedback" class="feedback" :class="{ 'feedback--error': feedbackError }" aria-live="polite">
-          {{ feedback }}
-        </p>
       </main>
     </ion-content>
 
@@ -226,7 +336,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import axios from 'axios';
 import { IonButton, IonCard, IonCardContent, IonContent, IonIcon, IonPage, onIonViewDidEnter } from '@ionic/vue';
-import { chevronForwardOutline, lockClosedOutline, lockOpenOutline } from 'ionicons/icons';
+import { chevronDownOutline, chevronForwardOutline, lockClosedOutline, lockOpenOutline } from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
 import { useBleDebug } from '@/composables/useBleDebug';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
@@ -237,13 +347,17 @@ import { readAdminDeviceStatus, type AdminDeviceStatus } from '@/utils/BLE/admin
 import { presentAuthorizationDeniedAlert } from '@/utils/authorizationAlert';
 import {
   parseAppFrameHex,
-  readAppRx,
   startAppRxMonitoring,
   stopAppRxMonitoring,
   writeAppTx,
   type AppRxSubscription,
 } from '@/utils/BLE/appFrames';
 import { toSpacedHex } from '@/utils/BLE/blob';
+import {
+  buildLoraRejoinFrame,
+  FACTORY_RESET_FRAME,
+  rebootDevice,
+} from '@/utils/BLE/deviceCommands';
 import { playSensorPageTransition } from '@/utils/sensorPageTransition';
 import SensorHistoryCard from '@/components/sensor/SensorHistoryCard.vue';
 import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.vue';
@@ -262,6 +376,7 @@ type CampaignSample = {
 const CAMPAIGN_SIZE = 5;
 const LINK_CHECK_TIMEOUT_MS = 45_000;
 const INTER_TEST_DELAY_MS = 5_000;
+const APP_RX_IDLE_TIMEOUT_MS = 1_000;
 const ble = useBle();
 const { developerModeEnabled } = useDeveloperMode();
 const {
@@ -301,7 +416,9 @@ const campaignRunning = ref(false);
 const campaignMessage = ref('');
 const feedback = ref('');
 const feedbackError = ref(false);
+const feedbackContext = ref<'commands' | 'network-test' | 'manual-frame'>('commands');
 const deviceStatus = ref<AdminDeviceStatus>({
+  firmwareLongName: null,
   sensorTime: null,
   runningTimeSeconds: null,
   osaAuthenticated: null,
@@ -312,7 +429,12 @@ const manualFrameHex = ref('11 00 80 04 00 04');
 const lastCommandResponse = ref('');
 const manualFrameSending = ref(false);
 const awaitingManualResponse = ref(false);
+const rejoinDelay = ref('00:00');
+const rejoinOptionsVisible = ref(false);
+const commandSending = ref<'rejoin' | 'factory-reset' | 'reboot' | null>(null);
 let appRxSubscription: AppRxSubscription | undefined;
+let appRxIdleTimer: ReturnType<typeof setTimeout> | undefined;
+let resolveAppRxIdle: (() => void) | undefined;
 let campaignCancelled = false;
 
 const status = computed(() => ble.loraLinkStatus.value);
@@ -327,8 +449,8 @@ const canRunTests = computed(() => (
   && !osaAuthenticating.value
 ));
 const joinLabel = computed(() => status.value
-  ? localize(status.value.joined ? '@loraWanJoined' : '@loraWanNotJoined')
-  : localize('@loraWanStatusUnknown'));
+  ? localize(status.value.joined ? '@toolsJoined' : '@toolsNotJoined')
+  : localize('@toolsStatusUnknown'));
 const campaignStatus = computed(() => campaignMessage.value || (
   campaignSamples.value.length === CAMPAIGN_SIZE
     ? localize('@toolsCampaignComplete')
@@ -349,6 +471,14 @@ const snrHistory = computed(() => campaignSamples.value.flatMap(sample => (
   sample.snrDb === null ? [] : [{ timestamp: sample.timestamp, value: sample.snrDb }]
 )));
 const manualFrame = computed(() => parseAppFrameHex(manualFrameHex.value));
+const rejoinFrame = computed(() => buildLoraRejoinFrame(rejoinDelay.value));
+const lockIcon = computed(() => (
+  deviceStatus.value.osaAuthenticated === true ? lockOpenOutline : lockClosedOutline
+));
+const canSendCommand = computed(() => (
+  ble.connected.value && !commandSending.value && !osaAuthenticating.value
+));
+const canSendRejoin = computed(() => canSendCommand.value && rejoinFrame.value !== null);
 const canSendManualFrame = computed(() => (
   ble.connected.value
   && manualFrame.value !== null
@@ -418,15 +548,42 @@ async function refreshDeviceStatus(): Promise<void> {
 }
 
 function receiveAppFrame(frame: Uint8Array): void {
-  lastCommandResponse.value = toSpacedHex(frame).toUpperCase();
+  const response = toSpacedHex(frame).toUpperCase();
   if (awaitingManualResponse.value) {
-    awaitingManualResponse.value = false;
-    feedbackError.value = false;
-    feedback.value = localize('@toolsFrameResponseReceived');
+    lastCommandResponse.value = lastCommandResponse.value
+      ? `${lastCommandResponse.value}\n${response}`
+      : response;
+    resetAppRxIdleTimer();
+  } else {
+    lastCommandResponse.value = response;
   }
 }
 
+function finishManualResponseCollection(): void {
+  if (appRxIdleTimer !== undefined) {
+    clearTimeout(appRxIdleTimer);
+    appRxIdleTimer = undefined;
+  }
+  awaitingManualResponse.value = false;
+  const resolve = resolveAppRxIdle;
+  resolveAppRxIdle = undefined;
+  resolve?.();
+}
+
+function resetAppRxIdleTimer(): void {
+  if (appRxIdleTimer !== undefined) clearTimeout(appRxIdleTimer);
+  appRxIdleTimer = setTimeout(finishManualResponseCollection, APP_RX_IDLE_TIMEOUT_MS);
+}
+
+function waitForAppRxIdle(): Promise<void> {
+  return new Promise(resolve => {
+    resolveAppRxIdle = resolve;
+    resetAppRxIdleTimer();
+  });
+}
+
 async function runManualOsaChallenge(): Promise<void> {
+  feedbackContext.value = 'commands';
   await authenticateWithDebugCredentials(true);
 }
 
@@ -489,32 +646,88 @@ async function sendManualFrame(): Promise<void> {
   const deviceId = ble.connectedDevice.value?.deviceId;
   const frame = manualFrame.value;
   if (!canSendManualFrame.value || !deviceId || !frame) return;
+  feedbackContext.value = 'manual-frame';
   if (!await authenticateWithDebugCredentials()) return;
 
   manualFrameSending.value = true;
-  awaitingManualResponse.value = true;
   lastCommandResponse.value = '';
   feedback.value = localize('@toolsFrameWaitingResponse');
   feedbackError.value = false;
   try {
     const subscription = await ensureAppRxSubscription();
-    await writeAppTx(deviceId, frame, line => console.debug(line));
-
     if (!subscription.notifications) {
-      await delay(500);
-      receiveAppFrame(await readAppRx(deviceId, subscription));
+      throw new Error(localize('@toolsFrameNotificationsUnavailable'));
     }
+    awaitingManualResponse.value = true;
+    await writeAppTx(deviceId, frame, line => console.debug(line));
+    await waitForAppRxIdle();
+    feedback.value = lastCommandResponse.value
+      ? localize('@toolsFrameResponseReceived')
+      : localize('@toolsFrameNoResponse');
   } catch (error: any) {
-    awaitingManualResponse.value = false;
     feedbackError.value = true;
     feedback.value = error?.message ?? String(error);
   } finally {
+    finishManualResponseCollection();
     manualFrameSending.value = false;
+  }
+}
+
+async function sendPresetFrame(
+  kind: 'rejoin' | 'factory-reset',
+  frame: Uint8Array,
+): Promise<void> {
+  const deviceId = ble.connectedDevice.value?.deviceId;
+  if (!canSendCommand.value || !deviceId) return;
+  feedbackContext.value = 'commands';
+  if (!await authenticateWithDebugCredentials()) return;
+
+  commandSending.value = kind;
+  feedback.value = '';
+  feedbackError.value = false;
+  try {
+    await writeAppTx(deviceId, frame, line => console.debug(line));
+    feedback.value = localize('@toolsCommandSent');
+  } catch (error: any) {
+    feedbackError.value = true;
+    feedback.value = error?.message ?? String(error);
+  } finally {
+    commandSending.value = null;
+  }
+}
+
+async function sendRejoin(): Promise<void> {
+  if (!rejoinFrame.value) return;
+  await sendPresetFrame('rejoin', rejoinFrame.value);
+}
+
+async function sendFactoryReset(): Promise<void> {
+  await sendPresetFrame('factory-reset', FACTORY_RESET_FRAME);
+}
+
+async function sendSensorReboot(): Promise<void> {
+  const deviceId = ble.connectedDevice.value?.deviceId;
+  if (!canSendCommand.value || !deviceId) return;
+  feedbackContext.value = 'commands';
+  if (!await authenticateWithDebugCredentials()) return;
+
+  commandSending.value = 'reboot';
+  feedback.value = '';
+  feedbackError.value = false;
+  try {
+    await rebootDevice(deviceId, line => console.debug(line));
+    feedback.value = localize('@toolsRebootSent');
+  } catch (error: any) {
+    feedbackError.value = true;
+    feedback.value = error?.message ?? String(error);
+  } finally {
+    commandSending.value = null;
   }
 }
 
 async function startCampaign() {
   if (!canRunTests.value || campaignRunning.value) return;
+  feedbackContext.value = 'network-test';
   if (!await authenticateWithDebugCredentials()) return;
   campaignCancelled = false;
   campaignRunning.value = true;
@@ -591,6 +804,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   cancelCampaign();
+  finishManualResponseCollection();
   void stopAppRxMonitoring(appRxSubscription, line => console.debug(line));
 });
 </script>
@@ -654,20 +868,19 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
   box-shadow: var(--app-card-shadow);
 }
 
-.status-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px 12px;
-}
+.status-grid { display: grid; }
 
 .status-item {
-  display: grid;
-  gap: 3px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--app-border);
 }
 
-.status-item--wide {
-  grid-column: 1 / -1;
-}
+.status-item:first-child { padding-top: 0; }
+.status-item:last-child { padding-bottom: 0; border-bottom: 0; }
 
 .status-item span,
 .field-label {
@@ -677,9 +890,14 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
 }
 
 .status-item strong {
+  min-width: 0;
   color: var(--app-text);
   font-size: 1rem;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
+
+.status-item--firmware strong { font-size: 0.78rem; font-weight: 600; }
 
 .status-item .value-ok { color: var(--ion-color-success); }
 .status-item .value-error,
@@ -752,6 +970,12 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
 
 .field-label:first-child { margin-top: 0; }
 
+.field-hint {
+  margin: 5px 0 10px;
+  color: var(--app-text-muted);
+  font-size: 0.72rem;
+}
+
 .tool-input {
   box-sizing: border-box;
   width: 100%;
@@ -764,6 +988,37 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
 }
 
 .tool-textarea { resize: vertical; font-family: monospace; }
+.command-duration { font-variant-numeric: tabular-nums; }
+.command-list { display: grid; gap: 8px; }
+.rejoin-command {
+  display: grid;
+  gap: 10px;
+}
+.split-command {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 46px;
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow: 0 3px 5px -1px rgb(0 0 0 / 20%), 0 6px 10px 0 rgb(0 0 0 / 14%);
+}
+.split-command ion-button { --box-shadow: none; }
+.split-command__action { --border-radius: 4px 0 0 4px; }
+.split-command__toggle {
+  --border-radius: 0 4px 4px 0;
+  --padding-start: 0;
+  --padding-end: 0;
+  margin-left: 1px !important;
+}
+.split-command__toggle ion-icon { transition: transform 160ms ease; }
+.split-command__chevron--open { transform: rotate(180deg); }
+.rejoin-options {
+  display: grid;
+  gap: 6px;
+  padding: 2px 0 8px;
+}
+.rejoin-options .field-label { margin: 0; }
+.rejoin-options .field-hint { margin: -1px 0 2px; }
+.command-list ion-button { margin: 0; }
 .toggle-row { margin: 14px 0; }
 .validation-error { margin: 8px 0 0; font-size: 0.76rem; }
 .feedback { margin: 18px 4px 0; text-align: center; }
