@@ -5,7 +5,7 @@
         <img class="ble-home-logo" :src="logoSrc" alt="Watteco" />
 
         <div class="ble-home-identity">
-          <strong>Neo Connect</strong>
+          <strong>Watteco Neo</strong>
           <span class="ble-home-context">{{ localize('@bleConnectionTitle') }}</span>
         </div>
 
@@ -596,7 +596,7 @@ watch(() => ble.connected.value, (val) => {
 
 .ble-home-identity strong {
   overflow: hidden;
-  font-size: 1rem;
+  font-size: 1.2rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

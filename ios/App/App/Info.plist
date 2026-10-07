@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Neo Connect</string>
+	<string>Watteco Neo</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -23,9 +23,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Neo Connect uses Bluetooth to discover, pair with, and configure nearby Watteco devices.</string>
+	<string>Watteco Neo uses Bluetooth to discover, pair with, and configure nearby Watteco devices.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Neo Connect uses Bluetooth to communicate with compatible Watteco sensors.</string>
+	<string>Watteco Neo uses Bluetooth to communicate with compatible Watteco sensors.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

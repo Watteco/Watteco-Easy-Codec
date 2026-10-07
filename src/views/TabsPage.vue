@@ -11,7 +11,7 @@
           <ion-title 
             size="large"
             id="watteco-title">
-              {{ isNativeApp ? localize("@sensorConfigTitle") : `Easy Codec - BETA v${appVersion}` }}
+              {{ isNativeApp ? localize("@sensorConfigTitle") : `Watteco Neo - BETA v${appVersion}` }}
           </ion-title>
         </ion-toolbar>
       </ion-header>
