@@ -1258,10 +1258,17 @@
         <div v-if="ble.isNative.value" class="ble-panel">
           <div class="ble-actions">
             <div v-if="framesAvailable" class="ble-action">
-              <ion-button @click="sendDefaultConfigurationBle" :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value" expand="block" color="primary">
+              <ion-button
+                @click="sendDefaultConfigurationBle"
+                :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value"
+                expand="block"
+                :color="configurationSendSuccessMode === 'default' ? 'success' : 'primary'"
+              >
                 <ion-icon
                   slot="start"
-                  :icon="configurationOsaAuthenticated === true ? lockOpenOutline : lockClosedOutline"
+                  :icon="configurationSendSuccessMode === 'default'
+                    ? checkmarkCircleOutline
+                    : configurationOsaAuthenticated === true ? lockOpenOutline : lockClosedOutline"
                 />
                 {{ configurationSendMode === 'default' && ble.pairing.value
                   ? 'Pairing…'
@@ -1269,7 +1276,9 @@
                     ? localize('@bleAuthenticating')
                     : configurationSendMode === 'default' && ble.sending.value
                       ? localize('@bleSending')
-                      : localize('@bleWriteDefaultConfig') }}
+                      : configurationSendSuccessMode === 'default'
+                        ? localize('@bleConfigurationSent')
+                        : localize('@bleWriteDefaultConfig') }}
               </ion-button>
               <ion-checkbox
                 class="ble-activation-option"
@@ -1288,10 +1297,17 @@
               <pre v-if="developerModeEnabled && defaultConfigurationPreviewVisible" class="ble-payload-preview">{{ defaultConfigurationPreview }}</pre>
             </div>
             <div v-if="framesAvailable" class="ble-action">
-              <ion-button @click="sendCurrentConfigurationBle" :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value" expand="block" color="secondary">
+              <ion-button
+                @click="sendCurrentConfigurationBle"
+                :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value"
+                expand="block"
+                :color="configurationSendSuccessMode === 'current' ? 'success' : 'secondary'"
+              >
                 <ion-icon
                   slot="start"
-                  :icon="configurationOsaAuthenticated === true ? lockOpenOutline : lockClosedOutline"
+                  :icon="configurationSendSuccessMode === 'current'
+                    ? checkmarkCircleOutline
+                    : configurationOsaAuthenticated === true ? lockOpenOutline : lockClosedOutline"
                 />
                 {{ configurationSendMode === 'current' && ble.pairing.value
                   ? 'Pairing…'
@@ -1299,7 +1315,9 @@
                     ? localize('@bleAuthenticating')
                     : configurationSendMode === 'current' && ble.sending.value
                       ? localize('@bleSending')
-                      : localize('@bleWriteCurrentConfig') }}
+                      : configurationSendSuccessMode === 'current'
+                        ? localize('@bleConfigurationSent')
+                        : localize('@bleWriteCurrentConfig') }}
               </ion-button>
               <ion-button v-if="developerModeEnabled" size="small" fill="clear" class="ble-preview-toggle" @click="toggleCurrentConfigurationPreview">
                 <ion-icon slot="start" :icon="currentConfigurationPreviewVisible ? eyeOffOutline : eyeOutline" />
@@ -1307,6 +1325,10 @@
               </ion-button>
               <pre v-if="developerModeEnabled && currentConfigurationPreviewVisible" class="ble-payload-preview">{{ currentConfigurationPreview }}</pre>
             </div>
+          </div>
+          <div v-if="configurationSendSuccessMode" class="ble-send-success" role="status" aria-live="polite">
+            <ion-icon :icon="checkmarkCircleOutline" aria-hidden="true" />
+            <span>{{ localize('@bleConfigurationSentMessage') }}</span>
           </div>
           <div v-if="ble.pairing.value" class="ble-status-msg">
             <ion-text color="warning">Confirm the secure Bluetooth pairing on Android to continue.</ion-text>
@@ -1388,7 +1410,7 @@ import {
   IonText,
   onIonViewDidEnter,
 } from '@ionic/vue';
-import { chevronForwardOutline, closeOutline, eyeOffOutline, eyeOutline, lockClosedOutline, lockOpenOutline, refreshOutline } from 'ionicons/icons';
+import { checkmarkCircleOutline, chevronForwardOutline, closeOutline, eyeOffOutline, eyeOutline, lockClosedOutline, lockOpenOutline, refreshOutline } from 'ionicons/icons';
 import { Capacitor } from '@capacitor/core';
 import { useBle } from '@/composables/useBle';
 import { useBleDebugCredentials, updateDebugDevEuiFromDeviceName } from '@/composables/useBleDebug';
@@ -1575,6 +1597,8 @@ const paramGroupList: Record<string, any> = {}; // List of parameter groups
 const currentErrors: never[] = []; // Tracks current errors
 const framesAvailable = ref(false);
 const configurationSendMode = ref<'default' | 'current' | null>(null);
+const configurationSendSuccessMode = ref<'default' | 'current' | null>(null);
+let configurationSendSuccessTimer: ReturnType<typeof setTimeout> | undefined;
 const defaultConfigurationPreviewVisible = ref(false);
 const currentConfigurationPreviewVisible = ref(false);
 const defaultConfigurationPreview = ref('');
@@ -2429,6 +2453,7 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener('click', handleCopyButtonClick);
   cancelFrameLongPress();
+  if (configurationSendSuccessTimer) clearTimeout(configurationSendSuccessTimer);
 });
 
 // Calculate appropriate slider step sizes
@@ -2472,8 +2497,19 @@ const copyFramesNoSpaces = () => {
 };
 
 // Send frames via BLE (native only)
-const handleConfigurationSendResult = async (sentFrameCount: number) => {
-  if (sentFrameCount > 0) configurationOsaAuthenticated.value = true;
+const handleConfigurationSendResult = async (
+  sentFrameCount: number,
+  mode: 'default' | 'current',
+) => {
+  if (sentFrameCount > 0) {
+    configurationOsaAuthenticated.value = true;
+    configurationSendSuccessMode.value = mode;
+    if (configurationSendSuccessTimer) clearTimeout(configurationSendSuccessTimer);
+    configurationSendSuccessTimer = setTimeout(() => {
+      configurationSendSuccessMode.value = null;
+      configurationSendSuccessTimer = undefined;
+    }, 5000);
+  }
   if (sentFrameCount === -2) {
     configurationOsaAuthenticated.value = false;
     await presentAuthorizationDeniedAlert(localize);
@@ -2512,6 +2548,7 @@ const toggleCurrentConfigurationPreview = () => {
 };
 
 const sendDefaultConfigurationBle = async () => {
+  configurationSendSuccessMode.value = null;
   configurationSendMode.value = 'default';
   try {
     const sentFrameCount = await ble.sendOutputFrames(
@@ -2520,13 +2557,14 @@ const sendDefaultConfigurationBle = async () => {
       activateConfigurationAfterSend.value,
       getBlobOnlyConfigurations()
     );
-    await handleConfigurationSendResult(sentFrameCount);
+    await handleConfigurationSendResult(sentFrameCount, 'default');
   } finally {
     configurationSendMode.value = null;
   }
 };
 
 const sendCurrentConfigurationBle = async () => {
+  configurationSendSuccessMode.value = null;
   configurationSendMode.value = 'current';
   if (developerModeEnabled.value) appFrameDebugVisible.value = true;
   try {
@@ -2534,7 +2572,7 @@ const sendCurrentConfigurationBle = async () => {
       debugOtaAppKeyHex.value,
       debugDevEuiHex.value
     );
-    await handleConfigurationSendResult(sentFrameCount);
+    await handleConfigurationSendResult(sentFrameCount, 'current');
   } finally {
     configurationSendMode.value = null;
   }
@@ -3430,6 +3468,24 @@ ion-range::part(pin)::before {
 .ble-status-msg {
   margin-top: 6px;
   font-size: 0.85em;
+}
+
+.ble-send-success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(var(--ion-color-success-rgb), 0.35);
+  border-radius: 10px;
+  background: rgba(var(--ion-color-success-rgb), 0.1);
+  color: var(--ion-color-success-shade);
+  font-weight: 600;
+}
+
+.ble-send-success ion-icon {
+  flex: 0 0 auto;
+  font-size: 1.35rem;
 }
 
 .ble-activation-option {

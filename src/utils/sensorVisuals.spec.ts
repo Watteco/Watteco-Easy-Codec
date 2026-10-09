@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  compareSensorCardLabels,
   getSensorCardLabel,
   getSensorDisplayDecimals,
   getSensorVisual,
@@ -80,6 +81,23 @@ describe('sensorVisuals', () => {
       getSensorVisual(257),
       localize,
     )).toBe('Temperature 1');
+  });
+
+  it('hides the instance number when a card family has only one entry', () => {
+    expect(getSensorCardLabel(
+      'index_1',
+      'Pulse counter index 1',
+      getSensorVisual(54),
+      localize,
+      false,
+    )).toBe('Counter');
+  });
+
+  it('sorts numbered card labels by their numeric instance', () => {
+    const labels = ['Counter 1', 'Counter 10', 'Counter 2'];
+
+    expect(labels.sort((left, right) => compareSensorCardLabels(left, right, 'en')))
+      .toEqual(['Counter 1', 'Counter 2', 'Counter 10']);
   });
 
   it('does not invent a suffix for an unnumbered measurement', () => {

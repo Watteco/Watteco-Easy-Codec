@@ -129,10 +129,6 @@ const loadImage = async () => {
   --ion-item-border-color: #00000000;
 }
 
-ion-tab-bar {
-  /*display: none;  Tabs are not used yet */
-}
-
 ion-toolbar {
   --background: var(--ion-color-primary);
   --color: white;

@@ -5,6 +5,7 @@ import {
   decodeOsaAuthenticated,
   decodeRunningTime,
   decodeUnixTime,
+  isPlausibleSensorTime,
 } from '@/utils/BLE/adminStatus';
 
 describe('administration status decoders', () => {
@@ -23,6 +24,12 @@ describe('administration status decoders', () => {
   it('decodes the Bluetooth Date Time format', () => {
     const timestamp = decodeDateTime(new Uint8Array([0xea, 0x07, 10, 5, 14, 30, 45]));
     expect(timestamp).toBe(new Date(2026, 9, 5, 14, 30, 45).getTime());
+  });
+
+  it('rejects uninitialized sensor dates', () => {
+    expect(isPlausibleSensorTime(new Date(2000, 0, 1).getTime())).toBe(false);
+    expect(isPlausibleSensorTime(new Date(2026, 9, 5).getTime())).toBe(true);
+    expect(isPlausibleSensorTime(null)).toBe(false);
   });
 
   it('recognizes OSA authenticated status 0x02', () => {

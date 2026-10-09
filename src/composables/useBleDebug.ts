@@ -353,6 +353,7 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
     debugDevEuiHex,
     modelInfo,
     firmwareInfo,
+    pushDebugLog,
     clearDebugLogs,
     startDebugSubscriptions,
     stopDebugSubscriptions,

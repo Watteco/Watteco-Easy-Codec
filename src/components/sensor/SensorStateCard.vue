@@ -33,7 +33,7 @@
           :aria-label="`${entry.label}: ${formatState(entry.value)}`"
           :title="`${entry.label}: ${formatState(entry.value)}`"
         >
-          <span class="state-label">{{ entry.label }}</span>
+          <span v-if="entries.length > 1" class="state-label">{{ entry.label }}</span>
           <span
             class="state-indicator"
             :class="{

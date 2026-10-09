@@ -77,17 +77,50 @@
     },
     "batch_params": {
         "batch_P_params": {
-            "label": "@IndexLabel @InputLabel 1 + @IndexLabel @InputLabel 2 + @IndexLabel @InputLabel 3 + @IndexLabel @InputLabel 4",
+            "label": "@IndexLabel",
             "default_state": "true",
             "fields": {
-                "pBatchEchant": {
+                "p1BatchEchant": {
                     "type": "timeVal",
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "120",
                     "depends_on": "gBatchEmission",
                     "HMI": {
-                        "label": "@echantLabel",
+                        "label": "@echantLabel @InputLabel 1",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "p2BatchEchant": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "120",
+                    "depends_on": "gBatchEmission",
+                    "HMI": {
+                        "label": "@echantLabel @InputLabel 2",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "p3BatchEchant": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "120",
+                    "depends_on": "gBatchEmission",
+                    "HMI": {
+                        "label": "@echantLabel @InputLabel 3",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "p4BatchEchant": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "120",
+                    "depends_on": "gBatchEmission",
+                    "HMI": {
+                        "label": "@echantLabel @InputLabel 4",
                         "visual_type": "timeSlider"
                     }
                 }
@@ -127,10 +160,10 @@
             }
         },
         "cfg_block": [
-            ["31 06 00 0F 1D 04 02 00 (pBatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 04", "@cfgCommentBatchIndex @InputLabel 1"],
-            ["51 06 00 0F 1D 04 02 00 (pBatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 0C", "@cfgCommentBatchIndex @InputLabel 2"],
-            ["71 06 00 0F 1D 04 02 00 (pBatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 14", "@cfgCommentBatchIndex @InputLabel 3"],
-			["91 06 00 0F 1D 04 02 00 (pBatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 1C", "@cfgCommentBatchIndex @InputLabel 4"],
+            ["31 06 00 0F 1D 04 02 00 (p1BatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 04", "@cfgCommentBatchIndex @InputLabel 1"],
+            ["51 06 00 0F 1D 04 02 00 (p2BatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 0C", "@cfgCommentBatchIndex @InputLabel 2"],
+            ["71 06 00 0F 1D 04 02 00 (p3BatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 14", "@cfgCommentBatchIndex @InputLabel 3"],
+			["91 06 00 0F 1D 04 02 00 (p4BatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 1C", "@cfgCommentBatchIndex @InputLabel 4"],
 			["11 06 00 50 15 00 06 04 (bBatchEchant) 85A0 00 00 00 64 34", "@cfgCommentBatchBatt"]
         ]
     },

@@ -14,6 +14,10 @@ export type AppRxSubscription = {
   notifications: boolean;
 };
 
+let appRxQueue = Promise.resolve();
+const releaseAppRxBySubscription = new WeakMap<AppRxSubscription, () => void>();
+const stopAppRxBySubscription = new WeakMap<AppRxSubscription, Promise<void>>();
+
 export function parseAppFrameHex(value: string): Uint8Array | null {
   const compact = value.replace(/[\s:-]/g, '');
   if (!compact || !/^(?:[0-9a-fA-F]{2})+$/.test(compact)) return null;
@@ -30,47 +34,60 @@ export async function startAppRxMonitoring(
   onFrame: (frame: Uint8Array) => void,
   onLog: (line: string) => void,
 ): Promise<AppRxSubscription> {
-  const characteristic = await findCharacteristicByUuid(
-    deviceId,
-    OSA_ADMIN_SERVICE_UUID,
-    ADMIN_APP_RX_CHAR_UUID,
-    onLog,
-  );
-  if (!characteristic) throw new Error('AppRx C007 is unavailable');
+  let releaseAppRx!: () => void;
+  const appRxReleased = new Promise<void>(resolve => { releaseAppRx = resolve; });
+  const previousAppRxReleased = appRxQueue;
+  appRxQueue = appRxReleased;
+  await previousAppRxReleased;
 
-  const processValue = (value: unknown) => {
-    const frame = toUint8ArrayFromBleValue(value);
-    if (!frame) return;
-    const copy = new Uint8Array(frame);
-    onFrame(copy);
-    onLog(`[APP RX] ${toSpacedHex(copy)}`);
-  };
+  try {
+    const characteristic = await findCharacteristicByUuid(
+      deviceId,
+      OSA_ADMIN_SERVICE_UUID,
+      ADMIN_APP_RX_CHAR_UUID,
+      onLog,
+    );
+    if (!characteristic) throw new Error('AppRx C007 is unavailable');
 
-  let notifications = false;
-  if (characteristic.props.notify || characteristic.props.indicate) {
-    try {
-      await BleClient.startNotifications(
-        deviceId,
-        characteristic.service,
-        characteristic.characteristic,
-        processValue,
-      );
-      notifications = true;
-    } catch (error: any) {
-      onLog(`[APP RX] Notification failed: ${error?.message ?? error}`);
+    const processValue = (value: unknown) => {
+      const frame = toUint8ArrayFromBleValue(value);
+      if (!frame) return;
+      const copy = new Uint8Array(frame);
+      onFrame(copy);
+      onLog(`[APP RX] ${toSpacedHex(copy)}`);
+    };
+
+    let notifications = false;
+    if (characteristic.props.notify || characteristic.props.indicate) {
+      try {
+        await BleClient.startNotifications(
+          deviceId,
+          characteristic.service,
+          characteristic.characteristic,
+          processValue,
+        );
+        notifications = true;
+      } catch (error: any) {
+        onLog(`[APP RX] Notification failed: ${error?.message ?? error}`);
+      }
     }
-  }
 
-  if (!notifications && !characteristic.props.read) {
-    throw new Error('AppRx C007 is neither readable nor notifiable');
-  }
+    if (!notifications && !characteristic.props.read) {
+      throw new Error('AppRx C007 is neither readable nor notifiable');
+    }
 
-  return {
-    deviceId,
-    service: characteristic.service,
-    characteristic: characteristic.characteristic,
-    notifications,
-  };
+    const subscription = {
+      deviceId,
+      service: characteristic.service,
+      characteristic: characteristic.characteristic,
+      notifications,
+    };
+    releaseAppRxBySubscription.set(subscription, releaseAppRx);
+    return subscription;
+  } catch (error) {
+    releaseAppRx();
+    throw error;
+  }
 }
 
 export async function readAppRx(
@@ -91,16 +108,32 @@ export async function stopAppRxMonitoring(
   subscription: AppRxSubscription | undefined,
   onLog?: (line: string) => void,
 ): Promise<void> {
-  if (!subscription?.notifications) return;
-  try {
-    await BleClient.stopNotifications(
-      subscription.deviceId,
-      subscription.service,
-      subscription.characteristic,
-    );
-  } catch (error: any) {
-    onLog?.(`[APP RX] Stop notification failed: ${error?.message ?? error}`);
-  }
+  if (!subscription) return;
+  const pendingStop = stopAppRxBySubscription.get(subscription);
+  if (pendingStop) return pendingStop;
+
+  const releaseAppRx = releaseAppRxBySubscription.get(subscription);
+  if (!releaseAppRx) return;
+
+  const stopPromise = Promise.resolve().then(async () => {
+    try {
+      if (subscription.notifications) {
+        await BleClient.stopNotifications(
+          subscription.deviceId,
+          subscription.service,
+          subscription.characteristic,
+        );
+      }
+    } catch (error: any) {
+      onLog?.(`[APP RX] Stop notification failed: ${error?.message ?? error}`);
+    } finally {
+      releaseAppRxBySubscription.delete(subscription);
+      stopAppRxBySubscription.delete(subscription);
+      releaseAppRx();
+    }
+  });
+  stopAppRxBySubscription.set(subscription, stopPromise);
+  return stopPromise;
 }
 
 export async function writeAppTx(

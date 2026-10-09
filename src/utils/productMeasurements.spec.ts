@@ -40,6 +40,18 @@ describe('productMeasurements', () => {
     expect(stateIds).toContain('pin_state_10');
   });
 
+  it('exposes only one pulse input for Pulse SensO Neo 50-70-260-670', () => {
+    const measurements = getProductMeasurements('50-70-260-670');
+
+    expect(measurements.filter(measurement => measurement.id.startsWith('index_'))
+      .map(measurement => measurement.id)).toEqual(['index_1']);
+    expect(measurements.filter(measurement => measurement.id.startsWith('pin_state_'))
+      .map(measurement => measurement.id)).toEqual(['pin_state_1']);
+    expect(measurements.some(measurement => measurement.id === 'multi_state')).toBe(true);
+    expect(measurements.some(measurement => measurement.id === 'temperature')).toBe(false);
+    expect(measurements.some(measurement => measurement.id === 'humidity')).toBe(false);
+  });
+
   it('extracts the public product reference', () => {
     expect(extractProductReference('Product 50-70-260 rev A')).toBe('50-70-260');
     expect(extractProductReference(undefined)).toBeNull();
@@ -56,9 +68,12 @@ describe('productMeasurements', () => {
   it('prefers an exact revision over a revision-agnostic match', () => {
     expect(resolveAvailableProductReference('50-70-017-004')).toBe('50-70-017-004');
     expect(resolveAvailableProductReference('50-70-017-006')).toBe('50-70-017');
-    expect(resolveAvailableProductReference('50-70-260-067')).toBe('50-70-260-067');
-    expect(getProductDisplayName('50-70-260-067')).toBe("HygroTemp'O Neo");
-    expect(getProductConfigurationFile('50-70-260-067')).toBe("50-70-260-067-HygroTemp'O-Neo");
+    expect(resolveAvailableProductReference('50-70-260-670')).toBe('50-70-260-670');
+    expect(getProductDisplayName('50-70-260-670')).toBe("Pulse Sens'O Neo 1 input");
+    expect(getProductConfigurationFile('50-70-260-670')).toBe('50-70-260-670-PulseSensoNeo-1-input');
+    expect(resolveAvailableProductReference('50-70-260-671')).toBe('50-70-260-671');
+    expect(getProductDisplayName('50-70-260-671')).toBe("HygroTemp'O Neo");
+    expect(getProductConfigurationFile('50-70-260-671')).toBe("50-70-260-671-HygroTemp'O-Neo");
   });
 
   it('matches all revisions only when compatibleProducts omits the revision', () => {

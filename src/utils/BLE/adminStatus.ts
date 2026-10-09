@@ -17,6 +17,14 @@ export type AdminDeviceStatus = {
   osaAuthenticated: boolean | null;
 };
 
+const MIN_PLAUSIBLE_SENSOR_TIME = Date.UTC(2020, 0, 1);
+
+export function isPlausibleSensorTime(value: number | null | undefined): value is number {
+  return typeof value === 'number'
+    && Number.isFinite(value)
+    && value >= MIN_PLAUSIBLE_SENSOR_TIME;
+}
+
 export function decodeFirmwareLongName(value: unknown): string | null {
   const bytes = toUint8ArrayFromBleValue(value);
   if (!bytes?.length) return null;

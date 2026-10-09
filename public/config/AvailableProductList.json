@@ -480,15 +480,25 @@
 			"docLink": "https://support.watteco.com/"
 		},
 		{
-			"name": "BETA HygroTemp'O Neo (50-70-260-067)",
-			"file": "50-70-260-067-HygroTemp'O-Neo",
-			"compatibleProducts": ["50-70-260-067"],
+			"name": "BETA HygroTemp'O Neo (50-70-260-671)",
+			"file": "50-70-260-671-HygroTemp'O-Neo",
+			"compatibleProducts": ["50-70-260-671"],
 			"apps": ["EasyCodec"],
 			"mId": ["hygrotempo-neo"],
 			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel 3,1,1,OpenCase",
 			"category": "BETA",
 			"comment": ["Temperature, hygrometry measurement + break in alarm","Mesure de température et hygrometrie + alarme d'effraction"],
 			"docLink": "https://support.watteco.com/hygrotempo/"
+		},
+		{
+			"name": "BETA Pulse Sens'O Neo 1 input (50-70-260-670)",
+			"file": "50-70-260-670-PulseSensoNeo-1-input",
+			"compatibleProducts": ["50-70-260-670"],
+			"apps": ["EasyCodec"],
+			"mId": ["pulse-senso-neo-1"],
+			"category": "BETA",
+			"comment": ["One pulse input", "Une entrée impulsionnelle"],
+			"docLink": "https://support.watteco.com/"
 		}
 	],
 	"in_developpement_products": [

@@ -113,6 +113,7 @@ import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.v
 import SensorStateCard from '@/components/sensor/SensorStateCard.vue';
 import { getAvailableProductChoices, getProductMeasurements } from '@/utils/productMeasurements';
 import {
+  compareSensorCardLabels,
   getSensorCardLabel,
   getSensorDisplayDecimals,
   getSensorVisual,
@@ -180,6 +181,12 @@ const batteryCardCount = computed(() => sensorCards.value
 const bannerBatteryLevel = computed(() => (
   demoDataEnabled.value && batteryCardCount.value === 1 ? 87 : undefined
 ));
+const numberedCardCounts = computed(() => sensorCards.value.reduce<Record<string, number>>((counts, card) => {
+  if (card.visual.numbered && card.visual.labelKey) {
+    counts[card.visual.labelKey] = (counts[card.visual.labelKey] ?? 0) + 1;
+  }
+  return counts;
+}, {}));
 
 const getDemoValue = (measId: number, category?: string): number | null => {
   if (category === 'battery') return 87;
@@ -198,7 +205,13 @@ const displayedCards = computed(() => sensorCards.value.map((card) => {
   return {
     ...card,
     officialName: card.name,
-    name: getSensorCardLabel(card.id, card.name, card.visual, localize),
+    name: getSensorCardLabel(
+      card.id,
+      card.name,
+      card.visual,
+      localize,
+      !card.visual.labelKey || numberedCardCounts.value[card.visual.labelKey] > 1,
+    ),
     unit: isBattery ? '%' : card.unit,
     decimals: isBattery ? 0 : getSensorDisplayDecimals(card.decimals, card.visual),
     compact: isBattery && batteryCardCount.value === 1,
@@ -245,14 +258,19 @@ const currentCards = computed(() => [
       type: 'metric' as const,
       key: `metric-${card.measId}`,
       priority: card.visual.priority ?? 0,
+      sortLabel: card.name,
       card,
     })),
   ...(stateEntries.value.length ? [{
     type: 'state' as const,
     key: 'state',
     priority: stateCardVisual.value?.priority ?? 0,
+    sortLabel: stateCardLabel.value,
   }] : []),
-].sort((left, right) => right.priority - left.priority));
+].sort((left, right) => (
+  right.priority - left.priority
+  || compareSensorCardLabels(left.sortLabel, right.sortLabel, currentLanguage.value)
+)));
 
 const historyCards = computed(() => displayedCards.value
   .filter(card => card.visual.history)
@@ -271,7 +289,10 @@ const historyCards = computed(() => displayedCards.value
         : ble.measurementHistory.value[historyKey] ?? [],
     };
   })
-  .sort((left, right) => (right.visual.priority ?? 0) - (left.visual.priority ?? 0)));
+  .sort((left, right) => (
+    (right.visual.priority ?? 0) - (left.visual.priority ?? 0)
+    || compareSensorCardLabels(left.name, right.name, currentLanguage.value)
+  )));
 
 type BannerState = 'connected' | 'reconnect' | 'choose';
 type BannerPreview = 'actual' | BannerState;

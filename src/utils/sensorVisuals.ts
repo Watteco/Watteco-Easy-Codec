@@ -116,11 +116,23 @@ export const getSensorCardLabel = (
   officialName: string,
   visual: SensorVisual,
   localize: (key: string) => string,
+  showInstanceNumber = true,
 ): string => {
   if (!visual.labelKey) return officialName;
 
   const shortName = localize(visual.labelKey);
-  const instanceNumber = visual.numbered ? measurementId.match(/_(\d+)$/)?.[1] : undefined;
+  const instanceNumber = visual.numbered && showInstanceNumber
+    ? measurementId.match(/_(\d+)$/)?.[1]
+    : undefined;
 
   return instanceNumber ? `${shortName} ${instanceNumber}` : shortName;
 };
+
+export const compareSensorCardLabels = (
+  left: string,
+  right: string,
+  locale: string,
+): number => left.localeCompare(right, locale, {
+  numeric: true,
+  sensitivity: 'base',
+});

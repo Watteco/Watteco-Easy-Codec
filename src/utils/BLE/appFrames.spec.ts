@@ -1,5 +1,34 @@
-import { describe, expect, it } from 'vitest';
-import { parseAppFrameHex, takeFirstConfigurationFrames } from '@/utils/BLE/appFrames';
+import { BleClient } from '@capacitor-community/bluetooth-le';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  parseAppFrameHex,
+  startAppRxMonitoring,
+  stopAppRxMonitoring,
+  takeFirstConfigurationFrames,
+} from '@/utils/BLE/appFrames';
+import { findCharacteristicByUuid } from '@/utils/BLE/connection';
+
+vi.mock('@capacitor-community/bluetooth-le', () => ({
+  BleClient: {
+    startNotifications: vi.fn(),
+    stopNotifications: vi.fn(),
+  },
+}));
+
+vi.mock('@/utils/BLE/connection', () => ({
+  findCharacteristicByUuid: vi.fn(),
+}));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(findCharacteristicByUuid).mockResolvedValue({
+    service: '80010000-890d-4f4e-a197-3f9eb158ea95',
+    characteristic: '8001c007-890d-4f4e-a197-3f9eb158ea95',
+    props: { notify: true },
+  });
+  vi.mocked(BleClient.startNotifications).mockResolvedValue();
+  vi.mocked(BleClient.stopNotifications).mockResolvedValue();
+});
 
 describe('manual application frames', () => {
   it('parses a frame separated with spaces', () => {
@@ -39,5 +68,31 @@ describe('current configuration frame selection', () => {
 
   it('returns no frame when the list starts with a separator', () => {
     expect(takeFirstConfigurationFrames(['00', '11 50'])).toEqual([]);
+  });
+});
+
+describe('AppRx monitoring ownership', () => {
+  it('waits for the active monitoring session to stop before starting another one', async () => {
+    let finishFirstStop!: () => void;
+    vi.mocked(BleClient.stopNotifications)
+      .mockImplementationOnce(() => new Promise<void>(resolve => { finishFirstStop = resolve; }))
+      .mockResolvedValue();
+
+    const first = await startAppRxMonitoring('device-1', vi.fn(), vi.fn());
+    const secondPromise = startAppRxMonitoring('device-1', vi.fn(), vi.fn());
+
+    await Promise.resolve();
+    expect(findCharacteristicByUuid).toHaveBeenCalledTimes(1);
+
+    const firstStopPromise = stopAppRxMonitoring(first);
+    await Promise.resolve();
+    expect(BleClient.stopNotifications).toHaveBeenCalledTimes(1);
+    finishFirstStop();
+    await firstStopPromise;
+
+    const second = await secondPromise;
+    expect(findCharacteristicByUuid).toHaveBeenCalledTimes(2);
+    expect(BleClient.startNotifications).toHaveBeenCalledTimes(2);
+    await stopAppRxMonitoring(second);
   });
 });

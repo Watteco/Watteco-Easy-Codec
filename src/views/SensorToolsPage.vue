@@ -30,26 +30,65 @@
                   </strong>
                 </div>
                 <div class="status-item">
-                  <span>{{ localize('@toolsSensorTime') }}</span>
-                  <strong>{{ formatDate(deviceStatus.sensorTime) }}</strong>
-                </div>
-                <div class="status-item">
                   <span>{{ localize('@toolsUptime') }}</span>
                   <strong>{{ formatDuration(deviceStatus.runningTimeSeconds) }}</strong>
                 </div>
-                <div class="status-item status-item--firmware">
+                <div class="status-item">
+                  <span>{{ localize('@toolsFirmwareVersion') }}</span>
+                  <strong :class="{
+                    'value-auth-required': deviceInformationRequiresAuthentication,
+                    'value-not-provided': deviceInformationIsNotProvided(deviceStatus.firmwareVersion),
+                  }">
+                    {{ formatDeviceInformation(deviceStatus.firmwareVersion) }}
+                  </strong>
+                </div>
+                <div class="status-item">
+                  <span>{{ localize('@toolsManufacturer') }}</span>
+                  <strong :class="{
+                    'value-auth-required': deviceInformationRequiresAuthentication,
+                    'value-not-provided': deviceInformationIsNotProvided(deviceStatus.manufacturer),
+                  }">
+                    {{ formatDeviceInformation(deviceStatus.manufacturer) }}
+                  </strong>
+                </div>
+                <div class="status-item">
+                  <span>{{ localize('@toolsPcbVersion') }}</span>
+                  <strong :class="{
+                    'value-auth-required': deviceInformationRequiresAuthentication,
+                    'value-not-provided': deviceInformationIsNotProvided(deviceStatus.pcbVersion),
+                  }">
+                    {{ formatDeviceInformation(deviceStatus.pcbVersion) }}
+                  </strong>
+                </div>
+                <div v-if="sensorTimeIsPlausible" class="status-item status-item--sensor-time">
+                  <span>{{ localize('@toolsSensorTime') }}</span>
+                  <strong>{{ formatDate(deviceStatus.sensorTime) }}</strong>
+                </div>
+                <div v-if="developerModeEnabled" class="status-item status-item--firmware">
                   <span>{{ localize('@toolsFirmwareLongName') }}</span>
                   <strong>{{ deviceStatus.firmwareLongName || '—' }}</strong>
                 </div>
               </div>
               <div class="status-actions">
                 <ion-button
+                  v-if="deviceStatus.osaAuthenticated !== true"
                   size="small"
                   fill="clear"
-                  :disabled="deviceStatusLoading || !ble.connected.value"
+                  :disabled="osaAuthenticating || deviceStatusLoading || deviceInformationLoading || !ble.connected.value"
+                  @click="authenticateForDeviceInformation"
+                >
+                  {{ osaAuthenticating ? localize('@toolsOsaAuthenticating') : localize('@toolsAuthenticate') }}
+                </ion-button>
+                <ion-button
+                  class="status-refresh-button"
+                  size="small"
+                  fill="clear"
+                  :disabled="deviceStatusLoading || deviceInformationLoading || !ble.connected.value"
                   @click="refreshDeviceStatus"
                 >
-                  {{ deviceStatusLoading ? localize('@toolsRefreshing') : localize('@toolsRefreshStatus') }}
+                  {{ deviceStatusLoading || deviceInformationLoading
+                    ? localize('@toolsRefreshing')
+                    : localize('@toolsRefreshStatus') }}
                 </ion-button>
               </div>
             </ion-card-content>
@@ -343,7 +382,11 @@ import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
 import type { LoraLinkStatus } from '@/utils/BLE/loraLink';
-import { readAdminDeviceStatus, type AdminDeviceStatus } from '@/utils/BLE/adminStatus';
+import {
+  isPlausibleSensorTime,
+  readAdminDeviceStatus,
+  type AdminDeviceStatus,
+} from '@/utils/BLE/adminStatus';
 import { presentAuthorizationDeniedAlert } from '@/utils/authorizationAlert';
 import {
   parseAppFrameHex,
@@ -358,6 +401,10 @@ import {
   FACTORY_RESET_FRAME,
   rebootDevice,
 } from '@/utils/BLE/deviceCommands';
+import {
+  readDeviceInformation,
+  type DeviceInformation,
+} from '@/utils/BLE/deviceInformation';
 import { playSensorPageTransition } from '@/utils/sensorPageTransition';
 import SensorHistoryCard from '@/components/sensor/SensorHistoryCard.vue';
 import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.vue';
@@ -373,9 +420,12 @@ type CampaignSample = {
   snrDb: number | null;
 };
 
+type DeviceStatus = AdminDeviceStatus & DeviceInformation;
+
 const CAMPAIGN_SIZE = 5;
 const LINK_CHECK_TIMEOUT_MS = 45_000;
 const INTER_TEST_DELAY_MS = 5_000;
+const APP_RX_FIRST_RESPONSE_TIMEOUT_MS = 2_000;
 const APP_RX_IDLE_TIMEOUT_MS = 1_000;
 const ble = useBle();
 const { developerModeEnabled } = useDeveloperMode();
@@ -386,6 +436,7 @@ const {
   debugHex,
   debugOtaAppKeyHex,
   debugDevEuiHex,
+  pushDebugLog,
   clearDebugLogs,
   startDebugSubscriptions,
   stopDebugSubscriptions,
@@ -417,13 +468,17 @@ const campaignMessage = ref('');
 const feedback = ref('');
 const feedbackError = ref(false);
 const feedbackContext = ref<'commands' | 'network-test' | 'manual-frame'>('commands');
-const deviceStatus = ref<AdminDeviceStatus>({
+const deviceStatus = ref<DeviceStatus>({
   firmwareLongName: null,
+  firmwareVersion: null,
+  manufacturer: null,
+  pcbVersion: null,
   sensorTime: null,
   runningTimeSeconds: null,
   osaAuthenticated: null,
 });
 const deviceStatusLoading = ref(false);
+const deviceInformationLoading = ref(false);
 const osaAuthenticating = ref(false);
 const manualFrameHex = ref('11 00 80 04 00 04');
 const lastCommandResponse = ref('');
@@ -433,8 +488,9 @@ const rejoinDelay = ref('00:00');
 const rejoinOptionsVisible = ref(false);
 const commandSending = ref<'rejoin' | 'factory-reset' | 'reboot' | null>(null);
 let appRxSubscription: AppRxSubscription | undefined;
-let appRxIdleTimer: ReturnType<typeof setTimeout> | undefined;
-let resolveAppRxIdle: (() => void) | undefined;
+let appRxResponseTimer: ReturnType<typeof setTimeout> | undefined;
+let resolveAppRxResponses: (() => void) | undefined;
+let deviceInformationDeviceId: string | undefined;
 let campaignCancelled = false;
 
 const status = computed(() => ble.loraLinkStatus.value);
@@ -446,6 +502,7 @@ const canRunTests = computed(() => (
   ble.connected.value
   && ble.loraLinkTestAvailable.value === true
   && status.value?.joined === true
+  && !ble.sending.value
   && !osaAuthenticating.value
 ));
 const joinLabel = computed(() => status.value
@@ -462,6 +519,10 @@ const osaAuthenticationLabel = computed(() => {
     ? '@toolsOsaAuthenticated'
     : '@toolsOsaNotAuthenticated');
 });
+const sensorTimeIsPlausible = computed(() => isPlausibleSensorTime(deviceStatus.value.sensorTime));
+const deviceInformationRequiresAuthentication = computed(() => (
+  deviceStatus.value.osaAuthenticated === false
+));
 const marginHistory = computed(() => campaignSamples.value
   .map(sample => ({ timestamp: sample.timestamp, value: sample.marginDb })));
 const rssiHistory = computed(() => campaignSamples.value.flatMap(sample => (
@@ -476,13 +537,17 @@ const lockIcon = computed(() => (
   deviceStatus.value.osaAuthenticated === true ? lockOpenOutline : lockClosedOutline
 ));
 const canSendCommand = computed(() => (
-  ble.connected.value && !commandSending.value && !osaAuthenticating.value
+  ble.connected.value
+  && !ble.sending.value
+  && !commandSending.value
+  && !osaAuthenticating.value
 ));
 const canSendRejoin = computed(() => canSendCommand.value && rejoinFrame.value !== null);
 const canSendManualFrame = computed(() => (
   ble.connected.value
   && manualFrame.value !== null
   && !manualFrameSending.value
+  && !ble.sending.value
   && !osaAuthenticating.value
 ));
 
@@ -511,6 +576,19 @@ function formatOptionalValue(value: number | null, unit: string, decimals = 0): 
   return `${value.toFixed(decimals)} ${unit}`;
 }
 
+function formatDeviceInformation(value: string | null): string {
+  if (value) return value;
+  if (deviceInformationRequiresAuthentication.value) {
+    return localize('@toolsAuthenticationRequired');
+  }
+  if (deviceStatus.value.osaAuthenticated === true) return localize('@toolsNotProvided');
+  return '—';
+}
+
+function deviceInformationIsNotProvided(value: string | null): boolean {
+  return deviceStatus.value.osaAuthenticated === true && !value;
+}
+
 function delay(milliseconds: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
@@ -527,64 +605,99 @@ async function waitForFreshLinkCheck(previousTimestamp: number | undefined): Pro
   throw new Error(localize('@toolsCampaignTimeout'));
 }
 
-async function refreshDeviceStatus(): Promise<void> {
+function clearDeviceInformation(): void {
+  deviceInformationDeviceId = undefined;
+  deviceStatus.value = {
+    ...deviceStatus.value,
+    firmwareVersion: null,
+    manufacturer: null,
+    pcbVersion: null,
+  };
+}
+
+async function refreshDeviceInformation(): Promise<void> {
+  const deviceId = ble.connectedDevice.value?.deviceId;
+  if (
+    !ble.connected.value
+    || !deviceId
+    || deviceStatus.value.osaAuthenticated !== true
+    || deviceInformationLoading.value
+  ) return;
+
+  deviceInformationLoading.value = true;
+  clearDeviceInformation();
+  try {
+    const deviceInformation = await readDeviceInformation(deviceId, line => console.debug(line));
+    deviceStatus.value = { ...deviceStatus.value, ...deviceInformation };
+    deviceInformationDeviceId = deviceId;
+  } catch (error: any) {
+    console.error('Failed to read device information', error);
+  } finally {
+    deviceInformationLoading.value = false;
+  }
+}
+
+async function refreshDeviceStatus(includeDeviceInformation = true): Promise<void> {
   const deviceId = ble.connectedDevice.value?.deviceId;
   if (!ble.connected.value || !deviceId || deviceStatusLoading.value) return;
   deviceStatusLoading.value = true;
   try {
-    deviceStatus.value = await readAdminDeviceStatus(deviceId, line => console.debug(line));
-    if (deviceStatus.value.osaAuthenticated) {
-      try {
-        await ensureAppRxSubscription();
-      } catch (error: any) {
-        console.debug(`[APP RX] Monitoring unavailable: ${error?.message ?? error}`);
-      }
-    }
+    const adminStatus = await readAdminDeviceStatus(deviceId, line => console.debug(line));
+    deviceStatus.value = { ...deviceStatus.value, ...adminStatus };
+    if (adminStatus.osaAuthenticated !== true) clearDeviceInformation();
   } catch (error: any) {
     console.error('Failed to read administration status', error);
   } finally {
     deviceStatusLoading.value = false;
   }
+  if (includeDeviceInformation) await refreshDeviceInformation();
 }
 
 function receiveAppFrame(frame: Uint8Array): void {
+  if (!awaitingManualResponse.value) return;
   const response = toSpacedHex(frame).toUpperCase();
-  if (awaitingManualResponse.value) {
-    lastCommandResponse.value = lastCommandResponse.value
-      ? `${lastCommandResponse.value}\n${response}`
-      : response;
-    resetAppRxIdleTimer();
-  } else {
-    lastCommandResponse.value = response;
-  }
+  lastCommandResponse.value = lastCommandResponse.value
+    ? `${lastCommandResponse.value}\n${response}`
+    : response;
+  resetAppRxResponseTimer(APP_RX_IDLE_TIMEOUT_MS);
 }
 
 function finishManualResponseCollection(): void {
-  if (appRxIdleTimer !== undefined) {
-    clearTimeout(appRxIdleTimer);
-    appRxIdleTimer = undefined;
+  if (appRxResponseTimer !== undefined) {
+    clearTimeout(appRxResponseTimer);
+    appRxResponseTimer = undefined;
   }
   awaitingManualResponse.value = false;
-  const resolve = resolveAppRxIdle;
-  resolveAppRxIdle = undefined;
+  const resolve = resolveAppRxResponses;
+  resolveAppRxResponses = undefined;
   resolve?.();
 }
 
-function resetAppRxIdleTimer(): void {
-  if (appRxIdleTimer !== undefined) clearTimeout(appRxIdleTimer);
-  appRxIdleTimer = setTimeout(finishManualResponseCollection, APP_RX_IDLE_TIMEOUT_MS);
+function resetAppRxResponseTimer(timeout: number): void {
+  if (appRxResponseTimer !== undefined) clearTimeout(appRxResponseTimer);
+  appRxResponseTimer = setTimeout(finishManualResponseCollection, timeout);
 }
 
-function waitForAppRxIdle(): Promise<void> {
+function prepareManualResponseCollection(): Promise<void> {
+  awaitingManualResponse.value = true;
   return new Promise(resolve => {
-    resolveAppRxIdle = resolve;
-    resetAppRxIdleTimer();
+    resolveAppRxResponses = resolve;
   });
+}
+
+function startFirstAppRxResponseTimeout(): void {
+  if (!awaitingManualResponse.value || lastCommandResponse.value) return;
+  resetAppRxResponseTimer(APP_RX_FIRST_RESPONSE_TIMEOUT_MS);
+}
+
+function logAppFrame(line: string): void {
+  console.debug(line);
+  if (developerModeEnabled.value) pushDebugLog(line);
 }
 
 async function runManualOsaChallenge(): Promise<void> {
   feedbackContext.value = 'commands';
-  await authenticateWithDebugCredentials(true);
+  if (await authenticateWithDebugCredentials(true)) await refreshDeviceInformation();
 }
 
 async function authenticateWithDebugCredentials(force = false): Promise<boolean> {
@@ -616,8 +729,11 @@ async function runStoredOsaChallenge(): Promise<void> {
   if (osaAuthenticating.value || !ble.connected.value) return;
   osaAuthenticating.value = true;
   try {
-    await runStoredOsaChallengeFe20();
+    const authenticated = await runStoredOsaChallengeFe20();
     await refreshDeviceStatusAfterChallenge();
+    if (authenticated && deviceStatus.value.osaAuthenticated === true) {
+      await refreshDeviceInformation();
+    }
   } finally {
     osaAuthenticating.value = false;
   }
@@ -625,21 +741,12 @@ async function runStoredOsaChallenge(): Promise<void> {
 
 async function refreshDeviceStatusAfterChallenge(): Promise<void> {
   while (deviceStatusLoading.value) await delay(50);
-  await refreshDeviceStatus();
+  await refreshDeviceStatus(false);
 }
 
-async function ensureAppRxSubscription(): Promise<AppRxSubscription> {
-  const deviceId = ble.connectedDevice.value?.deviceId;
-  if (!ble.connected.value || !deviceId) throw new Error(localize('@noSensorConnected'));
-  if (appRxSubscription?.deviceId === deviceId) return appRxSubscription;
-
-  await stopAppRxMonitoring(appRxSubscription, line => console.debug(line));
-  appRxSubscription = await startAppRxMonitoring(
-    deviceId,
-    receiveAppFrame,
-    line => console.debug(line),
-  );
-  return appRxSubscription;
+async function authenticateForDeviceInformation(): Promise<void> {
+  feedbackContext.value = 'commands';
+  if (await authenticateWithDebugCredentials(true)) await refreshDeviceInformation();
 }
 
 async function sendManualFrame(): Promise<void> {
@@ -647,6 +754,7 @@ async function sendManualFrame(): Promise<void> {
   const frame = manualFrame.value;
   if (!canSendManualFrame.value || !deviceId || !frame) return;
   feedbackContext.value = 'manual-frame';
+  const authenticationWasRequired = deviceStatus.value.osaAuthenticated !== true;
   if (!await authenticateWithDebugCredentials()) return;
 
   manualFrameSending.value = true;
@@ -654,13 +762,14 @@ async function sendManualFrame(): Promise<void> {
   feedback.value = localize('@toolsFrameWaitingResponse');
   feedbackError.value = false;
   try {
-    const subscription = await ensureAppRxSubscription();
-    if (!subscription.notifications) {
+    appRxSubscription = await startAppRxMonitoring(deviceId, receiveAppFrame, logAppFrame);
+    if (!appRxSubscription.notifications) {
       throw new Error(localize('@toolsFrameNotificationsUnavailable'));
     }
-    awaitingManualResponse.value = true;
-    await writeAppTx(deviceId, frame, line => console.debug(line));
-    await waitForAppRxIdle();
+    const responsesComplete = prepareManualResponseCollection();
+    await writeAppTx(deviceId, frame, logAppFrame);
+    startFirstAppRxResponseTimeout();
+    await responsesComplete;
     feedback.value = lastCommandResponse.value
       ? localize('@toolsFrameResponseReceived')
       : localize('@toolsFrameNoResponse');
@@ -669,7 +778,10 @@ async function sendManualFrame(): Promise<void> {
     feedback.value = error?.message ?? String(error);
   } finally {
     finishManualResponseCollection();
+    await stopAppRxMonitoring(appRxSubscription, logAppFrame);
+    appRxSubscription = undefined;
     manualFrameSending.value = false;
+    if (authenticationWasRequired) await refreshDeviceInformation();
   }
 }
 
@@ -680,6 +792,7 @@ async function sendPresetFrame(
   const deviceId = ble.connectedDevice.value?.deviceId;
   if (!canSendCommand.value || !deviceId) return;
   feedbackContext.value = 'commands';
+  const authenticationWasRequired = deviceStatus.value.osaAuthenticated !== true;
   if (!await authenticateWithDebugCredentials()) return;
 
   commandSending.value = kind;
@@ -693,6 +806,7 @@ async function sendPresetFrame(
     feedback.value = error?.message ?? String(error);
   } finally {
     commandSending.value = null;
+    if (authenticationWasRequired) await refreshDeviceInformation();
   }
 }
 
@@ -709,6 +823,7 @@ async function sendSensorReboot(): Promise<void> {
   const deviceId = ble.connectedDevice.value?.deviceId;
   if (!canSendCommand.value || !deviceId) return;
   feedbackContext.value = 'commands';
+  const authenticationWasRequired = deviceStatus.value.osaAuthenticated !== true;
   if (!await authenticateWithDebugCredentials()) return;
 
   commandSending.value = 'reboot';
@@ -722,12 +837,14 @@ async function sendSensorReboot(): Promise<void> {
     feedback.value = error?.message ?? String(error);
   } finally {
     commandSending.value = null;
+    if (authenticationWasRequired) await refreshDeviceInformation();
   }
 }
 
 async function startCampaign() {
   if (!canRunTests.value || campaignRunning.value) return;
   feedbackContext.value = 'network-test';
+  const authenticationWasRequired = deviceStatus.value.osaAuthenticated !== true;
   if (!await authenticateWithDebugCredentials()) return;
   campaignCancelled = false;
   campaignRunning.value = true;
@@ -776,6 +893,7 @@ async function startCampaign() {
     }
   } finally {
     campaignRunning.value = false;
+    if (authenticationWasRequired) await refreshDeviceInformation();
   }
 }
 
@@ -785,7 +903,8 @@ function cancelCampaign() {
 
 onIonViewDidEnter(() => {
   playSensorPageTransition('tools', '.sensor-tools-content');
-  void refreshDeviceStatus();
+  if (deviceInformationDeviceId !== ble.connectedDevice.value?.deviceId) clearDeviceInformation();
+  void refreshDeviceStatus(false);
 });
 
 onMounted(async () => {
@@ -897,9 +1016,20 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
   overflow-wrap: anywhere;
 }
 
-.status-item--firmware strong { font-size: 0.78rem; font-weight: 600; }
+.status-item--firmware strong,
+.status-item--sensor-time strong { font-size: 0.78rem; font-weight: 600; }
 
 .status-item .value-ok { color: var(--ion-color-success); }
+.status-item .value-auth-required {
+  color: var(--ion-color-warning-shade);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.status-item .value-not-provided {
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
 .status-item .value-error,
 .validation-error { color: var(--ion-color-danger); }
 
@@ -958,10 +1088,12 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
 
 .status-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 6px;
   margin: 10px 0 -8px;
 }
+
+.status-refresh-button { margin-left: auto; }
 
 .field-label {
   display: block;

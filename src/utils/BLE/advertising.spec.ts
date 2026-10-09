@@ -10,8 +10,12 @@ describe('decodeAdvertisedProductId', () => {
     })).toBe('50-70-260-001');
 
     expect(decodeAdvertisedProductId({
-      1234: view(0x50, 0x70, 0x26, 0x00, 0x67),
-    })).toBe('50-70-260-067');
+      1234: view(0x50, 0x70, 0x26, 0x06, 0x70),
+    })).toBe('50-70-260-670');
+
+    expect(decodeAdvertisedProductId({
+      1234: view(0x50, 0x70, 0x26, 0x06, 0x71),
+    })).toBe('50-70-260-671');
   });
 
   it('supports DataViews with a non-zero byte offset', () => {
