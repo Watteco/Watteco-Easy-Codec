@@ -875,7 +875,12 @@ async function waitForTargetAdvertisement(
 
   try {
     await BleClient.requestLEScan({
-      allowDuplicates: true,
+      // The sensor only needs to be reported once: the first advertisement is
+      // enough to trigger the next GATT connection attempt. Filtering by its
+      // exact advertised name keeps unrelated BLE traffic on the native side
+      // instead of flooding the WebView during the (potentially long) wait.
+      ...(device.name ? { name: device.name } : {}),
+      allowDuplicates: false,
       scanMode: ScanMode.SCAN_MODE_LOW_LATENCY,
     }, (result: ScanResult) => {
       if (result.device.deviceId === device.deviceId) {
