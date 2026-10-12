@@ -277,6 +277,8 @@
                   <span>{{ sample.gatewayCount }} {{ localize('@toolsGatewayShort') }}</span>
                   <span>RSSI {{ formatOptionalValue(sample.rssiDbm, 'dBm') }}</span>
                   <span>SNR {{ formatOptionalValue(sample.snrDb, 'dB', 1) }}</span>
+                  <span>{{ localize('@toolsTxSf') }} {{ formatSpreadingFactor(sample.txDataRate) }}</span>
+                  <span>{{ localize('@toolsRxSf') }} {{ formatSpreadingFactor(sample.rxDataRate) }}</span>
                 </div>
               </div>
             </div>
@@ -390,7 +392,10 @@ import { useBleDebug } from '@/composables/useBleDebug';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
-import type { LoraLinkStatus } from '@/utils/BLE/loraLink';
+import {
+  eu868DataRateToSpreadingFactor,
+  type LoraLinkStatus,
+} from '@/utils/BLE/loraLink';
 import {
   isPlausibleSensorTime,
   readAdminDeviceStatus,
@@ -428,6 +433,8 @@ type CampaignSample = {
   gatewayCount: number;
   rssiDbm: number | null;
   snrDb: number | null;
+  txDataRate: number | null;
+  rxDataRate: number | null;
 };
 
 type DeviceStatus = AdminDeviceStatus & DeviceInformation;
@@ -584,6 +591,11 @@ function formatDuration(value: number | null): string {
 function formatOptionalValue(value: number | null, unit: string, decimals = 0): string {
   if (value === null) return '—';
   return `${value.toFixed(decimals)} ${unit}`;
+}
+
+function formatSpreadingFactor(dataRate: number | null): string {
+  const spreadingFactor = eu868DataRateToSpreadingFactor(dataRate);
+  return spreadingFactor === null ? '—' : `SF${spreadingFactor}`;
 }
 
 function formatDeviceInformation(value: string | null): string {
@@ -896,6 +908,8 @@ async function startCampaign() {
         gatewayCount: linkCheck.gatewayCount,
         rssiDbm: freshRx?.rssiDbm ?? null,
         snrDb: freshRx?.snrDb ?? null,
+        txDataRate: null,
+        rxDataRate: freshRx?.dataRate ?? null,
       }];
       if (index < CAMPAIGN_SIZE - 1) await delay(INTER_TEST_DELAY_MS);
     }
@@ -921,11 +935,11 @@ function cancelCampaign() {
 function simulateCampaign() {
   const now = Date.now();
   const simulatedValues = [
-    { marginDb: 12, gatewayCount: 2, rssiDbm: -98, snrDb: 5.5 },
-    { marginDb: 9, gatewayCount: 1, rssiDbm: -105, snrDb: 2.1 },
-    { marginDb: 15, gatewayCount: 3, rssiDbm: -92, snrDb: 7.8 },
-    { marginDb: 7, gatewayCount: 1, rssiDbm: -110, snrDb: -1.3 },
-    { marginDb: 11, gatewayCount: 2, rssiDbm: -101, snrDb: 3.9 },
+    { marginDb: 12, gatewayCount: 2, rssiDbm: -98, snrDb: 5.5, txDataRate: 3, rxDataRate: 3 },
+    { marginDb: 9, gatewayCount: 1, rssiDbm: -105, snrDb: 2.1, txDataRate: 2, rxDataRate: 2 },
+    { marginDb: 15, gatewayCount: 3, rssiDbm: -92, snrDb: 7.8, txDataRate: 4, rxDataRate: 4 },
+    { marginDb: 7, gatewayCount: 1, rssiDbm: -110, snrDb: -1.3, txDataRate: 1, rxDataRate: 1 },
+    { marginDb: 11, gatewayCount: 2, rssiDbm: -101, snrDb: 3.9, txDataRate: 3, rxDataRate: 3 },
   ];
 
   campaignSamples.value = simulatedValues.map((sample, index) => ({

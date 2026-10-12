@@ -55,6 +55,13 @@ function unixSecondsToMilliseconds(value: number): number {
   return value * 1000;
 }
 
+export function eu868DataRateToSpreadingFactor(dataRate: number | null): number | null {
+  if (dataRate === null) return null;
+  if (dataRate >= 0 && dataRate <= 5) return 12 - dataRate;
+  if (dataRate === 6) return 7;
+  return null;
+}
+
 export function decodeLoraLinkStatus(value: unknown): LoraLinkStatus | null {
   const bytes = toUint8ArrayFromBleValue(value);
   if (!bytes || bytes.length < 43 || bytes[0] !== 1) return null;

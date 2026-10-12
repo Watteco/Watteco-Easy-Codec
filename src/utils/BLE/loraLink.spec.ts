@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { decodeLoraLinkStatus, decodeLoraWanJoined } from '@/utils/BLE/loraLink';
+import {
+  decodeLoraLinkStatus,
+  decodeLoraWanJoined,
+  eu868DataRateToSpreadingFactor,
+} from '@/utils/BLE/loraLink';
 
 describe('LoRaWAN LinkStatus', () => {
   it('decodes the joined field from a version 1 payload', () => {
@@ -43,5 +47,13 @@ describe('LoRaWAN LinkStatus', () => {
       applicationDownlink: { fport: 125, payloadSize: 4 },
       linkCheck: { marginDb: 18, gatewayCount: 3 },
     });
+  });
+
+  it('converts EU868 LoRa data rates to spreading factors', () => {
+    expect(eu868DataRateToSpreadingFactor(0)).toBe(12);
+    expect(eu868DataRateToSpreadingFactor(5)).toBe(7);
+    expect(eu868DataRateToSpreadingFactor(6)).toBe(7);
+    expect(eu868DataRateToSpreadingFactor(7)).toBeNull();
+    expect(eu868DataRateToSpreadingFactor(null)).toBeNull();
   });
 });
