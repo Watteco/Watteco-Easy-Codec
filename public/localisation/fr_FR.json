@@ -84,6 +84,8 @@
     "openSensorConfiguration": "Configurer le capteur",
     "chooseSensor": "Choisir",
     "bleConnected": "Connecté",
+    "bleSignalStrength": "Force du signal Bluetooth",
+    "bleSignalUnavailable": "Force du signal Bluetooth indisponible",
     "loraWanJoined": "LoRaWAN connecté",
     "loraWanNotJoined": "LoRaWAN non connecté",
     "loraWanStatusUnknown": "État LoRaWAN inconnu",

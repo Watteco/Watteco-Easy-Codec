@@ -25,7 +25,17 @@
         />
         <template v-else-if="effectiveStatus === 'connected'">
           <span class="sensor-mobile-network-status" :aria-label="connectedNetworksLabel" aria-live="polite">
-            <span class="sensor-mobile-status-dot" aria-hidden="true"></span>
+            <span
+              class="sensor-mobile-signal-bars"
+              :class="{ 'sensor-mobile-signal-bars--unknown': effectiveBleSignalLevel === null }"
+              aria-hidden="true"
+            >
+              <span
+                v-for="bar in 4"
+                :key="bar"
+                :class="{ 'sensor-mobile-signal-bar--active': bar <= (effectiveBleSignalLevel ?? 0) }"
+              ></span>
+            </span>
             <span>BLE</span>
             <span class="sensor-mobile-status-separator" aria-hidden="true">&middot;</span>
             <span
@@ -112,6 +122,7 @@ import { useSessionExitConfirmation } from '@/composables/useSessionExitConfirma
 import { getProductDisplayName, getProductMeasurements } from '@/utils/productMeasurements';
 import { getSensorVisual } from '@/utils/sensorVisuals';
 import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
+import type { BleSignalLevel } from '@/utils/BLE/rssi';
 
 type SensorPage = 'data' | 'config' | 'tools';
 type ConnectionStatus = 'connected' | 'reconnect' | 'choose';
@@ -124,6 +135,7 @@ const props = defineProps<{
   deviceName?: string;
   batteryLevel?: number;
   loraWanStatus?: LoraWanStatus;
+  bleSignalLevel?: BleSignalLevel;
 }>();
 
 const router = useRouter();
@@ -144,6 +156,9 @@ const effectiveLoraWanJoined = computed<boolean | null>(() => {
   if (props.loraWanStatus === 'unknown') return null;
   return ble.loraWanJoined.value;
 });
+const effectiveBleSignalLevel = computed<BleSignalLevel | null>(() => (
+  props.bleSignalLevel ?? ble.bleSignalLevel.value
+));
 const displayedDeviceName = computed(() => {
   if (props.deviceName) return props.deviceName;
   const device = ble.connectedDevice.value ?? ble.lastConnectedDevice.value;
@@ -189,10 +204,15 @@ const statusLabel = computed(() => {
   return props.localize('@bleNotConnected');
 });
 const connectedNetworksLabel = computed(() => {
+  const bleSignal = effectiveBleSignalLevel.value === null
+    ? props.localize('@bleSignalUnavailable')
+    : props.bleSignalLevel === undefined && ble.bleRssi.value !== null
+      ? `${props.localize('@bleSignalStrength')}: ${effectiveBleSignalLevel.value}/4 (${ble.bleRssi.value} dBm)`
+      : `${props.localize('@bleSignalStrength')}: ${effectiveBleSignalLevel.value}/4`;
   const loraWanStatus = effectiveLoraWanJoined.value === null
     ? props.localize('@loraWanStatusUnknown')
     : props.localize(effectiveLoraWanJoined.value ? '@loraWanJoined' : '@loraWanNotJoined');
-  return `${props.localize('@bleConnected')}. ${loraWanStatus}`;
+  return `${props.localize('@bleConnected')}. ${bleSignal}. ${loraWanStatus}`;
 });
 const headerActionLabel = computed(() => {
   if (isDisconnecting.value) return props.localize('@bleDisconnecting');
@@ -359,6 +379,33 @@ const disconnectAndGoBack = async () => {
   border: 1px solid currentColor;
   border-radius: 50%;
   background: #4bd37b;
+}
+
+.sensor-mobile-signal-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1px;
+  width: 15px;
+  height: 12px;
+}
+
+.sensor-mobile-signal-bars > span {
+  width: 3px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 1px 1px 0 0;
+}
+
+.sensor-mobile-signal-bars > span:nth-child(1) { height: 3px; }
+.sensor-mobile-signal-bars > span:nth-child(2) { height: 6px; }
+.sensor-mobile-signal-bars > span:nth-child(3) { height: 9px; }
+.sensor-mobile-signal-bars > span:nth-child(4) { height: 12px; }
+
+.sensor-mobile-signal-bars > .sensor-mobile-signal-bar--active {
+  background: #4bd37b;
+}
+
+.sensor-mobile-signal-bars--unknown {
+  opacity: 0.7;
 }
 
 .sensor-mobile-network-status {

@@ -7,6 +7,7 @@
       :device-name="bannerDeviceName"
       :battery-level="bannerBatteryLevel"
       :lora-wan-status="demoDataEnabled ? 'joined' : undefined"
+      :ble-signal-level="demoDataEnabled ? 3 : undefined"
     />
 
     <ion-content :fullscreen="true" class="sensor-data-content native-with-sensor-navigation">

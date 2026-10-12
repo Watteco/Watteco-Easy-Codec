@@ -36,6 +36,7 @@ import {
   type LoraLinkTestOptions,
   type LoraLinkSubscription,
 } from '@/utils/BLE/loraLink';
+import { getBleSignalLevel, type BleSignalLevel } from '@/utils/BLE/rssi';
 
 export type DeviceLike = {
   deviceId: string;
@@ -72,6 +73,7 @@ const FLUSH_INTERVAL_MS = 1000;
 const INTER_FRAME_DELAY_MS = 500;
 const INTER_CHUNK_DELAY_MS = 10;
 const MAX_MEASUREMENT_HISTORY_POINTS = 20;
+const BLE_RSSI_POLL_INTERVAL_MS = 2000;
 const BONDED_DEVICES_STORAGE_KEY = 'easycodec.androidBondedDevices';
 const BONDING_ENABLED = true; // set to true to enable bonding on connect
 
@@ -122,6 +124,8 @@ const loraLinkTestAvailable = ref<boolean | null>(null);
 const loraLinkStatus = ref<LoraLinkStatus | null>(null);
 const measurementValues = ref<Record<string, number | boolean | string>>({});
 const measurementHistory = ref<Record<string, MeasurementHistoryPoint[]>>({});
+const bleRssi = ref<number | null>(null);
+const bleSignalLevel = ref<BleSignalLevel | null>(null);
 let measurementHistoryDeviceId: string | undefined;
 
 const receivedFrames = ref<string[]>([]);
@@ -139,6 +143,77 @@ let reconnectCanceled = false;
 let reconnectScanActive = false;
 let reconnectScanTimeoutId: ReturnType<typeof setTimeout> | undefined;
 let reconnectScanResolve: ((found: boolean) => void) | undefined;
+let bleRssiTimer: ReturnType<typeof setTimeout> | undefined;
+let bleRssiDeviceId: string | undefined;
+let bleRssiReadInProgress = false;
+let visibilityListenerRegistered = false;
+
+function isDocumentVisible() {
+  return typeof document === 'undefined' || document.visibilityState !== 'hidden';
+}
+
+function clearBleRssiTimer() {
+  if (!bleRssiTimer) return;
+  clearTimeout(bleRssiTimer);
+  bleRssiTimer = undefined;
+}
+
+function scheduleBleRssiRead(delayMs = BLE_RSSI_POLL_INTERVAL_MS) {
+  clearBleRssiTimer();
+  if (!bleRssiDeviceId || !connected.value || !isDocumentVisible()) return;
+  bleRssiTimer = setTimeout(() => {
+    bleRssiTimer = undefined;
+    void readBleRssi();
+  }, delayMs);
+}
+
+async function readBleRssi() {
+  const deviceId = bleRssiDeviceId;
+  if (!deviceId || !connected.value || connectedDevice.value?.deviceId !== deviceId) return;
+
+  if (bleRssiReadInProgress || sending.value || osaAuthenticating.value || pairing.value) {
+    scheduleBleRssiRead();
+    return;
+  }
+
+  bleRssiReadInProgress = true;
+  try {
+    const reading = Math.round(await BleClient.readRssi(deviceId));
+    if (Number.isFinite(reading) && bleRssiDeviceId === deviceId && connected.value) {
+      bleRssi.value = reading;
+      bleSignalLevel.value = getBleSignalLevel(reading);
+    }
+  } catch {
+    // A transient RSSI read failure must not affect the BLE connection state.
+  } finally {
+    bleRssiReadInProgress = false;
+    if (bleRssiDeviceId === deviceId) scheduleBleRssiRead();
+  }
+}
+
+function startBleRssiMonitoring(deviceId: string) {
+  clearBleRssiTimer();
+  bleRssi.value = null;
+  bleSignalLevel.value = null;
+  bleRssiDeviceId = deviceId;
+  scheduleBleRssiRead(0);
+}
+
+function stopBleRssiMonitoring() {
+  clearBleRssiTimer();
+  bleRssiDeviceId = undefined;
+  bleRssi.value = null;
+  bleSignalLevel.value = null;
+}
+
+function registerVisibilityListener() {
+  if (visibilityListenerRegistered || typeof document === 'undefined') return;
+  visibilityListenerRegistered = true;
+  document.addEventListener('visibilitychange', () => {
+    if (isDocumentVisible()) scheduleBleRssiRead(0);
+    else clearBleRssiTimer();
+  });
+}
 
 function recordScanResult(result: ScanResult, useFilters: boolean) {
   const name = result.localName ?? result.device.name;
@@ -431,6 +506,7 @@ async function initialize() {
     bleInitialized.value = true;
     statusMessage.value = 'BLE initialized';
     flushTimer = setInterval(() => flushPending(), FLUSH_INTERVAL_MS);
+    registerVisibilityListener();
   } catch (e) {
     console.error('BLE init failed:', e);
     statusMessage.value = 'BLE not available';
@@ -543,6 +619,7 @@ async function connectToDeviceUntil(
   connectionDeadline?: number,
   isCanceled?: () => boolean
 ) {
+  stopBleRssiMonitoring();
   if (connectedDevice.value?.deviceId !== device.deviceId) productReference.value = null;
   prepareMeasurementHistory(device.deviceId);
   await stopMeasurementMonitoring(device.deviceId, measurementSubscriptions, log);
@@ -571,6 +648,7 @@ async function connectToDeviceUntil(
         ? undefined
         : { timeout: Math.max(1, connectionDeadline - Date.now()) };
       await BleClient.connect(device.deviceId, () => {
+        stopBleRssiMonitoring();
         void stopMeasurementMonitoring(device.deviceId, measurementSubscriptions, log);
         measurementSubscriptions = [];
         loraLinkSubscription = undefined;
@@ -728,6 +806,7 @@ async function connectToDeviceUntil(
       // ready, so the UI can navigate straight to the sensor dashboard.
       if (!isCanceled?.() && connectedDevice.value?.deviceId === device.deviceId) {
         connected.value = true;
+        startBleRssiMonitoring(device.deviceId);
       }
       return;
     } catch (e: any) {
@@ -825,6 +904,7 @@ async function cancelConnect() {
 }
 
 async function disconnect() {
+  stopBleRssiMonitoring();
   if (!connectedDevice.value) return;
   await stopMeasurementMonitoring(
     connectedDevice.value.deviceId,
@@ -1273,6 +1353,8 @@ export function useBle() {
     loraLinkStatus: readonly(loraLinkStatus),
     measurementValues: readonly(measurementValues),
     measurementHistory: readonly(measurementHistory),
+    bleRssi: readonly(bleRssi),
+    bleSignalLevel: readonly(bleSignalLevel),
 
     initialize,
     startScan,
