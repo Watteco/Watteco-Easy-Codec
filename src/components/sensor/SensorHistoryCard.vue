@@ -11,7 +11,12 @@
         </div>
       </header>
 
-      <div v-if="chartPoints.length" class="chart">
+      <div
+        v-if="chartPoints.length"
+        class="chart"
+        @click="clearSelectedPoint"
+        @keydown.esc="clearSelectedPoint"
+      >
         <div class="chart-y-axis" aria-hidden="true">
           <span>{{ formatAxisValue(scaleBounds.max) }}</span>
           <span>{{ formatAxisValue((scaleBounds.min + scaleBounds.max) / 2) }}</span>
@@ -32,18 +37,41 @@
           <path class="chart-area" :d="areaPath" />
           <path class="chart-stroke" :d="linePath" />
         </svg>
-        <div class="chart-points" aria-hidden="true">
-          <span
+        <div class="chart-points">
+          <button
             v-for="(point, index) in chartPoints"
-            :key="`${point.timestamp}-${index}`"
+            :key="`${point.timestamp ?? point.sequence ?? index}-${index}`"
+            type="button"
             class="chart-point"
-            :style="{ left: `${point.x}%`, top: `${point.y}%` }"
-            :title="`${formatTimestamp(point.timestamp)} · ${formatValue(point.value)} ${unit}`"
+            :class="{ 'chart-point--selected': selectedPointIndex === index }"
+            :style="{
+              left: `${point.x}%`,
+              top: `${point.y}%`,
+              width: `min(32px, ${point.hitWidth}%)`,
+            }"
+            :aria-label="formatPointDetails(point, index)"
+            :aria-pressed="selectedPointIndex === index"
+            @click.stop="toggleSelectedPoint(index)"
           />
+          <div
+            v-if="selectedPoint"
+            class="chart-tooltip"
+            :class="{
+              'chart-tooltip--start': selectedPoint.x < 20,
+              'chart-tooltip--end': selectedPoint.x > 80,
+              'chart-tooltip--below': selectedPoint.y < 35,
+            }"
+            :style="{ left: `${selectedPoint.x}%`, top: `${selectedPoint.y}%` }"
+            role="status"
+            aria-live="polite"
+          >
+            <strong>{{ formatValue(selectedPoint.value) }} {{ unit }}</strong>
+            <span>{{ formatPointContext(selectedPoint, selectedPointIndex ?? 0) }}</span>
+          </div>
         </div>
         <div class="chart-axis">
-          <span>{{ formatTimestamp(chartPoints[0].timestamp) }}</span>
-          <span>{{ formatTimestamp(chartPoints[chartPoints.length - 1].timestamp) }}</span>
+          <span>{{ formatXAxisLabel(chartPoints[0], 0) }}</span>
+          <span>{{ formatXAxisLabel(chartPoints[chartPoints.length - 1], chartPoints.length - 1) }}</span>
         </div>
       </div>
 
@@ -56,12 +84,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { IonCard, IonCardContent, IonIcon } from '@ionic/vue';
 import { analyticsOutline } from 'ionicons/icons';
 
 type HistoryPoint = {
-  timestamp: number;
+  timestamp?: number;
+  sequence?: number;
   value: number;
 };
 
@@ -75,11 +104,15 @@ const props = withDefaults(defineProps<{
   decimals?: number;
   minValue?: number;
   maxValue?: number;
+  xAxisMode?: 'time' | 'sequence';
 }>(), {
   unit: '',
   accent: '#F47B20',
   decimals: 0,
+  xAxisMode: 'time',
 });
+
+const selectedPointIndex = ref<number | null>(null);
 
 const roundedPoints = computed(() => {
   const factor = 10 ** props.decimals;
@@ -119,22 +152,51 @@ const scaleBounds = computed(() => {
 const chartPoints = computed(() => {
   if (!roundedPoints.value.length) return [];
 
-  const points = [...roundedPoints.value].sort((left, right) => left.timestamp - right.timestamp);
+  const points = [...roundedPoints.value].sort((left, right) => (
+    props.xAxisMode === 'sequence'
+      ? (left.sequence ?? 0) - (right.sequence ?? 0)
+      : (left.timestamp ?? 0) - (right.timestamp ?? 0)
+  ));
   const { min, max } = scaleBounds.value;
   const valueRange = max - min || 1;
-  const firstTimestamp = points[0].timestamp;
-  const timeRange = points[points.length - 1].timestamp - firstTimestamp;
+  const horizontalValues = points.map((point, index) => (
+    props.xAxisMode === 'sequence'
+      ? point.sequence ?? index + 1
+      : point.timestamp ?? index
+  ));
+  const firstHorizontalValue = horizontalValues[0];
+  const horizontalRange = horizontalValues[horizontalValues.length - 1] - firstHorizontalValue;
 
-  return points.map((point, index) => ({
+  const positionedPoints = points.map((point, index) => ({
     ...point,
-    x: timeRange
-      ? 1.5 + ((point.timestamp - firstTimestamp) / timeRange) * 97
+    x: horizontalRange
+      ? 1.5 + ((horizontalValues[index] - firstHorizontalValue) / horizontalRange) * 97
       : 50 + (index - (points.length - 1) / 2) * 3,
     y: Math.min(92, Math.max(8, 92 - ((point.value - min) / valueRange) * 84)),
+  }));
+
+  return positionedPoints.map((point, index) => ({
+    ...point,
+    hitWidth: Math.max(1, Math.min(
+      index ? point.x - positionedPoints[index - 1].x : Number.POSITIVE_INFINITY,
+      index < positionedPoints.length - 1
+        ? positionedPoints[index + 1].x - point.x
+        : Number.POSITIVE_INFINITY,
+      100,
+    )),
   }));
 });
 
 const lastPoint = computed(() => chartPoints.value.at(-1));
+const selectedPoint = computed(() => (
+  selectedPointIndex.value === null
+    ? undefined
+    : chartPoints.value[selectedPointIndex.value]
+));
+
+watch(() => props.points, () => {
+  selectedPointIndex.value = null;
+});
 
 const linePath = computed(() => chartPoints.value
   .map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`)
@@ -159,6 +221,35 @@ const formatTimestamp = (timestamp: number) => new Intl.DateTimeFormat(undefined
   hour: '2-digit',
   minute: '2-digit',
 }).format(timestamp);
+
+const formatDetailsTimestamp = (timestamp: number) => new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'medium',
+}).format(timestamp);
+
+const formatXAxisLabel = (point: HistoryPoint, index: number) => (
+  props.xAxisMode === 'sequence'
+    ? `#${point.sequence ?? index + 1}`
+    : formatTimestamp(point.timestamp ?? 0)
+);
+
+const formatPointContext = (point: HistoryPoint, index: number) => (
+  props.xAxisMode === 'sequence'
+    ? `#${point.sequence ?? index + 1}`
+    : formatDetailsTimestamp(point.timestamp ?? 0)
+);
+
+const formatPointDetails = (point: HistoryPoint, index: number) => (
+  `${formatValue(point.value)} ${props.unit}, ${formatPointContext(point, index)}`
+);
+
+const toggleSelectedPoint = (index: number) => {
+  selectedPointIndex.value = selectedPointIndex.value === index ? null : index;
+};
+
+const clearSelectedPoint = () => {
+  selectedPointIndex.value = null;
+};
 </script>
 
 <style scoped>
@@ -257,13 +348,93 @@ const formatTimestamp = (timestamp: number) => new Intl.DateTimeFormat(undefined
 
 .chart-point {
   position: absolute;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  transform: translate(-50%, -50%);
+}
+
+.chart-point::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 7px;
   height: 7px;
   border: 2px solid var(--history-accent);
   border-radius: 50%;
   background: var(--app-surface);
   box-sizing: border-box;
+  content: '';
   transform: translate(-50%, -50%);
+  transition: width 120ms ease, height 120ms ease, background-color 120ms ease;
+}
+
+.chart-point:hover::after,
+.chart-point:focus-visible::after,
+.chart-point--selected::after {
+  width: 12px;
+  height: 12px;
+  background: var(--history-accent);
+}
+
+.chart-point:focus-visible {
+  outline: 2px solid var(--history-accent);
+  outline-offset: -5px;
+}
+
+.chart-point--selected {
+  z-index: 3;
+}
+
+.chart-tooltip {
+  --tooltip-translate-x: -50%;
+  --tooltip-translate-y: calc(-100% - 10px);
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  max-width: calc(100% - 8px);
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 9px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 8px;
+  background: var(--app-surface);
+  box-shadow: var(--app-card-shadow);
+  color: var(--app-text);
+  font-size: 0.72rem;
+  line-height: 1.25;
+  pointer-events: none;
+  transform: translate(var(--tooltip-translate-x), var(--tooltip-translate-y));
+  white-space: nowrap;
+}
+
+.chart-tooltip strong {
+  color: var(--history-accent);
+  font-size: 0.8rem;
+}
+
+.chart-tooltip span {
+  color: var(--app-text-secondary);
+}
+
+.chart-tooltip--start {
+  --tooltip-translate-x: 0;
+}
+
+.chart-tooltip--end {
+  --tooltip-translate-x: -100%;
+}
+
+.chart-tooltip--below {
+  --tooltip-translate-y: 10px;
 }
 
 .chart-y-axis {

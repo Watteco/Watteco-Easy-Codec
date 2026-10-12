@@ -251,6 +251,7 @@
               :points="marginHistory"
               unit="dB"
               accent="#2f9d68"
+              x-axis-mode="sequence"
             />
             <sensor-history-card
               :label="localize('@toolsRssi')"
@@ -259,6 +260,7 @@
               :points="rssiHistory"
               unit="dBm"
               accent="#df6c3b"
+              x-axis-mode="sequence"
             />
             <sensor-history-card
               :label="localize('@toolsSnr')"
@@ -268,6 +270,7 @@
               unit="dB"
               :decimals="1"
               accent="#4f7bd9"
+              x-axis-mode="sequence"
             />
             <div class="campaign-results">
               <div v-for="(sample, index) in campaignSamples" :key="`${sample.timestamp}-${index}`">
@@ -541,12 +544,12 @@ const deviceInformationRequiresAuthentication = computed(() => (
   deviceStatus.value.osaAuthenticated === false
 ));
 const marginHistory = computed(() => campaignSamples.value
-  .map(sample => ({ timestamp: sample.timestamp, value: sample.marginDb })));
-const rssiHistory = computed(() => campaignSamples.value.flatMap(sample => (
-  sample.rssiDbm === null ? [] : [{ timestamp: sample.timestamp, value: sample.rssiDbm }]
+  .map((sample, index) => ({ sequence: index + 1, value: sample.marginDb })));
+const rssiHistory = computed(() => campaignSamples.value.flatMap((sample, index) => (
+  sample.rssiDbm === null ? [] : [{ sequence: index + 1, value: sample.rssiDbm }]
 )));
-const snrHistory = computed(() => campaignSamples.value.flatMap(sample => (
-  sample.snrDb === null ? [] : [{ timestamp: sample.timestamp, value: sample.snrDb }]
+const snrHistory = computed(() => campaignSamples.value.flatMap((sample, index) => (
+  sample.snrDb === null ? [] : [{ sequence: index + 1, value: sample.snrDb }]
 )));
 const manualFrame = computed(() => parseAppFrameHex(manualFrameHex.value));
 const rejoinFrame = computed(() => buildLoraRejoinFrame(rejoinDelay.value));

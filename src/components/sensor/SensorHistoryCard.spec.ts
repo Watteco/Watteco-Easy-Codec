@@ -68,4 +68,74 @@ describe('SensorHistoryCard', () => {
 
     expect(new Set(axisLabels).size).toBe(3);
   });
+
+  it('shows and hides point details when a point is clicked', async () => {
+    const timestamp = new Date(2026, 9, 12, 14, 35, 20).getTime();
+    const wrapper = mount(SensorHistoryCard, {
+      props: {
+        label: 'Temperature',
+        subtitle: 'Timestamped values',
+        emptyLabel: 'No data',
+        unit: '°C',
+        decimals: 1,
+        points: [{ timestamp, value: 21.26 }],
+      },
+    });
+
+    const point = wrapper.get('.chart-point');
+    expect(point.attributes('aria-pressed')).toBe('false');
+    expect(wrapper.find('.chart-tooltip').exists()).toBe(false);
+
+    await point.trigger('click');
+
+    expect(point.attributes('aria-pressed')).toBe('true');
+    expect(wrapper.get('.chart-tooltip').text()).toContain(`${(21.3).toLocaleString()} °C`);
+    expect(wrapper.get('.chart-tooltip').text()).toContain('2026');
+
+    await point.trigger('click');
+
+    expect(point.attributes('aria-pressed')).toBe('false');
+    expect(wrapper.find('.chart-tooltip').exists()).toBe(false);
+  });
+
+  it('closes point details when the chart is clicked', async () => {
+    const wrapper = mount(SensorHistoryCard, {
+      props: {
+        label: 'RSSI',
+        subtitle: 'Timestamped values',
+        emptyLabel: 'No data',
+        points: [{ timestamp: Date.now(), value: -91 }],
+        unit: 'dBm',
+      },
+    });
+
+    await wrapper.get('.chart-point').trigger('click');
+    expect(wrapper.find('.chart-tooltip').exists()).toBe(true);
+
+    await wrapper.get('.chart').trigger('click');
+    expect(wrapper.find('.chart-tooltip').exists()).toBe(false);
+  });
+
+  it('uses measurement numbers instead of dates in sequence mode', async () => {
+    const wrapper = mount(SensorHistoryCard, {
+      props: {
+        label: 'RSSI',
+        subtitle: 'Network test results',
+        emptyLabel: 'No data',
+        points: [
+          { sequence: 2, value: -107 },
+          { sequence: 4, value: -109 },
+        ],
+        unit: 'dBm',
+        xAxisMode: 'sequence',
+      },
+    });
+
+    expect(wrapper.findAll('.chart-axis span').map(label => label.text())).toEqual(['#2', '#4']);
+
+    await wrapper.findAll('.chart-point')[1].trigger('click');
+
+    expect(wrapper.get('.chart-tooltip').text()).toContain('#4');
+    expect(wrapper.get('.chart-tooltip').text()).not.toContain('1970');
+  });
 });
