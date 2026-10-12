@@ -44,7 +44,7 @@
     "blePairingConfirmation": "Confirm the Bluetooth pairing request on your device.",
     "bleScanFailed": "Unable to scan for nearby sensors.",
     "bleConnectionFailed": "Unable to connect to this sensor.",
-    "bleConnectionWaiting": "Waiting for the sensor's next connection window. This can take up to 2 minutes.",
+    "bleConnectionWaiting": "Waiting for the sensor's next connection window. This can take up to 2 minutes.\nPassing a magnet over the sensor twice in quick succession will make the process faster.",
     "bleCancelConnection": "Cancel connection",
     "blePairingFailed": "Secure pairing failed.",
     "bleUnavailable": "Bluetooth is unavailable. Check that it is enabled and try again.",

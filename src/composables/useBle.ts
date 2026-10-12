@@ -37,6 +37,7 @@ import {
   type LoraLinkSubscription,
 } from '@/utils/BLE/loraLink';
 import { getBleSignalLevel, type BleSignalLevel } from '@/utils/BLE/rssi';
+import { readAdminDeviceStatus } from '@/utils/BLE/adminStatus';
 
 export type DeviceLike = {
   deviceId: string;
@@ -113,6 +114,7 @@ const eventsLog = ref<string[]>([]);
 const configurationFrameLogs = ref<string[]>([]);
 const sending = ref(false);
 const osaAuthenticating = ref(false);
+const osaAuthenticated = ref<boolean | null>(null);
 const pairing = ref(false);
 const connecting = ref(false);
 const reconnecting = ref(false);
@@ -631,6 +633,7 @@ async function connectToDeviceUntil(
   loraLinkAvailable.value = null;
   loraLinkTestAvailable.value = null;
   loraLinkStatus.value = null;
+  osaAuthenticated.value = null;
   statusMessage.value = hasRememberedBond(device.deviceId)
     ? `Reconnecting to ${device.name || device.deviceId}…`
     : `Connecting to ${device.name || device.deviceId}…`;
@@ -656,6 +659,7 @@ async function connectToDeviceUntil(
         loraLinkAvailable.value = null;
         loraLinkTestAvailable.value = null;
         loraLinkStatus.value = null;
+        osaAuthenticated.value = null;
         connected.value = false;
         connectedDevice.value = undefined;
         clearConnectionTarget();
@@ -807,6 +811,7 @@ async function connectToDeviceUntil(
       if (!isCanceled?.() && connectedDevice.value?.deviceId === device.deviceId) {
         connected.value = true;
         startBleRssiMonitoring(device.deviceId);
+        void refreshOsaAuthenticationStatus();
       }
       return;
     } catch (e: any) {
@@ -918,6 +923,7 @@ async function disconnect() {
   loraLinkAvailable.value = null;
   loraLinkTestAvailable.value = null;
   loraLinkStatus.value = null;
+  osaAuthenticated.value = null;
   try {
     await BleClient.disconnect(connectedDevice.value.deviceId);
   } catch (e) { console.error('Disconnect error:', e); }
@@ -1215,6 +1221,7 @@ async function sendOutputFrames(
   try {
     await authenticateOsa(deviceId, osaKeyHex, devEuiHex, log);
     osaAuthenticated = true;
+    setOsaAuthenticated(true);
     osaAuthenticating.value = false;
     statusMessage.value = `Sending ${blobFrames.length} configuration record(s)…`;
     await uploadConfigurationBlob(deviceId, blobFrames, log, activateAfterCommit);
@@ -1257,6 +1264,7 @@ async function sendCurrentConfigurationFrames(osaKeyHex: string, devEuiHex: stri
   try {
     await authenticateOsa(deviceId, osaKeyHex, devEuiHex, log);
     osaAuthenticated = true;
+    setOsaAuthenticated(true);
     osaAuthenticating.value = false;
     try {
       appRxSubscription = await startAppRxMonitoring(
@@ -1324,6 +1332,27 @@ function setProductReference(value?: string | null) {
   productReference.value = resolveAvailableProductReference(value);
 }
 
+function setOsaAuthenticated(value: boolean | null) {
+  osaAuthenticated.value = value;
+}
+
+async function refreshOsaAuthenticationStatus(): Promise<boolean | null> {
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) {
+    osaAuthenticated.value = null;
+    return null;
+  }
+
+  try {
+    const status = await readAdminDeviceStatus(deviceId, log);
+    osaAuthenticated.value = status.osaAuthenticated;
+  } catch (error: any) {
+    log(`[ADMIN] Authentication status unavailable: ${error?.message ?? error}`);
+    osaAuthenticated.value = null;
+  }
+  return osaAuthenticated.value;
+}
+
 /* ================================================================== */
 /*  Composable (returns singleton state)                               */
 /* ================================================================== */
@@ -1342,6 +1371,7 @@ export function useBle() {
     eventsLog:       readonly(eventsLog),
     sending:         readonly(sending),
     osaAuthenticating: readonly(osaAuthenticating),
+    osaAuthenticated: readonly(osaAuthenticated),
     pairing:         readonly(pairing),
     connecting:      readonly(connecting),
     reconnecting:    readonly(reconnecting),
@@ -1375,5 +1405,7 @@ export function useBle() {
     refreshLoraLinkStatus,
     getDeviceName,
     setProductReference,
+    setOsaAuthenticated,
+    refreshOsaAuthenticationStatus,
   };
 }

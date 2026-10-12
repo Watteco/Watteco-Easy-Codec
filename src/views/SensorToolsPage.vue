@@ -669,6 +669,7 @@ async function refreshDeviceStatus(includeDeviceInformation = true): Promise<voi
   try {
     const adminStatus = await readAdminDeviceStatus(deviceId, line => console.debug(line));
     deviceStatus.value = { ...deviceStatus.value, ...adminStatus };
+    ble.setOsaAuthenticated(adminStatus.osaAuthenticated);
     if (adminStatus.osaAuthenticated !== true) clearDeviceInformation();
   } catch (error: any) {
     console.error('Failed to read administration status', error);

@@ -44,7 +44,7 @@
     "blePairingConfirmation": "Confirmez la demande d'appairage Bluetooth sur votre appareil.",
     "bleScanFailed": "Impossible de rechercher les capteurs à proximité.",
     "bleConnectionFailed": "Impossible de se connecter à ce capteur.",
-    "bleConnectionWaiting": "En attente de la prochaine fenêtre de connexion du capteur. Cela peut prendre jusqu'à 2 minutes.",
+    "bleConnectionWaiting": "En attente de la prochaine fenêtre de connexion du capteur. Cela peut prendre jusqu'à 2 minutes.\nDeux passages courts avec un aimant sur le capteur accelèrera le processus.",
     "bleCancelConnection": "Annuler la connexion",
     "blePairingFailed": "L'appairage sécurisé a échoué.",
     "bleUnavailable": "Le Bluetooth est indisponible. Vérifiez qu'il est activé, puis réessayez.",

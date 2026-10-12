@@ -1549,8 +1549,10 @@ async function refreshConfigurationOsaStatus(): Promise<void> {
   try {
     const status = await readAdminDeviceStatus(deviceId, line => console.debug(line));
     configurationOsaAuthenticated.value = status.osaAuthenticated;
+    ble.setOsaAuthenticated(status.osaAuthenticated);
   } catch {
     configurationOsaAuthenticated.value = null;
+    ble.setOsaAuthenticated(null);
   }
 }
 

@@ -1,5 +1,6 @@
 <template>
   <nav
+    id="sensor-mobile-tabs"
     class="sensor-mobile-tabs"
     :style="{ '--sensor-tab-count': String(availablePages.length) }"
     :aria-label="labels.navigation"

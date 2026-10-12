@@ -37,6 +37,14 @@
               ></span>
             </span>
             <span>BLE</span>
+            <ion-icon
+              class="sensor-mobile-authentication-icon"
+              :icon="ble.osaAuthenticated.value === true ? lockOpenOutline : lockClosedOutline"
+              :aria-label="localize(ble.osaAuthenticated.value === true
+                ? '@toolsOsaAuthenticated'
+                : '@toolsOsaNotAuthenticated')"
+              role="img"
+            />
             <span class="sensor-mobile-status-separator" aria-hidden="true">&middot;</span>
             <span
               v-if="effectiveLoraWanJoined !== null"
@@ -110,10 +118,12 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { IonIcon, IonSpinner, alertController } from '@ionic/vue';
+import { IonIcon, IonSpinner, alertController, toastController } from '@ionic/vue';
 import {
   alertCircleOutline,
   bluetoothOutline,
+  lockClosedOutline,
+  lockOpenOutline,
   logOutOutline,
   refreshOutline,
 } from 'ionicons/icons';
@@ -229,6 +239,18 @@ const headerActionDisabled = computed(() => (
   isDisconnecting.value || (ble.pairing.value && !ble.reconnecting.value)
 ));
 
+const presentReconnectWaitingToast = async () => {
+  const toast = await toastController.create({
+    message: props.localize('@bleConnectionWaiting'),
+    duration: 0,
+    position: 'bottom',
+    positionAnchor: 'sensor-mobile-tabs',
+    cssClass: 'connection-waiting-toast',
+  });
+  await toast.present();
+  return toast;
+};
+
 const handleHeaderAction = async () => {
   if (effectiveStatus.value === 'connected') {
     await requestSessionExit();
@@ -240,7 +262,12 @@ const handleHeaderAction = async () => {
       await ble.cancelReconnect();
       return;
     }
-    await ble.reconnectToLastDevice();
+    const waitingToast = await presentReconnectWaitingToast();
+    try {
+      await ble.reconnectToLastDevice();
+    } finally {
+      await waitingToast.dismiss();
+    }
     return;
   }
 
@@ -306,6 +333,10 @@ const disconnectAndGoBack = async () => {
 </script>
 
 <style scoped>
+:global(.connection-waiting-toast::part(message)) {
+  white-space: pre-line;
+}
+
 .sensor-mobile-header {
   box-sizing: border-box;
   position: fixed;
@@ -412,6 +443,13 @@ const disconnectAndGoBack = async () => {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+}
+
+.sensor-mobile-authentication-icon {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  transform: translateY(-1px);
 }
 
 .sensor-mobile-status-dot--offline {

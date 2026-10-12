@@ -561,6 +561,7 @@ watch(() => ble.connected.value, (val) => {
 .connection-waiting p {
   margin: 0;
   font-size: 0.9rem;
+  white-space: pre-line;
 }
 
 .debug-corner {
