@@ -354,8 +354,9 @@ const openBleMeasurementLog = async () => {
     'Current app values:',
     ...(currentValues.length ? currentValues : ['No counter/state values']),
     '',
-    'Recent counter/state BLE changes:',
-    ...(lines.length ? lines : ['No counter/state BLE changes']),
+    'Recent counter/state BLE activity:',
+    'READ = initial read, POLL = app read, NOTIFY = sensor notification, SAME = unchanged bytes',
+    ...(lines.length ? lines : ['No counter/state BLE activity']),
   ].join('\n');
   const alert = await alertController.create({
     header: 'BLE measurement log',

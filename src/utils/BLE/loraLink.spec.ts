@@ -16,11 +16,11 @@ describe('LoRaWAN LinkStatus', () => {
     expect(decodeLoraWanJoined(new Uint8Array([2, 0, 0, 0, 0, 0, 1]))).toBeNull();
   });
 
-  it('decodes radio and LinkCheck diagnostics', () => {
-    const bytes = new Uint8Array(43);
+  it('decodes radio, LinkCheck and TX diagnostics', () => {
+    const bytes = new Uint8Array(59);
     const view = new DataView(bytes.buffer);
     bytes[0] = 1;
-    bytes[1] = 0x3f;
+    bytes[1] = 0x7f;
     view.setUint32(2, 100, true);
     bytes[6] = 1;
     view.setUint32(7, 90, true);
@@ -39,6 +39,13 @@ describe('LoRaWAN LinkStatus', () => {
     view.setUint32(37, 102, true);
     bytes[41] = 18;
     bytes[42] = 3;
+    view.setUint32(43, 103, true);
+    view.setUint32(47, 8, true);
+    view.setUint32(51, 868100000, true);
+    view.setInt8(55, 14);
+    bytes[56] = 3;
+    bytes[57] = 5;
+    bytes[58] = 1;
 
     expect(decodeLoraLinkStatus(bytes)).toMatchObject({
       joined: true,
@@ -46,7 +53,24 @@ describe('LoRaWAN LinkStatus', () => {
       rx: { sequence: 7, rssiDbm: -97, snrDb: 5.5, dataRate: 5 },
       applicationDownlink: { fport: 125, payloadSize: 4 },
       linkCheck: { marginDb: 18, gatewayCount: 3 },
+      tx: {
+        timestamp: 103_000,
+        sequence: 8,
+        frequencyHz: 868_100_000,
+        powerDbm: 14,
+        dataRate: 3,
+        payloadSize: 5,
+        status: 1,
+      },
     });
+  });
+
+  it('keeps supporting version 1 payloads without appended TX metadata', () => {
+    const bytes = new Uint8Array(43);
+    bytes[0] = 1;
+    bytes[1] = 0x40;
+
+    expect(decodeLoraLinkStatus(bytes)).toMatchObject({ tx: null });
   });
 
   it('converts EU868 LoRa data rates to spreading factors', () => {

@@ -29,6 +29,10 @@
                     {{ joinLabel }}
                   </strong>
                 </div>
+                <div v-if="status?.heartbeatMinSeconds != null" class="status-item">
+                  <span>{{ localize('@toolsHeartbeat') }}</span>
+                  <strong>{{ formatDuration(status?.heartbeatMinSeconds ?? null) }}</strong>
+                </div>
                 <div class="status-item">
                   <span>{{ localize('@toolsUptime') }}</span>
                   <strong>{{ formatDuration(deviceStatus.runningTimeSeconds) }}</strong>
@@ -280,8 +284,11 @@
                   <span>{{ sample.gatewayCount }} {{ localize('@toolsGatewayShort') }}</span>
                   <span>RSSI {{ formatOptionalValue(sample.rssiDbm, 'dBm') }}</span>
                   <span>SNR {{ formatOptionalValue(sample.snrDb, 'dB', 1) }}</span>
-                  <span>{{ localize('@toolsTxSf') }} {{ formatSpreadingFactor(sample.txDataRate) }}</span>
-                  <span>{{ localize('@toolsRxSf') }} {{ formatSpreadingFactor(sample.rxDataRate) }}</span>
+                  <span>{{ localize('@toolsTxDr') }} {{ formatDataRate(sample.txDataRate) }}</span>
+                  <span>{{ localize('@toolsRxDr') }} {{ formatDataRate(sample.rxDataRate) }}</span>
+                  <span>{{ localize('@toolsTxPower') }} {{ formatOptionalValue(sample.txPowerDbm, 'dBm') }}</span>
+                  <span>{{ localize('@toolsTxFrequency') }} {{ formatFrequency(sample.txFrequencyHz) }}</span>
+                  <span>{{ localize('@toolsRxWindow') }} {{ formatRxWindow(sample.rxWindow) }}</span>
                 </div>
               </div>
             </div>
@@ -437,7 +444,10 @@ type CampaignSample = {
   rssiDbm: number | null;
   snrDb: number | null;
   txDataRate: number | null;
+  txPowerDbm: number | null;
+  txFrequencyHz: number | null;
   rxDataRate: number | null;
+  rxWindow: number | null;
 };
 
 type DeviceStatus = AdminDeviceStatus & DeviceInformation;
@@ -599,6 +609,25 @@ function formatOptionalValue(value: number | null, unit: string, decimals = 0): 
 function formatSpreadingFactor(dataRate: number | null): string {
   const spreadingFactor = eu868DataRateToSpreadingFactor(dataRate);
   return spreadingFactor === null ? '—' : `SF${spreadingFactor}`;
+}
+
+function formatDataRate(dataRate: number | null): string {
+  if (dataRate === null) return '—';
+  const spreadingFactor = formatSpreadingFactor(dataRate);
+  return spreadingFactor === '—' ? `DR${dataRate}` : `DR${dataRate} (${spreadingFactor})`;
+}
+
+function formatFrequency(frequencyHz: number | null): string {
+  if (frequencyHz === null) return '—';
+  return `${(frequencyHz / 1_000_000).toFixed(3)} MHz`;
+}
+
+function formatRxWindow(window: number | null): string {
+  if (window === null) return '—';
+  if (window === 0) return 'RX1';
+  if (window === 1) return 'RX2';
+  if (window === 2) return 'RXR';
+  return `#${window}`;
 }
 
 function formatDeviceInformation(value: string | null): string {
@@ -893,6 +922,7 @@ async function startCampaign() {
         .replace('{total}', String(CAMPAIGN_SIZE));
       const previousLinkCheckTimestamp = ble.loraLinkStatus.value?.linkCheck?.timestamp;
       const previousRxSequence = ble.loraLinkStatus.value?.rx?.sequence;
+      const previousTxSequence = ble.loraLinkStatus.value?.tx?.sequence;
       await ble.sendLoraLinkTest({
         linkCheck: true,
         sendUplink: true,
@@ -906,14 +936,21 @@ async function startCampaign() {
         && Math.abs(response.rx.timestamp - linkCheck.timestamp) <= 2_000
         ? response.rx
         : null;
+      const freshTx = response.tx
+        && response.tx.sequence !== previousTxSequence
+        ? response.tx
+        : null;
       campaignSamples.value = [...campaignSamples.value, {
         timestamp: linkCheck.timestamp,
         marginDb: linkCheck.marginDb,
         gatewayCount: linkCheck.gatewayCount,
         rssiDbm: freshRx?.rssiDbm ?? null,
         snrDb: freshRx?.snrDb ?? null,
-        txDataRate: null,
+        txDataRate: freshTx?.dataRate ?? null,
+        txPowerDbm: freshTx?.powerDbm ?? null,
+        txFrequencyHz: freshTx?.frequencyHz ?? null,
         rxDataRate: freshRx?.dataRate ?? null,
+        rxWindow: freshRx?.window ?? null,
       }];
       if (index < CAMPAIGN_SIZE - 1) await delay(INTER_TEST_DELAY_MS);
     }
@@ -939,11 +976,11 @@ function cancelCampaign() {
 function simulateCampaign() {
   const now = Date.now();
   const simulatedValues = [
-    { marginDb: 12, gatewayCount: 2, rssiDbm: -98, snrDb: 5.5, txDataRate: 3, rxDataRate: 3 },
-    { marginDb: 9, gatewayCount: 1, rssiDbm: -105, snrDb: 2.1, txDataRate: 2, rxDataRate: 2 },
-    { marginDb: 15, gatewayCount: 3, rssiDbm: -92, snrDb: 7.8, txDataRate: 4, rxDataRate: 4 },
-    { marginDb: 7, gatewayCount: 1, rssiDbm: -110, snrDb: -1.3, txDataRate: 1, rxDataRate: 1 },
-    { marginDb: 11, gatewayCount: 2, rssiDbm: -101, snrDb: 3.9, txDataRate: 3, rxDataRate: 3 },
+    { marginDb: 12, gatewayCount: 2, rssiDbm: -98, snrDb: 5.5, txDataRate: 3, txPowerDbm: 14, txFrequencyHz: 868100000, rxDataRate: 3, rxWindow: 0 },
+    { marginDb: 9, gatewayCount: 1, rssiDbm: -105, snrDb: 2.1, txDataRate: 2, txPowerDbm: 14, txFrequencyHz: 868300000, rxDataRate: 2, rxWindow: 1 },
+    { marginDb: 15, gatewayCount: 3, rssiDbm: -92, snrDb: 7.8, txDataRate: 4, txPowerDbm: 12, txFrequencyHz: 868500000, rxDataRate: 4, rxWindow: 0 },
+    { marginDb: 7, gatewayCount: 1, rssiDbm: -110, snrDb: -1.3, txDataRate: 1, txPowerDbm: 14, txFrequencyHz: 867100000, rxDataRate: 1, rxWindow: 1 },
+    { marginDb: 11, gatewayCount: 2, rssiDbm: -101, snrDb: 3.9, txDataRate: 3, txPowerDbm: 14, txFrequencyHz: 867300000, rxDataRate: 3, rxWindow: 0 },
   ];
 
   campaignSamples.value = simulatedValues.map((sample, index) => ({

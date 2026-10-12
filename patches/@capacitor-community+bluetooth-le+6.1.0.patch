@@ -1,5 +1,5 @@
 diff --git a/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/BluetoothLe.kt b/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/BluetoothLe.kt
-index 87e589a..4faef0a 100644
+index 87e589a..5493f53 100644
 --- a/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/BluetoothLe.kt
 +++ b/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/BluetoothLe.kt
 @@ -647,8 +647,9 @@ class BluetoothLe : Plugin() {
@@ -25,8 +25,33 @@ index 87e589a..4faef0a 100644
          ) { response ->
              run {
                  if (response.success) {
+@@ -756,10 +758,11 @@ class BluetoothLe : Plugin() {
+     fun startNotifications(call: PluginCall) {
+         val device = getDevice(call) ?: return
+         val characteristic = getCharacteristic(call) ?: return
+-        device.setNotifications(characteristic.first, characteristic.second, true, { response ->
++        val characteristicIndex = call.getInt("characteristicIndex", 0) ?: 0
++        device.setNotifications(characteristic.first, characteristic.second, characteristicIndex, true, { response ->
+             run {
+                 val key =
+-                    "notification|${device.getId()}|${(characteristic.first)}|${(characteristic.second)}"
++                    "notification|${device.getId()}|${(characteristic.first)}|${(characteristic.second)}|$characteristicIndex"
+                 val ret = JSObject()
+                 ret.put("value", response.value)
+                 try {
+@@ -783,8 +786,9 @@ class BluetoothLe : Plugin() {
+     fun stopNotifications(call: PluginCall) {
+         val device = getDevice(call) ?: return
+         val characteristic = getCharacteristic(call) ?: return
++        val characteristicIndex = call.getInt("characteristicIndex", 0) ?: 0
+         device.setNotifications(
+-            characteristic.first, characteristic.second, false, null
++            characteristic.first, characteristic.second, characteristicIndex, false, null
+         ) { response ->
+             run {
+                 if (response.success) {
 diff --git a/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt b/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
-index f09e6a0..e427d9d 100644
+index f09e6a0..42cbdf6 100644
 --- a/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
 +++ b/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
 @@ -199,7 +199,8 @@ class Device(
@@ -39,7 +64,39 @@ index f09e6a0..e427d9d 100644
              }
  
          }
-@@ -486,13 +487,16 @@ class Device(
+@@ -214,7 +215,7 @@ class Device(
+             }
+             Logger.verbose(TAG, "Using deprecated onCharacteristicChanged.")
+             super.onCharacteristicChanged(gatt, characteristic)
+-            val notifyKey = "notification|${characteristic.service.uuid}|${characteristic.uuid}"
++            val notifyKey = "notification|${characteristic.service.uuid}|${characteristic.uuid}|${characteristic.instanceId}"
+             val data = characteristic.value
+             if (data != null) {
+                 val value = bytesToString(data)
+@@ -228,7 +229,7 @@ class Device(
+         ) {
+             Logger.verbose(TAG, "Using onCharacteristicChanged from API level 33.")
+             super.onCharacteristicChanged(gatt, characteristic, data)
+-            val notifyKey = "notification|${characteristic.service.uuid}|${characteristic.uuid}"
++            val notifyKey = "notification|${characteristic.service.uuid}|${characteristic.uuid}|${characteristic.instanceId}"
+             val value = bytesToString(data)
+             callbackMap[notifyKey]?.invoke(CallbackResponse(true, value))
+         }
+@@ -280,9 +281,13 @@ class Device(
+             super.onDescriptorWrite(gatt, descriptor, status)
+             val key =
+                 "writeDescriptor|${descriptor.characteristic.service.uuid}|${descriptor.characteristic.uuid}|${descriptor.uuid}"
++            val indexedKey =
++                "writeDescriptor|${descriptor.characteristic.service.uuid}|${descriptor.characteristic.uuid}|${descriptor.characteristic.instanceId}|${descriptor.uuid}"
+             if (status == BluetoothGatt.GATT_SUCCESS) {
++                resolve(indexedKey, "Descriptor successfully written.")
+                 resolve(key, "Descriptor successfully written.")
+             } else {
++                reject(indexedKey, "Writing descriptor failed.")
+                 reject(key, "Writing descriptor failed.")
+             }
+         }
+@@ -486,13 +491,16 @@ class Device(
      fun read(
          serviceUUID: UUID,
          characteristicUUID: UUID,
@@ -57,7 +114,45 @@ index f09e6a0..e427d9d 100644
          if (characteristic == null) {
              reject(key, "Characteristic not found.")
              return
-@@ -606,6 +610,7 @@ class Device(
+@@ -544,23 +552,28 @@ class Device(
+     fun setNotifications(
+         serviceUUID: UUID,
+         characteristicUUID: UUID,
++        characteristicIndex: Int,
+         enable: Boolean,
+         notifyCallback: ((CallbackResponse) -> Unit)?,
+         callback: (CallbackResponse) -> Unit,
+     ) {
+-        val key = "writeDescriptor|$serviceUUID|$characteristicUUID|$CLIENT_CHARACTERISTIC_CONFIG"
+-        val notifyKey = "notification|$serviceUUID|$characteristicUUID"
+-        callbackMap[key] = callback
+-        if (notifyCallback != null) {
+-            callbackMap[notifyKey] = notifyCallback
+-        }
+         val service = bluetoothGatt?.getService(serviceUUID)
+-        val characteristic = service?.getCharacteristic(characteristicUUID)
++        val characteristic = service?.characteristics
++            ?.filter { it.uuid == characteristicUUID }
++            ?.getOrNull(characteristicIndex)
+         if (characteristic == null) {
+-            reject(key, "Characteristic not found.")
++            callback(CallbackResponse(false, "Characteristic not found."))
+             return
+         }
+-
++        val key = "writeDescriptor|$serviceUUID|$characteristicUUID|${characteristic.instanceId}|$CLIENT_CHARACTERISTIC_CONFIG"
++        val notifyKey = "notification|$serviceUUID|$characteristicUUID|${characteristic.instanceId}"
++        callbackMap[key] = callback
++        if (notifyCallback != null) {
++            callbackMap[notifyKey] = notifyCallback
++        } else if (!enable) {
++            callbackMap.remove(notifyKey)
++        }
++        // The selected occurrence owns its own CCCD and Android notification state.
+         val result = bluetoothGatt?.setCharacteristicNotification(characteristic, enable)
+         if (result != true) {
+             reject(key, "Setting notification failed.")
+@@ -606,6 +619,7 @@ class Device(
      fun readDescriptor(
          serviceUUID: UUID,
          characteristicUUID: UUID,
@@ -65,7 +160,7 @@ index f09e6a0..e427d9d 100644
          descriptorUUID: UUID,
          timeout: Long,
          callback: (CallbackResponse) -> Unit
-@@ -613,7 +618,9 @@ class Device(
+@@ -613,7 +627,9 @@ class Device(
          val key = "readDescriptor|$serviceUUID|$characteristicUUID|$descriptorUUID"
          callbackMap[key] = callback
          val service = bluetoothGatt?.getService(serviceUUID)
@@ -76,3 +171,142 @@ index f09e6a0..e427d9d 100644
          if (characteristic == null) {
              reject(key, "Characteristic not found.")
              return
+diff --git a/node_modules/@capacitor-community/bluetooth-le/dist/esm/bleClient.d.ts b/node_modules/@capacitor-community/bluetooth-le/dist/esm/bleClient.d.ts
+index ac13ee4..f74a293 100644
+--- a/node_modules/@capacitor-community/bluetooth-le/dist/esm/bleClient.d.ts
++++ b/node_modules/@capacitor-community/bluetooth-le/dist/esm/bleClient.d.ts
+@@ -1,5 +1,5 @@
+ import type { DisplayStrings } from './config';
+-import type { BleDevice, BleService, ConnectionPriority, InitializeOptions, RequestBleDeviceOptions, ScanResult, TimeoutOptions } from './definitions';
++import type { BleDevice, BleService, CharacteristicOptions, ConnectionPriority, InitializeOptions, RequestBleDeviceOptions, ScanResult, TimeoutOptions } from './definitions';
+ export interface BleClientInterface {
+     /**
+      * Initialize Bluetooth Low Energy (BLE). If it fails, BLE might be unavailable on this device.
+@@ -172,7 +172,7 @@ export interface BleClientInterface {
+      * @param characteristic UUID of the characteristic (see [UUID format](#uuid-format))
+      * @param options Options for plugin call
+      */
+-    read(deviceId: string, service: string, characteristic: string, options?: TimeoutOptions): Promise<DataView>;
++    read(deviceId: string, service: string, characteristic: string, options?: TimeoutOptions & CharacteristicOptions): Promise<DataView>;
+     /**
+      * Write a value to a characteristic. For an example, see [usage](#usage).
+      * @param deviceId The ID of the device to use (obtained from [requestDevice](#requestDevice) or [requestLEScan](#requestLEScan))
+@@ -199,7 +199,7 @@ export interface BleClientInterface {
+      * @param descriptor UUID of the descriptor (see [UUID format](#uuid-format))
+      * @param options Options for plugin call
+      */
+-    readDescriptor(deviceId: string, service: string, characteristic: string, descriptor: string, options?: TimeoutOptions): Promise<DataView>;
++    readDescriptor(deviceId: string, service: string, characteristic: string, descriptor: string, options?: TimeoutOptions & CharacteristicOptions): Promise<DataView>;
+     /**
+      * Write a value to a descriptor.
+      * @param deviceId The ID of the device to use (obtained from [requestDevice](#requestDevice) or [requestLEScan](#requestLEScan))
+@@ -220,14 +220,14 @@ export interface BleClientInterface {
+      * @param characteristic UUID of the characteristic (see [UUID format](#uuid-format))
+      * @param callback Callback function to use when the value of the characteristic changes
+      */
+-    startNotifications(deviceId: string, service: string, characteristic: string, callback: (value: DataView) => void): Promise<void>;
++    startNotifications(deviceId: string, service: string, characteristic: string, callback: (value: DataView) => void, options?: CharacteristicOptions): Promise<void>;
+     /**
+      * Stop listening to the changes of the value of a characteristic. For an example, see [usage](#usage).
+      * @param deviceId The ID of the device to use (obtained from [requestDevice](#requestDevice) or [requestLEScan](#requestLEScan))
+      * @param service UUID of the service (see [UUID format](#uuid-format))
+      * @param characteristic UUID of the characteristic (see [UUID format](#uuid-format))
+      */
+-    stopNotifications(deviceId: string, service: string, characteristic: string): Promise<void>;
++    stopNotifications(deviceId: string, service: string, characteristic: string, options?: CharacteristicOptions): Promise<void>;
+ }
+ declare class BleClientClass implements BleClientInterface {
+     private scanListener;
+@@ -262,13 +262,13 @@ declare class BleClientClass implements BleClientInterface {
+     getMtu(deviceId: string): Promise<number>;
+     requestConnectionPriority(deviceId: string, connectionPriority: ConnectionPriority): Promise<void>;
+     readRssi(deviceId: string): Promise<number>;
+-    read(deviceId: string, service: string, characteristic: string, options?: TimeoutOptions): Promise<DataView>;
++    read(deviceId: string, service: string, characteristic: string, options?: TimeoutOptions & CharacteristicOptions): Promise<DataView>;
+     write(deviceId: string, service: string, characteristic: string, value: DataView, options?: TimeoutOptions): Promise<void>;
+     writeWithoutResponse(deviceId: string, service: string, characteristic: string, value: DataView, options?: TimeoutOptions): Promise<void>;
+-    readDescriptor(deviceId: string, service: string, characteristic: string, descriptor: string, options?: TimeoutOptions): Promise<DataView>;
++    readDescriptor(deviceId: string, service: string, characteristic: string, descriptor: string, options?: TimeoutOptions & CharacteristicOptions): Promise<DataView>;
+     writeDescriptor(deviceId: string, service: string, characteristic: string, descriptor: string, value: DataView, options?: TimeoutOptions): Promise<void>;
+-    startNotifications(deviceId: string, service: string, characteristic: string, callback: (value: DataView) => void): Promise<void>;
+-    stopNotifications(deviceId: string, service: string, characteristic: string): Promise<void>;
++    startNotifications(deviceId: string, service: string, characteristic: string, callback: (value: DataView) => void, options?: CharacteristicOptions): Promise<void>;
++    stopNotifications(deviceId: string, service: string, characteristic: string, options?: CharacteristicOptions): Promise<void>;
+     private validateRequestBleDeviceOptions;
+     private convertValue;
+     private convertObject;
+diff --git a/node_modules/@capacitor-community/bluetooth-le/dist/esm/bleClient.js b/node_modules/@capacitor-community/bluetooth-le/dist/esm/bleClient.js
+index ab93a32..e1c0483 100644
+--- a/node_modules/@capacitor-community/bluetooth-le/dist/esm/bleClient.js
++++ b/node_modules/@capacitor-community/bluetooth-le/dist/esm/bleClient.js
+@@ -284,37 +284,39 @@ class BleClientClass {
+                 descriptor, value: writeValue }, options));
+         });
+     }
+-    async startNotifications(deviceId, service, characteristic, callback) {
++    async startNotifications(deviceId, service, characteristic, callback, options = {}) {
+         service = parseUUID(service);
+         characteristic = parseUUID(characteristic);
+         await this.queue(async () => {
+             var _a;
+-            const key = `notification|${deviceId}|${service}|${characteristic}`;
++            const characteristicIndex = options.characteristicIndex || 0;
++            const key = `notification|${deviceId}|${service}|${characteristic}|${characteristicIndex}`;
+             await ((_a = this.eventListeners.get(key)) === null || _a === void 0 ? void 0 : _a.remove());
+             const listener = await BluetoothLe.addListener(key, (event) => {
+                 callback(this.convertValue(event === null || event === void 0 ? void 0 : event.value));
+             });
+             this.eventListeners.set(key, listener);
+-            await BluetoothLe.startNotifications({
++            await BluetoothLe.startNotifications(Object.assign({
+                 deviceId,
+                 service,
+                 characteristic,
+-            });
++            }, options));
+         });
+     }
+-    async stopNotifications(deviceId, service, characteristic) {
++    async stopNotifications(deviceId, service, characteristic, options = {}) {
+         service = parseUUID(service);
+         characteristic = parseUUID(characteristic);
+         await this.queue(async () => {
+             var _a;
+-            const key = `notification|${deviceId}|${service}|${characteristic}`;
++            const characteristicIndex = options.characteristicIndex || 0;
++            const key = `notification|${deviceId}|${service}|${characteristic}|${characteristicIndex}`;
+             await ((_a = this.eventListeners.get(key)) === null || _a === void 0 ? void 0 : _a.remove());
+             this.eventListeners.delete(key);
+-            await BluetoothLe.stopNotifications({
++            await BluetoothLe.stopNotifications(Object.assign({
+                 deviceId,
+                 service,
+                 characteristic,
+-            });
++            }, options));
+         });
+     }
+     validateRequestBleDeviceOptions(options) {
+diff --git a/node_modules/@capacitor-community/bluetooth-le/dist/esm/definitions.d.ts b/node_modules/@capacitor-community/bluetooth-le/dist/esm/definitions.d.ts
+index 61a9a5c..ff393f5 100644
+--- a/node_modules/@capacitor-community/bluetooth-le/dist/esm/definitions.d.ts
++++ b/node_modules/@capacitor-community/bluetooth-le/dist/esm/definitions.d.ts
+@@ -107,6 +107,10 @@ export interface TimeoutOptions {
+      */
+     timeout?: number;
+ }
++export interface CharacteristicOptions {
++    /** Zero-based occurrence when a service contains duplicate characteristic UUIDs. */
++    characteristicIndex?: number;
++}
+ export interface RequestConnectionPriorityOptions extends DeviceIdOptions {
+     connectionPriority: ConnectionPriority;
+ }
+@@ -149,6 +153,7 @@ export interface ReadOptions {
+     deviceId: string;
+     service: string;
+     characteristic: string;
++    characteristicIndex?: number;
+ }
+ export interface ReadDescriptorOptions {
+     deviceId: string;

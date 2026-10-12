@@ -35,6 +35,15 @@ export type LoraLinkStatus = {
   } | null;
   applicationDownlink: { fport: number; payloadSize: number } | null;
   linkCheck: { timestamp: number; marginDb: number; gatewayCount: number } | null;
+  tx: {
+    timestamp: number;
+    sequence: number;
+    frequencyHz: number;
+    powerDbm: number;
+    dataRate: number;
+    payloadSize: number;
+    status: number;
+  } | null;
 };
 
 export type LoraLinkTestOptions = {
@@ -50,6 +59,9 @@ const FLAG_HEARTBEAT_VALID = 0x04;
 const FLAG_RX_METADATA_VALID = 0x08;
 const FLAG_APPLICATION_DOWNLINK_VALID = 0x10;
 const FLAG_LINK_CHECK_ANSWERED = 0x20;
+const FLAG_TX_METADATA_VALID = 0x40;
+const LINK_STATUS_BASE_SIZE = 43;
+const LINK_STATUS_WITH_TX_SIZE = 59;
 
 function unixSecondsToMilliseconds(value: number): number {
   return value * 1000;
@@ -64,13 +76,15 @@ export function eu868DataRateToSpreadingFactor(dataRate: number | null): number 
 
 export function decodeLoraLinkStatus(value: unknown): LoraLinkStatus | null {
   const bytes = toUint8ArrayFromBleValue(value);
-  if (!bytes || bytes.length < 43 || bytes[0] !== 1) return null;
+  if (!bytes || bytes.length < LINK_STATUS_BASE_SIZE || bytes[0] !== 1) return null;
 
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const flags = view.getUint8(1);
   const rxValid = (flags & FLAG_RX_METADATA_VALID) !== 0;
   const appDownlinkValid = (flags & FLAG_APPLICATION_DOWNLINK_VALID) !== 0;
   const linkCheckValid = (flags & FLAG_LINK_CHECK_ANSWERED) !== 0;
+  const txValid = (flags & FLAG_TX_METADATA_VALID) !== 0
+    && bytes.length >= LINK_STATUS_WITH_TX_SIZE;
 
   return {
     version: 1,
@@ -102,6 +116,15 @@ export function decodeLoraLinkStatus(value: unknown): LoraLinkStatus | null {
       timestamp: unixSecondsToMilliseconds(view.getUint32(37, true)),
       marginDb: view.getUint8(41),
       gatewayCount: view.getUint8(42),
+    } : null,
+    tx: txValid ? {
+      timestamp: unixSecondsToMilliseconds(view.getUint32(43, true)),
+      sequence: view.getUint32(47, true),
+      frequencyHz: view.getUint32(51, true),
+      powerDbm: view.getInt8(55),
+      dataRate: view.getUint8(56),
+      payloadSize: view.getUint8(57),
+      status: view.getUint8(58),
     } : null,
   };
 }

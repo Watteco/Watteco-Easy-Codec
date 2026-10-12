@@ -285,6 +285,7 @@ function prepareMeasurementHistory(deviceId: string) {
 
 function appendMeasurementHistory(measurementId: string, value: number) {
   const points = measurementHistory.value[measurementId] ?? [];
+  if (Object.is(points.at(-1)?.value, value)) return;
   measurementHistory.value = {
     ...measurementHistory.value,
     [measurementId]: [

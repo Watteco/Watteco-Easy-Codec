@@ -1,9 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { BleClient } from '@capacitor-community/bluetooth-le';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   decodeKnownMeasurementCharacteristic,
   decodeMeasurementValue,
   MEASUREMENT_SOURCE_TO_ID,
   parsePresentationFormat,
+  startMeasurementMonitoring,
+  stopMeasurementMonitoring,
 } from '@/utils/BLE/measurements';
 import {
   MEASURES_SERVICE_UUID,
@@ -13,7 +16,21 @@ import {
   TEMPERATURE_CHAR_UUID,
 } from '@/utils/BLE/characteristics';
 
+vi.mock('@capacitor-community/bluetooth-le', () => ({
+  BleClient: {
+    getServices: vi.fn(),
+    read: vi.fn(),
+    readDescriptor: vi.fn(),
+    startNotifications: vi.fn(),
+    stopNotifications: vi.fn(),
+  },
+}));
+
 describe('BLE measurements', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('keeps the BLE battery percentage distinct from a voltage measurement', () => {
     expect(MEASUREMENT_SOURCE_TO_ID[0x0000]).toBe('battery_level_percent');
   });
@@ -123,5 +140,59 @@ describe('BLE measurements', () => {
       4
     );
     expect(samples).toEqual([{ sourceId: 0x0017, value: true, rawHex: '01' }]);
+  });
+
+  it('subscribes separately to repeated characteristic UUID occurrences', async () => {
+    const repeatedCharacteristics = [0, 1].map(() => ({
+      uuid: PULSE_COUNT_CHAR_UUID,
+      properties: {
+        broadcast: false,
+        read: true,
+        writeWithoutResponse: false,
+        write: false,
+        notify: true,
+        indicate: false,
+        authenticatedSignedWrites: false,
+      },
+      descriptors: [],
+    }));
+    vi.mocked(BleClient.getServices).mockResolvedValue([{
+      uuid: MEASURES_SERVICE_UUID,
+      characteristics: repeatedCharacteristics,
+    }]);
+    vi.mocked(BleClient.read).mockResolvedValue(
+      new DataView(new Uint8Array([42, 0, 0, 0]).buffer)
+    );
+    vi.mocked(BleClient.startNotifications).mockResolvedValue();
+    vi.mocked(BleClient.stopNotifications).mockResolvedValue();
+
+    const subscriptions = await startMeasurementMonitoring('device-id', vi.fn(), vi.fn());
+
+    expect(BleClient.startNotifications).toHaveBeenCalledTimes(2);
+    expect(BleClient.startNotifications).toHaveBeenNthCalledWith(
+      1,
+      'device-id',
+      MEASURES_SERVICE_UUID,
+      PULSE_COUNT_CHAR_UUID,
+      expect.any(Function),
+      { characteristicIndex: 0 }
+    );
+    expect(BleClient.startNotifications).toHaveBeenNthCalledWith(
+      2,
+      'device-id',
+      MEASURES_SERVICE_UUID,
+      PULSE_COUNT_CHAR_UUID,
+      expect.any(Function),
+      { characteristicIndex: 1 }
+    );
+
+    await stopMeasurementMonitoring('device-id', subscriptions);
+    expect(BleClient.stopNotifications).toHaveBeenNthCalledWith(
+      2,
+      'device-id',
+      MEASURES_SERVICE_UUID,
+      PULSE_COUNT_CHAR_UUID,
+      { characteristicIndex: 1 }
+    );
   });
 });

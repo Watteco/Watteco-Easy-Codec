@@ -29,7 +29,10 @@ export type BleMeasurementSample = {
 export type BleMeasurementSubscription = {
   service: string;
   characteristic: string;
+  characteristicIndex: number;
 };
+
+type MeasurementValueOrigin = 'READ' | 'POLL' | 'NOTIFY';
 
 const pollingTimers = new Map<string, ReturnType<typeof setInterval>>();
 
@@ -224,7 +227,7 @@ async function readPresentation(
       serviceUuid,
       characteristic.uuid,
       descriptor.uuid,
-      { characteristicIndex } as any
+      { characteristicIndex }
     );
     const bytes = toUint8ArrayFromBleValue(raw);
     const parsed = bytes ? parsePresentationFormat(bytes) : null;
@@ -259,7 +262,6 @@ export async function startMeasurementMonitoring(
   )).join(', ') || 'none'}`);
 
   const subscriptions: BleMeasurementSubscription[] = [];
-  const monitoredCharacteristics = new Set<string>();
   const characteristicOccurrences = new Map<string, number>();
   const occurrenceCounts = new Map<string, number>();
   const pollReaders: Array<() => Promise<void>> = [];
@@ -287,7 +289,7 @@ export async function startMeasurementMonitoring(
     }
 
     let lastRawHex: string | null = null;
-    const processValue = (rawValue: DataView) => {
+    const processValue = (rawValue: DataView, origin: MeasurementValueOrigin) => {
       const bytes = toUint8ArrayFromBleValue(rawValue);
       if (!bytes) return;
       const samples = decodeKnownMeasurementCharacteristic(
@@ -299,41 +301,52 @@ export async function startMeasurementMonitoring(
       );
       for (const sample of samples) onSample(sample);
       const rawHex = toSpacedHex(bytes);
-      if (rawHex !== lastRawHex) {
-        lastRawHex = rawHex;
-        const sources = samples.map(sample => `0x${sample.sourceId.toString(16).padStart(4, '0')}`).join(',');
-        onLog(`[MEAS ${characteristicUuid.slice(0, 8)}#${occurrenceIndex + 1} -> ${sources || 'unsupported'}] ${rawHex}`);
-      }
+      const repeated = rawHex === lastRawHex;
+      lastRawHex = rawHex;
+      const sources = samples.map(sample => `0x${sample.sourceId.toString(16).padStart(4, '0')}`).join(',');
+      onLog(`[MEAS ${origin} ${repeated ? 'SAME' : 'NEW'} ${characteristicUuid.slice(0, 8)}#${occurrenceIndex + 1} -> ${sources || 'unsupported'}] ${rawHex}`);
     };
 
-    const readValue = async () => {
+    const readValue = async (origin: Extract<MeasurementValueOrigin, 'READ' | 'POLL'>) => {
       try {
         processValue(await BleClient.read(
           deviceId,
           service.uuid,
           characteristic.uuid,
-          { characteristicIndex: occurrenceIndex } as any
-        ));
+          { characteristicIndex: occurrenceIndex }
+        ), origin);
       } catch (error: any) {
         onLog(`[MEAS] Read failed ${characteristicUuid}: ${error?.message ?? error}`);
       }
     };
 
-    if (characteristic.properties.read) {
-      await readValue();
-      if (occurrenceCount > 1) pollReaders.push(readValue);
-    }
+    if (characteristic.properties.read) await readValue('READ');
 
-    if ((characteristic.properties.notify || characteristic.properties.indicate)
-      && occurrenceCount === 1
-      && !monitoredCharacteristics.has(characteristicUuid)) {
+    let notificationsStarted = false;
+    if (characteristic.properties.notify || characteristic.properties.indicate) {
       try {
-        await BleClient.startNotifications(deviceId, service.uuid, characteristic.uuid, processValue);
-        monitoredCharacteristics.add(characteristicUuid);
-        subscriptions.push({ service: service.uuid, characteristic: characteristic.uuid });
+        await BleClient.startNotifications(
+          deviceId,
+          service.uuid,
+          characteristic.uuid,
+          value => processValue(value, 'NOTIFY'),
+          { characteristicIndex: occurrenceIndex }
+        );
+        notificationsStarted = true;
+        subscriptions.push({
+          service: service.uuid,
+          characteristic: characteristic.uuid,
+          characteristicIndex: occurrenceIndex,
+        });
+        onLog(`[MEAS] NOTIFY enabled for ${characteristicUuid.slice(0, 8)}#${occurrenceIndex + 1}`);
       } catch (error: any) {
         onLog(`[MEAS] Notification failed ${characteristicUuid}: ${error?.message ?? error}`);
       }
+    }
+
+    if (characteristic.properties.read && occurrenceCount > 1 && !notificationsStarted) {
+      pollReaders.push(() => readValue('POLL'));
+      onLog(`[MEAS] POLL 1000 ms fallback enabled for ${characteristicUuid.slice(0, 8)}#${occurrenceIndex + 1} (${occurrenceCount} UUID occurrences)`);
     }
   }
 
@@ -368,7 +381,12 @@ export async function stopMeasurementMonitoring(
   }
   for (const subscription of subscriptions) {
     try {
-      await BleClient.stopNotifications(deviceId, subscription.service, subscription.characteristic);
+      await BleClient.stopNotifications(
+        deviceId,
+        subscription.service,
+        subscription.characteristic,
+        { characteristicIndex: subscription.characteristicIndex }
+      );
     } catch (error: any) {
       onLog?.(`[MEAS] Stop notification failed: ${error?.message ?? error}`);
     }
