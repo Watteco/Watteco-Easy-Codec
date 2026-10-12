@@ -84,10 +84,10 @@
         type="button"
         class="sensor-mobile-header-action"
         :class="{ 'sensor-mobile-header-action--pending': isDisconnecting }"
-        :aria-label="isDisconnecting ? localize('@bleDisconnecting') : localize('@bleDisconnect')"
+        :aria-label="isDisconnecting ? localize('@sessionExiting') : localize('@sessionExit')"
         :aria-busy="isDisconnecting"
         :disabled="isDisconnecting"
-        @click="disconnectAndGoBack"
+        @click="requestSessionExit"
       >
         <ion-spinner v-if="isDisconnecting" name="crescent" />
         <ion-icon v-else :icon="logOutOutline" aria-hidden="true" />
@@ -100,7 +100,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { IonIcon, IonSpinner } from '@ionic/vue';
+import { IonIcon, IonSpinner, alertController } from '@ionic/vue';
 import {
   alertCircleOutline,
   bluetoothOutline,
@@ -108,6 +108,7 @@ import {
   refreshOutline,
 } from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
+import { useSessionExitConfirmation } from '@/composables/useSessionExitConfirmation';
 import { getProductDisplayName, getProductMeasurements } from '@/utils/productMeasurements';
 import { getSensorVisual } from '@/utils/sensorVisuals';
 import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
@@ -127,6 +128,7 @@ const props = defineProps<{
 
 const router = useRouter();
 const ble = useBle();
+const { confirmationEnabled, setConfirmationEnabled } = useSessionExitConfirmation();
 const isDisconnecting = ref(false);
 const logoSrc = `${import.meta.env.BASE_URL}img/icon.png`;
 
@@ -175,9 +177,15 @@ const displayedBatteryLevel = computed(() => {
   return Math.round(Math.min(100, Math.max(0, level)));
 });
 const statusLabel = computed(() => {
-  if (isDisconnecting.value) return props.localize('@bleDisconnecting');
+  if (isDisconnecting.value) {
+    return props.localize(effectiveStatus.value === 'reconnect'
+      ? '@sessionExiting'
+      : '@bleDisconnecting');
+  }
   if (effectiveStatus.value === 'connected') return props.localize('@bleConnected');
-  if (effectiveStatus.value === 'reconnect') return props.localize('@bleConnectionLost');
+  if (effectiveStatus.value === 'reconnect') {
+    return props.localize(ble.reconnecting.value ? '@bleReconnecting' : '@bleConnectionLost');
+  }
   return props.localize('@bleNotConnected');
 });
 const connectedNetworksLabel = computed(() => {
@@ -203,7 +211,7 @@ const headerActionDisabled = computed(() => (
 
 const handleHeaderAction = async () => {
   if (effectiveStatus.value === 'connected') {
-    await disconnectAndGoBack();
+    await requestSessionExit();
     return;
   }
 
@@ -217,6 +225,47 @@ const handleHeaderAction = async () => {
   }
 
   await router.replace('/ble-connect');
+};
+
+const confirmSessionExit = async (): Promise<boolean> => {
+  if (!confirmationEnabled.value) return true;
+
+  const connected = effectiveStatus.value === 'connected';
+  const alert = await alertController.create({
+    header: props.localize(connected ? '@bleDisconnectConfirmTitle' : '@sessionExitConfirmTitle'),
+    message: props.localize('@sessionExitWarning'),
+    inputs: [
+      {
+        type: 'checkbox',
+        label: props.localize('@doNotAskAgain'),
+        value: 'do-not-ask-again',
+      },
+    ],
+    buttons: [
+      {
+        text: props.localize('@cancel'),
+        role: 'cancel',
+      },
+      {
+        text: props.localize(connected ? '@bleDisconnect' : '@sessionExit'),
+        role: 'confirm',
+        handler: (values: string[]) => {
+          if (values.includes('do-not-ask-again')) {
+            setConfirmationEnabled(false);
+          }
+        },
+      },
+    ],
+  });
+
+  await alert.present();
+  const result = await alert.onDidDismiss();
+  return result.role === 'confirm';
+};
+
+const requestSessionExit = async () => {
+  if (isDisconnecting.value || !(await confirmSessionExit())) return;
+  await disconnectAndGoBack();
 };
 
 const disconnectAndGoBack = async () => {

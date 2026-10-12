@@ -26,6 +26,11 @@ export function buildLoraRejoinFrame(duration: string): Uint8Array | null {
   ]);
 }
 
+export function isExpectedRestartDisconnect(error: unknown): boolean {
+  const message = String((error as any)?.message ?? error ?? '');
+  return /(?:status\s*=\s*133\b|\(\s*0x85\s*\))/i.test(message);
+}
+
 export async function rebootDevice(
   deviceId: string,
   onLog: (line: string) => void,
@@ -40,12 +45,19 @@ export async function rebootDevice(
 
   const payload = Uint8Array.of(1);
   const value = new DataView(payload.buffer);
-  if (characteristic.props.write) {
-    await BleClient.write(deviceId, characteristic.service, characteristic.characteristic, value);
-  } else if (characteristic.props.writeWithoutResponse) {
-    await BleClient.writeWithoutResponse(deviceId, characteristic.service, characteristic.characteristic, value);
-  } else {
-    throw new Error('Reboot C005 is not writable');
+  try {
+    if (characteristic.props.write) {
+      await BleClient.write(deviceId, characteristic.service, characteristic.characteristic, value);
+    } else if (characteristic.props.writeWithoutResponse) {
+      await BleClient.writeWithoutResponse(deviceId, characteristic.service, characteristic.characteristic, value);
+    } else {
+      throw new Error('Reboot C005 is not writable');
+    }
+  } catch (error) {
+    // Android reports GATT 133 when the sensor reboots before acknowledging
+    // the write. For this command, that disconnect is the expected outcome.
+    if (!isExpectedRestartDisconnect(error)) throw error;
+    onLog('[ADMIN REBOOT] Sensor disconnected while acknowledging the command (GATT 133)');
   }
   onLog(`[ADMIN REBOOT] ${toSpacedHex(payload)}`);
 }

@@ -14,6 +14,10 @@ export type AppRxSubscription = {
   notifications: boolean;
 };
 
+type AppTxWriteOptions = {
+  expectedWriteError?: (error: unknown) => boolean;
+};
+
 let appRxQueue = Promise.resolve();
 const releaseAppRxBySubscription = new WeakMap<AppRxSubscription, () => void>();
 const stopAppRxBySubscription = new WeakMap<AppRxSubscription, Promise<void>>();
@@ -140,6 +144,7 @@ export async function writeAppTx(
   deviceId: string,
   frame: Uint8Array,
   onLog: (line: string) => void,
+  options: AppTxWriteOptions = {},
 ): Promise<void> {
   const characteristic = await findCharacteristicByUuid(
     deviceId,
@@ -150,12 +155,17 @@ export async function writeAppTx(
   if (!characteristic) throw new Error('AppTx C006 is unavailable');
 
   const value = new DataView(frame.buffer, frame.byteOffset, frame.byteLength);
-  if (characteristic.props.write) {
-    await BleClient.write(deviceId, characteristic.service, characteristic.characteristic, value);
-  } else if (characteristic.props.writeWithoutResponse) {
-    await BleClient.writeWithoutResponse(deviceId, characteristic.service, characteristic.characteristic, value);
-  } else {
-    throw new Error('AppTx C006 is not writable');
+  try {
+    if (characteristic.props.write) {
+      await BleClient.write(deviceId, characteristic.service, characteristic.characteristic, value);
+    } else if (characteristic.props.writeWithoutResponse) {
+      await BleClient.writeWithoutResponse(deviceId, characteristic.service, characteristic.characteristic, value);
+    } else {
+      throw new Error('AppTx C006 is not writable');
+    }
+  } catch (error) {
+    if (!options.expectedWriteError?.(error)) throw error;
+    onLog(`[APP TX] Sensor disconnected while acknowledging the command: ${String((error as any)?.message ?? error)}`);
   }
   onLog(`[APP TX] ${toSpacedHex(frame)}`);
 }

@@ -222,6 +222,15 @@
                 <ion-button v-else expand="block" color="medium" @click="cancelCampaign">
                   {{ localize('@toolsCancelCampaign') }}
                 </ion-button>
+                <ion-button
+                  v-if="developerModeEnabled && !campaignRunning"
+                  expand="block"
+                  fill="outline"
+                  color="medium"
+                  @click="simulateCampaign"
+                >
+                  {{ localize('@toolsSimulateCampaign') }}
+                </ion-button>
               </div>
               <p
                 v-if="feedback && feedbackContext === 'network-test'"
@@ -399,6 +408,7 @@ import { toSpacedHex } from '@/utils/BLE/blob';
 import {
   buildLoraRejoinFrame,
   FACTORY_RESET_FRAME,
+  isExpectedRestartDisconnect,
   rebootDevice,
 } from '@/utils/BLE/deviceCommands';
 import {
@@ -799,7 +809,14 @@ async function sendPresetFrame(
   feedback.value = '';
   feedbackError.value = false;
   try {
-    await writeAppTx(deviceId, frame, line => console.debug(line));
+    await writeAppTx(
+      deviceId,
+      frame,
+      line => console.debug(line),
+      kind === 'factory-reset'
+        ? { expectedWriteError: isExpectedRestartDisconnect }
+        : undefined,
+    );
     feedback.value = localize('@toolsCommandSent');
   } catch (error: any) {
     feedbackError.value = true;
@@ -899,6 +916,26 @@ async function startCampaign() {
 
 function cancelCampaign() {
   campaignCancelled = true;
+}
+
+function simulateCampaign() {
+  const now = Date.now();
+  const simulatedValues = [
+    { marginDb: 12, gatewayCount: 2, rssiDbm: -98, snrDb: 5.5 },
+    { marginDb: 9, gatewayCount: 1, rssiDbm: -105, snrDb: 2.1 },
+    { marginDb: 15, gatewayCount: 3, rssiDbm: -92, snrDb: 7.8 },
+    { marginDb: 7, gatewayCount: 1, rssiDbm: -110, snrDb: -1.3 },
+    { marginDb: 11, gatewayCount: 2, rssiDbm: -101, snrDb: 3.9 },
+  ];
+
+  campaignSamples.value = simulatedValues.map((sample, index) => ({
+    timestamp: now - (CAMPAIGN_SIZE - 1 - index) * INTER_TEST_DELAY_MS,
+    ...sample,
+  }));
+  campaignMessage.value = localize('@toolsCampaignSimulated');
+  feedback.value = '';
+  feedbackError.value = false;
+  feedbackContext.value = 'network-test';
 }
 
 onIonViewDidEnter(() => {

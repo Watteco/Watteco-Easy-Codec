@@ -1,7 +1,7 @@
 {
   "name": "watteco-codec",
   "private": true,
-  "version": "0.11.15-dev.178",
+  "version": "0.11.15-dev.184",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,7 @@
     "sync:android": "npx cap sync android",
     "sync:ios": "npx cap sync ios",
     "android": "npm run build:android && npm run sync:android",
-    "android:debug": "node scripts/increment-debug-version.mjs && cross-env VITE_ENABLE_BLE_DEBUG=true npm run android",
+    "android:debug": "node scripts/increment-debug-version.mjs && cross-env VITE_ENABLE_BLE_DEBUG=true npm run android && node scripts/print-app-version.mjs",
     "ios": "npm run build:ios && npm run sync:ios",
     "open:android": "npx cap open android",
     "preview": "vite preview",

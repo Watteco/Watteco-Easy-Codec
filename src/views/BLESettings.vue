@@ -31,6 +31,17 @@
             <ion-select-option value="system">{{ localize('@themeSystem') }}</ion-select-option>
           </ion-select>
         </ion-item>
+        <ion-item>
+          <ion-label class="confirmation-setting-label">
+            {{ localize('@confirmSessionExitSetting') }}
+          </ion-label>
+          <ion-toggle
+            slot="end"
+            :checked="confirmationEnabled"
+            :aria-label="localize('@confirmSessionExitSetting')"
+            @ionChange="setConfirmationEnabled($event.detail.checked)"
+          />
+        </ion-item>
         <ion-item
           :button="developerModeAvailable"
           :detail="false"
@@ -54,12 +65,14 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import {
   IonBackButton, IonButtons, IonContent, IonHeader,
   IonPage, IonTitle, IonToolbar, IonList, IonItem, IonSelect, IonSelectOption, IonLabel, IonNote,
+  IonToggle,
 } from '@ionic/vue';
 import axios from 'axios';
 import { appVersion } from '@/utils/appVersion';
 import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import { useTheme } from '@/composables/useTheme';
+import { useSessionExitConfirmation } from '@/composables/useSessionExitConfirmation';
 import type { LanguageCode, Translations } from '@/types/localization';
 
 import enUS from '/localisation/en_US.json?url';
@@ -67,6 +80,7 @@ import frFR from '/localisation/fr_FR.json?url';
 
 const { currentLanguage, changeLanguage } = useLanguage();
 const { themeMode, setThemeMode } = useTheme();
+const { confirmationEnabled, setConfirmationEnabled } = useSessionExitConfirmation();
 const {
   developerModeAvailable,
   developerModeEnabled,
@@ -158,5 +172,14 @@ ion-list {
   display: block;
   margin-top: 2px;
   font-size: 0.75rem;
+}
+
+.confirmation-setting-label {
+  margin-right: 12px;
+  white-space: normal;
+}
+
+.confirmation-setting-label + ion-toggle {
+  flex: 0 0 auto;
 }
 </style>

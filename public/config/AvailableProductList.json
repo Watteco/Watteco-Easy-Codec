@@ -482,7 +482,7 @@
 		{
 			"name": "BETA HygroTemp'O Neo (50-70-260-671)",
 			"file": "50-70-260-671-HygroTemp'O-Neo",
-			"compatibleProducts": ["50-70-260-671"],
+			"compatibleProducts": ["50-70-260-671", "50-70-260-067"],
 			"apps": ["EasyCodec"],
 			"mId": ["hygrotempo-neo"],
 			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel 3,1,1,OpenCase",

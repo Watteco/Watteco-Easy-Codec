@@ -86,7 +86,8 @@ Development versions use `0.11.15-dev.4` and display as `v0.11.15d4`.
 
 - `npm run android:debug` increments the development suffix before building,
   updating both `package.json` and `package-lock.json`. A stable version starts
-  at `dev.0`; an existing `dev.N` becomes `dev.N+1`.
+  at `dev.0`; an existing `dev.N` becomes `dev.N+1`. After a successful build
+  and Android sync, the resulting version is printed again on the final line.
 - `npm run build:android:debug` builds the current version without incrementing it.
 - To set a release version, use `npm version 0.12.0 --no-git-tag-version`.
 - Test the increment script with `node --test scripts/increment-debug-version.test.mjs`.

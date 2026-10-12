@@ -1281,6 +1281,7 @@
                         : localize('@bleWriteDefaultConfig') }}
               </ion-button>
               <ion-checkbox
+                v-if="developerModeEnabled"
                 class="ble-activation-option"
                 label-placement="end"
                 justify="start"
@@ -1603,11 +1604,14 @@ const defaultConfigurationPreviewVisible = ref(false);
 const currentConfigurationPreviewVisible = ref(false);
 const defaultConfigurationPreview = ref('');
 const currentConfigurationPreview = ref('');
-// Developer mode defaults to storing the BLOB without applying/rebooting it.
-const activateConfigurationAfterSend = ref(!developerModeEnabled.value);
+// Production always applies the BLOB. Developer mode keeps an opt-out for diagnostics.
+const activateConfigurationAfterSend = ref(true);
 watch(developerModeEnabled, enabled => {
-  activateConfigurationAfterSend.value = !enabled;
+  if (!enabled) activateConfigurationAfterSend.value = true;
 });
+const shouldActivateConfigurationAfterSend = computed(() => (
+  !developerModeEnabled.value || activateConfigurationAfterSend.value
+));
 const batchVisible = ref(true);
 const standardVisible = ref(true);
 const modbusVisible = ref(true);
@@ -2554,7 +2558,7 @@ const sendDefaultConfigurationBle = async () => {
     const sentFrameCount = await ble.sendOutputFrames(
       debugOtaAppKeyHex.value,
       debugDevEuiHex.value,
-      activateConfigurationAfterSend.value,
+      shouldActivateConfigurationAfterSend.value,
       getBlobOnlyConfigurations()
     );
     await handleConfigurationSendResult(sentFrameCount, 'default');

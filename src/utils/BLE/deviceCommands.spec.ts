@@ -3,6 +3,7 @@ import {
   buildLoraRejoinFrame,
   durationToMinutes,
   FACTORY_RESET_FRAME,
+  isExpectedRestartDisconnect,
 } from '@/utils/BLE/deviceCommands';
 
 describe('device command frames', () => {
@@ -30,5 +31,17 @@ describe('device command frames', () => {
     expect(FACTORY_RESET_FRAME).toEqual(
       new Uint8Array([0x11, 0x50, 0x00, 0x50, 0x07]),
     );
+  });
+
+  it('recognizes the Android disconnect caused by a successful reboot', () => {
+    expect(isExpectedRestartDisconnect(
+      new Error('Writing characteristic failed. status=133 (0x85)'),
+    )).toBe(true);
+    expect(isExpectedRestartDisconnect(new Error('Write failed (0X85)'))).toBe(true);
+  });
+
+  it('does not hide unrelated reboot write errors', () => {
+    expect(isExpectedRestartDisconnect(new Error('Writing characteristic failed. status=8'))).toBe(false);
+    expect(isExpectedRestartDisconnect(new Error('Reboot C005 is not writable'))).toBe(false);
   });
 });
