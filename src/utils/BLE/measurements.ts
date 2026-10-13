@@ -299,10 +299,12 @@ export async function startMeasurementMonitoring(
         occurrenceIndex,
         occurrenceCount
       );
-      for (const sample of samples) onSample(sample);
       const rawHex = toSpacedHex(bytes);
       const repeated = rawHex === lastRawHex;
       lastRawHex = rawHex;
+      if (origin !== 'POLL' || !repeated) {
+        for (const sample of samples) onSample(sample);
+      }
       const sources = samples.map(sample => `0x${sample.sourceId.toString(16).padStart(4, '0')}`).join(',');
       onLog(`[MEAS ${origin} ${repeated ? 'SAME' : 'NEW'} ${characteristicUuid.slice(0, 8)}#${occurrenceIndex + 1} -> ${sources || 'unsupported'}] ${rawHex}`);
     };

@@ -19,8 +19,16 @@ describe('sensorVisuals', () => {
       history: true,
       historyMin: 0,
       historyMax: 100,
+      historyOnlyOnChange: false,
       priority: 0,
     });
+  });
+
+  it('only deduplicates counter history values', () => {
+    expect(getSensorVisual(54).historyOnlyOnChange).toBe(true);
+    expect(getSensorVisual(39).historyOnlyOnChange).toBe(false);
+    expect(getSensorVisual(49).historyOnlyOnChange).toBe(false);
+    expect(getSensorVisual(249).historyOnlyOnChange).toBe(false);
   });
 
   it('selects the accent for the active color scheme', () => {

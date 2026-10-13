@@ -195,4 +195,41 @@ describe('BLE measurements', () => {
       { characteristicIndex: 1 }
     );
   });
+
+  it('does not publish identical fallback polling reads as new samples', async () => {
+    vi.useFakeTimers();
+    try {
+      const repeatedCharacteristics = [0, 1].map(() => ({
+        uuid: PULSE_COUNT_CHAR_UUID,
+        properties: {
+          broadcast: false,
+          read: true,
+          writeWithoutResponse: false,
+          write: false,
+          notify: false,
+          indicate: false,
+          authenticatedSignedWrites: false,
+        },
+        descriptors: [],
+      }));
+      vi.mocked(BleClient.getServices).mockResolvedValue([{
+        uuid: MEASURES_SERVICE_UUID,
+        characteristics: repeatedCharacteristics,
+      }]);
+      vi.mocked(BleClient.read).mockResolvedValue(
+        new DataView(new Uint8Array([42, 0, 0, 0]).buffer)
+      );
+      const onSample = vi.fn();
+
+      const subscriptions = await startMeasurementMonitoring('poll-device', onSample, vi.fn());
+      expect(onSample).toHaveBeenCalledTimes(2);
+
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(onSample).toHaveBeenCalledTimes(2);
+
+      await stopMeasurementMonitoring('poll-device', subscriptions);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

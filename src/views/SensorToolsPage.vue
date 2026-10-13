@@ -219,7 +219,7 @@
                 >
                   <ion-icon
                     slot="start"
-                    :icon="deviceStatus.osaAuthenticated === true ? lockOpenOutline : lockClosedOutline"
+                    :icon="deviceStatus.osaAuthenticated === true ? lockOpenOutline : lockClosed"
                   />
                   {{ osaAuthenticating
                     ? localize('@toolsOsaAuthenticating')
@@ -253,7 +253,7 @@
 
             <div v-if="campaignSamples.length" class="chart-grid">
             <sensor-history-card
-              :label="localize('@toolsLinkMargin')"
+              :label="localize('@toolsLinkMarginLong')"
               :subtitle="localize('@toolsFiveMeasureCampaign')"
               :empty-label="localize('@noHistoryData')"
               :points="marginHistory"
@@ -262,7 +262,7 @@
               x-axis-mode="sequence"
             />
             <sensor-history-card
-              :label="localize('@toolsRssi')"
+              :label="localize('@toolsRssiLong')"
               :subtitle="localize('@toolsFiveMeasureCampaign')"
               :empty-label="localize('@noHistoryData')"
               :points="rssiHistory"
@@ -271,7 +271,7 @@
               x-axis-mode="sequence"
             />
             <sensor-history-card
-              :label="localize('@toolsSnr')"
+              :label="localize('@toolsSnrLong')"
               :subtitle="localize('@toolsFiveMeasureCampaign')"
               :empty-label="localize('@noHistoryData')"
               :points="snrHistory"
@@ -365,7 +365,7 @@
               <ion-button expand="block" :disabled="!canSendManualFrame" @click="sendManualFrame">
                 <ion-icon
                   slot="start"
-                  :icon="deviceStatus.osaAuthenticated === true ? lockOpenOutline : lockClosedOutline"
+                  :icon="deviceStatus.osaAuthenticated === true ? lockOpenOutline : lockClosed"
                 />
                 {{ osaAuthenticating
                   ? localize('@toolsOsaAuthenticating')
@@ -440,7 +440,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import axios from 'axios';
 import { IonButton, IonCard, IonCardContent, IonContent, IonIcon, IonPage, onIonViewDidEnter } from '@ionic/vue';
-import { chevronDownOutline, chevronForwardOutline, lockClosedOutline, lockOpenOutline } from 'ionicons/icons';
+import { chevronDownOutline, chevronForwardOutline, lockClosed, lockOpenOutline } from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
 import { useBleDebug } from '@/composables/useBleDebug';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
@@ -608,7 +608,7 @@ const snrHistory = computed(() => campaignSamples.value.flatMap((sample, index) 
 const manualFrame = computed(() => parseAppFrameHex(manualFrameHex.value));
 const rejoinFrame = computed(() => buildLoraRejoinFrame(rejoinDelay.value));
 const lockIcon = computed(() => (
-  deviceStatus.value.osaAuthenticated === true ? lockOpenOutline : lockClosedOutline
+  deviceStatus.value.osaAuthenticated === true ? lockOpenOutline : lockClosed
 ));
 const canSendCommand = computed(() => (
   ble.connected.value

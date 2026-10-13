@@ -26,7 +26,12 @@ import {
   stopMeasurementMonitoring,
   type BleMeasurementSubscription,
 } from '@/utils/BLE/measurements';
-import { getProductDisplayName, resolveAvailableProductReference } from '@/utils/productMeasurements';
+import {
+  getProductDisplayName,
+  getProductMeasurements,
+  resolveAvailableProductReference,
+} from '@/utils/productMeasurements';
+import { getSensorVisual } from '@/utils/sensorVisuals';
 import {
   startLoraLinkMonitoring,
   stopLoraLinkMonitoring,
@@ -283,9 +288,9 @@ function prepareMeasurementHistory(deviceId: string) {
   measurementHistoryDeviceId = deviceId;
 }
 
-function appendMeasurementHistory(measurementId: string, value: number) {
+function appendMeasurementHistory(measurementId: string, value: number, onlyOnChange = false) {
   const points = measurementHistory.value[measurementId] ?? [];
-  if (Object.is(points.at(-1)?.value, value)) return;
+  if (onlyOnChange && Object.is(points.at(-1)?.value, value)) return;
   measurementHistory.value = {
     ...measurementHistory.value,
     [measurementId]: [
@@ -685,6 +690,9 @@ async function connectToDeviceUntil(
       }
 
       try {
+        const historyOnlyOnChangeIds = new Set(getProductMeasurements(productReference.value)
+          .filter(measurement => getSensorVisual(measurement.measId).historyOnlyOnChange)
+          .map(measurement => measurement.id));
         measurementSubscriptions = await startMeasurementMonitoring(
           device.deviceId,
           (sample) => {
@@ -698,7 +706,11 @@ async function connectToDeviceUntil(
               [measurementId]: sample.value,
             };
             if (typeof sample.value === 'number') {
-              appendMeasurementHistory(measurementId, sample.value);
+              appendMeasurementHistory(
+                measurementId,
+                sample.value,
+                historyOnlyOnChangeIds.has(measurementId)
+              );
             }
           },
           log

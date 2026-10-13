@@ -42,6 +42,7 @@
     "labelKey": "@counterLabel",
     "priority": 20,
     "history": true,
+    "historyOnlyOnChange": true,
     "numbered": true
   },
   {

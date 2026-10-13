@@ -39,10 +39,11 @@
             <span>BLE</span>
             <ion-icon
               class="sensor-mobile-authentication-icon"
-              :icon="ble.osaAuthenticated.value === true ? lockOpenOutline : lockClosedOutline"
-              :aria-label="localize(ble.osaAuthenticated.value === true
-                ? '@toolsOsaAuthenticated'
-                : '@toolsOsaNotAuthenticated')"
+              :class="{
+                'sensor-mobile-authentication-icon--unknown': ble.osaAuthenticated.value === null,
+              }"
+              :icon="authenticationIcon"
+              :aria-label="authenticationLabel"
               role="img"
             />
             <span class="sensor-mobile-status-separator" aria-hidden="true">&middot;</span>
@@ -122,7 +123,7 @@ import { IonIcon, IonSpinner, alertController, toastController } from '@ionic/vu
 import {
   alertCircleOutline,
   bluetoothOutline,
-  lockClosedOutline,
+  lockClosed,
   lockOpenOutline,
   logOutOutline,
   refreshOutline,
@@ -168,6 +169,17 @@ const effectiveLoraWanJoined = computed<boolean | null>(() => {
 });
 const effectiveBleSignalLevel = computed<BleSignalLevel | null>(() => (
   props.bleSignalLevel ?? ble.bleSignalLevel.value
+));
+const authenticationIcon = computed(() => {
+  if (ble.osaAuthenticated.value === true) return lockOpenOutline;
+  return lockClosed;
+});
+const authenticationLabel = computed(() => props.localize(
+  ble.osaAuthenticated.value === true
+    ? '@toolsOsaAuthenticated'
+    : ble.osaAuthenticated.value === false
+      ? '@toolsOsaNotAuthenticated'
+      : '@toolsOsaAuthenticationUnknown',
 ));
 const displayedDeviceName = computed(() => {
   if (props.deviceName) return props.deviceName;
@@ -450,6 +462,10 @@ const disconnectAndGoBack = async () => {
   width: 10px;
   height: 10px;
   transform: translateY(-1px);
+}
+
+.sensor-mobile-authentication-icon--unknown {
+  opacity: 0.55;
 }
 
 .sensor-mobile-status-dot--offline {

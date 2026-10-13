@@ -22,6 +22,7 @@ export type SensorVisual = {
   darkAccent: string;
   icon: string;
   history: boolean;
+  historyOnlyOnChange: boolean;
   historyMin?: number;
   historyMax?: number;
   category?: string;
@@ -31,9 +32,10 @@ export type SensorVisual = {
   numbered?: boolean;
 };
 
-type SensorVisualGroup = Omit<SensorVisual, 'accent' | 'history'> & {
+type SensorVisualGroup = Omit<SensorVisual, 'accent' | 'history' | 'historyOnlyOnChange'> & {
   ids: string[];
   history?: boolean;
+  historyOnlyOnChange?: boolean;
 };
 
 const fallbackVisual: SensorVisual = {
@@ -42,6 +44,7 @@ const fallbackVisual: SensorVisual = {
   darkAccent: '#B0B6BE',
   icon: helpCircleOutline,
   history: false,
+  historyOnlyOnChange: false,
 };
 
 const sensorVisuals = new Map<string, SensorVisual>();
@@ -52,6 +55,7 @@ for (const {
   darkAccent,
   icon,
   history = false,
+  historyOnlyOnChange = false,
   historyMin,
   historyMax,
   category,
@@ -67,6 +71,7 @@ for (const {
       darkAccent,
       icon,
       history,
+      historyOnlyOnChange,
       historyMin,
       historyMax,
       category,
@@ -96,6 +101,7 @@ export const getSensorVisual = (id: string | number, darkMode = false): SensorVi
     darkAccent: visual.darkAccent,
     icon: icons[visual.icon as keyof typeof icons] ?? fallbackVisual.icon,
     history: visual.history,
+    historyOnlyOnChange: visual.historyOnlyOnChange,
     historyMin: visual.historyMin,
     historyMax: visual.historyMax,
     category: visual.category,

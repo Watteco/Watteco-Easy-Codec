@@ -1268,7 +1268,7 @@
                   slot="start"
                   :icon="configurationSendSuccessMode === 'default'
                     ? checkmarkCircleOutline
-                    : configurationOsaAuthenticated === true ? lockOpenOutline : lockClosedOutline"
+                    : configurationOsaAuthenticated === true ? lockOpenOutline : lockClosed"
                 />
                 {{ configurationSendMode === 'default' && ble.pairing.value
                   ? 'Pairing…'
@@ -1308,7 +1308,7 @@
                   slot="start"
                   :icon="configurationSendSuccessMode === 'current'
                     ? checkmarkCircleOutline
-                    : configurationOsaAuthenticated === true ? lockOpenOutline : lockClosedOutline"
+                    : configurationOsaAuthenticated === true ? lockOpenOutline : lockClosed"
                 />
                 {{ configurationSendMode === 'current' && ble.pairing.value
                   ? 'Pairing…'
@@ -1411,7 +1411,7 @@ import {
   IonText,
   onIonViewDidEnter,
 } from '@ionic/vue';
-import { checkmarkCircleOutline, chevronForwardOutline, closeOutline, eyeOffOutline, eyeOutline, lockClosedOutline, lockOpenOutline, refreshOutline } from 'ionicons/icons';
+import { checkmarkCircleOutline, chevronForwardOutline, closeOutline, eyeOffOutline, eyeOutline, lockClosed, lockOpenOutline, refreshOutline } from 'ionicons/icons';
 import { Capacitor } from '@capacitor/core';
 import { useBle } from '@/composables/useBle';
 import { useBleDebugCredentials, updateDebugDevEuiFromDeviceName } from '@/composables/useBleDebug';
