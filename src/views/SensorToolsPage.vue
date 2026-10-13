@@ -179,6 +179,10 @@
                       ? localize('@toolsSendingCommand')
                       : localize('@toolsFactoryReset') }}
                   </ion-button>
+                  <ion-button expand="block" disabled>
+                    <ion-icon slot="start" :icon="lockIcon" />
+                    {{ localize('@toolsFirmwareUpdate') }}
+                  </ion-button>
                 </div>
                 <p
                   v-if="feedback && feedbackContext === 'commands'"
@@ -277,18 +281,58 @@
               x-axis-mode="sequence"
             />
             <div class="campaign-results">
-              <div v-for="(sample, index) in campaignSamples" :key="`${sample.timestamp}-${index}`">
-                <span>#{{ index + 1 }}</span>
-                <div class="campaign-metrics">
-                  <strong>{{ sample.marginDb }} dB</strong>
+              <div
+                v-for="(sample, index) in campaignSamples"
+                :key="`${sample.timestamp}-${index}`"
+                class="campaign-result"
+              >
+                <div class="campaign-result__header">
+                  <strong>#{{ index + 1 }}</strong>
                   <span>{{ sample.gatewayCount }} {{ localize('@toolsGatewayShort') }}</span>
-                  <span>RSSI {{ formatOptionalValue(sample.rssiDbm, 'dBm') }}</span>
-                  <span>SNR {{ formatOptionalValue(sample.snrDb, 'dB', 1) }}</span>
-                  <span>{{ localize('@toolsTxDr') }} {{ formatDataRate(sample.txDataRate) }}</span>
-                  <span>{{ localize('@toolsRxDr') }} {{ formatDataRate(sample.rxDataRate) }}</span>
-                  <span>{{ localize('@toolsTxPower') }} {{ formatOptionalValue(sample.txPowerDbm, 'dBm') }}</span>
-                  <span>{{ localize('@toolsTxFrequency') }} {{ formatFrequency(sample.txFrequencyHz) }}</span>
-                  <span>{{ localize('@toolsRxWindow') }} {{ formatRxWindow(sample.rxWindow) }}</span>
+                </div>
+                <div class="campaign-directions">
+                  <section class="campaign-direction" aria-label="TX">
+                    <h4>TX</h4>
+                    <dl>
+                      <div>
+                        <dt>{{ localize('@toolsLinkMargin') }}</dt>
+                        <dd>{{ sample.marginDb }} dB</dd>
+                      </div>
+                      <div>
+                        <dt>{{ localize('@toolsTxPower') }}</dt>
+                        <dd>{{ formatOptionalValue(sample.txPowerDbm, 'dBm') }}</dd>
+                      </div>
+                      <div>
+                        <dt>{{ localize('@toolsTxSf') }}</dt>
+                        <dd>{{ formatSpreadingFactor(sample.txDataRate) }}</dd>
+                      </div>
+                      <div>
+                        <dt>{{ localize('@toolsTxFrequency') }}</dt>
+                        <dd>{{ formatFrequency(sample.txFrequencyHz) }}</dd>
+                      </div>
+                    </dl>
+                  </section>
+                  <section class="campaign-direction" aria-label="RX">
+                    <h4>RX</h4>
+                    <dl>
+                      <div>
+                        <dt>{{ localize('@toolsRssi') }}</dt>
+                        <dd>{{ formatOptionalValue(sample.rssiDbm, 'dBm') }}</dd>
+                      </div>
+                      <div>
+                        <dt>{{ localize('@toolsSnr') }}</dt>
+                        <dd>{{ formatOptionalValue(sample.snrDb, 'dB', 1) }}</dd>
+                      </div>
+                      <div>
+                        <dt>{{ localize('@toolsRxSf') }}</dt>
+                        <dd>{{ formatSpreadingFactor(sample.rxDataRate) }}</dd>
+                      </div>
+                      <div>
+                        <dt>{{ localize('@toolsRxWindow') }}</dt>
+                        <dd>{{ formatRxWindow(sample.rxWindow) }}</dd>
+                      </div>
+                    </dl>
+                  </section>
                 </div>
               </div>
             </div>
@@ -609,12 +653,6 @@ function formatOptionalValue(value: number | null, unit: string, decimals = 0): 
 function formatSpreadingFactor(dataRate: number | null): string {
   const spreadingFactor = eu868DataRateToSpreadingFactor(dataRate);
   return spreadingFactor === null ? '—' : `SF${spreadingFactor}`;
-}
-
-function formatDataRate(dataRate: number | null): string {
-  if (dataRate === null) return '—';
-  const spreadingFactor = formatSpreadingFactor(dataRate);
-  return spreadingFactor === '—' ? `DR${dataRate}` : `DR${dataRate} (${spreadingFactor})`;
 }
 
 function formatFrequency(frequencyHz: number | null): string {
@@ -1036,7 +1074,7 @@ onBeforeUnmount(() => {
   padding: 20px 12px 30px;
 }
 
-.tools-container section + section {
+.tools-container > section + section {
   margin-top: 24px;
 }
 
@@ -1161,21 +1199,66 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
   background: var(--app-border);
 }
 
-.campaign-results > div {
+.campaign-result {
   display: grid;
-  grid-template-columns: 34px 1fr;
-  gap: 10px;
+  gap: 8px;
   padding: 10px 12px;
   color: var(--app-text-muted);
   background: var(--app-surface);
   font-size: 0.8rem;
 }
 
-.campaign-results strong { color: var(--app-text); }
-.campaign-metrics {
+.campaign-result__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.campaign-result__header strong { color: var(--app-text); }
+
+.campaign-directions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px 10px;
+  gap: 14px;
+}
+
+.campaign-direction { min-width: 0; }
+
+.campaign-direction + .campaign-direction {
+  padding-left: 14px;
+  border-left: 1px solid var(--app-border);
+}
+
+.campaign-direction h4 {
+  margin: 0 0 5px;
+  color: var(--app-text);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.campaign-direction dl {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.campaign-direction dl > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.campaign-direction dt,
+.campaign-direction dd { margin: 0; }
+
+.campaign-direction dd {
+  color: var(--app-text);
+  font-weight: 650;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .status-actions {
