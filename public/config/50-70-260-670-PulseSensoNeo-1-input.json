@@ -76,6 +76,7 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "120",
+                    "step": "1",
                     "depends_on": "gBatchEmission",
                     "HMI": {
                         "label": "@echantLabel",
@@ -132,6 +133,7 @@
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
+                    "step": "1",
                     "HMI": {
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
@@ -147,6 +149,7 @@
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "60",
+                    "step": "1",
                     "depends_on": "pMultiStateStandEmission",
                     "HMI": {
                         "label": "@measureLabel",
@@ -159,6 +162,7 @@
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
+                    "step": "1",
                     "HMI": {
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
@@ -184,6 +188,7 @@
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "1440",
+                    "step": "1",
                     "depends_on": "bStandEmission",
                     "HMI": {
                         "label": "@measureLabel",
@@ -195,6 +200,7 @@
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
+                    "step": "1",
                     "HMI": {
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
