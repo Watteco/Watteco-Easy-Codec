@@ -154,6 +154,7 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
       'c002',
       bytes,
       pushDebugLog,
+      true,
     );
   }
 

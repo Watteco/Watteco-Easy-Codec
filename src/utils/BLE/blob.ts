@@ -498,7 +498,8 @@ export async function writeToCharacteristicInService(
   shortService: string,
   shortChar: string,
   data: Uint8Array,
-  onLog: (line: string) => void
+  onLog: (line: string) => void,
+  writeWithResponse = false,
 ): Promise<void> {
   const found = await findCharacteristic(deviceId, shortChar, shortService, onLog);
   if (!found) {
@@ -508,6 +509,15 @@ export async function writeToCharacteristicInService(
 
   try {
     const dataView = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    if (writeWithResponse) {
+      if (!found.props.write) {
+        onLog(`Char ${found.characteristic} does not support write with response`);
+        return;
+      }
+      await BleClient.write(deviceId, found.service, found.characteristic, dataView);
+      onLog(`${new Date().toLocaleTimeString()} [WRITE ${found.characteristic.slice(0, 8)}] ${toSpacedHex(data)}`);
+      return;
+    }
     if (found.props.writeWithoutResponse) {
       await BleClient.writeWithoutResponse(deviceId, found.service, found.characteristic, dataView);
       onLog(`${new Date().toLocaleTimeString()} [WRITE-wo ${found.characteristic.slice(0, 8)}] ${toSpacedHex(data)}`);

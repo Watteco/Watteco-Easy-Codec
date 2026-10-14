@@ -1,9 +1,46 @@
-import { describe, expect, it } from 'vitest';
+import { BleClient } from '@capacitor-community/bluetooth-le';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  decodeLoraLinkTestAttError,
   decodeLoraLinkStatus,
   decodeLoraWanJoined,
   eu868DataRateToSpreadingFactor,
+  LoraLinkTestRejectedError,
+  sendLoraLinkTest,
 } from '@/utils/BLE/loraLink';
+import {
+  LORA_LINK_TEST_CHAR_UUID,
+  LORA_SERVICE_UUID,
+} from '@/utils/BLE/characteristics';
+
+vi.mock('@capacitor-community/bluetooth-le', () => ({
+  BleClient: {
+    getServices: vi.fn(),
+    write: vi.fn(),
+    writeWithoutResponse: vi.fn(),
+  },
+}));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(BleClient.getServices).mockResolvedValue([{
+    uuid: LORA_SERVICE_UUID,
+    characteristics: [{
+      uuid: LORA_LINK_TEST_CHAR_UUID,
+      descriptors: [],
+      properties: {
+        broadcast: false,
+        read: false,
+        write: true,
+        writeWithoutResponse: true,
+        notify: false,
+        indicate: false,
+        authenticatedSignedWrites: false,
+      },
+    }],
+  }]);
+  vi.mocked(BleClient.write).mockResolvedValue();
+});
 
 describe('LoRaWAN LinkStatus', () => {
   it('decodes the joined field from a version 1 payload', () => {
@@ -79,5 +116,50 @@ describe('LoRaWAN LinkStatus', () => {
     expect(eu868DataRateToSpreadingFactor(6)).toBe(7);
     expect(eu868DataRateToSpreadingFactor(7)).toBeNull();
     expect(eu868DataRateToSpreadingFactor(null)).toBeNull();
+  });
+});
+
+describe('LoRaWAN LinkTest writes', () => {
+  it('uses a write with response even when write without response is available', async () => {
+    await sendLoraLinkTest('device-id', {
+      linkCheck: true,
+      sendUplink: true,
+      fport: 199,
+    }, vi.fn());
+
+    expect(BleClient.write).toHaveBeenCalledOnce();
+    expect(BleClient.writeWithoutResponse).not.toHaveBeenCalled();
+    const data = vi.mocked(BleClient.write).mock.calls[0][3];
+    expect(Array.from(new Uint8Array(data.buffer, data.byteOffset, data.byteLength))).toEqual([
+      0x01, 0x03, 0xc7, 0x00,
+    ]);
+  });
+
+  it.each([
+    [0x81, 'not-initialized'],
+    [0x82, 'invalid'],
+    [0x83, 'busy'],
+    [0x84, 'failed'],
+    [0x85, 'no-time'],
+    [0x86, 'invalid-stack-id'],
+    [0x87, 'no-event'],
+  ] as const)('decodes Android ATT error 0x%s as %s', (attCode, reason) => {
+    expect(decodeLoraLinkTestAttError(
+      new Error(`Writing characteristic failed. status=${attCode} (0x${attCode.toString(16)})`),
+    )).toEqual({ attCode, reason });
+  });
+
+  it('throws a typed rejection when the modem is busy', async () => {
+    vi.mocked(BleClient.write).mockRejectedValueOnce(
+      new Error('Writing characteristic failed. status=131 (0x83)'),
+    );
+
+    const request = sendLoraLinkTest('device-id', { linkCheck: true }, vi.fn());
+    await expect(request).rejects.toMatchObject({
+      name: 'LoraLinkTestRejectedError',
+      attCode: 0x83,
+      reason: 'busy',
+    });
+    await expect(request).rejects.toBeInstanceOf(LoraLinkTestRejectedError);
   });
 });

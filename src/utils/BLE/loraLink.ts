@@ -54,6 +54,82 @@ export type LoraLinkTestOptions = {
   payload?: Uint8Array;
 };
 
+export type LoraLinkTestRejectionReason =
+  | 'not-initialized'
+  | 'invalid'
+  | 'busy'
+  | 'failed'
+  | 'no-time'
+  | 'invalid-stack-id'
+  | 'no-event';
+
+const LORA_LINK_TEST_ATT_ERRORS: Record<number, LoraLinkTestRejectionReason> = {
+  0x81: 'not-initialized',
+  0x82: 'invalid',
+  0x83: 'busy',
+  0x84: 'failed',
+  0x85: 'no-time',
+  0x86: 'invalid-stack-id',
+  0x87: 'no-event',
+};
+
+export class LoraLinkTestRejectedError extends Error {
+  readonly attCode: number;
+  readonly reason: LoraLinkTestRejectionReason;
+
+  constructor(attCode: number, reason: LoraLinkTestRejectionReason) {
+    const formattedCode = `0x${attCode.toString(16).padStart(2, '0').toUpperCase()}`;
+    super(`LinkTest rejected by the modem (${reason}, ATT ${formattedCode})`);
+    this.name = 'LoraLinkTestRejectedError';
+    this.attCode = attCode;
+    this.reason = reason;
+  }
+}
+
+export function decodeLoraLinkTestAttError(error: unknown): {
+  attCode: number;
+  reason: LoraLinkTestRejectionReason;
+} | null {
+  const candidate = error as {
+    status?: unknown;
+    code?: unknown;
+    errorCode?: unknown;
+    androidErrorCode?: unknown;
+    message?: unknown;
+  };
+  const directValues = [
+    candidate?.status,
+    candidate?.code,
+    candidate?.errorCode,
+    candidate?.androidErrorCode,
+  ];
+  let attCode: number | null = null;
+  for (const value of directValues) {
+    if (typeof value === 'number' && Number.isInteger(value)) {
+      attCode = value;
+      break;
+    }
+    if (typeof value === 'string' && /^(?:0x[0-9a-f]+|\d+)$/i.test(value.trim())) {
+      attCode = Number(value.trim());
+      break;
+    }
+  }
+
+  const message = String(candidate?.message ?? error ?? '');
+  if (attCode === null) {
+    const hexMatch = message.match(/\b0x(8[1-7])\b/i);
+    const decimalMatch = message.match(/\bstatus\s*=\s*(12[9]|13[0-5])\b/i);
+    if (hexMatch) attCode = Number.parseInt(hexMatch[1], 16);
+    else if (decimalMatch) attCode = Number(decimalMatch[1]);
+  }
+
+  // TODO(iOS): preserve the numeric CBATTError code in the Capacitor bridge if
+  // CoreBluetooth's localizedDescription does not include the vendor ATT code.
+  if (attCode === null) return null;
+  const reason = LORA_LINK_TEST_ATT_ERRORS[attCode];
+  return reason ? { attCode, reason } : null;
+}
+
 const FLAG_JOIN_TIMESTAMP_VALID = 0x02;
 const FLAG_HEARTBEAT_VALID = 0x04;
 const FLAG_RX_METADATA_VALID = 0x08;
@@ -191,9 +267,7 @@ export async function startLoraLinkMonitoring(
   const testCharacteristic = service.characteristics?.find(candidate => (
     normalizeUuid(candidate.uuid) === LORA_LINK_TEST_CHAR_UUID
   ));
-  const testAvailable = Boolean(
-    testCharacteristic?.properties.write || testCharacteristic?.properties.writeWithoutResponse
-  );
+  const testAvailable = Boolean(testCharacteristic?.properties.write);
 
   return {
     service: service.uuid,
@@ -279,12 +353,18 @@ export async function sendLoraLinkTest(
   const command = new Uint8Array([0x01, flags, fport, payload.length, ...payload]);
   const data = new DataView(command.buffer);
 
-  if (characteristic.properties.writeWithoutResponse) {
-    await BleClient.writeWithoutResponse(deviceId, service.uuid, characteristic.uuid, data);
-  } else if (characteristic.properties.write) {
+  if (!characteristic.properties.write) {
+    throw new Error('LoRaWAN LinkTest requires BLE write with response');
+  }
+  try {
     await BleClient.write(deviceId, service.uuid, characteristic.uuid, data);
-  } else {
-    throw new Error('LoRaWAN LinkTest is not writable');
+  } catch (error: unknown) {
+    const rejection = decodeLoraLinkTestAttError(error);
+    if (rejection) {
+      onLog(`[LORA] LinkTest rejected (${rejection.reason}, ATT 0x${rejection.attCode.toString(16).padStart(2, '0')})`);
+      throw new LoraLinkTestRejectedError(rejection.attCode, rejection.reason);
+    }
+    throw error;
   }
   onLog(`[LORA] LinkTest sent (flags=0x${flags.toString(16).padStart(2, '0')}, fport=${fport}, payload=${payload.length})`);
 }

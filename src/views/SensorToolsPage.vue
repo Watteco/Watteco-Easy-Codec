@@ -546,6 +546,7 @@ import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
 import {
   eu868DataRateToSpreadingFactor,
+  LoraLinkTestRejectedError,
   type LoraLinkStatus,
 } from '@/utils/BLE/loraLink';
 import {
@@ -637,6 +638,8 @@ const CAMPAIGN_SIZE = 5;
 const MAX_CAMPAIGN_RUNS = 4;
 const CAMPAIGN_COLORS = ['#f47b20', '#4f7bd9', '#2f9d68', '#8a67c7'];
 const LINK_CHECK_TIMEOUT_MS = 45_000;
+const LINK_TEST_BUSY_RETRY_TIMEOUT_MS = 45_000;
+const LINK_TEST_BUSY_RETRY_DELAY_MS = 2_000;
 const INTER_TEST_DELAY_MS = 5_000;
 const APP_RX_FIRST_RESPONSE_TIMEOUT_MS = 2_000;
 const APP_RX_IDLE_TIMEOUT_MS = 1_000;
@@ -780,6 +783,19 @@ const canSendManualFrame = computed(() => (
 function localize(key: string): string {
   if (!key.startsWith('@')) return key;
   return languages.value[currentLanguage.value][key.substring(1)] ?? key;
+}
+
+function formatLinkTestRejection(error: LoraLinkTestRejectedError): string {
+  const localizationKeys = {
+    'not-initialized': '@toolsLinkTestNotInitialized',
+    invalid: '@toolsLinkTestInvalid',
+    busy: '@toolsLinkTestBusy',
+    failed: '@toolsLinkTestFailed',
+    'no-time': '@toolsLinkTestNoTime',
+    'invalid-stack-id': '@toolsLinkTestInvalidStackId',
+    'no-event': '@toolsLinkTestNoEvent',
+  } satisfies Record<typeof error.reason, string>;
+  return `${localize(localizationKeys[error.reason])} (ATT 0x${error.attCode.toString(16).padStart(2, '0').toUpperCase()})`;
 }
 
 function formatDate(value: number | null | undefined): string {
@@ -1006,6 +1022,40 @@ async function waitForFreshLinkCheck(
     ) return nextStatus;
   }
   throw new Error(localize('@toolsCampaignTimeout'));
+}
+
+async function sendCampaignLinkTest(measurementMessage: string): Promise<{
+  previousLinkCheckTimestamp: number | undefined;
+  previousRxSequence: number | undefined;
+  previousTxSequence: number | undefined;
+}> {
+  const deadline = Date.now() + LINK_TEST_BUSY_RETRY_TIMEOUT_MS;
+  let busyAttempts = 0;
+  while (!campaignCancelled) {
+    const previousLinkCheckTimestamp = ble.loraLinkStatus.value?.linkCheck?.timestamp;
+    const previousRxSequence = ble.loraLinkStatus.value?.rx?.sequence;
+    const previousTxSequence = ble.loraLinkStatus.value?.tx?.sequence;
+    try {
+      await ble.sendLoraLinkTest({
+        linkCheck: true,
+        sendUplink: true,
+        fport: 199,
+      });
+      campaignMessage.value = measurementMessage;
+      return { previousLinkCheckTimestamp, previousRxSequence, previousTxSequence };
+    } catch (error: unknown) {
+      if (!(error instanceof LoraLinkTestRejectedError) || error.reason !== 'busy') throw error;
+      busyAttempts += 1;
+      if (Date.now() + LINK_TEST_BUSY_RETRY_DELAY_MS > deadline) throw error;
+      campaignMessage.value = localize('@toolsCampaignBusyRetry')
+        .replace('{attempt}', String(busyAttempts));
+      if (developerModeEnabled.value) {
+        pushDebugLog(`[LORA] LinkTest busy; automatic retry #${busyAttempts} in ${LINK_TEST_BUSY_RETRY_DELAY_MS} ms`);
+      }
+      await delay(LINK_TEST_BUSY_RETRY_DELAY_MS);
+    }
+  }
+  throw new Error(localize('@toolsCampaignCancelled'));
 }
 
 function clearDeviceInformation(): void {
@@ -1266,17 +1316,15 @@ async function startCampaign() {
   try {
     for (let index = 0; index < CAMPAIGN_SIZE; index += 1) {
       if (campaignCancelled) break;
-      campaignMessage.value = localize('@toolsCampaignMeasurement')
+      const measurementMessage = localize('@toolsCampaignMeasurement')
         .replace('{current}', String(index + 1))
         .replace('{total}', String(CAMPAIGN_SIZE));
-      const previousLinkCheckTimestamp = ble.loraLinkStatus.value?.linkCheck?.timestamp;
-      const previousRxSequence = ble.loraLinkStatus.value?.rx?.sequence;
-      const previousTxSequence = ble.loraLinkStatus.value?.tx?.sequence;
-      await ble.sendLoraLinkTest({
-        linkCheck: true,
-        sendUplink: true,
-        fport: 199,
-      });
+      campaignMessage.value = measurementMessage;
+      const {
+        previousLinkCheckTimestamp,
+        previousRxSequence,
+        previousTxSequence,
+      } = await sendCampaignLinkTest(measurementMessage);
       const response = await waitForFreshLinkCheck(
         previousLinkCheckTimestamp,
         previousRxSequence,
@@ -1306,7 +1354,9 @@ async function startCampaign() {
       campaignMessage.value = localize('@toolsCampaignCancelled');
     } else {
       feedbackError.value = true;
-      feedback.value = error?.message ?? String(error);
+      feedback.value = error instanceof LoraLinkTestRejectedError
+        ? formatLinkTestRejection(error)
+        : error?.message ?? String(error);
       campaignMessage.value = localize('@toolsCampaignStopped');
     }
   } finally {
