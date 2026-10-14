@@ -2991,8 +2991,8 @@ ion-segment-button::part(indicator-background) {
 }
 
 .category-card {
-  margin-top: 14px;
-  margin-bottom: 14px;
+  margin-top: 18px;
+  margin-bottom: 18px;
   overflow: hidden;
   border: 1px solid var(--app-border);
   box-shadow: var(--app-card-shadow);
@@ -3001,27 +3001,28 @@ ion-segment-button::part(indicator-background) {
 
 .category-card > .config-item {
   margin: 0;
-  min-height: 58px;
-  padding: 4px 12px 4px 2px;
+  min-height: 64px;
+  padding: 6px 12px 6px 2px;
   color: var(--app-text);
-  border-left: 4px solid var(--ion-color-primary);
+  border-left: 5px solid var(--ion-color-primary);
   border-bottom: 1px solid var(--app-border);
   background: var(--app-surface);
   --background: var(--app-surface);
   --padding-start: 0;
   --inner-padding-end: 0;
-  --min-height: 58px;
+  --min-height: 64px;
 }
 
 .category-card > .config-item ion-label {
-  font-size: 1rem;
-  font-weight: 650;
+  font-size: 1.05rem;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .subcategory-card {
   overflow: hidden;
   border: 1px solid var(--app-border);
+  border-radius: 10px;
   box-shadow: none;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   --background: var(--app-surface);
@@ -3032,7 +3033,6 @@ ion-segment-button::part(indicator-background) {
   min-height: 52px;
   padding: 2px 12px 2px 0;
   color: var(--app-text);
-  border-left: 4px solid var(--ion-color-primary);
   border-bottom: 1px solid var(--app-border);
   background: var(--app-surface);
   --background: var(--app-surface);
@@ -3097,10 +3097,18 @@ ion-segment-button::part(indicator-background) {
 .subcategory-card-holder {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  padding: 10px;
+  padding: 12px 12px 14px 20px;
   background: var(--app-surface-subtle);
+}
+
+.category-card > .config-item .visibility-button ion-icon {
+  font-size: 1.15rem;
+}
+
+.subcategory-card > .config-item .visibility-button ion-icon {
+  font-size: 0.9rem;
 }
 
 .commande-grid {
@@ -3339,7 +3347,7 @@ ion-range::part(pin)::before {
   .subcategory-card-holder {
     grid-template-columns: 1fr;
     gap: 8px;
-    padding: 7px;
+    padding: 10px 8px 12px 14px;
   }
 
   .category-card {

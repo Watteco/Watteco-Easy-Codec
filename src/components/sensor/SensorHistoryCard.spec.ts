@@ -138,4 +138,59 @@ describe('SensorHistoryCard', () => {
     expect(wrapper.get('.chart-tooltip').text()).toContain('#4');
     expect(wrapper.get('.chart-tooltip').text()).not.toContain('1970');
   });
+
+  it('overlays several series on a shared sequence axis', () => {
+    const wrapper = mount(SensorHistoryCard, {
+      props: {
+        label: 'RSSI',
+        subtitle: 'Network test comparison',
+        emptyLabel: 'No data',
+        series: [
+          {
+            id: 'current',
+            label: 'Current',
+            accent: '#f47b20',
+            points: [{ sequence: 1, value: -91 }, { sequence: 2, value: -93 }],
+          },
+          {
+            id: 'previous',
+            label: '14:32',
+            accent: '#4f7bd9',
+            points: Array.from({ length: 5 }, (_, index) => ({
+              sequence: index + 1,
+              value: -100 - index,
+            })),
+          },
+        ],
+        selectedSeriesId: 'current',
+        xAxisMode: 'sequence',
+      },
+    });
+
+    expect(wrapper.findAll('.chart-stroke')).toHaveLength(2);
+    expect(wrapper.findAll('.chart-point')).toHaveLength(7);
+    expect(wrapper.findAll('.chart-axis span').map(label => label.text())).toEqual(['#1', '#5']);
+    expect(wrapper.findAll('.chart-point')[1].attributes('style')).toContain('left: 25.75%');
+  });
+
+  it('selects the series of a clicked point', async () => {
+    const wrapper = mount(SensorHistoryCard, {
+      props: {
+        label: 'SNR',
+        subtitle: 'Network test comparison',
+        emptyLabel: 'No data',
+        series: [
+          { id: 'current', label: 'Current', points: [{ sequence: 1, value: 3.2 }] },
+          { id: 'previous', label: '14:32', points: [{ sequence: 1, value: 1.8 }] },
+        ],
+        selectedSeriesId: 'current',
+        xAxisMode: 'sequence',
+      },
+    });
+
+    await wrapper.findAll('.chart-point')[1].trigger('click');
+
+    expect(wrapper.emitted('select-series')).toEqual([['previous']]);
+    expect(wrapper.get('.chart-tooltip').text()).toContain('14:32');
+  });
 });

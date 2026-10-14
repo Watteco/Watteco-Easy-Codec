@@ -12,7 +12,7 @@
       </header>
 
       <div
-        v-if="chartPoints.length"
+        v-if="hasChartPoints"
         class="chart"
         @click="clearSelectedPoint"
         @keydown.esc="clearSelectedPoint"
@@ -34,44 +34,66 @@
           role="img"
           :aria-label="`${label}: ${formatAxisValue(scaleBounds.min)}–${formatAxisValue(scaleBounds.max)} ${unit}`"
         >
-          <path class="chart-area" :d="areaPath" />
-          <path class="chart-stroke" :d="linePath" />
+          <template v-for="seriesItem in chartSeries" :key="seriesItem.id">
+            <path
+              v-if="seriesItem.selected"
+              class="chart-area"
+              :d="seriesItem.areaPath"
+              :style="{ '--series-accent': seriesItem.accent }"
+            />
+            <path
+              class="chart-stroke"
+              :class="{ 'chart-stroke--muted': !seriesItem.selected }"
+              :d="seriesItem.linePath"
+              :style="{ '--series-accent': seriesItem.accent }"
+            />
+          </template>
         </svg>
         <div class="chart-points">
-          <button
-            v-for="(point, index) in chartPoints"
-            :key="`${point.timestamp ?? point.sequence ?? index}-${index}`"
-            type="button"
-            class="chart-point"
-            :class="{ 'chart-point--selected': selectedPointIndex === index }"
-            :style="{
-              left: `${point.x}%`,
-              top: `${point.y}%`,
-              width: `min(32px, ${point.hitWidth}%)`,
-            }"
-            :aria-label="formatPointDetails(point, index)"
-            :aria-pressed="selectedPointIndex === index"
-            @click.stop="toggleSelectedPoint(index)"
-          />
+          <template v-for="seriesItem in chartSeries" :key="seriesItem.id">
+            <button
+              v-for="(point, index) in seriesItem.points"
+              :key="`${seriesItem.id}-${point.timestamp ?? point.sequence ?? index}-${index}`"
+              type="button"
+              class="chart-point"
+              :class="{
+                'chart-point--selected': selectedPoint?.seriesId === seriesItem.id && selectedPoint.index === index,
+                'chart-point--muted': !seriesItem.selected,
+              }"
+              :style="{
+                left: `${point.x}%`,
+                top: `${point.y}%`,
+                width: `min(32px, ${point.hitWidth}%)`,
+                '--series-accent': seriesItem.accent,
+              }"
+              :aria-label="formatPointDetails(point, index, seriesItem.label)"
+              :aria-pressed="selectedPoint?.seriesId === seriesItem.id && selectedPoint.index === index"
+              @click.stop="toggleSelectedPoint(seriesItem.id, index)"
+            />
+          </template>
           <div
             v-if="selectedPoint"
             class="chart-tooltip"
             :class="{
-              'chart-tooltip--start': selectedPoint.x < 20,
-              'chart-tooltip--end': selectedPoint.x > 80,
-              'chart-tooltip--below': selectedPoint.y < 35,
+              'chart-tooltip--start': selectedPoint.point.x < 20,
+              'chart-tooltip--end': selectedPoint.point.x > 80,
+              'chart-tooltip--below': selectedPoint.point.y < 35,
             }"
-            :style="{ left: `${selectedPoint.x}%`, top: `${selectedPoint.y}%` }"
+            :style="{
+              left: `${selectedPoint.point.x}%`,
+              top: `${selectedPoint.point.y}%`,
+              '--series-accent': selectedPoint.accent,
+            }"
             role="status"
             aria-live="polite"
           >
-            <strong>{{ formatValue(selectedPoint.value) }} {{ unit }}</strong>
-            <span>{{ formatPointContext(selectedPoint, selectedPointIndex ?? 0) }}</span>
+            <strong>{{ formatValue(selectedPoint.point.value) }} {{ unit }}</strong>
+            <span>{{ selectedPoint.label }} · {{ formatPointContext(selectedPoint.point, selectedPoint.index) }}</span>
           </div>
         </div>
         <div class="chart-axis">
-          <span>{{ formatXAxisLabel(chartPoints[0], 0) }}</span>
-          <span>{{ formatXAxisLabel(chartPoints[chartPoints.length - 1], chartPoints.length - 1) }}</span>
+          <span>{{ xAxisLabels[0] }}</span>
+          <span>{{ xAxisLabels[1] }}</span>
         </div>
       </div>
 
@@ -94,11 +116,20 @@ type HistoryPoint = {
   value: number;
 };
 
+type HistorySeries = {
+  id: string;
+  label: string;
+  accent?: string;
+  points: readonly HistoryPoint[];
+};
+
 const props = withDefaults(defineProps<{
   label: string;
   subtitle: string;
   emptyLabel: string;
-  points: readonly HistoryPoint[];
+  points?: readonly HistoryPoint[];
+  series?: readonly HistorySeries[];
+  selectedSeriesId?: string;
   unit?: string;
   accent?: string;
   decimals?: number;
@@ -110,20 +141,36 @@ const props = withDefaults(defineProps<{
   accent: '#F47B20',
   decimals: 0,
   xAxisMode: 'time',
+  points: () => [],
+  series: () => [],
 });
+const emit = defineEmits<{
+  (event: 'select-series', seriesId: string): void;
+}>();
 
-const selectedPointIndex = ref<number | null>(null);
+const selectedPointKey = ref<{ seriesId: string; index: number } | null>(null);
 
-const roundedPoints = computed(() => {
+const normalizedSeries = computed(() => (
+  props.series.length
+    ? props.series
+    : [{ id: 'default', label: props.label, accent: props.accent, points: props.points }]
+));
+
+const roundedSeries = computed(() => {
   const factor = 10 ** props.decimals;
 
-  return props.points.map(point => ({
-    ...point,
-    value: Math.sign(point.value)
-      * Math.round((Math.abs(point.value) + Number.EPSILON) * factor)
-      / factor,
+  return normalizedSeries.value.map(seriesItem => ({
+    ...seriesItem,
+    points: seriesItem.points.map(point => ({
+      ...point,
+      value: Math.sign(point.value)
+        * Math.round((Math.abs(point.value) + Number.EPSILON) * factor)
+        / factor,
+    })),
   }));
 });
+
+const roundedPoints = computed(() => roundedSeries.value.flatMap(seriesItem => seriesItem.points));
 
 const scaleBounds = computed(() => {
   if (!roundedPoints.value.length) return { min: 0, max: 1 };
@@ -149,10 +196,9 @@ const scaleBounds = computed(() => {
   return { min, max };
 });
 
-const chartPoints = computed(() => {
-  if (!roundedPoints.value.length) return [];
-
-  const points = [...roundedPoints.value].sort((left, right) => (
+const positionPoints = (sourcePoints: readonly HistoryPoint[]) => {
+  if (!sourcePoints.length) return [];
+  const points = [...sourcePoints].sort((left, right) => (
     props.xAxisMode === 'sequence'
       ? (left.sequence ?? 0) - (right.sequence ?? 0)
       : (left.timestamp ?? 0) - (right.timestamp ?? 0)
@@ -164,8 +210,19 @@ const chartPoints = computed(() => {
       ? point.sequence ?? index + 1
       : point.timestamp ?? index
   ));
-  const firstHorizontalValue = horizontalValues[0];
-  const horizontalRange = horizontalValues[horizontalValues.length - 1] - firstHorizontalValue;
+  const sharedHorizontalValues = roundedPoints.value.map((point, index) => (
+    props.xAxisMode === 'sequence'
+      ? point.sequence ?? index + 1
+      : point.timestamp ?? index
+  ));
+  const useSharedDomain = roundedSeries.value.length > 1 && sharedHorizontalValues.length > 1;
+  const firstHorizontalValue = useSharedDomain
+    ? Math.min(...sharedHorizontalValues)
+    : horizontalValues[0];
+  const lastHorizontalValue = useSharedDomain
+    ? Math.max(...sharedHorizontalValues)
+    : horizontalValues[horizontalValues.length - 1];
+  const horizontalRange = lastHorizontalValue - firstHorizontalValue;
 
   const positionedPoints = points.map((point, index) => ({
     ...point,
@@ -185,27 +242,50 @@ const chartPoints = computed(() => {
       100,
     )),
   }));
-});
+};
 
-const lastPoint = computed(() => chartPoints.value.at(-1));
+const chartSeries = computed(() => roundedSeries.value.map((seriesItem, seriesIndex) => {
+  const points = positionPoints(seriesItem.points);
+  const selected = props.selectedSeriesId
+    ? seriesItem.id === props.selectedSeriesId
+    : seriesIndex === 0;
+  const linePath = points.map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`).join(' ');
+  const areaPath = points.length
+    ? `${linePath} L ${points.at(-1)?.x} 100 L ${points[0].x} 100 Z`
+    : '';
+  return {
+    ...seriesItem,
+    accent: seriesItem.accent ?? props.accent,
+    points,
+    selected,
+    linePath,
+    areaPath,
+  };
+}));
+
+const chartPoints = computed(() => (
+  chartSeries.value.find(seriesItem => seriesItem.points.length)?.points ?? []
+));
+const hasChartPoints = computed(() => chartSeries.value.some(seriesItem => seriesItem.points.length));
+
+const lastPoint = computed(() => {
+  const selectedSeries = chartSeries.value.find(seriesItem => seriesItem.selected);
+  return selectedSeries ? selectedSeries.points.at(-1) : chartPoints.value.at(-1);
+});
 const selectedPoint = computed(() => (
-  selectedPointIndex.value === null
+  selectedPointKey.value === null
     ? undefined
-    : chartPoints.value[selectedPointIndex.value]
+    : (() => {
+      const seriesItem = chartSeries.value.find(item => item.id === selectedPointKey.value?.seriesId);
+      const point = seriesItem?.points[selectedPointKey.value.index];
+      return seriesItem && point
+        ? { ...selectedPointKey.value, point, label: seriesItem.label, accent: seriesItem.accent }
+        : undefined;
+    })()
 ));
 
-watch(() => props.points, () => {
-  selectedPointIndex.value = null;
-});
-
-const linePath = computed(() => chartPoints.value
-  .map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`)
-  .join(' '));
-
-const areaPath = computed(() => {
-  const points = chartPoints.value;
-  if (!points.length) return '';
-  return `${linePath.value} L ${points.at(-1)?.x} 100 L ${points[0].x} 100 Z`;
+watch([() => props.points, () => props.series], () => {
+  selectedPointKey.value = null;
 });
 
 const formatValue = (value: number) => value.toLocaleString(undefined, {
@@ -233,22 +313,38 @@ const formatXAxisLabel = (point: HistoryPoint, index: number) => (
     : formatTimestamp(point.timestamp ?? 0)
 );
 
+const xAxisLabels = computed(() => {
+  if (!chartPoints.value.length) return ['', ''];
+  if (props.xAxisMode === 'sequence' && roundedSeries.value.length > 1) {
+    const sequences = roundedPoints.value.map((point, index) => point.sequence ?? index + 1);
+    return [`#${Math.min(...sequences)}`, `#${Math.max(...sequences)}`];
+  }
+  return [
+    formatXAxisLabel(chartPoints.value[0], 0),
+    formatXAxisLabel(chartPoints.value.at(-1) ?? chartPoints.value[0], chartPoints.value.length - 1),
+  ];
+});
+
 const formatPointContext = (point: HistoryPoint, index: number) => (
   props.xAxisMode === 'sequence'
     ? `#${point.sequence ?? index + 1}`
     : formatDetailsTimestamp(point.timestamp ?? 0)
 );
 
-const formatPointDetails = (point: HistoryPoint, index: number) => (
-  `${formatValue(point.value)} ${props.unit}, ${formatPointContext(point, index)}`
+const formatPointDetails = (point: HistoryPoint, index: number, seriesLabel: string) => (
+  `${seriesLabel}, ${formatValue(point.value)} ${props.unit}, ${formatPointContext(point, index)}`
 );
 
-const toggleSelectedPoint = (index: number) => {
-  selectedPointIndex.value = selectedPointIndex.value === index ? null : index;
+const toggleSelectedPoint = (seriesId: string, index: number) => {
+  emit('select-series', seriesId);
+  selectedPointKey.value = selectedPointKey.value?.seriesId === seriesId
+    && selectedPointKey.value.index === index
+    ? null
+    : { seriesId, index };
 };
 
 const clearSelectedPoint = () => {
-  selectedPointIndex.value = null;
+  selectedPointKey.value = null;
 };
 </script>
 
@@ -327,18 +423,20 @@ const clearSelectedPoint = () => {
 }
 
 .chart-area {
-  fill: var(--history-accent);
+  fill: var(--series-accent, var(--history-accent));
   opacity: 0.1;
 }
 
 .chart-stroke {
   fill: none;
-  stroke: var(--history-accent);
+  stroke: var(--series-accent, var(--history-accent));
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
+
+.chart-stroke--muted { opacity: 0.32; }
 
 .chart-points {
   position: absolute;
@@ -368,7 +466,7 @@ const clearSelectedPoint = () => {
   left: 50%;
   width: 7px;
   height: 7px;
-  border: 2px solid var(--history-accent);
+  border: 2px solid var(--series-accent, var(--history-accent));
   border-radius: 50%;
   background: var(--app-surface);
   box-sizing: border-box;
@@ -377,12 +475,14 @@ const clearSelectedPoint = () => {
   transition: width 120ms ease, height 120ms ease, background-color 120ms ease;
 }
 
+.chart-point--muted { opacity: 0.42; }
+
 .chart-point:hover::after,
 .chart-point:focus-visible::after,
 .chart-point--selected::after {
   width: 12px;
   height: 12px;
-  background: var(--history-accent);
+  background: var(--series-accent, var(--history-accent));
 }
 
 .chart-point:focus-visible {
@@ -417,7 +517,7 @@ const clearSelectedPoint = () => {
 }
 
 .chart-tooltip strong {
-  color: var(--history-accent);
+  color: var(--series-accent, var(--history-accent));
   font-size: 0.8rem;
 }
 
