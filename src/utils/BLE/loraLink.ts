@@ -123,8 +123,6 @@ export function decodeLoraLinkTestAttError(error: unknown): {
     else if (decimalMatch) attCode = Number(decimalMatch[1]);
   }
 
-  // TODO(iOS): preserve the numeric CBATTError code in the Capacitor bridge if
-  // CoreBluetooth's localizedDescription does not include the vendor ATT code.
   if (attCode === null) return null;
   const reason = LORA_LINK_TEST_ATT_ERRORS[attCode];
   return reason ? { attCode, reason } : null;

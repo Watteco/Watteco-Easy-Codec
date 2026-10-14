@@ -33,6 +33,11 @@ La plateforme iOS est maintenant présente dans le projet.
 - Faire le build + sync iOS en une seule commande :
   - `npm run ios`
 
+- Préparer un build iOS avec le mode développeur BLE :
+  - `npm run ios:debug`
+  - Incrémente automatiquement la version `-dev.N` avant le build et affiche la version générée à la fin, comme `android:debug`.
+  - Puis relancer l'application sur l'iPhone depuis Xcode. Dans les paramètres de l'application, cinq appuis rapides sur la version activent le mode développeur pour cette session.
+
 ### Remarques importantes
 
 - Sur Windows, ces commandes préparent correctement la partie Capacitor iOS, mais ne permettent pas de compiler l'application native.

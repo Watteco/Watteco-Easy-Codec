@@ -162,4 +162,27 @@ describe('LoRaWAN LinkTest writes', () => {
     });
     await expect(request).rejects.toBeInstanceOf(LoraLinkTestRejectedError);
   });
+
+  it.each([
+    [0x81, 'not-initialized'],
+    [0x82, 'invalid'],
+    [0x83, 'busy'],
+    [0x84, 'failed'],
+    [0x85, 'no-time'],
+    [0x86, 'invalid-stack-id'],
+    [0x87, 'no-event'],
+  ] as const)('preserves iOS vendor ATT error 0x%s as %s', async (attCode, reason) => {
+    vi.mocked(BleClient.write).mockRejectedValueOnce(
+      new Error(`Unknown ATT error (ATT 0x${attCode.toString(16)})`),
+    );
+
+    await expect(sendLoraLinkTest('device-id', { linkCheck: true }, vi.fn()))
+      .rejects.toMatchObject({ name: 'LoraLinkTestRejectedError', attCode, reason });
+    expect(BleClient.writeWithoutResponse).not.toHaveBeenCalled();
+  });
+
+  it('keeps an unknown iOS error unclassified when its ATT code is missing or unsupported', () => {
+    expect(decodeLoraLinkTestAttError(new Error('Unknown ATT error'))).toBeNull();
+    expect(decodeLoraLinkTestAttError(new Error('Unknown ATT error (ATT 0x88)'))).toBeNull();
+  });
 });

@@ -62,7 +62,7 @@ index f09e6a0..42cbdf6 100644
 +                val statusHex = String.format("0x%02X", status)
 +                reject(key, "Writing characteristic failed. status=$status ($statusHex)")
              }
- 
+
          }
 @@ -214,7 +215,7 @@ class Device(
              }
@@ -310,3 +310,249 @@ index 61a9a5c..ff393f5 100644
  }
  export interface ReadDescriptorOptions {
      deviceId: string;
+diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.swift b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.swift
+--- a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.swift
++++ b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.swift
+@@ -131,7 +131,7 @@
+     ) {
+         let key = "readRssi"
+         if error != nil {
+-            self.reject(key, error!.localizedDescription)
++            self.reject(key, bleErrorToString(error!))
+             return
+         }
+         self.resolve(key, RSSI.stringValue)
+@@ -139,16 +139,13 @@
+
+     private func getCharacteristic(
+         _ serviceUUID: CBUUID,
+-        _ characteristicUUID: CBUUID
++        _ characteristicUUID: CBUUID,
++        _ characteristicIndex: Int = 0
+     ) -> CBCharacteristic? {
+-        for service in peripheral.services ?? [] {
+-            if service.uuid == serviceUUID {
+-                for characteristic in service.characteristics ?? [] {
+-                    if characteristic.uuid == characteristicUUID {
+-                        return characteristic
+-                    }
+-                }
+-            }
++        guard characteristicIndex >= 0 else { return nil }
++        for service in peripheral.services ?? [] where service.uuid == serviceUUID {
++            let matches = (service.characteristics ?? []).filter { $0.uuid == characteristicUUID }
++            return characteristicIndex < matches.count ? matches[characteristicIndex] : nil
+         }
+         return nil
+     }
+@@ -156,9 +153,10 @@
+     private func getDescriptor(
+         _ serviceUUID: CBUUID,
+         _ characteristicUUID: CBUUID,
+-        _ descriptorUUID: CBUUID
++        _ descriptorUUID: CBUUID,
++        _ characteristicIndex: Int = 0
+     ) -> CBDescriptor? {
+-        guard let characteristic = self.getCharacteristic(serviceUUID, characteristicUUID) else {
++        guard let characteristic = self.getCharacteristic(serviceUUID, characteristicUUID, characteristicIndex) else {
+             return nil
+         }
+         for descriptor in characteristic.descriptors ?? [] {
+@@ -172,12 +170,13 @@
+     func read(
+         _ serviceUUID: CBUUID,
+         _ characteristicUUID: CBUUID,
+-        _ timeout: Double,
+-        _ callback: @escaping Callback
+-    ) {
+-        let key = "read|\(serviceUUID.uuidString)|\(characteristicUUID.uuidString)"
+-        self.callbackMap[key] = callback
+-        guard let characteristic = self.getCharacteristic(serviceUUID, characteristicUUID) else {
++        _ characteristicIndex: Int,
++        _ timeout: Double,
++        _ callback: @escaping Callback
++    ) {
++        let key = "read|\(cbuuidToStringUppercase(serviceUUID))|\(cbuuidToStringUppercase(characteristicUUID))|\(characteristicIndex)"
++        self.callbackMap[key] = callback
++        guard let characteristic = self.getCharacteristic(serviceUUID, characteristicUUID, characteristicIndex) else {
+             self.reject(key, "Characteristic not found.")
+             return
+         }
+@@ -194,7 +193,7 @@
+         let key = self.getKey("read", characteristic)
+         let notifyKey = self.getKey("notification", characteristic)
+         if error != nil {
+-            self.reject(key, error!.localizedDescription)
++            self.reject(key, bleErrorToString(error!))
+             return
+         }
+         if characteristic.value == nil {
+@@ -215,13 +214,14 @@
+     func readDescriptor(
+         _ serviceUUID: CBUUID,
+         _ characteristicUUID: CBUUID,
++        _ characteristicIndex: Int,
+         _ descriptorUUID: CBUUID,
+         _ timeout: Double,
+         _ callback: @escaping Callback
+     ) {
+-        let key = "readDescriptor|\(serviceUUID.uuidString)|\(characteristicUUID.uuidString)|\(descriptorUUID.uuidString)"
+-        self.callbackMap[key] = callback
+-        guard let descriptor = self.getDescriptor(serviceUUID, characteristicUUID, descriptorUUID) else {
++        let key = "readDescriptor|\(cbuuidToStringUppercase(serviceUUID))|\(cbuuidToStringUppercase(characteristicUUID))|\(characteristicIndex)|\(cbuuidToStringUppercase(descriptorUUID))"
++        self.callbackMap[key] = callback
++        guard let descriptor = self.getDescriptor(serviceUUID, characteristicUUID, descriptorUUID, characteristicIndex) else {
+             self.reject(key, "Descriptor not found.")
+             return
+         }
+@@ -237,7 +237,7 @@
+     ) {
+         let key = self.getKey("readDescriptor", descriptor)
+         if error != nil {
+-            self.reject(key, error!.localizedDescription)
++            self.reject(key, bleErrorToString(error!))
+             return
+         }
+         if descriptor.value == nil {
+@@ -278,7 +278,7 @@
+     ) {
+         let key = self.getKey("write", characteristic)
+         if error != nil {
+-            self.reject(key, error!.localizedDescription)
++            self.reject(key, bleErrorToString(error!))
+             return
+         }
+         self.resolve(key, "Successfully written value.")
+@@ -310,7 +310,7 @@
+     ) {
+         let key = self.getKey("writeDescriptor", descriptor)
+         if error != nil {
+-            self.reject(key, error!.localizedDescription)
++            self.reject(key, bleErrorToString(error!))
+             return
+         }
+         self.resolve(key, "Successfully written descriptor value.")
+@@ -319,21 +319,20 @@
+     func setNotifications(
+         _ serviceUUID: CBUUID,
+         _ characteristicUUID: CBUUID,
++        _ characteristicIndex: Int,
+         _ enable: Bool,
+         _ notifyCallback: Callback?,
+         _ timeout: Double,
+         _ callback: @escaping Callback
+     ) {
+-        let key = "setNotifications|\(serviceUUID.uuidString)|\(characteristicUUID.uuidString)"
+-        let notifyKey = "notification|\(serviceUUID.uuidString)|\(characteristicUUID.uuidString)"
+-        self.callbackMap[key] = callback
+-        if notifyCallback != nil {
+-            self.callbackMap[notifyKey] = notifyCallback
+-        }
+-        guard let characteristic = self.getCharacteristic(serviceUUID, characteristicUUID) else {
++        let key = "setNotifications|\(cbuuidToStringUppercase(serviceUUID))|\(cbuuidToStringUppercase(characteristicUUID))|\(characteristicIndex)"
++        let notifyKey = "notification|\(cbuuidToStringUppercase(serviceUUID))|\(cbuuidToStringUppercase(characteristicUUID))|\(characteristicIndex)"
++        self.callbackMap[key] = callback
++        guard let characteristic = self.getCharacteristic(serviceUUID, characteristicUUID, characteristicIndex) else {
+             self.reject(key, "Characteristic not found.")
+             return
+         }
++        self.callbackMap[notifyKey] = enable ? notifyCallback : nil
+         log("Set notifications", enable)
+         self.peripheral.setNotifyValue(enable, for: characteristic)
+         self.setTimeout(key, "Set notifications timeout.", timeout)
+@@ -346,7 +345,7 @@
+     ) {
+         let key = self.getKey("setNotifications", characteristic)
+         if error != nil {
+-            self.reject(key, error!.localizedDescription)
++            self.reject(key, bleErrorToString(error!))
+             return
+         }
+         self.resolve(key, "Successfully set notifications.")
+@@ -369,6 +368,13 @@
+         } else {
+             characteristicUUIDString = "UNKNOWN-CHARACTERISTIC"
+         }
++        if ["read", "readDescriptor", "notification", "setNotifications"].contains(prefix),
++           let characteristic = characteristic {
++            // Match the discovered CoreBluetooth instance, not just its UUID.
++            let matches = (characteristic.service?.characteristics ?? []).filter { $0.uuid == characteristic.uuid }
++            let index = matches.firstIndex { $0 === characteristic } ?? 0
++            return "\(prefix)|\(serviceUUIDString)|\(characteristicUUIDString)|\(index)"
++        }
+         return "\(prefix)|\(serviceUUIDString)|\(characteristicUUIDString)"
+     }
+
+diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Plugin.swift b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Plugin.swift
+--- a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Plugin.swift
++++ b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Plugin.swift
+@@ -352,8 +352,9 @@
+         guard self.getDeviceManager(call) != nil else { return }
+         guard let device = self.getDevice(call) else { return }
+         guard let characteristic = self.getCharacteristic(call) else { return }
+-        let timeout = self.getTimeout(call)
+-        device.read(characteristic.0, characteristic.1, timeout, {(success, value) in
++        let characteristicIndex = call.getInt("characteristicIndex") ?? 0
++        let timeout = self.getTimeout(call)
++        device.read(characteristic.0, characteristic.1, characteristicIndex, timeout, {(success, value) in
+             if success {
+                 call.resolve([
+                     "value": value
+@@ -416,10 +417,12 @@
+         guard self.getDeviceManager(call) != nil else { return }
+         guard let device = self.getDevice(call) else { return }
+         guard let descriptor = self.getDescriptor(call) else { return }
++        let characteristicIndex = call.getInt("characteristicIndex") ?? 0
+         let timeout = self.getTimeout(call)
+         device.readDescriptor(
+             descriptor.0,
+             descriptor.1,
++            characteristicIndex,
+             descriptor.2,
+             timeout, {(success, value) in
+                 if success {
+@@ -459,12 +462,14 @@
+         guard self.getDeviceManager(call) != nil else { return }
+         guard let device = self.getDevice(call) else { return }
+         guard let characteristic = self.getCharacteristic(call) else { return }
++        let characteristicIndex = call.getInt("characteristicIndex") ?? 0
+         let timeout = self.getTimeout(call)
+         device.setNotifications(
+             characteristic.0,
+             characteristic.1,
++            characteristicIndex,
+             true, {(_, value) in
+-                let key = "notification|\(device.getId())|\(characteristic.0.uuidString.lowercased())|\(characteristic.1.uuidString.lowercased())"
++                let key = "notification|\(device.getId())|\(cbuuidToString(characteristic.0))|\(cbuuidToString(characteristic.1))|\(characteristicIndex)"
+                 self.notifyListeners(key, data: ["value": value])
+             },
+             timeout, {(success, value) in
+@@ -480,10 +485,12 @@
+         guard self.getDeviceManager(call) != nil else { return }
+         guard let device = self.getDevice(call) else { return }
+         guard let characteristic = self.getCharacteristic(call) else { return }
++        let characteristicIndex = call.getInt("characteristicIndex") ?? 0
+         let timeout = self.getTimeout(call)
+         device.setNotifications(
+             characteristic.0,
+             characteristic.1,
++            characteristicIndex,
+             false,
+             nil,
+             timeout, {(success, value) in
+diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Conversion.swift b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Conversion.swift
+--- a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Conversion.swift
++++ b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Conversion.swift
+@@ -72,3 +72,12 @@
+     let str = cbuuidToString(uuid)
+     return str.uppercased()
+ }
++
++// Keep vendor ATT codes: CoreBluetooth can describe all of them as "Unknown ATT error".
++func bleErrorToString(_ error: Error) -> String {
++    let nativeError = error as NSError
++    guard nativeError.domain == CBATTErrorDomain else {
++        return nativeError.localizedDescription
++    }
++    return "\(nativeError.localizedDescription) (ATT 0x\(String(nativeError.code, radix: 16)))"
++}

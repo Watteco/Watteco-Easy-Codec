@@ -1538,7 +1538,7 @@ const languages = ref<Record<LanguageCode, Translations>>({
 const { developerModeEnabled } = useDeveloperMode();
 const isNativeApp = Capacitor.isNativePlatform();
 const bleHideInProd = computed(() => (
-  Capacitor.getPlatform() === 'android' && !developerModeEnabled.value
+  isNativeApp && !developerModeEnabled.value
 ));
 
 // BLE composable (only active on native platforms, no-op on web)
