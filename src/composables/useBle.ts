@@ -10,6 +10,7 @@ import {
 } from '@/utils/BLE/blob';
 import {
   readAppRx,
+  readOutputFrameHexes,
   startAppRxMonitoring,
   stopAppRxMonitoring,
   takeFirstConfigurationFrames,
@@ -1181,17 +1182,7 @@ async function writeChunkWithRetries(chunk: Uint8Array) {
 function getOutputFrameHexes(): string[] {
   const outputArea = document.getElementById('outputArea');
   if (!outputArea) return [];
-
-  const text = (outputArea.innerText || outputArea.textContent || '').replace(/ /g, '');
-  const lines = text.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
-  const validFrames: string[] = [];
-  for (const line of lines) {
-    const clean = line.replace(/\s+/g, '');
-    if (/^[0-9a-fA-F]+$/.test(clean) && clean.length >= 2 && clean.length % 2 === 0) {
-      validFrames.push(clean);
-    }
-  }
-  return validFrames;
+  return readOutputFrameHexes(outputArea);
 }
 
 function getDefaultConfigurationPreview(
@@ -1255,7 +1246,11 @@ async function sendOutputFrames(
   }
 }
 
-async function sendCurrentConfigurationFrames(osaKeyHex: string, devEuiHex: string): Promise<number> {
+async function sendCurrentConfigurationFrames(
+  osaKeyHex: string,
+  devEuiHex: string,
+  onProgress?: (sent: number, total: number) => void,
+): Promise<number> {
   clearConfigurationFrameLogs();
   const deviceId = connectedDevice.value?.deviceId;
   if (!connected.value || !deviceId) {
@@ -1270,6 +1265,7 @@ async function sendCurrentConfigurationFrames(osaKeyHex: string, devEuiHex: stri
   if (sending.value) return 0;
 
   sending.value = true;
+  onProgress?.(0, currentConfigurationFrames.length);
   osaAuthenticating.value = true;
   statusMessage.value = 'Authenticating configuration transfer…';
   let osaAuthenticated = false;
@@ -1294,8 +1290,9 @@ async function sendCurrentConfigurationFrames(osaKeyHex: string, devEuiHex: stri
       logConfigurationFrame(`[APP RX] Monitoring unavailable: ${error?.message ?? error}`);
     }
     statusMessage.value = `Applying ${currentConfigurationFrames.length} configuration frame(s)…`;
-    for (const frameHex of currentConfigurationFrames) {
+    for (const [index, frameHex] of currentConfigurationFrames.entries()) {
       await writeAppTx(deviceId, hexToBytes(frameHex), logConfigurationFrame);
+      onProgress?.(index + 1, currentConfigurationFrames.length);
       await delay(INTER_FRAME_DELAY_MS);
       if (appRxSubscription && !appRxSubscription.notifications) {
         try {

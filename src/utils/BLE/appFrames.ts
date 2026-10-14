@@ -33,6 +33,13 @@ export function takeFirstConfigurationFrames(frames: readonly string[]): string[
   return frames.slice(0, separatorIndex < 0 ? frames.length : separatorIndex);
 }
 
+export function readOutputFrameHexes(outputArea: Element): string[] {
+  return Array.from(outputArea.children)
+    .filter(child => child.tagName === 'SPAN')
+    .map(child => (child.textContent ?? '').replace(/\s+/g, ''))
+    .filter(frame => /^(?:[0-9a-fA-F]{2})+$/.test(frame));
+}
+
 export async function startAppRxMonitoring(
   deviceId: string,
   onFrame: (frame: Uint8Array) => void,

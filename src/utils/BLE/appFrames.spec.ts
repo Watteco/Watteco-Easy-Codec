@@ -2,6 +2,7 @@ import { BleClient } from '@capacitor-community/bluetooth-le';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   parseAppFrameHex,
+  readOutputFrameHexes,
   startAppRxMonitoring,
   stopAppRxMonitoring,
   takeFirstConfigurationFrames,
@@ -51,6 +52,22 @@ describe('manual application frames', () => {
 });
 
 describe('current configuration frame selection', () => {
+  it('reads separate frames even when the output is hidden in production', () => {
+    const outputArea = document.createElement('div');
+    outputArea.style.display = 'none';
+    outputArea.innerHTML = '<span>11 50 00 50 02 03</span><br><span>11 05 8004 0000 08 00</span><br><span>00</span><br>';
+
+    expect(readOutputFrameHexes(outputArea)).toEqual([
+      '115000500203',
+      '1105800400000800',
+      '00',
+    ]);
+    expect(takeFirstConfigurationFrames(readOutputFrameHexes(outputArea))).toEqual([
+      '115000500203',
+      '1105800400000800',
+    ]);
+  });
+
   it('keeps only frames before the first 00 separator', () => {
     expect(takeFirstConfigurationFrames([
       '115000500203',

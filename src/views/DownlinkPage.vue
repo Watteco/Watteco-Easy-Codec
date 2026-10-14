@@ -1298,28 +1298,36 @@
               <pre v-if="developerModeEnabled && defaultConfigurationPreviewVisible" class="ble-payload-preview">{{ defaultConfigurationPreview }}</pre>
             </div>
             <div v-if="framesAvailable" class="ble-action">
-              <ion-button
-                @click="sendCurrentConfigurationBle"
-                :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value"
-                expand="block"
-                :color="configurationSendSuccessMode === 'current' ? 'success' : 'secondary'"
-              >
-                <ion-icon
-                  slot="start"
-                  :icon="configurationSendSuccessMode === 'current'
-                    ? checkmarkCircleOutline
-                    : configurationOsaAuthenticated === true ? lockOpenOutline : lockClosed"
+              <div class="ble-send-button-wrap">
+                <ion-button
+                  @click="sendCurrentConfigurationBle"
+                  :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value"
+                  expand="block"
+                  :color="configurationSendSuccessMode === 'current' ? 'success' : 'secondary'"
+                >
+                  <ion-icon
+                    slot="start"
+                    :icon="configurationSendSuccessMode === 'current'
+                      ? checkmarkCircleOutline
+                      : configurationOsaAuthenticated === true ? lockOpenOutline : lockClosed"
+                  />
+                  {{ configurationSendMode === 'current' && ble.pairing.value
+                    ? 'Pairing…'
+                    : configurationSendMode === 'current' && ble.osaAuthenticating.value
+                      ? localize('@bleAuthenticating')
+                      : configurationSendMode === 'current' && ble.sending.value
+                        ? localize('@bleSending')
+                        : configurationSendSuccessMode === 'current'
+                          ? localize('@bleConfigurationSent')
+                          : localize('@bleWriteCurrentConfig') }}
+                </ion-button>
+                <span
+                  v-if="configurationSendMode === 'current' && currentConfigurationProgress.total > 0"
+                  class="ble-send-button-fill"
+                  :style="{ width: `${100 * currentConfigurationProgress.sent / currentConfigurationProgress.total}%` }"
+                  aria-hidden="true"
                 />
-                {{ configurationSendMode === 'current' && ble.pairing.value
-                  ? 'Pairing…'
-                  : configurationSendMode === 'current' && ble.osaAuthenticating.value
-                    ? localize('@bleAuthenticating')
-                    : configurationSendMode === 'current' && ble.sending.value
-                      ? localize('@bleSending')
-                      : configurationSendSuccessMode === 'current'
-                        ? localize('@bleConfigurationSent')
-                        : localize('@bleWriteCurrentConfig') }}
-              </ion-button>
+              </div>
               <ion-button v-if="developerModeEnabled" size="small" fill="clear" class="ble-preview-toggle" @click="toggleCurrentConfigurationPreview">
                 <ion-icon slot="start" :icon="currentConfigurationPreviewVisible ? eyeOffOutline : eyeOutline" />
                 {{ localize(currentConfigurationPreviewVisible ? '@bleHideAppTxPreview' : '@bleShowAppTxPreview') }}
@@ -1600,6 +1608,7 @@ const paramGroupList: Record<string, any> = {}; // List of parameter groups
 const currentErrors: never[] = []; // Tracks current errors
 const framesAvailable = ref(false);
 const configurationSendMode = ref<'default' | 'current' | null>(null);
+const currentConfigurationProgress = ref({ sent: 0, total: 0 });
 const configurationSendSuccessMode = ref<'default' | 'current' | null>(null);
 let configurationSendSuccessTimer: ReturnType<typeof setTimeout> | undefined;
 const defaultConfigurationPreviewVisible = ref(false);
@@ -2571,12 +2580,14 @@ const sendDefaultConfigurationBle = async () => {
 
 const sendCurrentConfigurationBle = async () => {
   configurationSendSuccessMode.value = null;
+  currentConfigurationProgress.value = { sent: 0, total: 0 };
   configurationSendMode.value = 'current';
   if (developerModeEnabled.value) appFrameDebugVisible.value = true;
   try {
     const sentFrameCount = await ble.sendCurrentConfigurationFrames(
       debugOtaAppKeyHex.value,
-      debugDevEuiHex.value
+      debugDevEuiHex.value,
+      (sent, total) => { currentConfigurationProgress.value = { sent, total }; },
     );
     await handleConfigurationSendResult(sentFrameCount, 'current');
   } finally {
@@ -3452,6 +3463,26 @@ ion-range::part(pin)::before {
 
 .ble-action {
   flex: 1 1 240px;
+}
+
+.ble-send-button-wrap {
+  position: relative;
+}
+
+.ble-send-button-fill {
+  position: absolute;
+  inset: 2px auto 2px 2px;
+  max-width: calc(100% - 4px);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.16);
+  pointer-events: none;
+  transition: width 350ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ble-send-button-fill {
+    transition: none;
+  }
 }
 
 .ble-preview-toggle {
