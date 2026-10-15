@@ -181,6 +181,7 @@
     "toolsManualFrameDescription": "Injects an application frame through AppTx and displays the response received on AppRx.",
     "toolsHexPayload": "Hexadecimal frame",
     "toolsHexBackspace": "Delete previous character",
+    "toolsHexSpace": "Space",
     "toolsHexKeypad": "Hexadecimal keypad",
     "toolsSystemKeyboard": "System keyboard",
     "toolsLastCommandResponse": "Last command response",

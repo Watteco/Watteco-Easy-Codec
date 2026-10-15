@@ -451,7 +451,7 @@
               <textarea
                 ref="manualFrameInput"
                 id="tools-payload"
-                :value="manualFrameHex"
+                v-model="manualFrameHex"
                 class="tool-input tool-textarea"
                 placeholder="11 00 80 04 00 04"
                 rows="3"
@@ -461,8 +461,7 @@
                 spellcheck="false"
                 @blur="rememberManualFrameSelection"
                 @click="rememberManualFrameSelection"
-                @input="handleManualFrameInput"
-                @keydown="handleManualFrameKeydown"
+                @input="rememberManualFrameSelection"
                 @keyup="rememberManualFrameSelection"
                 @select="rememberManualFrameSelection"
               ></textarea>
@@ -489,6 +488,13 @@
                     @pointerup="stopDeleteRepeat"
                   >
                     &#9003;
+                  </button>
+                  <button
+                    type="button"
+                    class="hex-keypad__key hex-keypad__key--wide"
+                    @click="insertManualFrameText(' ')"
+                  >
+                    {{ localize('@toolsHexSpace') }}
                   </button>
                 </div>
                 <ion-button
@@ -611,7 +617,6 @@ import {
   type AppRxSubscription,
 } from '@/utils/BLE/appFrames';
 import { toSpacedHex } from '@/utils/BLE/blob';
-import { formatHexInput } from '@/utils/hexInput';
 import {
   buildLoraRejoinFrame,
   FACTORY_RESET_FRAME,
@@ -848,27 +853,6 @@ function rememberManualFrameSelection(): void {
   manualFrameSelectionEnd.value = input.selectionEnd ?? manualFrameSelectionStart.value;
 }
 
-function updateManualFrameValue(value: string, cursor: number): void {
-  const formatted = formatHexInput(value, cursor);
-  manualFrameHex.value = formatted.value;
-  void restoreManualFrameSelection(formatted.cursor);
-}
-
-function handleManualFrameInput(event: Event): void {
-  const input = event.currentTarget as HTMLTextAreaElement;
-  updateManualFrameValue(input.value, input.selectionStart ?? input.value.length);
-}
-
-function handleManualFrameKeydown(event: KeyboardEvent): void {
-  if (event.key !== 'Backspace') return;
-  const input = event.currentTarget as HTMLTextAreaElement;
-  if (input.selectionStart !== input.selectionEnd || input.selectionStart === 0) return;
-  if (manualFrameHex.value[input.selectionStart - 1] !== ' ') return;
-  event.preventDefault();
-  rememberManualFrameSelection();
-  deleteManualFrameBackward();
-}
-
 async function restoreManualFrameSelection(position: number): Promise<void> {
   await nextTick();
   const input = manualFrameInput.value;
@@ -882,8 +866,8 @@ async function restoreManualFrameSelection(position: number): Promise<void> {
 function insertManualFrameText(text: string): void {
   const start = manualFrameSelectionStart.value;
   const end = manualFrameSelectionEnd.value;
-  const value = `${manualFrameHex.value.slice(0, start)}${text}${manualFrameHex.value.slice(end)}`;
-  updateManualFrameValue(value, start + text.length);
+  manualFrameHex.value = `${manualFrameHex.value.slice(0, start)}${text}${manualFrameHex.value.slice(end)}`;
+  void restoreManualFrameSelection(start + text.length);
 }
 
 function deleteManualFrameBackward(): void {
@@ -894,12 +878,9 @@ function deleteManualFrameBackward(): void {
     return;
   }
 
-  let deletionStart = start === end ? start - 1 : start;
-  while (start === end && deletionStart > 0 && /[\s:-]/.test(manualFrameHex.value[deletionStart])) {
-    deletionStart -= 1;
-  }
-  const value = `${manualFrameHex.value.slice(0, deletionStart)}${manualFrameHex.value.slice(end)}`;
-  updateManualFrameValue(value, deletionStart);
+  const deletionStart = start === end ? start - 1 : start;
+  manualFrameHex.value = `${manualFrameHex.value.slice(0, deletionStart)}${manualFrameHex.value.slice(end)}`;
+  void restoreManualFrameSelection(deletionStart);
 }
 
 function stopDeleteRepeat(): void {
@@ -2009,7 +1990,7 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
   outline-offset: 1px;
 }
 .hex-keypad__key--wide {
-  grid-column: span 4;
+  grid-column: span 2;
   font-family: inherit;
   font-size: 0.82rem;
 }

@@ -95,10 +95,10 @@
                 :class="{ 'device-eui--connecting': isDeviceConnecting(dev) }"
               >
                 <span class="device-eui-label">DevEUI:&nbsp;</span>
-                <span
+                <LeadingEllipsisText
                   class="device-eui-value"
-                  :title="formatDevEui(dev.devEui) ?? undefined"
-                ><bdi dir="ltr">{{ formatDevEui(dev.devEui) }}</bdi></span>
+                  :text="formatDevEui(dev.devEui) ?? ''"
+                />
               </p>
               <p v-else-if="dev.isSimulated">{{ localize('@bleSimulatedSensor') }}</p>
             </ion-label>
@@ -142,20 +142,69 @@
 
       </div>
     </ion-content>
-  <div v-if="developerModeEnabled" class="debug-corner">
-    <ion-button
-      size="small"
-      fill="solid"
-      color="medium"
-      @click="addSimulatedSensor"
-      class="debug-corner-button"
+  <div v-if="developerModeEnabled" class="debug-stack">
+    <section
+      v-if="wakeMenuVisible"
+      class="wake-debug-menu"
+      aria-label="BLE wake timings"
     >
-      <ion-icon slot="start" :icon="addCircleOutline" />
-      {{ localize('@bleAddSimulatedSensor') }}
-    </ion-button>
-    <ion-button size="small" fill="solid" color="medium" @click="proceed" class="debug-corner-button">
-      {{ localize('@bleSkipDev') }}
-    </ion-button>
+      <div class="wake-debug-menu__header">
+        <strong>Wake timings</strong>
+        <ion-button size="small" fill="clear" @click="ble.clearWakeDiagnostics()">
+          Clear
+        </ion-button>
+      </div>
+      <p v-if="ble.wakeDiagnostics.value.length === 0" class="wake-debug-menu__empty">
+        No sensor wake attempt yet.
+      </p>
+      <div v-else class="wake-debug-menu__entries">
+        <article
+          v-for="entry in ble.wakeDiagnostics.value"
+          :key="`${entry.deviceId}:${entry.advertisementAt}`"
+          class="wake-debug-entry"
+        >
+          <strong>{{ entry.deviceName }}</strong>
+          <code>{{ entry.deviceId }}</code>
+          <dl>
+            <dt>Advertisement</dt>
+            <dd>{{ formatWakeTimestamp(entry.advertisementAt) }}</dd>
+            <dt>Connection start</dt>
+            <dd>{{ formatWakeTimestamp(entry.connectionStartedAt) }}</dd>
+            <dt>Link established</dt>
+            <dd>{{ formatWakeTimestamp(entry.connectedAt) }} {{ formatWakeDelta(entry.advertisementAt, entry.connectedAt) }}</dd>
+            <dt>Disconnect request</dt>
+            <dd>{{ formatWakeTimestamp(entry.disconnectRequestedAt) }}</dd>
+            <dt>Disconnected</dt>
+            <dd>{{ formatWakeTimestamp(entry.disconnectedAt) }} {{ formatWakeDelta(entry.disconnectRequestedAt, entry.disconnectedAt) }}</dd>
+          </dl>
+          <p v-if="entry.error" class="wake-debug-entry__error">{{ entry.error }}</p>
+        </article>
+      </div>
+    </section>
+    <div class="debug-corner">
+      <ion-button
+        size="small"
+        fill="solid"
+        color="medium"
+        @click="wakeMenuVisible = !wakeMenuVisible"
+        class="debug-corner-button"
+      >
+        Wake log<span v-if="ble.wakingSensor.value">…</span>
+      </ion-button>
+      <ion-button
+        size="small"
+        fill="solid"
+        color="medium"
+        @click="addSimulatedSensor"
+        class="debug-corner-button"
+      >
+        <ion-icon slot="start" :icon="addCircleOutline" />
+        {{ localize('@bleAddSimulatedSensor') }}
+      </ion-button>
+      <ion-button size="small" fill="solid" color="medium" @click="proceed" class="debug-corner-button">
+        {{ localize('@bleSkipDev') }}
+      </ion-button>
+    </div>
   </div>
   <div v-if="!ble.isNative.value" class="language-switcher">
     <LanguageSwitcher :current-language="currentLanguage" @update:language="changeLanguage" />
@@ -180,6 +229,7 @@ import {
 import { useBle, type DeviceLike } from '@/composables/useBle';
 import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import LeadingEllipsisText from '@/components/LeadingEllipsisText.vue';
 import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
@@ -220,6 +270,7 @@ const { developerModeEnabled } = useDeveloperMode();
 const logoSrc = `${import.meta.env.BASE_URL}img/icon.png`;
 const connecting = ref(false);
 const connectingDeviceId = ref('');
+const wakeMenuVisible = ref(false);
 type DisplayDevice = DeviceLike & { isSimulated?: boolean };
 
 const simulatedDevices = ref<DisplayDevice[]>([]);
@@ -282,6 +333,17 @@ function addSimulatedSensor() {
 function isDeviceConnecting(device: DisplayDevice): boolean {
   return (connecting.value || ble.pairing.value)
     && connectingDeviceId.value === device.deviceId;
+}
+
+function formatWakeTimestamp(timestamp?: number): string {
+  if (timestamp === undefined) return '—';
+  const date = new Date(timestamp);
+  return `${date.toLocaleTimeString([], { hour12: false })}.${String(date.getMilliseconds()).padStart(3, '0')}`;
+}
+
+function formatWakeDelta(start?: number, end?: number): string {
+  if (start === undefined || end === undefined) return '';
+  return `(+${end - start} ms)`;
 }
 
 async function toggleScan() {
@@ -524,16 +586,6 @@ watch(() => ble.connectionPhase.value, (phase) => {
 .device-eui-value {
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
-  direction: rtl;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.device-eui-value bdi {
-  direction: ltr;
-  unicode-bidi: isolate;
 }
 
 .device-list ion-item .device-eui--connecting {
@@ -592,11 +644,19 @@ watch(() => ble.connectionPhase.value, (phase) => {
   white-space: pre-line;
 }
 
-.debug-corner {
+.debug-stack {
   position: fixed;
+  right: 12px;
   left: 12px;
-  bottom: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
   z-index: 1100;
+  display: flex;
+  max-height: calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  flex-direction: column;
+  gap: 6px;
+}
+
+.debug-corner {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -606,6 +666,84 @@ watch(() => ble.connectionPhase.value, (phase) => {
   margin: 0;
   --padding-start: 8px;
   --padding-end: 8px;
+}
+
+.wake-debug-menu {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 620px;
+  min-height: 0;
+  max-height: min(62vh, 520px);
+  padding: 10px;
+  overflow: hidden;
+  color: var(--ion-text-color);
+  background: var(--app-surface);
+  border: 1px solid rgba(var(--ion-color-medium-rgb), 0.4);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.24);
+}
+
+.wake-debug-menu__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wake-debug-menu__header ion-button {
+  margin: 0;
+}
+
+.wake-debug-menu__empty {
+  margin: 8px 2px;
+  color: var(--ion-color-medium);
+}
+
+.wake-debug-menu__entries {
+  max-height: calc(min(62vh, 520px) - 48px);
+  overflow: auto;
+}
+
+.wake-debug-entry {
+  padding: 9px 2px;
+  border-top: 1px solid rgba(var(--ion-color-medium-rgb), 0.24);
+}
+
+.wake-debug-entry > strong,
+.wake-debug-entry > code {
+  display: block;
+}
+
+.wake-debug-entry > code {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--ion-color-medium);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wake-debug-entry dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 10px;
+  margin: 7px 0 0;
+  font-size: 0.75rem;
+}
+
+.wake-debug-entry dt,
+.wake-debug-entry dd {
+  margin: 0;
+}
+
+.wake-debug-entry dd {
+  font-family: monospace;
+  text-align: right;
+}
+
+.wake-debug-entry__error {
+  margin: 7px 0 0;
+  color: var(--ion-color-danger);
+  font-size: 0.75rem;
 }
 
 .ble-home-header-shell {

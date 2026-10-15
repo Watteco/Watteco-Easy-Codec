@@ -1,6 +1,11 @@
 import { ref, readonly } from 'vue';
 import { Capacitor } from '@capacitor/core';
-import { BleClient, ScanMode, type ScanResult } from '@capacitor-community/bluetooth-le';
+import {
+  BleClient,
+  BluetoothLe,
+  ScanMode,
+  type ScanResult,
+} from '@capacitor-community/bluetooth-le';
 import {
   appendBlobOnlyConfigurations,
   buildConfigurationBlob,
@@ -57,6 +62,17 @@ export type DeviceLike = {
 
 export type BleConnectionPhase = 'idle' | 'connecting' | 'discovering' | 'ready';
 
+export type BleWakeDiagnostic = {
+  deviceId: string;
+  deviceName: string;
+  advertisementAt: number;
+  connectionStartedAt?: number;
+  connectedAt?: number;
+  disconnectRequestedAt?: number;
+  disconnectedAt?: number;
+  error?: string;
+};
+
 type MeasurementHistoryPoint = {
   timestamp: number;
   value: number;
@@ -78,6 +94,7 @@ const RECONNECT_TIMEOUT_MS = 130000;
 const RECONNECT_CONNECT_TIMEOUT_MS = 10000;
 const RECONNECT_RETRY_DELAY_MS = 1000;
 const BOND_TIMEOUT_MS = 15000;
+const WAKE_CONNECT_TIMEOUT_MS = 3000;
 const FLUSH_INTERVAL_MS = 1000;
 const INTER_FRAME_DELAY_MS = 500;
 const INTER_CHUNK_DELAY_MS = 10;
@@ -120,6 +137,8 @@ const connectedDevice = ref<DeviceLike | undefined>(undefined);
 const lastConnectedDevice = ref<DeviceLike | undefined>(undefined);
 const statusMessage = ref('');
 const eventsLog = ref<string[]>([]);
+const wakeDiagnostics = ref<BleWakeDiagnostic[]>([]);
+const wakingSensor = ref(false);
 const configurationFrameLogs = ref<string[]>([]);
 const sending = ref(false);
 const osaAuthenticating = ref(false);
@@ -158,6 +177,20 @@ let bleRssiTimer: ReturnType<typeof setTimeout> | undefined;
 let bleRssiDeviceId: string | undefined;
 let bleRssiReadInProgress = false;
 let visibilityListenerRegistered = false;
+let wakeScanGeneration = 0;
+let wakeQueuePromise: Promise<void> | undefined;
+const wakeQueue: Array<{
+  device: DeviceLike;
+  diagnostic: BleWakeDiagnostic;
+  generation: number;
+}> = [];
+const wakeQueuedDeviceIds = new Set<string>();
+
+type BluetoothLeWithFastConnect = typeof BluetoothLe & {
+  connectWithoutDiscovery(options: { deviceId: string; timeout?: number }): Promise<void>;
+};
+
+const bluetoothLeWithFastConnect = BluetoothLe as BluetoothLeWithFastConnect;
 
 function isDocumentVisible() {
   return typeof document === 'undefined' || document.visibilityState !== 'hidden';
@@ -227,6 +260,7 @@ function registerVisibilityListener() {
 }
 
 function recordScanResult(result: ScanResult, useFilters: boolean) {
+  const advertisementAt = Date.now();
   const name = result.localName ?? result.device.name;
   if (useFilters && !hasAllowedScanPrefix(name)) return;
 
@@ -259,6 +293,98 @@ function recordScanResult(result: ScanResult, useFilters: boolean) {
       currentIndex === index ? device : current
     ));
   }
+
+  enqueueSensorWake(device, advertisementAt);
+}
+
+function updateWakeDiagnostic(
+  diagnostic: BleWakeDiagnostic,
+  changes: Partial<BleWakeDiagnostic>,
+) {
+  Object.assign(diagnostic, changes);
+}
+
+function clearWakeDiagnostics() {
+  wakeDiagnostics.value = [];
+}
+
+function beginWakeScanSession() {
+  wakeScanGeneration += 1;
+  wakeQueue.length = 0;
+  wakeQueuedDeviceIds.clear();
+  clearWakeDiagnostics();
+}
+
+async function cancelWakeQueueAndWait() {
+  wakeScanGeneration += 1;
+  wakeQueue.length = 0;
+  wakeQueuedDeviceIds.clear();
+  await wakeQueuePromise;
+}
+
+function enqueueSensorWake(device: DeviceLike, advertisementAt: number) {
+  if (
+    !isNative.value
+    || connected.value
+    || connecting.value
+    || reconnecting.value
+    || wakeQueuedDeviceIds.has(device.deviceId)
+  ) return;
+
+  wakeQueuedDeviceIds.add(device.deviceId);
+  const diagnostic: BleWakeDiagnostic = {
+    deviceId: device.deviceId,
+    deviceName: device.name ?? device.deviceId,
+    advertisementAt,
+  };
+  wakeDiagnostics.value.unshift(diagnostic);
+  if (wakeDiagnostics.value.length > 100) wakeDiagnostics.value.pop();
+  wakeQueue.push({ device, diagnostic, generation: wakeScanGeneration });
+  processWakeQueue();
+}
+
+function processWakeQueue() {
+  if (wakeQueuePromise) return;
+
+  wakeQueuePromise = (async () => {
+    wakingSensor.value = true;
+    try {
+      while (wakeQueue.length > 0) {
+        const item = wakeQueue.shift();
+        if (!item || item.generation !== wakeScanGeneration || connected.value) continue;
+
+        const { device, diagnostic } = item;
+        updateWakeDiagnostic(diagnostic, { connectionStartedAt: Date.now() });
+        let linkEstablished = false;
+        try {
+          await bluetoothLeWithFastConnect.connectWithoutDiscovery({
+            deviceId: device.deviceId,
+            timeout: WAKE_CONNECT_TIMEOUT_MS,
+          });
+          linkEstablished = true;
+          updateWakeDiagnostic(diagnostic, { connectedAt: Date.now() });
+          updateWakeDiagnostic(diagnostic, { disconnectRequestedAt: Date.now() });
+          await BluetoothLe.disconnect({ deviceId: device.deviceId });
+          updateWakeDiagnostic(diagnostic, { disconnectedAt: Date.now() });
+        } catch (error: any) {
+          updateWakeDiagnostic(diagnostic, { error: error?.message ?? String(error) });
+          if (linkEstablished) {
+            try {
+              await BluetoothLe.disconnect({ deviceId: device.deviceId });
+              updateWakeDiagnostic(diagnostic, { disconnectedAt: Date.now() });
+            } catch {
+              // The original wake failure is the useful diagnostic.
+            }
+          }
+        }
+      }
+    } finally {
+      wakingSensor.value = false;
+    }
+  })().finally(() => {
+    wakeQueuePromise = undefined;
+    if (wakeQueue.length > 0) processWakeQueue();
+  });
 }
 
 let targetDeviceId: string | undefined;
@@ -530,6 +656,8 @@ async function initialize() {
 /* ================================================================== */
 async function startScan(useFilters = true) {
   if (!bleInitialized.value) { statusMessage.value = 'BLE not ready'; return; }
+  await cancelWakeQueueAndWait();
+  beginWakeScanSession();
   devices.value = [];
   scanning.value = true;
   statusMessage.value = 'Scanning…';
@@ -570,6 +698,8 @@ async function stopScan() {
 async function startAutoScan(useFilters = true, maxAttempts = MAX_AUTO_SCAN_ATTEMPTS) {
   if (!bleInitialized.value) { statusMessage.value = 'BLE not ready'; return; }
   if (scanning.value) return; // already scanning
+  await cancelWakeQueueAndWait();
+  beginWakeScanSession();
   devices.value = [];
   autoScanCanceled = false;
   scanning.value = true;
@@ -626,6 +756,7 @@ async function startAutoScan(useFilters = true, maxAttempts = MAX_AUTO_SCAN_ATTE
 
 async function cancelScan() {
   autoScanCanceled = true;
+  await cancelWakeQueueAndWait();
   await stopScan();
 }
 
@@ -1403,6 +1534,8 @@ export function useBle() {
     lastConnectedDevice: readonly(lastConnectedDevice),
     statusMessage,
     eventsLog:       readonly(eventsLog),
+    wakeDiagnostics: readonly(wakeDiagnostics),
+    wakingSensor: readonly(wakingSensor),
     sending:         readonly(sending),
     osaAuthenticating: readonly(osaAuthenticating),
     osaAuthenticated: readonly(osaAuthenticated),
@@ -1425,6 +1558,7 @@ export function useBle() {
     startAutoScan,
     cancelScan,
     stopScan,
+    clearWakeDiagnostics,
     connectToDevice,
     cancelConnect,
     reconnectToLastDevice,

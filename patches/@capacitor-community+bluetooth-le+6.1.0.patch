@@ -1,8 +1,34 @@
 diff --git a/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/BluetoothLe.kt b/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/BluetoothLe.kt
-index 87e589a..5493f53 100644
+index 87e589a..18bd859 100644
 --- a/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/BluetoothLe.kt
 +++ b/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/BluetoothLe.kt
-@@ -647,8 +647,9 @@ class BluetoothLe : Plugin() {
+@@ -473,6 +473,25 @@ class BluetoothLe : Plugin() {
+         }
+     }
+ 
++    /**
++     * Establish the BLE link without discovering services or requesting an MTU.
++     * This is intended for a short connect/disconnect wake pulse.
++     */
++    @PluginMethod
++    fun connectWithoutDiscovery(call: PluginCall) {
++        val device = getOrCreateDevice(call) ?: return
++        val timeout = call.getFloat("timeout", CONNECTION_TIMEOUT)!!.toLong()
++        device.connect(timeout, false) { response ->
++            run {
++                if (response.success) {
++                    call.resolve()
++                } else {
++                    call.reject(response.value)
++                }
++            }
++        }
++    }
++
+     private fun onDisconnect(deviceId: String) {
+         try {
+             notifyListeners("disconnected|${deviceId}", null)
+@@ -647,8 +666,9 @@ class BluetoothLe : Plugin() {
      fun read(call: PluginCall) {
          val device = getDevice(call) ?: return
          val characteristic = getCharacteristic(call) ?: return
@@ -13,7 +39,7 @@ index 87e589a..5493f53 100644
              run {
                  if (response.success) {
                      val ret = JSObject()
-@@ -713,9 +714,10 @@ class BluetoothLe : Plugin() {
+@@ -713,9 +733,10 @@ class BluetoothLe : Plugin() {
      fun readDescriptor(call: PluginCall) {
          val device = getDevice(call) ?: return
          val descriptor = getDescriptor(call) ?: return
@@ -25,7 +51,7 @@ index 87e589a..5493f53 100644
          ) { response ->
              run {
                  if (response.success) {
-@@ -756,10 +758,11 @@ class BluetoothLe : Plugin() {
+@@ -756,10 +777,11 @@ class BluetoothLe : Plugin() {
      fun startNotifications(call: PluginCall) {
          val device = getDevice(call) ?: return
          val characteristic = getCharacteristic(call) ?: return
@@ -39,7 +65,7 @@ index 87e589a..5493f53 100644
                  val ret = JSObject()
                  ret.put("value", response.value)
                  try {
-@@ -783,8 +786,9 @@ class BluetoothLe : Plugin() {
+@@ -783,8 +805,9 @@ class BluetoothLe : Plugin() {
      fun stopNotifications(call: PluginCall) {
          val device = getDevice(call) ?: return
          val characteristic = getCharacteristic(call) ?: return
@@ -51,10 +77,40 @@ index 87e589a..5493f53 100644
              run {
                  if (response.success) {
 diff --git a/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt b/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
-index f09e6a0..42cbdf6 100644
+index f09e6a0..dbe26aa 100644
 --- a/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
 +++ b/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
-@@ -199,7 +199,8 @@ class Device(
+@@ -71,6 +71,7 @@ class Device(
+     private val timeoutQueue = ConcurrentLinkedQueue<TimeoutHandler>()
+     private var bondStateReceiver: BroadcastReceiver? = null
+     private var currentMtu = -1
++    private var discoverServicesOnConnect = true
+ 
+     private lateinit var callbacksHandlerThread: HandlerThread
+     private lateinit var callbacksHandler: Handler
+@@ -97,11 +98,16 @@ class Device(
+         ) {
+             if (newState == BluetoothProfile.STATE_CONNECTED) {
+                 connectionState = STATE_CONNECTED
+-                // service discovery is required to use services
+-                Logger.debug(TAG, "Connected to GATT server. Starting service discovery.")
+-                val result = bluetoothGatt?.discoverServices()
+-                if (result != true) {
+-                    reject("connect", "Starting service discovery failed.")
++                if (discoverServicesOnConnect) {
++                    // service discovery is required to use services
++                    Logger.debug(TAG, "Connected to GATT server. Starting service discovery.")
++                    val result = bluetoothGatt?.discoverServices()
++                    if (result != true) {
++                        reject("connect", "Starting service discovery failed.")
++                    }
++                } else {
++                    Logger.debug(TAG, "Connected to GATT server without service discovery.")
++                    resolve("connect", "Connected without service discovery.")
+                 }
+             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                 connectionState = STATE_DISCONNECTED
+@@ -199,7 +205,8 @@ class Device(
              if (status == BluetoothGatt.GATT_SUCCESS) {
                  resolve(key, "Characteristic successfully written.")
              } else {
@@ -62,9 +118,9 @@ index f09e6a0..42cbdf6 100644
 +                val statusHex = String.format("0x%02X", status)
 +                reject(key, "Writing characteristic failed. status=$status ($statusHex)")
              }
-
+ 
          }
-@@ -214,7 +215,7 @@ class Device(
+@@ -214,7 +221,7 @@ class Device(
              }
              Logger.verbose(TAG, "Using deprecated onCharacteristicChanged.")
              super.onCharacteristicChanged(gatt, characteristic)
@@ -73,7 +129,7 @@ index f09e6a0..42cbdf6 100644
              val data = characteristic.value
              if (data != null) {
                  val value = bytesToString(data)
-@@ -228,7 +229,7 @@ class Device(
+@@ -228,7 +235,7 @@ class Device(
          ) {
              Logger.verbose(TAG, "Using onCharacteristicChanged from API level 33.")
              super.onCharacteristicChanged(gatt, characteristic, data)
@@ -82,7 +138,7 @@ index f09e6a0..42cbdf6 100644
              val value = bytesToString(data)
              callbackMap[notifyKey]?.invoke(CallbackResponse(true, value))
          }
-@@ -280,9 +281,13 @@ class Device(
+@@ -280,9 +287,13 @@ class Device(
              super.onDescriptorWrite(gatt, descriptor, status)
              val key =
                  "writeDescriptor|${descriptor.characteristic.service.uuid}|${descriptor.characteristic.uuid}|${descriptor.uuid}"
@@ -96,7 +152,26 @@ index f09e6a0..42cbdf6 100644
                  reject(key, "Writing descriptor failed.")
              }
          }
-@@ -486,13 +491,16 @@ class Device(
+@@ -299,7 +310,9 @@ class Device(
+      * - request MTU
+      */
+     fun connect(
+-        timeout: Long, callback: (CallbackResponse) -> Unit
++        timeout: Long,
++        discoverServices: Boolean = true,
++        callback: (CallbackResponse) -> Unit
+     ) {
+         val key = "connect"
+         callbackMap[key] = callback
+@@ -308,6 +321,7 @@ class Device(
+             return
+         }
+         bluetoothGatt?.close()
++        discoverServicesOnConnect = discoverServices
+         connectionState = STATE_CONNECTING
+         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+             initializeCallbacksHandlerThread()
+@@ -486,13 +500,16 @@ class Device(
      fun read(
          serviceUUID: UUID,
          characteristicUUID: UUID,
@@ -114,7 +189,7 @@ index f09e6a0..42cbdf6 100644
          if (characteristic == null) {
              reject(key, "Characteristic not found.")
              return
-@@ -544,23 +552,28 @@ class Device(
+@@ -544,23 +561,28 @@ class Device(
      fun setNotifications(
          serviceUUID: UUID,
          characteristicUUID: UUID,
@@ -152,7 +227,7 @@ index f09e6a0..42cbdf6 100644
          val result = bluetoothGatt?.setCharacteristicNotification(characteristic, enable)
          if (result != true) {
              reject(key, "Setting notification failed.")
-@@ -606,6 +619,7 @@ class Device(
+@@ -606,6 +628,7 @@ class Device(
      fun readDescriptor(
          serviceUUID: UUID,
          characteristicUUID: UUID,
@@ -160,7 +235,7 @@ index f09e6a0..42cbdf6 100644
          descriptorUUID: UUID,
          timeout: Long,
          callback: (CallbackResponse) -> Unit
-@@ -613,7 +627,9 @@ class Device(
+@@ -613,7 +636,9 @@ class Device(
          val key = "readDescriptor|$serviceUUID|$characteristicUUID|$descriptorUUID"
          callbackMap[key] = callback
          val service = bluetoothGatt?.getService(serviceUUID)
@@ -288,7 +363,7 @@ index ab93a32..e1c0483 100644
      }
      validateRequestBleDeviceOptions(options) {
 diff --git a/node_modules/@capacitor-community/bluetooth-le/dist/esm/definitions.d.ts b/node_modules/@capacitor-community/bluetooth-le/dist/esm/definitions.d.ts
-index 61a9a5c..ff393f5 100644
+index 61a9a5c..c465f46 100644
 --- a/node_modules/@capacitor-community/bluetooth-le/dist/esm/definitions.d.ts
 +++ b/node_modules/@capacitor-community/bluetooth-le/dist/esm/definitions.d.ts
 @@ -107,6 +107,10 @@ export interface TimeoutOptions {
@@ -310,10 +385,37 @@ index 61a9a5c..ff393f5 100644
  }
  export interface ReadDescriptorOptions {
      deviceId: string;
+@@ -274,6 +279,8 @@ export interface BluetoothLePlugin {
+     addListener(eventName: string, listenerFunc: (event: ReadResult) => void): Promise<PluginListenerHandle>;
+     addListener(eventName: 'onScanResult', listenerFunc: (result: ScanResultInternal) => void): Promise<PluginListenerHandle>;
+     connect(options: DeviceIdOptions & TimeoutOptions): Promise<void>;
++    /** Connect without initiating service, characteristic, descriptor, or MTU discovery. */
++    connectWithoutDiscovery(options: DeviceIdOptions & TimeoutOptions): Promise<void>;
+     createBond(options: DeviceIdOptions & TimeoutOptions): Promise<void>;
+     isBonded(options: DeviceIdOptions): Promise<BooleanResult>;
+     disconnect(options: DeviceIdOptions): Promise<void>;
+diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Conversion.swift b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Conversion.swift
+index 9ebbc13..a788026 100644
+--- a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Conversion.swift
++++ b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Conversion.swift
+@@ -72,3 +72,12 @@ func cbuuidToStringUppercase(_ uuid: CBUUID) -> String {
+     let str = cbuuidToString(uuid)
+     return str.uppercased()
+ }
++
++// Keep vendor ATT codes: CoreBluetooth can describe all of them as "Unknown ATT error".
++func bleErrorToString(_ error: Error) -> String {
++    let nativeError = error as NSError
++    guard nativeError.domain == CBATTErrorDomain else {
++        return nativeError.localizedDescription
++    }
++    return "\(nativeError.localizedDescription) (ATT 0x\(String(nativeError.code, radix: 16)))"
++}
 diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.swift b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.swift
+index b44bcde..57a6121 100644
 --- a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.swift
 +++ b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.swift
-@@ -131,7 +131,7 @@
+@@ -131,7 +131,7 @@ class Device: NSObject, CBPeripheralDelegate {
      ) {
          let key = "readRssi"
          if error != nil {
@@ -322,8 +424,8 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.sw
              return
          }
          self.resolve(key, RSSI.stringValue)
-@@ -139,16 +139,13 @@
-
+@@ -139,16 +139,13 @@ class Device: NSObject, CBPeripheralDelegate {
+ 
      private func getCharacteristic(
          _ serviceUUID: CBUUID,
 -        _ characteristicUUID: CBUUID
@@ -345,7 +447,7 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.sw
          }
          return nil
      }
-@@ -156,9 +153,10 @@
+@@ -156,9 +153,10 @@ class Device: NSObject, CBPeripheralDelegate {
      private func getDescriptor(
          _ serviceUUID: CBUUID,
          _ characteristicUUID: CBUUID,
@@ -358,27 +460,23 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.sw
              return nil
          }
          for descriptor in characteristic.descriptors ?? [] {
-@@ -172,12 +170,13 @@
+@@ -172,12 +170,13 @@ class Device: NSObject, CBPeripheralDelegate {
      func read(
          _ serviceUUID: CBUUID,
          _ characteristicUUID: CBUUID,
--        _ timeout: Double,
--        _ callback: @escaping Callback
--    ) {
--        let key = "read|\(serviceUUID.uuidString)|\(characteristicUUID.uuidString)"
--        self.callbackMap[key] = callback
--        guard let characteristic = self.getCharacteristic(serviceUUID, characteristicUUID) else {
 +        _ characteristicIndex: Int,
-+        _ timeout: Double,
-+        _ callback: @escaping Callback
-+    ) {
+         _ timeout: Double,
+         _ callback: @escaping Callback
+     ) {
+-        let key = "read|\(serviceUUID.uuidString)|\(characteristicUUID.uuidString)"
 +        let key = "read|\(cbuuidToStringUppercase(serviceUUID))|\(cbuuidToStringUppercase(characteristicUUID))|\(characteristicIndex)"
-+        self.callbackMap[key] = callback
+         self.callbackMap[key] = callback
+-        guard let characteristic = self.getCharacteristic(serviceUUID, characteristicUUID) else {
 +        guard let characteristic = self.getCharacteristic(serviceUUID, characteristicUUID, characteristicIndex) else {
              self.reject(key, "Characteristic not found.")
              return
          }
-@@ -194,7 +193,7 @@
+@@ -194,7 +193,7 @@ class Device: NSObject, CBPeripheralDelegate {
          let key = self.getKey("read", characteristic)
          let notifyKey = self.getKey("notification", characteristic)
          if error != nil {
@@ -387,7 +485,7 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.sw
              return
          }
          if characteristic.value == nil {
-@@ -215,13 +214,14 @@
+@@ -215,13 +214,14 @@ class Device: NSObject, CBPeripheralDelegate {
      func readDescriptor(
          _ serviceUUID: CBUUID,
          _ characteristicUUID: CBUUID,
@@ -397,15 +495,14 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.sw
          _ callback: @escaping Callback
      ) {
 -        let key = "readDescriptor|\(serviceUUID.uuidString)|\(characteristicUUID.uuidString)|\(descriptorUUID.uuidString)"
--        self.callbackMap[key] = callback
--        guard let descriptor = self.getDescriptor(serviceUUID, characteristicUUID, descriptorUUID) else {
 +        let key = "readDescriptor|\(cbuuidToStringUppercase(serviceUUID))|\(cbuuidToStringUppercase(characteristicUUID))|\(characteristicIndex)|\(cbuuidToStringUppercase(descriptorUUID))"
-+        self.callbackMap[key] = callback
+         self.callbackMap[key] = callback
+-        guard let descriptor = self.getDescriptor(serviceUUID, characteristicUUID, descriptorUUID) else {
 +        guard let descriptor = self.getDescriptor(serviceUUID, characteristicUUID, descriptorUUID, characteristicIndex) else {
              self.reject(key, "Descriptor not found.")
              return
          }
-@@ -237,7 +237,7 @@
+@@ -237,7 +237,7 @@ class Device: NSObject, CBPeripheralDelegate {
      ) {
          let key = self.getKey("readDescriptor", descriptor)
          if error != nil {
@@ -414,7 +511,7 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.sw
              return
          }
          if descriptor.value == nil {
-@@ -278,7 +278,7 @@
+@@ -278,7 +278,7 @@ class Device: NSObject, CBPeripheralDelegate {
      ) {
          let key = self.getKey("write", characteristic)
          if error != nil {
@@ -423,7 +520,7 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.sw
              return
          }
          self.resolve(key, "Successfully written value.")
-@@ -310,7 +310,7 @@
+@@ -310,7 +310,7 @@ class Device: NSObject, CBPeripheralDelegate {
      ) {
          let key = self.getKey("writeDescriptor", descriptor)
          if error != nil {
@@ -432,7 +529,7 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.sw
              return
          }
          self.resolve(key, "Successfully written descriptor value.")
-@@ -319,21 +319,20 @@
+@@ -319,21 +319,20 @@ class Device: NSObject, CBPeripheralDelegate {
      func setNotifications(
          _ serviceUUID: CBUUID,
          _ characteristicUUID: CBUUID,
@@ -444,14 +541,13 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.sw
      ) {
 -        let key = "setNotifications|\(serviceUUID.uuidString)|\(characteristicUUID.uuidString)"
 -        let notifyKey = "notification|\(serviceUUID.uuidString)|\(characteristicUUID.uuidString)"
--        self.callbackMap[key] = callback
++        let key = "setNotifications|\(cbuuidToStringUppercase(serviceUUID))|\(cbuuidToStringUppercase(characteristicUUID))|\(characteristicIndex)"
++        let notifyKey = "notification|\(cbuuidToStringUppercase(serviceUUID))|\(cbuuidToStringUppercase(characteristicUUID))|\(characteristicIndex)"
+         self.callbackMap[key] = callback
 -        if notifyCallback != nil {
 -            self.callbackMap[notifyKey] = notifyCallback
 -        }
 -        guard let characteristic = self.getCharacteristic(serviceUUID, characteristicUUID) else {
-+        let key = "setNotifications|\(cbuuidToStringUppercase(serviceUUID))|\(cbuuidToStringUppercase(characteristicUUID))|\(characteristicIndex)"
-+        let notifyKey = "notification|\(cbuuidToStringUppercase(serviceUUID))|\(cbuuidToStringUppercase(characteristicUUID))|\(characteristicIndex)"
-+        self.callbackMap[key] = callback
 +        guard let characteristic = self.getCharacteristic(serviceUUID, characteristicUUID, characteristicIndex) else {
              self.reject(key, "Characteristic not found.")
              return
@@ -460,7 +556,7 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.sw
          log("Set notifications", enable)
          self.peripheral.setNotifyValue(enable, for: characteristic)
          self.setTimeout(key, "Set notifications timeout.", timeout)
-@@ -346,7 +345,7 @@
+@@ -346,7 +345,7 @@ class Device: NSObject, CBPeripheralDelegate {
      ) {
          let key = self.getKey("setNotifications", characteristic)
          if error != nil {
@@ -469,7 +565,7 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.sw
              return
          }
          self.resolve(key, "Successfully set notifications.")
-@@ -369,6 +368,13 @@
+@@ -369,6 +368,13 @@ class Device: NSObject, CBPeripheralDelegate {
          } else {
              characteristicUUIDString = "UNKNOWN-CHARACTERISTIC"
          }
@@ -482,23 +578,115 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Device.sw
 +        }
          return "\(prefix)|\(serviceUUIDString)|\(characteristicUUIDString)"
      }
-
+ 
+diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/DeviceManager.swift b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/DeviceManager.swift
+index 888bddc..1b7a704 100644
+--- a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/DeviceManager.swift
++++ b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/DeviceManager.swift
+@@ -20,6 +20,7 @@ class DeviceManager: NSObject, CBCentralManagerDelegate {
+     private var deviceNamePrefixFilter: String?
+     private var shouldShowDeviceList = false
+     private var allowDuplicates = false
++    private var discoverServicesOnConnect = Set<String>()
+ 
+     init(_ viewController: UIViewController?, _ displayStrings: [String: String], _ callback: @escaping Callback) {
+         super.init()
+@@ -204,10 +205,16 @@ class DeviceManager: NSObject, CBCentralManagerDelegate {
+     func connect(
+         _ device: Device,
+         _ connectionTimeout: Double,
++        _ discoverServices: Bool = true,
+         _ callback: @escaping Callback
+     ) {
+         let key = "connect|\(device.getId())"
+         self.callbackMap[key] = callback
++        if discoverServices {
++            self.discoverServicesOnConnect.insert(device.getId())
++        } else {
++            self.discoverServicesOnConnect.remove(device.getId())
++        }
+         log("Connecting to peripheral", device.getPeripheral())
+         self.centralManager.connect(device.getPeripheral(), options: nil)
+         self.setConnectionTimeout(key, "Connection timeout.", device, connectionTimeout)
+@@ -220,9 +227,10 @@ class DeviceManager: NSObject, CBCentralManagerDelegate {
+     ) {
+         log("Connected to device", peripheral)
+         let key = "connect|\(peripheral.identifier.uuidString)"
+-        peripheral.discoverServices(nil)
++        if self.discoverServicesOnConnect.remove(peripheral.identifier.uuidString) != nil {
++            peripheral.discoverServices(nil)
++        }
+         self.resolve(key, "Successfully connected.")
+-        // will wait for services in plugin call
+     }
+ 
+     // didFailToConnect
+@@ -232,6 +240,7 @@ class DeviceManager: NSObject, CBCentralManagerDelegate {
+         error: Error?
+     ) {
+         let key = "connect|\(peripheral.identifier.uuidString)"
++        self.discoverServicesOnConnect.remove(peripheral.identifier.uuidString)
+         if error != nil {
+             self.reject(key, error!.localizedDescription)
+             return
+@@ -338,8 +347,8 @@ class DeviceManager: NSObject, CBCentralManagerDelegate {
+     ) {
+         let workItem = DispatchWorkItem {
+             // do not call onDisconnnected, which is triggered by cancelPeripheralConnection
+-            let key = "onDisconnected|\(device.getId())"
+-            self.callbackMap[key] = nil
++            let disconnectKey = "onDisconnected|\(device.getId())"
++            self.callbackMap[disconnectKey] = nil
+             self.centralManager.cancelPeripheralConnection(device.getPeripheral())
+             self.reject(key, message)
+         }
 diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Plugin.swift b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Plugin.swift
+index bea5527..9f53d86 100644
 --- a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Plugin.swift
 +++ b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Plugin.swift
-@@ -352,8 +352,9 @@
+@@ -230,7 +230,7 @@ public class BluetoothLe: CAPPlugin {
+             let key = "disconnected|\(device.getId())"
+             self.notifyListeners(key, data: nil)
+         })
+-        self.deviceManager?.connect(device, timeout, {(success, message) in
++        self.deviceManager?.connect(device, timeout, true, {(success, message) in
+             if success {
+                 log("Connected to peripheral. Waiting for service discovery.")
+             } else {
+@@ -240,6 +240,21 @@ public class BluetoothLe: CAPPlugin {
+ 
+     }
+ 
++    /// Establishes the BLE link without starting any GATT discovery. The caller
++    /// can immediately disconnect to produce a short wake pulse.
++    @objc func connectWithoutDiscovery(_ call: CAPPluginCall) {
++        guard self.getDeviceManager(call) != nil else { return }
++        guard let device = self.getDevice(call, checkConnection: false) else { return }
++        let timeout = self.getTimeout(call, defaultTimeout: CONNECTION_TIMEOUT)
++        self.deviceManager?.connect(device, timeout, false, {(success, message) in
++            if success {
++                call.resolve()
++            } else {
++                call.reject(message)
++            }
++        })
++    }
++
+     @objc func createBond(_ call: CAPPluginCall) {
+         call.unavailable("createBond is not available on iOS.")
+     }
+@@ -352,8 +367,9 @@ public class BluetoothLe: CAPPlugin {
          guard self.getDeviceManager(call) != nil else { return }
          guard let device = self.getDevice(call) else { return }
          guard let characteristic = self.getCharacteristic(call) else { return }
--        let timeout = self.getTimeout(call)
--        device.read(characteristic.0, characteristic.1, timeout, {(success, value) in
 +        let characteristicIndex = call.getInt("characteristicIndex") ?? 0
-+        let timeout = self.getTimeout(call)
+         let timeout = self.getTimeout(call)
+-        device.read(characteristic.0, characteristic.1, timeout, {(success, value) in
 +        device.read(characteristic.0, characteristic.1, characteristicIndex, timeout, {(success, value) in
              if success {
                  call.resolve([
                      "value": value
-@@ -416,10 +417,12 @@
+@@ -416,10 +432,12 @@ public class BluetoothLe: CAPPlugin {
          guard self.getDeviceManager(call) != nil else { return }
          guard let device = self.getDevice(call) else { return }
          guard let descriptor = self.getDescriptor(call) else { return }
@@ -511,7 +699,7 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Plugin.sw
              descriptor.2,
              timeout, {(success, value) in
                  if success {
-@@ -459,12 +462,14 @@
+@@ -459,12 +477,14 @@ public class BluetoothLe: CAPPlugin {
          guard self.getDeviceManager(call) != nil else { return }
          guard let device = self.getDevice(call) else { return }
          guard let characteristic = self.getCharacteristic(call) else { return }
@@ -527,7 +715,7 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Plugin.sw
                  self.notifyListeners(key, data: ["value": value])
              },
              timeout, {(success, value) in
-@@ -480,10 +485,12 @@
+@@ -480,10 +500,12 @@ public class BluetoothLe: CAPPlugin {
          guard self.getDeviceManager(call) != nil else { return }
          guard let device = self.getDevice(call) else { return }
          guard let characteristic = self.getCharacteristic(call) else { return }
@@ -540,19 +728,3 @@ diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Plugin.sw
              false,
              nil,
              timeout, {(success, value) in
-diff --git a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Conversion.swift b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Conversion.swift
---- a/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Conversion.swift
-+++ b/node_modules/@capacitor-community/bluetooth-le/ios/Plugin/Conversion.swift
-@@ -72,3 +72,12 @@
-     let str = cbuuidToString(uuid)
-     return str.uppercased()
- }
-+
-+// Keep vendor ATT codes: CoreBluetooth can describe all of them as "Unknown ATT error".
-+func bleErrorToString(_ error: Error) -> String {
-+    let nativeError = error as NSError
-+    guard nativeError.domain == CBATTErrorDomain else {
-+        return nativeError.localizedDescription
-+    }
-+    return "\(nativeError.localizedDescription) (ATT 0x\(String(nativeError.code, radix: 16)))"
-+}

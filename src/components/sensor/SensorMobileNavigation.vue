@@ -18,11 +18,11 @@
             class="sensor-mobile-reference-separator"
             aria-hidden="true"
           >&nbsp;&middot;&nbsp;</span>
-          <span
+          <LeadingEllipsisText
             v-if="displayedDevEui"
             class="sensor-mobile-reference-eui"
-            :title="displayedDevEui"
-          ><bdi dir="ltr">{{ displayedDevEui }}</bdi></span>
+            :text="displayedDevEui"
+          />
         </template>
         <span v-else class="sensor-mobile-reference-fallback">{{ displayedDeviceName }}</span>
       </span>
@@ -146,6 +146,7 @@ import {
 } from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
 import { useSessionExitConfirmation } from '@/composables/useSessionExitConfirmation';
+import LeadingEllipsisText from '@/components/LeadingEllipsisText.vue';
 import { getProductDisplayName, getProductMeasurements } from '@/utils/productMeasurements';
 import { getSensorVisual } from '@/utils/sensorVisuals';
 import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
@@ -430,16 +431,6 @@ const disconnectAndGoBack = async () => {
 .sensor-mobile-reference-eui {
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
-  direction: rtl;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sensor-mobile-reference-eui bdi {
-  direction: ltr;
-  unicode-bidi: isolate;
 }
 
 .sensor-mobile-reference-fallback {

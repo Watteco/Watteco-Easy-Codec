@@ -181,6 +181,7 @@
     "toolsManualFrameDescription": "Injecte une trame applicative via AppTx et affiche la réponse reçue sur AppRx.",
     "toolsHexPayload": "Trame hexadécimale",
     "toolsHexBackspace": "Effacer le caractère précédent",
+    "toolsHexSpace": "Espace",
     "toolsHexKeypad": "Pavé hexadécimal",
     "toolsSystemKeyboard": "Clavier système",
     "toolsLastCommandResponse": "Réponse de la dernière commande",
