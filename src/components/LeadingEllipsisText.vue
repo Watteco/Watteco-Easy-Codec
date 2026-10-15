@@ -3,7 +3,6 @@
     ref="root"
     class="leading-ellipsis-text"
     :title="text"
-    :style="{ minWidth: minimumWidth === null ? undefined : `${minimumWidth}px` }"
   >
     <span class="leading-ellipsis-text__sizer" aria-hidden="true">{{ text }}</span>
     <span class="leading-ellipsis-text__visual" aria-hidden="true">
@@ -20,15 +19,12 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{
   text: string;
-  minVisibleCharacters?: number;
-  overflowSuffix?: string;
 }>();
 
 const root = ref<HTMLElement | null>(null);
 const measurement = ref<HTMLElement | null>(null);
 const isOverflowing = ref(false);
 const visibleText = ref(props.text);
-const minimumWidth = ref<number | null>(null);
 let resizeObserver: ResizeObserver | null = null;
 
 const measureText = (text: string): number => {
@@ -41,18 +37,6 @@ const updateOverflow = () => {
   if (!root.value || !measurement.value) return;
 
   const characters = Array.from(props.text);
-  const protectedCharacterCount = Math.min(
-    Math.max(0, props.minVisibleCharacters ?? 0),
-    characters.length,
-  );
-  if (props.overflowSuffix !== undefined) {
-    minimumWidth.value = Math.ceil(measureText(`\u2026${props.overflowSuffix}`)) + 1;
-  } else {
-    minimumWidth.value = protectedCharacterCount > 0
-      ? Math.ceil(measureText(`\u2026${characters.slice(-protectedCharacterCount).join('')}`)) + 1
-      : null;
-  }
-
   const availableWidth = root.value.getBoundingClientRect().width;
   if (measureText(props.text) <= availableWidth) {
     isOverflowing.value = false;
@@ -61,11 +45,6 @@ const updateOverflow = () => {
   }
 
   isOverflowing.value = true;
-  if (props.overflowSuffix !== undefined) {
-    visibleText.value = props.overflowSuffix;
-    return;
-  }
-
   const suffixWidth = Math.max(0, availableWidth - measureText('\u2026') - 1);
   let shortestRejectedLength = characters.length + 1;
   let longestAcceptedLength = 0;
@@ -93,7 +72,7 @@ onMounted(() => {
   updateOverflow();
 });
 
-watch(() => [props.text, props.minVisibleCharacters, props.overflowSuffix], async () => {
+watch(() => props.text, async () => {
   await nextTick();
   updateOverflow();
 });

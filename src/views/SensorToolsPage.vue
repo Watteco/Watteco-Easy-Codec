@@ -480,6 +480,13 @@
                   <button
                     type="button"
                     class="hex-keypad__key hex-keypad__key--wide"
+                    @click="insertManualFrameText(' ')"
+                  >
+                    {{ localize('@toolsHexSpace') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="hex-keypad__key hex-keypad__key--wide"
                     :aria-label="localize('@toolsHexBackspace')"
                     @click="handleDeleteKeyClick"
                     @pointercancel="stopDeleteRepeat"
@@ -488,13 +495,6 @@
                     @pointerup="stopDeleteRepeat"
                   >
                     &#9003;
-                  </button>
-                  <button
-                    type="button"
-                    class="hex-keypad__key hex-keypad__key--wide"
-                    @click="insertManualFrameText(' ')"
-                  >
-                    {{ localize('@toolsHexSpace') }}
                   </button>
                 </div>
                 <ion-button

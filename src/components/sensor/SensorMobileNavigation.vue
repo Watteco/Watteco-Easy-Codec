@@ -7,28 +7,21 @@
 
     <div v-if="effectiveStatus !== 'choose'" class="sensor-mobile-identity">
       <strong>
-        <OverflowMarqueeText :text="displayedProductName" />
+        <OverflowMarqueeText
+          :text="displayedProductName"
+          end-boundary-selector=".sensor-mobile-header-actions"
+          :layout-key="effectiveStatus"
+        />
       </strong>
       <span class="sensor-mobile-reference">
-        <template v-if="displayedProductReference || displayedDevEui">
-          <LeadingEllipsisText
-            v-if="displayedProductReference"
-            class="sensor-mobile-reference-product"
-            :text="displayedProductReference"
-            :overflow-suffix="displayedProductReferenceSuffix"
-          />
-          <span
-            v-if="displayedProductReference && displayedDevEui"
-            class="sensor-mobile-reference-separator"
-            aria-hidden="true"
-          >&nbsp;&middot;&nbsp;</span>
-          <LeadingEllipsisText
-            v-if="displayedDevEui"
-            class="sensor-mobile-reference-eui"
-            :text="displayedDevEui"
-            :min-visible-characters="6"
-          />
-        </template>
+        <SensorIdentityReference
+          v-if="displayedProductReference || displayedDevEui"
+          :product-reference="displayedProductReference"
+          :dev-eui="displayedDevEui"
+          :minimum-dev-eui-characters="6"
+          end-boundary-selector=".sensor-mobile-header-actions"
+          :layout-key="effectiveStatus"
+        />
         <span v-else class="sensor-mobile-reference-fallback">{{ displayedDeviceName }}</span>
       </span>
       <span class="sensor-mobile-status">
@@ -151,8 +144,8 @@ import {
 } from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
 import { useSessionExitConfirmation } from '@/composables/useSessionExitConfirmation';
-import LeadingEllipsisText from '@/components/LeadingEllipsisText.vue';
 import OverflowMarqueeText from '@/components/OverflowMarqueeText.vue';
+import SensorIdentityReference from '@/components/sensor/SensorIdentityReference.vue';
 import { getProductDisplayName, getProductMeasurements } from '@/utils/productMeasurements';
 import { getSensorVisual } from '@/utils/sensorVisuals';
 import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
@@ -220,11 +213,6 @@ const displayedProductName = computed(() => (
   getProductDisplayName(ble.productReference.value) ?? displayedDeviceName.value
 ));
 const displayedProductReference = computed(() => ble.productReference.value);
-const displayedProductReferenceSuffix = computed(() => {
-  const reference = displayedProductReference.value;
-  if (!reference || !/^50-70(?:-|$)/.test(reference)) return undefined;
-  return reference.slice('50-70'.length);
-});
 const displayedBatteryLevel = computed(() => {
   const batteryMeasurementCount = getProductMeasurements(ble.productReference.value)
     .filter(measurement => getSensorVisual(measurement.measId).category === 'battery')
@@ -429,7 +417,7 @@ const disconnectAndGoBack = async () => {
 }
 
 .sensor-mobile-reference {
-  display: flex;
+  display: block;
   min-width: 0;
   overflow: hidden;
   margin-top: 2px;
@@ -437,21 +425,6 @@ const disconnectAndGoBack = async () => {
   font-weight: 600;
   opacity: 0.82;
   white-space: nowrap;
-}
-
-.sensor-mobile-reference-separator {
-  flex: 0 0 auto;
-}
-
-.sensor-mobile-reference-product {
-  /* The DevEUI's measured minimum protects its last six characters; the
-     reference yields the remaining space when the row gets narrower. */
-  flex: 0 1 auto;
-  min-width: 0;
-}
-
-.sensor-mobile-reference-eui {
-  flex: 1 1 auto;
 }
 
 .sensor-mobile-reference-fallback {

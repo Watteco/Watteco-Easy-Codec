@@ -18,16 +18,49 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 const props = defineProps<{
   text: string;
+  endBoundarySelector?: string;
+  layoutKey?: string;
 }>();
 
 const root = ref<HTMLElement | null>(null);
 const content = ref<HTMLElement | null>(null);
 const overflowDistance = ref(0);
 let resizeObserver: ResizeObserver | null = null;
+let boundaryElement: Element | null = null;
+let animationFrame: number | null = null;
+const endSafetyMargin = 4;
+
+const resolveAvailableWidth = (): number => {
+  if (!root.value || !props.endBoundarySelector) return root.value?.clientWidth ?? 0;
+
+  const layoutContainer = root.value.closest('.sensor-mobile-header');
+  boundaryElement = layoutContainer?.querySelector(props.endBoundarySelector) ?? null;
+  if (!layoutContainer || !boundaryElement) return root.value.clientWidth;
+
+  const rootRect = root.value.getBoundingClientRect();
+  const boundaryRect = boundaryElement.getBoundingClientRect();
+  const identityRect = root.value.closest('.sensor-mobile-identity')?.getBoundingClientRect();
+  const columnGap = Number.parseFloat(getComputedStyle(layoutContainer).columnGap) || 0;
+  const rightBoundary = Math.min(
+    boundaryRect.left - columnGap,
+    identityRect?.right ?? Number.POSITIVE_INFINITY,
+  );
+  return Math.max(0, rightBoundary - rootRect.left - endSafetyMargin);
+};
 
 const updateOverflow = () => {
   if (!root.value || !content.value) return;
-  overflowDistance.value = Math.max(0, content.value.scrollWidth - root.value.clientWidth);
+  overflowDistance.value = Math.max(0, content.value.scrollWidth - resolveAvailableWidth());
+};
+
+const scheduleOverflowUpdate = () => {
+  updateOverflow();
+  if (typeof requestAnimationFrame === 'undefined') return;
+  if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+  animationFrame = requestAnimationFrame(() => {
+    animationFrame = null;
+    updateOverflow();
+  });
 };
 
 const marqueeStyle = computed(() => ({
@@ -37,23 +70,28 @@ const marqueeStyle = computed(() => ({
 
 onMounted(() => {
   if (typeof ResizeObserver !== 'undefined') {
-    resizeObserver = new ResizeObserver(updateOverflow);
+    resizeObserver = new ResizeObserver(scheduleOverflowUpdate);
     if (root.value) resizeObserver.observe(root.value);
     if (content.value) resizeObserver.observe(content.value);
+    resolveAvailableWidth();
+    if (boundaryElement) resizeObserver.observe(boundaryElement);
   } else {
-    window.addEventListener('resize', updateOverflow);
+    window.addEventListener('resize', scheduleOverflowUpdate);
   }
-  updateOverflow();
+  scheduleOverflowUpdate();
 });
 
-watch(() => props.text, async () => {
+watch(() => [props.text, props.layoutKey], async () => {
   await nextTick();
-  updateOverflow();
+  scheduleOverflowUpdate();
 });
 
 onBeforeUnmount(() => {
   resizeObserver?.disconnect();
-  window.removeEventListener('resize', updateOverflow);
+  if (animationFrame !== null && typeof cancelAnimationFrame !== 'undefined') {
+    cancelAnimationFrame(animationFrame);
+  }
+  window.removeEventListener('resize', scheduleOverflowUpdate);
 });
 </script>
 
