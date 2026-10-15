@@ -412,11 +412,17 @@ const disconnectAndGoBack = async () => {
 
 .sensor-mobile-identity {
   display: grid;
+  width: 100%;
   min-width: 0;
+  overflow: hidden;
   line-height: 1.15;
 }
 
 .sensor-mobile-identity strong {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
   font-size: 1rem;
   white-space: nowrap;

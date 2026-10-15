@@ -59,7 +59,10 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .overflow-marquee-text {
+  box-sizing: border-box;
   display: block;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
