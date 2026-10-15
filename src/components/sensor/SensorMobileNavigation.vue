@@ -6,7 +6,9 @@
     <img class="sensor-mobile-logo" :src="logoSrc" alt="Watteco" />
 
     <div v-if="effectiveStatus !== 'choose'" class="sensor-mobile-identity">
-      <strong>{{ displayedProductName }}</strong>
+      <strong>
+        <OverflowMarqueeText :text="displayedProductName" />
+      </strong>
       <span class="sensor-mobile-reference">
         <template v-if="displayedProductReference || displayedDevEui">
           <LeadingEllipsisText
@@ -150,6 +152,7 @@ import {
 import { useBle } from '@/composables/useBle';
 import { useSessionExitConfirmation } from '@/composables/useSessionExitConfirmation';
 import LeadingEllipsisText from '@/components/LeadingEllipsisText.vue';
+import OverflowMarqueeText from '@/components/OverflowMarqueeText.vue';
 import { getProductDisplayName, getProductMeasurements } from '@/utils/productMeasurements';
 import { getSensorVisual } from '@/utils/sensorVisuals';
 import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
@@ -416,7 +419,6 @@ const disconnectAndGoBack = async () => {
 .sensor-mobile-identity strong {
   overflow: hidden;
   font-size: 1rem;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
