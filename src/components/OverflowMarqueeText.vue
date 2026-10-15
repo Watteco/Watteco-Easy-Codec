@@ -64,7 +64,7 @@ const scheduleOverflowUpdate = () => {
 };
 
 const marqueeStyle = computed(() => ({
-  '--marquee-distance': `${overflowDistance.value}px`,
+  '--marquee-offset': `${-overflowDistance.value}px`,
   '--marquee-duration': `${Math.max(7, 5 + overflowDistance.value / 18)}s`,
 }));
 
@@ -121,7 +121,7 @@ onBeforeUnmount(() => {
   }
 
   55%, 78% {
-    transform: translateX(calc(-1 * var(--marquee-distance)));
+    transform: translateX(var(--marquee-offset));
   }
 
   100% {
