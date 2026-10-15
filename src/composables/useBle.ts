@@ -28,6 +28,7 @@ import { decodeAdvertisedProductId } from '@/utils/BLE/advertising';
 import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
 import {
   MEASUREMENT_SOURCE_TO_ID,
+  pollMeasurementMonitoring,
   startMeasurementMonitoring,
   stopMeasurementMonitoring,
   type BleMeasurementSubscription,
@@ -93,6 +94,8 @@ const SCAN_TIMEOUT_MS = 5000;
 const RECONNECT_TIMEOUT_MS = 130000;
 const RECONNECT_CONNECT_TIMEOUT_MS = 10000;
 const RECONNECT_RETRY_DELAY_MS = 1000;
+const RESTART_DISCONNECT_TIMEOUT_MS = 10000;
+const RESTART_DISCONNECT_POLL_INTERVAL_MS = 100;
 const BOND_TIMEOUT_MS = 15000;
 const WAKE_CONNECT_TIMEOUT_MS = 3000;
 const FLUSH_INTERVAL_MS = 1000;
@@ -842,7 +845,7 @@ async function connectToDeviceUntil(
         measurementSubscriptions = await startMeasurementMonitoring(
           device.deviceId,
           (sample) => {
-            const measurementId = MEASUREMENT_SOURCE_TO_ID[sample.sourceId];
+            const measurementId = sample.measurementId ?? MEASUREMENT_SOURCE_TO_ID[sample.sourceId];
             if (!measurementId) {
               log(`[MEAS] Unknown source 0x${sample.sourceId.toString(16).padStart(4, '0')}`);
               return;
@@ -1101,6 +1104,12 @@ async function disconnect() {
   statusMessage.value = 'Disconnected';
 }
 
+async function pollAllMeasurements(): Promise<number> {
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) return 0;
+  return pollMeasurementMonitoring(deviceId, log);
+}
+
 function finishReconnectScan(found: boolean) {
   if (reconnectScanTimeoutId) {
     clearTimeout(reconnectScanTimeoutId);
@@ -1231,6 +1240,34 @@ async function reconnectToLastDevice(): Promise<boolean> {
     if (!connected.value) connectionPhase.value = 'idle';
     reconnecting.value = false;
   }
+}
+
+async function reconnectAfterDeviceRestart(deviceId: string): Promise<boolean> {
+  const rememberedDevice = lastConnectedDevice.value;
+  if (!rememberedDevice || rememberedDevice.deviceId !== deviceId) {
+    statusMessage.value = 'Restarted device is no longer available for reconnection';
+    return false;
+  }
+
+  statusMessage.value = `Waiting for ${rememberedDevice.name || deviceId} to restart…`;
+  const disconnectDeadline = Date.now() + RESTART_DISCONNECT_TIMEOUT_MS;
+  while (
+    connected.value
+    && connectedDevice.value?.deviceId === deviceId
+    && Date.now() < disconnectDeadline
+  ) {
+    await delay(RESTART_DISCONNECT_POLL_INTERVAL_MS);
+  }
+
+  // A write-without-response can leave the native client looking connected
+  // even though the sensor has already restarted. Close that stale GATT link
+  // before starting the targeted advertisement scan.
+  if (connectedDevice.value?.deviceId === deviceId) {
+    await disconnect();
+  }
+
+  if (lastConnectedDevice.value?.deviceId !== deviceId) return false;
+  return reconnectToLastDevice();
 }
 
 /* ================================================================== */
@@ -1562,8 +1599,10 @@ export function useBle() {
     connectToDevice,
     cancelConnect,
     reconnectToLastDevice,
+    reconnectAfterDeviceRestart,
     cancelReconnect,
     disconnect,
+    pollAllMeasurements,
     getDefaultConfigurationPreview,
     getCurrentConfigurationPreview,
     clearConfigurationFrameLogs,

@@ -482,7 +482,7 @@
 		{
 			"name": "BETA HygroTemp'O Neo (50-70-260-671)",
 			"file": "50-70-260-671-HygroTemp'O-Neo",
-			"compatibleProducts": ["50-70-260-671", "50-70-260-067"],
+			"compatibleProducts": ["50-70-260-671"],
 			"apps": ["EasyCodec"],
 			"mId": ["hygrotempo-neo"],
 			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel 3,1,1,OpenCase",
@@ -499,6 +499,17 @@
 			"category": "BETA",
 			"comment": ["One pulse input", "Une entrée impulsionnelle"],
 			"docLink": "https://support.watteco.com/"
+		},
+		{
+			"name": "BETA PT1000 Neo (50-70-260-672)",
+			"file": "50-70-260-672-PT1000-Neo",
+			"compatibleProducts": ["50-70-260-672"],
+			"apps": ["EasyCodec"],
+			"mId": ["pt1000-neo"],
+			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel",
+			"category": "BETA",
+			"comment": ["PT1000 temperature measurement with Bluetooth Low Energy", "Mesure de température PT1000 avec Bluetooth Low Energy"],
+			"docLink": "https://support.watteco.com/pt1000/"
 		}
 	],
 	"in_developpement_products": [

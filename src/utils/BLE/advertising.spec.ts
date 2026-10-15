@@ -16,6 +16,10 @@ describe('decodeAdvertisedProductId', () => {
     expect(decodeAdvertisedProductId({
       1234: view(0x50, 0x70, 0x26, 0x06, 0x71),
     })).toBe('50-70-260-671');
+
+    expect(decodeAdvertisedProductId({
+      1234: view(0x50, 0x70, 0x26, 0x06, 0x72),
+    })).toBe('50-70-260-672');
   });
 
   it('supports DataViews with a non-zero byte offset', () => {

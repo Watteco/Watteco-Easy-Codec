@@ -9,6 +9,7 @@ import {
 } from '@/utils/productMeasurements';
 import { hasSensorVisual } from '@/utils/sensorVisuals';
 import availableProductList from '../../public/config/AvailableProductList.json';
+import pt1000NeoConfig from '../../public/config/50-70-260-672-PT1000-Neo.json';
 
 describe('productMeasurements', () => {
   it('defines compatibleProducts for every catalogue entry', () => {
@@ -52,6 +53,39 @@ describe('productMeasurements', () => {
     expect(measurements.some(measurement => measurement.id === 'humidity')).toBe(false);
   });
 
+  it('exposes both temperature occurrences and battery but no pulse input for PT1000 Neo', () => {
+    const product = availableProductList.products.find(candidate => (
+      candidate.compatibleProducts.includes('50-70-260-672')
+    ));
+    const measurements = getProductMeasurements('50-70-260-672');
+    const measurementIds = measurements.map(measurement => measurement.id);
+
+    expect(product?.mId).toEqual(['pt1000-neo']);
+    expect(measurementIds).toContain('temperature_1');
+    expect(measurementIds).toContain('temperature_2');
+    expect(measurementIds).not.toContain('temperature');
+    expect(measurementIds).toContain('battery_voltage');
+    expect(measurementIds).not.toContain('humidity');
+    expect(measurementIds.some(id => id.startsWith('index_'))).toBe(false);
+    expect(measurementIds.some(id => id.startsWith('pin_state_'))).toBe(false);
+    expect(measurementIds).not.toContain('multi_state');
+  });
+
+  it('configures PT1000 Neo without pulse or binary input sections', () => {
+    expect(pt1000NeoConfig.blob_only_configurations).toEqual([]);
+    expect(Object.keys(pt1000NeoConfig.batch_params)).toEqual([
+      'batch_T_params',
+      'batch_B_params',
+      'global_params',
+      'cfg_block',
+    ]);
+    expect(Object.keys(pt1000NeoConfig.standard_params)).toEqual([
+      'standard_T_params',
+      'standard_B_params',
+      'cfg_block',
+    ]);
+  });
+
   it('extracts the public product reference', () => {
     expect(extractProductReference('Product 50-70-260 rev A')).toBe('50-70-260');
     expect(extractProductReference(undefined)).toBeNull();
@@ -74,6 +108,9 @@ describe('productMeasurements', () => {
     expect(resolveAvailableProductReference('50-70-260-671')).toBe('50-70-260-671');
     expect(getProductDisplayName('50-70-260-671')).toBe("HygroTemp'O Neo");
     expect(getProductConfigurationFile('50-70-260-671')).toBe("50-70-260-671-HygroTemp'O-Neo");
+    expect(resolveAvailableProductReference('50-70-260-672')).toBe('50-70-260-672');
+    expect(getProductDisplayName('50-70-260-672')).toBe('PT1000 Neo');
+    expect(getProductConfigurationFile('50-70-260-672')).toBe('50-70-260-672-PT1000-Neo');
   });
 
   it('matches all revisions only when compatibleProducts omits the revision', () => {

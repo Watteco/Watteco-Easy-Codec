@@ -5,6 +5,7 @@ import {
   decodeMeasurementValue,
   MEASUREMENT_SOURCE_TO_ID,
   parsePresentationFormat,
+  pollMeasurementMonitoring,
   startMeasurementMonitoring,
   stopMeasurementMonitoring,
 } from '@/utils/BLE/measurements';
@@ -117,6 +118,25 @@ describe('BLE measurements', () => {
     expect(samples).toEqual([{ sourceId: 0x0018, value: 42, rawHex: '2a 00 00 00' }]);
   });
 
+  it('assigns repeated temperature characteristics to separate measurements', () => {
+    const presentation = { format: 0x0e, exponent: -2, unit: 0x272f, namespace: 1, sourceId: 0x0010 };
+
+    expect(decodeKnownMeasurementCharacteristic(
+      new Uint8Array([0x64, 0x00]),
+      presentation,
+      TEMPERATURE_CHAR_UUID,
+      0,
+      2
+    )[0]).toMatchObject({ sourceId: 0x0010, measurementId: 'temperature_1', value: 1 });
+    expect(decodeKnownMeasurementCharacteristic(
+      new Uint8Array([0xc8, 0x00]),
+      presentation,
+      TEMPERATURE_CHAR_UUID,
+      1,
+      2
+    )[0]).toMatchObject({ sourceId: 0x0010, measurementId: 'temperature_2', value: 2 });
+  });
+
   it('decodes the on/off byte as four input-state bits', () => {
     const samples = decodeKnownMeasurementCharacteristic(
       new Uint8Array([0x05]),
@@ -194,6 +214,43 @@ describe('BLE measurements', () => {
       PULSE_COUNT_CHAR_UUID,
       { characteristicIndex: 1 }
     );
+  });
+
+  it('manually polls every readable measurement occurrence', async () => {
+    const repeatedCharacteristics = [0, 1].map(() => ({
+      uuid: PULSE_COUNT_CHAR_UUID,
+      properties: {
+        broadcast: false,
+        read: true,
+        writeWithoutResponse: false,
+        write: false,
+        notify: true,
+        indicate: false,
+        authenticatedSignedWrites: false,
+      },
+      descriptors: [],
+    }));
+    vi.mocked(BleClient.getServices).mockResolvedValue([{
+      uuid: MEASURES_SERVICE_UUID,
+      characteristics: repeatedCharacteristics,
+    }]);
+    vi.mocked(BleClient.read).mockResolvedValue(
+      new DataView(new Uint8Array([42, 0, 0, 0]).buffer)
+    );
+    vi.mocked(BleClient.startNotifications).mockResolvedValue();
+    vi.mocked(BleClient.stopNotifications).mockResolvedValue();
+    const onSample = vi.fn();
+
+    const subscriptions = await startMeasurementMonitoring('manual-poll-device', onSample, vi.fn());
+    expect(BleClient.read).toHaveBeenCalledTimes(2);
+
+    await expect(pollMeasurementMonitoring('manual-poll-device')).resolves.toBe(2);
+    expect(BleClient.read).toHaveBeenCalledTimes(4);
+    expect(onSample.mock.calls.slice(-2).map(([sample]) => sample.sourceId))
+      .toEqual([0x0014, 0x0016]);
+
+    await stopMeasurementMonitoring('manual-poll-device', subscriptions);
+    await expect(pollMeasurementMonitoring('manual-poll-device')).resolves.toBe(0);
   });
 
   it('does not publish identical fallback polling reads as new samples', async () => {

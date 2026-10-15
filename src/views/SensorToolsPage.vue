@@ -1392,6 +1392,9 @@ async function sendPresetFrame(
         : undefined,
     );
     feedback.value = localize('@toolsCommandSent');
+    if (kind === 'factory-reset') {
+      await ble.reconnectAfterDeviceRestart(deviceId);
+    }
   } catch (error: any) {
     feedbackError.value = true;
     feedback.value = error?.message ?? String(error);
@@ -1423,6 +1426,7 @@ async function sendSensorReboot(): Promise<void> {
   try {
     await rebootDevice(deviceId, line => console.debug(line));
     feedback.value = localize('@toolsRebootSent');
+    await ble.reconnectAfterDeviceRestart(deviceId);
   } catch (error: any) {
     feedbackError.value = true;
     feedback.value = error?.message ?? String(error);

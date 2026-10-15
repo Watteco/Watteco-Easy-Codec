@@ -22,6 +22,7 @@ export type GattPresentationFormat = {
 
 export type BleMeasurementSample = {
   sourceId: number;
+  measurementId?: string;
   value: number | boolean | string;
   rawHex: string;
 };
@@ -32,9 +33,10 @@ export type BleMeasurementSubscription = {
   characteristicIndex: number;
 };
 
-type MeasurementValueOrigin = 'READ' | 'POLL' | 'NOTIFY';
+type MeasurementValueOrigin = 'READ' | 'POLL' | 'MANUAL' | 'NOTIFY';
 
 const pollingTimers = new Map<string, ReturnType<typeof setInterval>>();
+const manualPollReaders = new Map<string, Array<() => Promise<void>>>();
 
 const FORMAT_BOOLEAN = 0x01;
 const FORMAT_UINT8 = 0x04;
@@ -192,7 +194,12 @@ export function decodeKnownMeasurementCharacteristic(
         ? SOURCE_ONOFF_1 + (occurrenceIndex * 2)
       : presentation.sourceId;
 
-  return decodeMeasurementValue(bytes, { ...presentation, sourceId });
+  const samples = decodeMeasurementValue(bytes, { ...presentation, sourceId });
+  if (uuid === TEMPERATURE_CHAR_UUID && occurrenceCount > 1) {
+    const measurementId = `temperature_${occurrenceIndex + 1}`;
+    return samples.map(sample => ({ ...sample, measurementId }));
+  }
+  return samples;
 }
 
 function fallbackPresentation(characteristicUuid: string): GattPresentationFormat | null {
@@ -265,6 +272,7 @@ export async function startMeasurementMonitoring(
   const characteristicOccurrences = new Map<string, number>();
   const occurrenceCounts = new Map<string, number>();
   const pollReaders: Array<() => Promise<void>> = [];
+  const readableMeasurementReaders: Array<() => Promise<void>> = [];
 
   for (const characteristic of service.characteristics ?? []) {
     const uuid = normalizeUuid(characteristic.uuid);
@@ -309,7 +317,7 @@ export async function startMeasurementMonitoring(
       onLog(`[MEAS ${origin} ${repeated ? 'SAME' : 'NEW'} ${characteristicUuid.slice(0, 8)}#${occurrenceIndex + 1} -> ${sources || 'unsupported'}] ${rawHex}`);
     };
 
-    const readValue = async (origin: Extract<MeasurementValueOrigin, 'READ' | 'POLL'>) => {
+    const readValue = async (origin: Extract<MeasurementValueOrigin, 'READ' | 'POLL' | 'MANUAL'>) => {
       try {
         processValue(await BleClient.read(
           deviceId,
@@ -322,7 +330,10 @@ export async function startMeasurementMonitoring(
       }
     };
 
-    if (characteristic.properties.read) await readValue('READ');
+    if (characteristic.properties.read) {
+      readableMeasurementReaders.push(() => readValue('MANUAL'));
+      await readValue('READ');
+    }
 
     let notificationsStarted = false;
     if (characteristic.properties.notify || characteristic.properties.indicate) {
@@ -354,6 +365,7 @@ export async function startMeasurementMonitoring(
 
   const previousTimer = pollingTimers.get(deviceId);
   if (previousTimer) clearInterval(previousTimer);
+  manualPollReaders.set(deviceId, readableMeasurementReaders);
   if (pollReaders.length > 0) {
     let polling = false;
     const timer = setInterval(async () => {
@@ -371,11 +383,23 @@ export async function startMeasurementMonitoring(
   return subscriptions;
 }
 
+export async function pollMeasurementMonitoring(
+  deviceId: string,
+  onLog?: (line: string) => void
+): Promise<number> {
+  const readers = manualPollReaders.get(deviceId) ?? [];
+  onLog?.(`[MEAS] Manual poll started for ${readers.length} readable characteristic(s)`);
+  for (const readValue of readers) await readValue();
+  onLog?.(`[MEAS] Manual poll completed for ${readers.length} readable characteristic(s)`);
+  return readers.length;
+}
+
 export async function stopMeasurementMonitoring(
   deviceId: string,
   subscriptions: BleMeasurementSubscription[],
   onLog?: (line: string) => void
 ): Promise<void> {
+  manualPollReaders.delete(deviceId);
   const pollingTimer = pollingTimers.get(deviceId);
   if (pollingTimer) {
     clearInterval(pollingTimer);

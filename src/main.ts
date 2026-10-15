@@ -5,6 +5,7 @@ import router from './router';
 import { IonicVue } from '@ionic/vue';
 import { isPlatform } from '@ionic/vue';
 import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import { OsaKeyStore } from './plugins/osaKeyStore';
 import { initializeTheme } from './composables/useTheme';
 
@@ -37,6 +38,16 @@ const app = createApp(App)
 if (Capacitor.isNativePlatform()) {
   void OsaKeyStore.purgeExpired().catch(() => {
     // A failed cleanup must not prevent the application from starting.
+  });
+
+  if (Capacitor.getPlatform() === 'android') {
+    void StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {
+      // Keep the application usable if the native status bar cannot be configured.
+    });
+  }
+
+  void StatusBar.setStyle({ style: Style.Dark }).catch(() => {
+    // Keep the application usable if the native status bar cannot be configured.
   });
 }
 

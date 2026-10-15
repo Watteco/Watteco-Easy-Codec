@@ -3,7 +3,7 @@ version;max_downlink_commands;;;;;;;;;;;;
 1.0;5;;;;;;;;;;;;
 ##models;;;;;;;;;;;;;
 name;selectors;;;;;;;;;;;;
-all;{mId: atmo}, {mId: alto}, {mId: closo}, {mId: flasho}, {mId: ino}, {mId: inclino}, {mId: indoor-temp}, {mId: intenso}, {mId: levo}, {mId: modbus}, {mId: monito}, {mId: moveo}, {mId: moveo-lite}, {mId: tempo-outdoor}, {mId: smartpilot-wire}, {mId: presso}, {mId: pulse-senso}, {mId: pulse-senso-neo}, {mId: pulse-senso-neo-1}, {mId: pulse-senso-atex}, {mId: temp-remte-1-prb}, {mId: temp-remte-2-prb}, {mId: pt1000}, {mId: pt1000-400c}, {mId: smartplug}, {mId: th}, {mId: tempo}, {mId: hygrotempo}, {mId: hygrotempo-neo}, {mId: hygrotemp-remote}, {mId: climo}, {mId: ticso}, {mId: torano-atex}, {mId: triphaso}, {mId: triphaso-kwh}, {mId: vaqao-lite}, {mId: vaqao-lt}, {mId: vaqao-multi-lite}, {mId: vaqao-plus-lite}, {mId: vaqao-plus}, {mId: vaqao}, {mId: ventilo};;;;;;;;;;;;
+all;{mId: atmo}, {mId: alto}, {mId: closo}, {mId: flasho}, {mId: ino}, {mId: inclino}, {mId: indoor-temp}, {mId: intenso}, {mId: levo}, {mId: modbus}, {mId: monito}, {mId: moveo}, {mId: moveo-lite}, {mId: tempo-outdoor}, {mId: smartpilot-wire}, {mId: presso}, {mId: pulse-senso}, {mId: pulse-senso-neo}, {mId: pulse-senso-neo-1}, {mId: pulse-senso-atex}, {mId: temp-remte-1-prb}, {mId: temp-remte-2-prb}, {mId: pt1000}, {mId: pt1000-neo}, {mId: pt1000-400c}, {mId: smartplug}, {mId: th}, {mId: tempo}, {mId: hygrotempo}, {mId: hygrotempo-neo}, {mId: hygrotemp-remote}, {mId: climo}, {mId: ticso}, {mId: torano-atex}, {mId: triphaso}, {mId: triphaso-kwh}, {mId: vaqao-lite}, {mId: vaqao-lt}, {mId: vaqao-multi-lite}, {mId: vaqao-plus-lite}, {mId: vaqao-plus}, {mId: vaqao}, {mId: ventilo};;;;;;;;;;;;
 atmo;{mId: atmo};;;;;;;;;;;;
 alto;{mId: alto};;;;;;;;;;;;
 closo;{mId: closo};;;;;;;;;;;;
@@ -31,6 +31,7 @@ smartpilot-wire;{mId: smartpilot-wire};;;;;;;;;;;;
 temp-remte-1-prb;{mId: temp-remte-1-prb};;;;;;;;;;;;
 temp-remte-2-prb;{mId: temp-remte-2-prb};;;;;;;;;;;;
 pt1000;{mId: pt1000};;;;;;;;;;;;
+pt1000-neo;{mId: pt1000-neo};;;;;;;;;;;;
 pt1000-400c;{mId: pt1000-400c};;;;;;;;;;;;
 tempo;{mId: tempo};;;;;;;;;;;;
 tempo-outdoor;{mId: tempo-outdoor};;;;;;;;;;;;
@@ -76,7 +77,7 @@ angle_a;Phase angle A;0;number;R;INT16;0;deg;1;0;359;triphaso, triphaso-kwh;Phas
 angle_b;Phase angle B;0;number;R;INT16;0;deg;1;0;359;triphaso, triphaso-kwh;Phase angle on phase B;;27
 angle_c;Phase angle C;0;number;R;INT16;0;deg;1;0;359;triphaso, triphaso-kwh;Phase angle on phase C;;28
 application_name;Application name;"""""";string;R;STRING;;;;;;all;Name of the application running on the device;16;29
-battery_voltage;Battery voltage;0;number;R;FLOAT;3;V;0,001;0;6;alto, atmo, climo, flasho, hygrotempo, hygrotempo-remote, hygrotempo-neo, intenso, levo, monito, presso, pt1000, pt1000-400c, pulse-senso, pulse-senso-neo, pulse-senso-neo-1, pulse-senso-atex, tempo-outdoor, temp-remte-1-prb, temp-remte-2-prb, th, ventilo;Device battery voltage;;30
+battery_voltage;Battery voltage;0;number;R;FLOAT;3;V;0,001;0;6;alto, atmo, climo, flasho, hygrotempo, hygrotempo-remote, hygrotempo-neo, intenso, levo, monito, presso, pt1000, pt1000-neo, pt1000-400c, pulse-senso, pulse-senso-neo, pulse-senso-neo-1, pulse-senso-atex, tempo-outdoor, temp-remte-1-prb, temp-remte-2-prb, th, ventilo;Device battery voltage;;30
 BatteryVoltage;BatteryVoltage;0;number;R;FLOAT;3;V;0,001;0;6;indoor-temp;Device battery voltage;;31
 CO2;CO2 concentration;0;number;R;UINT16;0;ppm;1;0;5000;vaqao-lite, vaqao-lt, vaqao-multi-lite, vaqao-plus-lite, vaqao-plus, vaqao;CO2 concentration in ppm;;32
 data_bit;Modbus data bits;0;number;R;UINT8;0;;1;7;8;modbus;Number of data bits in Modbus frame;;34
@@ -84,7 +85,7 @@ data_rate;LoRaWAN data rate;0;number;R;UINT8;0;;1;0;7;all;LoRaWAN data rate (DR0
 date;Manufacturing date;"""""";string;R;STRING;;;;;;all;Device manufacturing date;16;36
 debounce_period;Debounce period;0;number;R;UINT8;0;ms;1;0;65535;atmo, closo, flasho, ino, presso, pulse-senso, pulse-senso-neo, pulse-senso-neo-1, pulse-senso-atex;Debounce period in milliseconds;;37
 differential_pressure;Differential pressure;0;number;R;INT16;0;Pa;1;-2500;2500;ventilo;Differential pressure in Pascal;;38
-disposable_battery_voltage;Disposable battery voltage;0;number;R;FLOAT;3;V;0,001;0;6;alto, atmo, climo, closo, flasho, hygrotempo, hygrotempo-remote, hygrotempo-neo, ino, inclino, indoor-temp, intenso, levo, modbus, monito, moveo-lite, presso, pt1000, pt1000-400c, pulse-senso, pulse-senso-neo, pulse-senso-neo-1, pulse-senso-atex, tempo, tempo-outdoor, temp-remte-1-prb, temp-remte-2-prb, th, torano-atex, vaqao-lite;Disposable battery voltage;;39
+disposable_battery_voltage;Disposable battery voltage;0;number;R;FLOAT;3;V;0,001;0;6;alto, atmo, climo, closo, flasho, hygrotempo, hygrotempo-remote, hygrotempo-neo, ino, inclino, indoor-temp, intenso, levo, modbus, monito, moveo-lite, presso, pt1000, pt1000-neo, pt1000-400c, pulse-senso, pulse-senso-neo, pulse-senso-neo-1, pulse-senso-atex, tempo, tempo-outdoor, temp-remte-1-prb, temp-remte-2-prb, th, torano-atex, vaqao-lite;Disposable battery voltage;;39
 distance;Distance;0;number;R;FLOAT;2;m;0,01;0;30;alto;Distance measurement in meters;;40
 edge_selection;Edge detection configuration;"""""";string;R;STRING;;;;;;atmo, closo, flasho, ino, presso, pulse-senso, pulse-senso-neo, pulse-senso-neo-1, pulse-senso-atex;Edge detection configuration;24;41
 external_level;External Level;0;number;R;FLOAT;3;V;0,001;;;monito;External Level measurement value;;42
@@ -292,9 +293,9 @@ stop_bit;Modbus stop bits;0;number;R;UINT8;0;;1;1;2;modbus;Number of stop bits i
 temperature;Temperature;0;number;R;FLOAT;2;°C;0,01;0;55;atmo, indoor-temp, moveo, moveo-lite, temp-remte-1-prb, pt1000, pt1000-400c, th, tempo, hygrotempo, hygrotempo-remote, hygrotempo-neo, climo, ventilo;Temperature in degrees Celsius;;249
 Temperature;Temperature;0;number;R;FLOAT;2;°C;0,01;0;55;indoor-temp;Temperature in degrees Celsius;;250
 temperature_1;Temperature sensor 1;0;number;R;FLOAT;2;°C;0,01;0;55;vaqao-lite;Temperature from sensor 1;;257
-temperature_1;Temperature sensor 1;0;number;R;FLOAT;2;°C;0,01;-40;110;temp-remte-2-prb;Temperature from sensor 1;;260
+temperature_1;Temperature sensor 1;0;number;R;FLOAT;2;°C;0,01;-40;110;temp-remte-2-prb, pt1000-neo;Temperature from sensor 1;;260
 temperature_2;Temperature sensor 2;0;number;R;FLOAT;2;°C;0,01;0;55;vaqao-lite;Temperature from sensor  2;;262
-temperature_2;Temperature sensor 2;0;number;R;FLOAT;2;°C;0,01;-40;110;temp-remte-2-prb;Temperature from sensor 2;;265
+temperature_2;Temperature sensor 2;0;number;R;FLOAT;2;°C;0,01;-40;110;temp-remte-2-prb, pt1000-neo;Temperature from sensor 2;;265
 tic_harvesting_voltage;TIC harvesting voltage;0;number;R;FLOAT;3;V;0,001;0;65,535;ticso;TIC harvesting voltage;;267
 Tilt;Tilt;0;number;R;INT16;0;deg;1;0;359;alto, inclino;Tilt measurement value;;268
 violation_detection;Violation detection;false;boolean;R;BOOL;;;;;;closo, hygrotempo, hygrotempo-remote, hygrotempo-neo, vaqao-lite;Violation detection state;;269

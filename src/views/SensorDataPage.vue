@@ -98,6 +98,15 @@
         <ion-button size="small" fill="solid" color="medium" @click="openBleMeasurementLog">
           BLE values log
         </ion-button>
+        <ion-button
+          size="small"
+          fill="solid"
+          color="medium"
+          :disabled="pollingAllMeasurements || !ble.connected.value"
+          @click="pollAllMeasurements"
+        >
+          {{ pollingAllMeasurements ? 'Polling BLE values…' : 'Poll all BLE values' }}
+        </ion-button>
       </div>
       <button
         type="button"
@@ -177,6 +186,7 @@ const measurementValues = computed<Record<number, SensorValue>>(() => {
 const demoDataEnabled = ref(false);
 const debugToolsStorageKey = 'sensor-debug-tools-visible';
 const debugToolsVisible = ref(sessionStorage.getItem(debugToolsStorageKey) === 'true');
+const pollingAllMeasurements = ref(false);
 const demoEndTimestamp = Date.now();
 const createDemoHistory = (values: number[]): HistoryPoint[] => values.map((value, index) => ({
   timestamp: demoEndTimestamp - (values.length - index - 1) * 5 * 60 * 1000,
@@ -390,6 +400,16 @@ const openBleMeasurementLog = async () => {
     buttons: ['OK'],
   });
   await alert.present();
+};
+
+const pollAllMeasurements = async () => {
+  if (pollingAllMeasurements.value) return;
+  pollingAllMeasurements.value = true;
+  try {
+    await ble.pollAllMeasurements();
+  } finally {
+    pollingAllMeasurements.value = false;
+  }
 };
 
 const localize = (key: string): string => {
