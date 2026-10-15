@@ -1,5 +1,10 @@
 <template>
-  <span ref="root" class="leading-ellipsis-text" :title="text">
+  <span
+    ref="root"
+    class="leading-ellipsis-text"
+    :title="text"
+    :style="{ minWidth: minimumWidth === null ? undefined : `${minimumWidth}px` }"
+  >
     <span
       v-if="isOverflowing"
       class="leading-ellipsis-text__mark"
@@ -16,12 +21,14 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{
   text: string;
+  minVisibleCharacters?: number;
 }>();
 
 const root = ref<HTMLElement | null>(null);
 const measurement = ref<HTMLElement | null>(null);
 const isOverflowing = ref(false);
 const visibleText = ref(props.text);
+const minimumWidth = ref<number | null>(null);
 let resizeObserver: ResizeObserver | null = null;
 
 const measureText = (text: string): number => {
@@ -33,7 +40,19 @@ const measureText = (text: string): number => {
 const updateOverflow = () => {
   if (!root.value || !measurement.value) return;
 
-  const availableWidth = root.value.getBoundingClientRect().width;
+  const characters = Array.from(props.text);
+  const protectedCharacterCount = Math.min(
+    Math.max(0, props.minVisibleCharacters ?? 0),
+    characters.length,
+  );
+  minimumWidth.value = protectedCharacterCount > 0
+    ? Math.ceil(measureText(`\u2026${characters.slice(-protectedCharacterCount).join('')}`)) + 1
+    : null;
+
+  const availableWidth = Math.max(
+    root.value.getBoundingClientRect().width,
+    minimumWidth.value ?? 0,
+  );
   if (measureText(props.text) <= availableWidth) {
     isOverflowing.value = false;
     visibleText.value = props.text;
@@ -41,7 +60,6 @@ const updateOverflow = () => {
   }
 
   isOverflowing.value = true;
-  const characters = Array.from(props.text);
   const suffixWidth = Math.max(0, availableWidth - measureText('\u2026') - 1);
   let shortestRejectedLength = characters.length + 1;
   let longestAcceptedLength = 0;

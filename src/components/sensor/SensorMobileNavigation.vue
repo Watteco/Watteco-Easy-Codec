@@ -12,7 +12,9 @@
           <span
             v-if="displayedProductReference"
             class="sensor-mobile-reference-product"
-          >{{ displayedProductReference }}</span>
+          >
+            <LeadingEllipsisText :text="displayedProductReference" />
+          </span>
           <span
             v-if="displayedProductReference && displayedDevEui"
             class="sensor-mobile-reference-separator"
@@ -22,6 +24,7 @@
             v-if="displayedDevEui"
             class="sensor-mobile-reference-eui"
             :text="displayedDevEui"
+            :min-visible-characters="6"
           />
         </template>
         <span v-else class="sensor-mobile-reference-fallback">{{ displayedDeviceName }}</span>
@@ -423,14 +426,20 @@ const disconnectAndGoBack = async () => {
   white-space: nowrap;
 }
 
-.sensor-mobile-reference-product,
 .sensor-mobile-reference-separator {
   flex: 0 0 auto;
 }
 
+.sensor-mobile-reference-product {
+  display: flex;
+  /* Let the DevEUI shrink first, then reclaim space from the reference once
+     the six-character DevEUI reserve has been reached. */
+  flex: 0 0.0001 auto;
+  min-width: 0;
+}
+
 .sensor-mobile-reference-eui {
   flex: 1 1 auto;
-  min-width: 0;
 }
 
 .sensor-mobile-reference-fallback {
