@@ -49,10 +49,7 @@ const updateOverflow = () => {
     ? Math.ceil(measureText(`\u2026${characters.slice(-protectedCharacterCount).join('')}`)) + 1
     : null;
 
-  const availableWidth = Math.max(
-    root.value.getBoundingClientRect().width,
-    minimumWidth.value ?? 0,
-  );
+  const availableWidth = root.value.getBoundingClientRect().width;
   if (measureText(props.text) <= availableWidth) {
     isOverflowing.value = false;
     visibleText.value = props.text;

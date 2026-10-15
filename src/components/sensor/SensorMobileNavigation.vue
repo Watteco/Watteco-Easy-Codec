@@ -432,9 +432,9 @@ const disconnectAndGoBack = async () => {
 
 .sensor-mobile-reference-product {
   display: flex;
-  /* Let the DevEUI shrink first, then reclaim space from the reference once
-     the six-character DevEUI reserve has been reached. */
-  flex: 0 0.0001 auto;
+  /* The DevEUI's measured minimum protects its last six characters; the
+     reference yields the remaining space when the row gets narrower. */
+  flex: 0 1 auto;
   min-width: 0;
 }
 
