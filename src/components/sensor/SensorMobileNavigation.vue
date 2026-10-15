@@ -9,15 +9,12 @@
       <strong>{{ displayedProductName }}</strong>
       <span class="sensor-mobile-reference">
         <template v-if="displayedProductReference || displayedDevEui">
-          <span
+          <LeadingEllipsisText
             v-if="displayedProductReference"
             class="sensor-mobile-reference-product"
-          >
-            <LeadingEllipsisText
-              :text="displayedProductReference"
-              :overflow-suffix="displayedProductReferenceSuffix"
-            />
-          </span>
+            :text="displayedProductReference"
+            :overflow-suffix="displayedProductReferenceSuffix"
+          />
           <span
             v-if="displayedProductReference && displayedDevEui"
             class="sensor-mobile-reference-separator"
@@ -439,7 +436,6 @@ const disconnectAndGoBack = async () => {
 }
 
 .sensor-mobile-reference-product {
-  display: flex;
   /* The DevEUI's measured minimum protects its last six characters; the
      reference yields the remaining space when the row gets narrower. */
   flex: 0 1 auto;
