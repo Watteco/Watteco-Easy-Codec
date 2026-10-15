@@ -13,7 +13,10 @@
             v-if="displayedProductReference"
             class="sensor-mobile-reference-product"
           >
-            <LeadingEllipsisText :text="displayedProductReference" />
+            <LeadingEllipsisText
+              :text="displayedProductReference"
+              :overflow-suffix="displayedProductReferenceSuffix"
+            />
           </span>
           <span
             v-if="displayedProductReference && displayedDevEui"
@@ -217,6 +220,11 @@ const displayedProductName = computed(() => (
   getProductDisplayName(ble.productReference.value) ?? displayedDeviceName.value
 ));
 const displayedProductReference = computed(() => ble.productReference.value);
+const displayedProductReferenceSuffix = computed(() => {
+  const reference = displayedProductReference.value;
+  if (!reference || !/^50-70(?:-|$)/.test(reference)) return undefined;
+  return reference.slice('50-70'.length);
+});
 const displayedBatteryLevel = computed(() => {
   const batteryMeasurementCount = getProductMeasurements(ble.productReference.value)
     .filter(measurement => getSensorVisual(measurement.measId).category === 'battery')

@@ -21,6 +21,7 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 const props = defineProps<{
   text: string;
   minVisibleCharacters?: number;
+  overflowSuffix?: string;
 }>();
 
 const root = ref<HTMLElement | null>(null);
@@ -44,9 +45,13 @@ const updateOverflow = () => {
     Math.max(0, props.minVisibleCharacters ?? 0),
     characters.length,
   );
-  minimumWidth.value = protectedCharacterCount > 0
-    ? Math.ceil(measureText(`\u2026${characters.slice(-protectedCharacterCount).join('')}`)) + 1
-    : null;
+  if (props.overflowSuffix !== undefined) {
+    minimumWidth.value = Math.ceil(measureText(`\u2026${props.overflowSuffix}`)) + 1;
+  } else {
+    minimumWidth.value = protectedCharacterCount > 0
+      ? Math.ceil(measureText(`\u2026${characters.slice(-protectedCharacterCount).join('')}`)) + 1
+      : null;
+  }
 
   const availableWidth = root.value.getBoundingClientRect().width;
   if (measureText(props.text) <= availableWidth) {
@@ -56,6 +61,11 @@ const updateOverflow = () => {
   }
 
   isOverflowing.value = true;
+  if (props.overflowSuffix !== undefined) {
+    visibleText.value = props.overflowSuffix;
+    return;
+  }
+
   const suffixWidth = Math.max(0, availableWidth - measureText('\u2026') - 1);
   let shortestRejectedLength = characters.length + 1;
   let longestAcceptedLength = 0;
@@ -83,7 +93,7 @@ onMounted(() => {
   updateOverflow();
 });
 
-watch(() => props.text, async () => {
+watch(() => [props.text, props.minVisibleCharacters, props.overflowSuffix], async () => {
   await nextTick();
   updateOverflow();
 });
