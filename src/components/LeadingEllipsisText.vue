@@ -5,12 +5,11 @@
     :title="text"
     :style="{ minWidth: minimumWidth === null ? undefined : `${minimumWidth}px` }"
   >
-    <span
-      v-if="isOverflowing"
-      class="leading-ellipsis-text__mark"
-      aria-hidden="true"
-    >&hellip;</span>
-    <span class="leading-ellipsis-text__content" aria-hidden="true">{{ visibleText }}</span>
+    <span class="leading-ellipsis-text__sizer" aria-hidden="true">{{ text }}</span>
+    <span class="leading-ellipsis-text__visual" aria-hidden="true">
+      <span v-if="isOverflowing" class="leading-ellipsis-text__mark">&hellip;</span>
+      <span class="leading-ellipsis-text__content">{{ visibleText }}</span>
+    </span>
     <span class="leading-ellipsis-text__accessible">{{ text }}</span>
     <span ref="measurement" class="leading-ellipsis-text__measurement" aria-hidden="true"></span>
   </span>
@@ -104,6 +103,18 @@ onBeforeUnmount(() => {
   overflow: hidden;
   direction: ltr;
   white-space: nowrap;
+}
+
+.leading-ellipsis-text__sizer {
+  flex: 0 0 auto;
+  visibility: hidden;
+}
+
+.leading-ellipsis-text__visual {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow: hidden;
 }
 
 .leading-ellipsis-text__mark {
