@@ -22,7 +22,7 @@
             v-if="displayedDevEui"
             class="sensor-mobile-reference-eui"
             :title="displayedDevEui"
-          >{{ displayedDevEui }}</span>
+          ><bdi dir="ltr">{{ displayedDevEui }}</bdi></span>
         </template>
         <span v-else class="sensor-mobile-reference-fallback">{{ displayedDeviceName }}</span>
       </span>
@@ -428,12 +428,18 @@ const disconnectAndGoBack = async () => {
 }
 
 .sensor-mobile-reference-eui {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   direction: rtl;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sensor-mobile-reference-eui bdi {
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .sensor-mobile-reference-fallback {

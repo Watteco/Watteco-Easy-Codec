@@ -98,7 +98,7 @@
                 <span
                   class="device-eui-value"
                   :title="formatDevEui(dev.devEui) ?? undefined"
-                >{{ formatDevEui(dev.devEui) }}</span>
+                ><bdi dir="ltr">{{ formatDevEui(dev.devEui) }}</bdi></span>
               </p>
               <p v-else-if="dev.isSimulated">{{ localize('@bleSimulatedSensor') }}</p>
             </ion-label>
@@ -522,12 +522,18 @@ watch(() => ble.connectionPhase.value, (phase) => {
 }
 
 .device-eui-value {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   direction: rtl;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.device-eui-value bdi {
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .device-list ion-item .device-eui--connecting {
