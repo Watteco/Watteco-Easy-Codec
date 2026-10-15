@@ -2,8 +2,10 @@
   <nav
     id="sensor-mobile-tabs"
     class="sensor-mobile-tabs"
+    :class="{ 'sensor-mobile-tabs--disabled': navigationDisabled }"
     :style="{ '--sensor-tab-count': String(availablePages.length) }"
     :aria-label="labels.navigation"
+    :aria-busy="navigationDisabled"
   >
     <span
       class="sensor-mobile-tab-selection"
@@ -15,6 +17,7 @@
       class="sensor-mobile-tab"
       :class="{ 'sensor-mobile-tab--active': displayedActivePage === 'data' }"
       :aria-current="activePage === 'data' ? 'page' : undefined"
+      :disabled="navigationDisabled"
       @click="navigateTo('data')"
     >
       <ion-icon :icon="analyticsOutline" aria-hidden="true" />
@@ -25,6 +28,7 @@
       class="sensor-mobile-tab"
       :class="{ 'sensor-mobile-tab--active': displayedActivePage === 'config' }"
       :aria-current="activePage === 'config' ? 'page' : undefined"
+      :disabled="navigationDisabled"
       @click="navigateTo('config')"
     >
       <ion-icon :icon="optionsOutline" aria-hidden="true" />
@@ -35,6 +39,7 @@
       class="sensor-mobile-tab"
       :class="{ 'sensor-mobile-tab--active': displayedActivePage === 'tools' }"
       :aria-current="activePage === 'tools' ? 'page' : undefined"
+      :disabled="navigationDisabled"
       @click="navigateTo('tools')"
     >
       <ion-icon :icon="buildOutline" aria-hidden="true" />
@@ -49,6 +54,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { IonIcon } from '@ionic/vue';
 import { analyticsOutline, buildOutline, optionsOutline } from 'ionicons/icons';
 import { useLanguage } from '@/composables/useLanguage';
+import { useBle } from '@/composables/useBle';
 import {
   cancelSensorPageTransition,
   requestSensorPageTransition,
@@ -57,12 +63,14 @@ import {
 
 const route = useRoute();
 const router = useRouter();
+const ble = useBle();
 const { currentLanguage } = useLanguage();
 const activePage = computed<SensorPage>(() => (
   route.path === '/sensor-data' ? 'data' : route.path === '/sensor-tools' ? 'tools' : 'config'
 ));
 const displayedActivePage = ref<SensorPage>(activePage.value);
 const navigationPending = ref(false);
+const navigationDisabled = computed(() => ble.connectionPhase.value === 'discovering');
 const labels = computed(() => currentLanguage.value === 'fr'
   ? { navigation: 'Navigation du capteur', data: 'Données', config: 'Configuration', tools: 'Outils' }
   : { navigation: 'Sensor navigation', data: 'Data', config: 'Configuration', tools: 'Tools' });
@@ -76,7 +84,7 @@ watch(activePage, page => {
 });
 
 const navigateTo = async (page: SensorPage) => {
-  if (activePage.value === page || navigationPending.value) return;
+  if (navigationDisabled.value || activePage.value === page || navigationPending.value) return;
 
   navigationPending.value = true;
   displayedActivePage.value = page;
@@ -136,7 +144,7 @@ const eventStartedInSwipeableContent = (event: TouchEvent) => {
 };
 
 const onTouchStart = (event: TouchEvent) => {
-  if (event.touches.length !== 1 || !eventStartedInSwipeableContent(event)) {
+  if (navigationDisabled.value || event.touches.length !== 1 || !eventStartedInSwipeableContent(event)) {
     trackingSwipe = false;
     return;
   }
@@ -149,7 +157,7 @@ const onTouchStart = (event: TouchEvent) => {
 };
 
 const onTouchEnd = (event: TouchEvent) => {
-  if (!trackingSwipe || event.changedTouches.length !== 1) return;
+  if (navigationDisabled.value || !trackingSwipe || event.changedTouches.length !== 1) return;
   trackingSwipe = false;
 
   const touch = event.changedTouches[0];
@@ -250,5 +258,14 @@ onUnmounted(() => {
 
 .sensor-mobile-tab--active {
   color: var(--ion-color-primary);
+}
+
+.sensor-mobile-tabs--disabled .sensor-mobile-tab {
+  color: var(--ion-color-medium);
+  opacity: 0.48;
+}
+
+.sensor-mobile-tabs--disabled .sensor-mobile-tab-selection {
+  opacity: 0.35;
 }
 </style>

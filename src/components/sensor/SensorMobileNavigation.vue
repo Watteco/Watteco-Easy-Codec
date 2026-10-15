@@ -8,11 +8,27 @@
     <div v-if="effectiveStatus !== 'choose'" class="sensor-mobile-identity">
       <strong>{{ displayedProductName }}</strong>
       <span class="sensor-mobile-reference">
-        {{ displayedSecondaryIdentity }}
+        <template v-if="displayedProductReference || displayedDevEui">
+          <span
+            v-if="displayedProductReference"
+            class="sensor-mobile-reference-product"
+          >{{ displayedProductReference }}</span>
+          <span
+            v-if="displayedProductReference && displayedDevEui"
+            class="sensor-mobile-reference-separator"
+            aria-hidden="true"
+          >&nbsp;&middot;&nbsp;</span>
+          <span
+            v-if="displayedDevEui"
+            class="sensor-mobile-reference-eui"
+            :title="displayedDevEui"
+          >{{ displayedDevEui }}</span>
+        </template>
+        <span v-else class="sensor-mobile-reference-fallback">{{ displayedDeviceName }}</span>
       </span>
       <span class="sensor-mobile-status">
         <ion-spinner
-          v-if="isDisconnecting"
+          v-if="isDisconnecting || effectiveStatus === 'loading'"
           class="sensor-mobile-status-icon"
           name="crescent"
           aria-hidden="true"
@@ -92,7 +108,7 @@
         @click="handleHeaderAction"
       >
         <ion-spinner
-          v-if="ble.reconnecting.value || (isDisconnecting && effectiveStatus === 'connected')"
+          v-if="ble.reconnecting.value || (isDisconnecting && (effectiveStatus === 'connected' || effectiveStatus === 'loading'))"
           name="crescent"
         />
         <ion-icon v-else :icon="headerActionIcon" aria-hidden="true" />
@@ -136,7 +152,7 @@ import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
 import type { BleSignalLevel } from '@/utils/BLE/rssi';
 
 type SensorPage = 'data' | 'config' | 'tools';
-type ConnectionStatus = 'connected' | 'reconnect' | 'choose';
+type ConnectionStatus = 'connected' | 'loading' | 'reconnect' | 'choose';
 type LoraWanStatus = 'joined' | 'not-joined' | 'unknown';
 
 const props = defineProps<{
@@ -156,6 +172,7 @@ const isDisconnecting = ref(false);
 const logoSrc = `${import.meta.env.BASE_URL}img/icon.png`;
 
 const actualStatus = computed<ConnectionStatus>(() => {
+  if (ble.connectionPhase.value === 'discovering') return 'loading';
   if (ble.connected.value) return 'connected';
   return ble.lastConnectedDevice.value ? 'reconnect' : 'choose';
 });
@@ -195,12 +212,7 @@ const displayedDevEui = computed(() => {
 const displayedProductName = computed(() => (
   getProductDisplayName(ble.productReference.value) ?? displayedDeviceName.value
 ));
-const displayedSecondaryIdentity = computed(() => (
-  [ble.productReference.value, displayedDevEui.value]
-    .filter((value): value is string => Boolean(value))
-    .join(' · ')
-  || displayedDeviceName.value
-));
+const displayedProductReference = computed(() => ble.productReference.value);
 const displayedBatteryLevel = computed(() => {
   const batteryMeasurementCount = getProductMeasurements(ble.productReference.value)
     .filter(measurement => getSensorVisual(measurement.measId).category === 'battery')
@@ -219,6 +231,7 @@ const statusLabel = computed(() => {
       ? '@sessionExiting'
       : '@bleDisconnecting');
   }
+  if (effectiveStatus.value === 'loading') return props.localize('@bleLoading');
   if (effectiveStatus.value === 'connected') return props.localize('@bleConnected');
   if (effectiveStatus.value === 'reconnect') {
     return props.localize(ble.reconnecting.value ? '@bleReconnecting' : '@bleConnectionLost');
@@ -238,12 +251,14 @@ const connectedNetworksLabel = computed(() => {
 });
 const headerActionLabel = computed(() => {
   if (isDisconnecting.value) return props.localize('@bleDisconnecting');
-  if (effectiveStatus.value === 'connected') return props.localize('@bleDisconnect');
+  if (effectiveStatus.value === 'connected' || effectiveStatus.value === 'loading') {
+    return props.localize('@bleDisconnect');
+  }
   if (effectiveStatus.value === 'reconnect') return props.localize('@bleReconnect');
   return props.localize('@chooseSensor');
 });
 const headerActionIcon = computed(() => {
-  if (effectiveStatus.value === 'connected') return logOutOutline;
+  if (effectiveStatus.value === 'connected' || effectiveStatus.value === 'loading') return logOutOutline;
   if (effectiveStatus.value === 'reconnect') return refreshOutline;
   return bluetoothOutline;
 });
@@ -264,7 +279,7 @@ const presentReconnectWaitingToast = async () => {
 };
 
 const handleHeaderAction = async () => {
-  if (effectiveStatus.value === 'connected') {
+  if (effectiveStatus.value === 'connected' || effectiveStatus.value === 'loading') {
     await requestSessionExit();
     return;
   }
@@ -289,7 +304,7 @@ const handleHeaderAction = async () => {
 const confirmSessionExit = async (): Promise<boolean> => {
   if (!confirmationEnabled.value) return true;
 
-  const connected = effectiveStatus.value === 'connected';
+  const connected = effectiveStatus.value === 'connected' || effectiveStatus.value === 'loading';
   const alert = await alertController.create({
     header: props.localize(connected ? '@bleDisconnectConfirmTitle' : '@sessionExitConfirmTitle'),
     message: props.localize('@sessionExitWarning'),
@@ -334,6 +349,7 @@ const disconnectAndGoBack = async () => {
   await nextTick();
 
   try {
+    await ble.cancelConnect();
     await ble.cancelReconnect();
     await ble.disconnect();
     await router.replace('/ble-connect');
@@ -396,13 +412,33 @@ const disconnectAndGoBack = async () => {
 }
 
 .sensor-mobile-reference {
+  display: flex;
+  min-width: 0;
   overflow: hidden;
   margin-top: 2px;
   font-size: 0.78rem;
   font-weight: 600;
   opacity: 0.82;
+  white-space: nowrap;
+}
+
+.sensor-mobile-reference-product,
+.sensor-mobile-reference-separator {
+  flex: 0 0 auto;
+}
+
+.sensor-mobile-reference-eui {
+  min-width: 0;
+  overflow: hidden;
+  direction: rtl;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sensor-mobile-reference-fallback {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sensor-mobile-status {

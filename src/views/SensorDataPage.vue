@@ -12,52 +12,74 @@
 
     <ion-content :fullscreen="true" class="sensor-data-content native-with-sensor-navigation">
       <div class="sensor-data-container">
-        <section v-if="currentCards.length" class="dashboard-section">
-          <h2 class="section-title">{{ localize('@currentValues') }}</h2>
-          <div class="sensor-grid">
-            <template v-for="currentCard in currentCards" :key="currentCard.key">
-              <sensor-metric-card
-                v-if="currentCard.type === 'metric'"
-                :label="currentCard.card.name"
-                :official-label="currentCard.card.officialName"
-                :value="currentCard.card.value"
-                :unit="currentCard.card.unit"
-                :icon="currentCard.card.visual.icon"
-                :accent="currentCard.card.visual.accent"
-                :decimals="currentCard.card.decimals"
-                :compact="currentCard.card.compact"
-              />
-              <sensor-state-card
-                v-else
-                :label="stateCardLabel"
-                :active-label="localize('@activeState')"
-                :inactive-label="localize('@inactiveState')"
-                :entries="stateEntries"
-                :accent="stateCardVisual?.accent"
-                :icon="stateCardVisual?.icon"
-              />
-            </template>
-          </div>
-        </section>
+        <template v-if="isDashboardLoading">
+          <section class="dashboard-section" role="status" :aria-label="localize('@bleLoading')">
+            <h2 class="section-title">{{ localize('@currentValues') }}</h2>
+            <div class="sensor-grid" aria-hidden="true">
+              <div v-for="index in 4" :key="`metric-skeleton-${index}`" class="sensor-card-skeleton">
+                <span class="sensor-card-skeleton__icon"></span>
+                <span class="sensor-card-skeleton__line sensor-card-skeleton__line--label"></span>
+                <span class="sensor-card-skeleton__line sensor-card-skeleton__line--value"></span>
+              </div>
+            </div>
+          </section>
 
-        <section v-if="historyCards.length" class="dashboard-section">
-          <h2 class="section-title">{{ localize('@historyLabel') }}</h2>
-          <div class="sensor-grid">
-            <sensor-history-card
-              v-for="card in historyCards"
-              :key="`history-${card.measId}`"
-              :label="card.name"
-              :subtitle="localize('@timestampedValuesLabel')"
-              :empty-label="localize('@noHistoryData')"
-              :points="card.history"
-              :unit="card.unit"
-              :accent="card.visual.accent"
-              :decimals="card.decimals"
-              :min-value="card.visual.historyMin"
-              :max-value="card.visual.historyMax"
-            />
-          </div>
-        </section>
+          <section class="dashboard-section" aria-hidden="true">
+            <div class="sensor-card-skeleton sensor-card-skeleton--history">
+              <span class="sensor-card-skeleton__line sensor-card-skeleton__line--label"></span>
+              <span class="sensor-card-skeleton__chart"></span>
+            </div>
+          </section>
+        </template>
+
+        <template v-else>
+          <section v-if="currentCards.length" class="dashboard-section">
+            <h2 class="section-title">{{ localize('@currentValues') }}</h2>
+            <div class="sensor-grid">
+              <template v-for="currentCard in currentCards" :key="currentCard.key">
+                <sensor-metric-card
+                  v-if="currentCard.type === 'metric'"
+                  :label="currentCard.card.name"
+                  :official-label="currentCard.card.officialName"
+                  :value="currentCard.card.value"
+                  :unit="currentCard.card.unit"
+                  :icon="currentCard.card.visual.icon"
+                  :accent="currentCard.card.visual.accent"
+                  :decimals="currentCard.card.decimals"
+                  :compact="currentCard.card.compact"
+                />
+                <sensor-state-card
+                  v-else
+                  :label="stateCardLabel"
+                  :active-label="localize('@activeState')"
+                  :inactive-label="localize('@inactiveState')"
+                  :entries="stateEntries"
+                  :accent="stateCardVisual?.accent"
+                  :icon="stateCardVisual?.icon"
+                />
+              </template>
+            </div>
+          </section>
+
+          <section v-if="historyCards.length" class="dashboard-section">
+            <h2 class="section-title">{{ localize('@historyLabel') }}</h2>
+            <div class="sensor-grid">
+              <sensor-history-card
+                v-for="card in historyCards"
+                :key="`history-${card.measId}`"
+                :label="card.name"
+                :subtitle="localize('@timestampedValuesLabel')"
+                :empty-label="localize('@noHistoryData')"
+                :points="card.history"
+                :unit="card.unit"
+                :accent="card.visual.accent"
+                :decimals="card.decimals"
+                :min-value="card.visual.historyMin"
+                :max-value="card.visual.historyMax"
+              />
+            </div>
+          </section>
+        </template>
 
       </div>
     </ion-content>
@@ -295,19 +317,21 @@ const historyCards = computed(() => displayedCards.value
     || compareSensorCardLabels(left.name, right.name, currentLanguage.value)
   )));
 
-type BannerState = 'connected' | 'reconnect' | 'choose';
+type BannerState = 'connected' | 'loading' | 'reconnect' | 'choose';
 type BannerPreview = 'actual' | BannerState;
 
 const bannerPreviewStates: BannerPreview[] = ['actual', 'connected', 'reconnect', 'choose'];
 const bannerPreviewIndex = ref(0);
 const bannerPreview = computed(() => bannerPreviewStates[bannerPreviewIndex.value]);
 const actualBannerState = computed<BannerState>(() => {
+  if (ble.connectionPhase.value === 'discovering') return 'loading';
   if (ble.connected.value) return 'connected';
   return ble.lastConnectedDevice.value ? 'reconnect' : 'choose';
 });
 const bannerState = computed<BannerState>(() => (
   bannerPreview.value === 'actual' ? actualBannerState.value : bannerPreview.value
 ));
+const isDashboardLoading = computed(() => ble.connectionPhase.value === 'discovering');
 const bannerDeviceName = computed(() => {
   if (bannerPreview.value === 'connected' && !ble.connectedDevice.value) return 'WS12345678';
   if (bannerPreview.value === 'reconnect' && !ble.lastConnectedDevice.value) return 'WS12345678';
@@ -317,6 +341,7 @@ const bannerDeviceName = computed(() => {
 const bannerPreviewLabel = computed(() => ({
   actual: 'real',
   connected: 'connected',
+  loading: 'loading',
   reconnect: 'reconnect',
   choose: 'choose',
 }[bannerPreview.value]));
@@ -432,6 +457,81 @@ const toggleDebugTools = () => {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.sensor-card-skeleton {
+  position: relative;
+  min-height: 132px;
+  padding: 18px;
+  overflow: hidden;
+  background: var(--ion-card-background, var(--ion-background-color));
+  border: 1px solid var(--app-nav-border);
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(28, 35, 45, 0.08);
+}
+
+.sensor-card-skeleton::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(var(--ion-color-medium-rgb), 0.12) 46%,
+    rgba(var(--ion-color-medium-rgb), 0.2) 50%,
+    rgba(var(--ion-color-medium-rgb), 0.12) 54%,
+    transparent 70%
+  );
+  content: '';
+  transform: translateX(-100%);
+  animation: sensor-card-skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.sensor-card-skeleton__icon,
+.sensor-card-skeleton__line,
+.sensor-card-skeleton__chart {
+  display: block;
+  background: rgba(var(--ion-color-medium-rgb), 0.18);
+  border-radius: 999px;
+}
+
+.sensor-card-skeleton__icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+}
+
+.sensor-card-skeleton__line--label {
+  width: 68%;
+  height: 10px;
+}
+
+.sensor-card-skeleton__line--value {
+  width: 48%;
+  height: 18px;
+  margin-top: 12px;
+}
+
+.sensor-card-skeleton--history {
+  min-height: 230px;
+}
+
+.sensor-card-skeleton__chart {
+  width: 100%;
+  height: 145px;
+  margin-top: 24px;
+  border-radius: 12px;
+  opacity: 0.65;
+}
+
+@keyframes sensor-card-skeleton-shimmer {
+  to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sensor-card-skeleton::after {
+    animation: none;
+  }
 }
 
 

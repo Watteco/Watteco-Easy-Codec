@@ -91,9 +91,14 @@
               <h2>{{ dev.productName ?? ble.getDeviceName(dev) }}</h2>
               <p
                 v-if="formatDevEui(dev.devEui)"
+                class="device-eui"
                 :class="{ 'device-eui--connecting': isDeviceConnecting(dev) }"
               >
-                DevEUI: {{ formatDevEui(dev.devEui) }}
+                <span class="device-eui-label">DevEUI:&nbsp;</span>
+                <span
+                  class="device-eui-value"
+                  :title="formatDevEui(dev.devEui) ?? undefined"
+                >{{ formatDevEui(dev.devEui) }}</span>
               </p>
               <p v-else-if="dev.isSimulated">{{ localize('@bleSimulatedSensor') }}</p>
             </ion-label>
@@ -312,9 +317,10 @@ function proceed() {
   router.replace('/sensor-data');
 }
 
-// Auto-navigate to the sensor dashboard when BLE becomes connected
-watch(() => ble.connected.value, (val) => {
-  if (val) {
+// Show the sensor dashboard as soon as GATT is connected. The dashboard keeps
+// its controls locked while service discovery and subscriptions are prepared.
+watch(() => ble.connectionPhase.value, (phase) => {
+  if (phase === 'discovering' || phase === 'ready') {
     router.replace('/sensor-data');
   }
 }, { immediate: true, flush: 'sync' });
@@ -506,10 +512,26 @@ watch(() => ble.connected.value, (val) => {
   color: var(--ion-color-medium);
 }
 
-.device-list ion-item .device-eui--connecting {
+.device-list ion-item .device-eui {
+  display: flex;
+  min-width: 0;
+}
+
+.device-eui-label {
+  flex: 0 0 auto;
+}
+
+.device-eui-value {
+  min-width: 0;
   overflow: hidden;
+  direction: rtl;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.device-list ion-item .device-eui--connecting {
+  overflow: hidden;
 }
 
 .empty-state {

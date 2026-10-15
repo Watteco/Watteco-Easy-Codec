@@ -84,6 +84,7 @@
     "openSensorConfiguration": "Configure the sensor",
     "chooseSensor": "Choose",
     "bleConnected": "Connected",
+    "bleLoading": "Loading…",
     "bleSignalStrength": "Bluetooth signal strength",
     "bleSignalUnavailable": "Bluetooth signal strength unavailable",
     "loraWanJoined": "LoRaWAN joined",

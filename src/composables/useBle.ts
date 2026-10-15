@@ -55,6 +55,8 @@ export type DeviceLike = {
   devEui?: string;
 };
 
+export type BleConnectionPhase = 'idle' | 'connecting' | 'discovering' | 'ready';
+
 type MeasurementHistoryPoint = {
   timestamp: number;
   value: number;
@@ -110,6 +112,7 @@ const isNative = ref(Capacitor.isNativePlatform());
 const bleInitialized = ref(false);
 const scanning = ref(false);
 const connected = ref(false);
+const connectionPhase = ref<BleConnectionPhase>('idle');
 const devices = ref<DeviceLike[]>([]);
 const connectedDevice = ref<DeviceLike | undefined>(undefined);
 // Kept after an unexpected disconnect so the current page can reconnect
@@ -535,7 +538,10 @@ async function startScan(useFilters = true) {
   const prom = new Promise<void>((resolve) => { scanResolve = resolve; });
 
   try {
-    const options: any = { allowDuplicates: true };
+    const options: any = {
+      allowDuplicates: true,
+      scanMode: ScanMode.SCAN_MODE_LOW_LATENCY,
+    };
     if (useFilters && SCAN_NAME_PREFIXES.length === 1) {
       options.namePrefix = SCAN_NAME_PREFIXES[0];
     }
@@ -575,7 +581,10 @@ async function startAutoScan(useFilters = true, maxAttempts = MAX_AUTO_SCAN_ATTE
   let scanFailed = false;
 
   try {
-    const options: any = { allowDuplicates: true };
+    const options: any = {
+      allowDuplicates: true,
+      scanMode: ScanMode.SCAN_MODE_LOW_LATENCY,
+    };
     if (useFilters && SCAN_NAME_PREFIXES.length === 1) options.namePrefix = SCAN_NAME_PREFIXES[0];
 
     await BleClient.requestLEScan(options, async (result: ScanResult) => {
@@ -668,6 +677,10 @@ async function connectToDeviceUntil(
         loraLinkStatus.value = null;
         osaAuthenticated.value = null;
         connected.value = false;
+        connectionPhase.value = (
+          (connecting.value && !connectionCanceled)
+          || (reconnecting.value && !reconnectCanceled)
+        ) ? 'connecting' : 'idle';
         connectedDevice.value = undefined;
         clearConnectionTarget();
         pairing.value = false;
@@ -681,6 +694,7 @@ async function connectToDeviceUntil(
 
       connectedDevice.value = device;
       lastConnectedDevice.value = device;
+      connectionPhase.value = 'discovering';
 
       const productId = await readProductIdFromBle(device.deviceId, log);
       productReference.value = resolveAvailableProductReference(productId?.text);
@@ -820,10 +834,11 @@ async function connectToDeviceUntil(
         return;
       }
 
-      // Expose the connection only once its services and notifications are
-      // ready, so the UI can navigate straight to the sensor dashboard.
+      // Mark the session ready only once its services and notifications are
+      // prepared. The dashboard is already visible in its loading state.
       if (!isCanceled?.() && connectedDevice.value?.deviceId === device.deviceId) {
         connected.value = true;
+        connectionPhase.value = 'ready';
         startBleRssiMonitoring(device.deviceId);
         void refreshOsaAuthenticationStatus();
       }
@@ -834,10 +849,12 @@ async function connectToDeviceUntil(
         try { await BleClient.disconnect(device.deviceId); } catch { /* ignore retry cleanup errors */ }
         clearConnectionTarget();
         connected.value = false;
+        connectionPhase.value = 'connecting';
         connectedDevice.value = undefined;
         continue;
       }
       statusMessage.value = 'Connection failed: ' + (e?.message ?? e);
+      connectionPhase.value = 'connecting';
       return;
     }
   }
@@ -853,6 +870,7 @@ async function connectToDevice(device: DeviceLike): Promise<boolean> {
   connectionCanceled = false;
   connectingDevice = device;
   connecting.value = true;
+  connectionPhase.value = 'connecting';
 
   try {
     const connectionDeadline = Date.now() + RECONNECT_TIMEOUT_MS;
@@ -900,6 +918,7 @@ async function connectToDevice(device: DeviceLike): Promise<boolean> {
       try { await BleClient.stopLEScan(); } catch { /* ignore connection scan cleanup errors */ }
     }
     if (connectionCanceled) statusMessage.value = 'Connection canceled';
+    if (!connected.value) connectionPhase.value = 'idle';
     connecting.value = false;
     connectingDevice = undefined;
   }
@@ -909,6 +928,7 @@ async function cancelConnect() {
   if (!connecting.value) return;
 
   connectionCanceled = true;
+  connectionPhase.value = 'idle';
   finishReconnectScan(false);
 
   if (reconnectScanActive) {
@@ -942,6 +962,7 @@ async function disconnect() {
     await BleClient.disconnect(connectedDevice.value.deviceId);
   } catch (e) { console.error('Disconnect error:', e); }
   connected.value = false;
+  connectionPhase.value = 'idle';
   connectedDevice.value = undefined;
   clearMeasurementHistory();
   clearConnectionTarget();
@@ -1008,6 +1029,7 @@ async function cancelReconnect() {
   if (!reconnecting.value) return;
 
   reconnectCanceled = true;
+  connectionPhase.value = 'idle';
   finishReconnectScan(false);
 
   if (reconnectScanActive) {
@@ -1075,6 +1097,7 @@ async function reconnectToLastDevice(): Promise<boolean> {
       try { await BleClient.stopLEScan(); } catch { /* ignore reconnect scan cleanup errors */ }
     }
     if (reconnectCanceled) statusMessage.value = 'Reconnection canceled';
+    if (!connected.value) connectionPhase.value = 'idle';
     reconnecting.value = false;
   }
 }
@@ -1374,6 +1397,7 @@ export function useBle() {
     bleInitialized:  readonly(bleInitialized),
     scanning:        readonly(scanning),
     connected:       readonly(connected),
+    connectionPhase: readonly(connectionPhase),
     devices:         readonly(devices),
     connectedDevice: readonly(connectedDevice),
     lastConnectedDevice: readonly(lastConnectedDevice),
