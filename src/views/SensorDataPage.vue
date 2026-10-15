@@ -107,6 +107,9 @@
         >
           {{ pollingAllMeasurements ? 'Polling BLE values…' : 'Poll all BLE values' }}
         </ion-button>
+        <ion-button size="small" fill="solid" color="medium" @click="ble.clearMeasurementHistory">
+          Clear all histories
+        </ion-button>
       </div>
       <button
         type="button"

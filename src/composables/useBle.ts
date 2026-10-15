@@ -1603,6 +1603,7 @@ export function useBle() {
     cancelReconnect,
     disconnect,
     pollAllMeasurements,
+    clearMeasurementHistory,
     getDefaultConfigurationPreview,
     getCurrentConfigurationPreview,
     clearConfigurationFrameLogs,

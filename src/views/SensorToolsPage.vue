@@ -1198,6 +1198,12 @@ function clearDeviceInformation(): void {
   };
 }
 
+function closeOsaSessionAfterRestart(): void {
+  deviceStatus.value = { ...deviceStatus.value, osaAuthenticated: false };
+  ble.setOsaAuthenticated(false);
+  clearDeviceInformation();
+}
+
 async function refreshDeviceInformation(): Promise<void> {
   const deviceId = ble.connectedDevice.value?.deviceId;
   if (
@@ -1393,6 +1399,7 @@ async function sendPresetFrame(
     );
     feedback.value = localize('@toolsCommandSent');
     if (kind === 'factory-reset') {
+      closeOsaSessionAfterRestart();
       await ble.reconnectAfterDeviceRestart(deviceId);
     }
   } catch (error: any) {
@@ -1426,6 +1433,7 @@ async function sendSensorReboot(): Promise<void> {
   try {
     await rebootDevice(deviceId, line => console.debug(line));
     feedback.value = localize('@toolsRebootSent');
+    closeOsaSessionAfterRestart();
     await ble.reconnectAfterDeviceRestart(deviceId);
   } catch (error: any) {
     feedbackError.value = true;
