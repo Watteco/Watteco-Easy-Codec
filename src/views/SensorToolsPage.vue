@@ -449,12 +449,60 @@
               <p class="card-description">{{ localize('@toolsManualFrameDescription') }}</p>
               <label class="field-label" for="tools-payload">{{ localize('@toolsHexPayload') }}</label>
               <textarea
+                ref="manualFrameInput"
                 id="tools-payload"
-                v-model="manualFrameHex"
+                :value="manualFrameHex"
                 class="tool-input tool-textarea"
                 placeholder="11 00 80 04 00 04"
                 rows="3"
+                :inputmode="systemKeyboardEnabled ? 'text' : 'none'"
+                autocapitalize="characters"
+                autocorrect="off"
+                spellcheck="false"
+                @blur="rememberManualFrameSelection"
+                @click="rememberManualFrameSelection"
+                @input="handleManualFrameInput"
+                @keydown="handleManualFrameKeydown"
+                @keyup="rememberManualFrameSelection"
+                @select="rememberManualFrameSelection"
               ></textarea>
+
+              <div class="hex-keypad">
+                <div v-if="!systemKeyboardEnabled" class="hex-keypad__keys">
+                  <button
+                    v-for="key in HEX_KEYPAD_KEYS"
+                    :key="key"
+                    type="button"
+                    class="hex-keypad__key"
+                    @click="insertManualFrameText(key)"
+                  >
+                    {{ key }}
+                  </button>
+                  <button
+                    type="button"
+                    class="hex-keypad__key hex-keypad__key--wide"
+                    :aria-label="localize('@toolsHexBackspace')"
+                    @click="handleDeleteKeyClick"
+                    @pointercancel="stopDeleteRepeat"
+                    @pointerdown.prevent="startDeleteRepeat"
+                    @pointerleave="stopDeleteRepeat"
+                    @pointerup="stopDeleteRepeat"
+                  >
+                    &#9003;
+                  </button>
+                </div>
+                <ion-button
+                  class="hex-keypad__mode"
+                  size="small"
+                  fill="clear"
+                  expand="block"
+                  @click="toggleSystemKeyboard"
+                >
+                  {{ systemKeyboardEnabled
+                    ? localize('@toolsHexKeypad')
+                    : localize('@toolsSystemKeyboard') }}
+                </ion-button>
+              </div>
 
               <p v-if="manualFrameHex && !manualFrame" class="validation-error">
                 {{ localize('@toolsInvalidPayload') }}
@@ -535,7 +583,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import axios from 'axios';
 import { IonButton, IonCard, IonCardContent, IonContent, IonIcon, IonPage, onIonViewDidEnter } from '@ionic/vue';
 import { chevronDownOutline, chevronForwardOutline, lockClosed, lockOpenOutline } from 'ionicons/icons';
@@ -563,6 +611,7 @@ import {
   type AppRxSubscription,
 } from '@/utils/BLE/appFrames';
 import { toSpacedHex } from '@/utils/BLE/blob';
+import { formatHexInput } from '@/utils/hexInput';
 import {
   buildLoraRejoinFrame,
   FACTORY_RESET_FRAME,
@@ -643,6 +692,12 @@ const LINK_TEST_BUSY_RETRY_DELAY_MS = 2_000;
 const INTER_TEST_DELAY_MS = 5_000;
 const APP_RX_FIRST_RESPONSE_TIMEOUT_MS = 2_000;
 const APP_RX_IDLE_TIMEOUT_MS = 1_000;
+const HEX_KEYPAD_KEYS = [
+  '1', '2', '3', 'A',
+  '4', '5', '6', 'B',
+  '7', '8', '9', 'C',
+  '0', 'D', 'E', 'F',
+] as const;
 const ble = useBle();
 const { developerModeEnabled } = useDeveloperMode();
 const {
@@ -702,6 +757,10 @@ const deviceStatusLoading = ref(false);
 const deviceInformationLoading = ref(false);
 const osaAuthenticating = ref(false);
 const manualFrameHex = ref('11 00 80 04 00 04');
+const manualFrameInput = ref<HTMLTextAreaElement | null>(null);
+const manualFrameSelectionStart = ref(manualFrameHex.value.length);
+const manualFrameSelectionEnd = ref(manualFrameHex.value.length);
+const systemKeyboardEnabled = ref(false);
 const lastCommandResponse = ref('');
 const manualFrameSending = ref(false);
 const awaitingManualResponse = ref(false);
@@ -715,6 +774,8 @@ let deviceInformationDeviceId: string | undefined;
 let campaignCancelled = false;
 let campaignSequence = 0;
 let campaignDiagnosticSequence = 0;
+let deleteRepeatDelay: ReturnType<typeof setTimeout> | undefined;
+let deleteRepeatInterval: ReturnType<typeof setInterval> | undefined;
 
 const status = computed(() => ble.loraLinkStatus.value);
 const bleDeviceName = computed(() => {
@@ -779,6 +840,94 @@ const canSendManualFrame = computed(() => (
   && !ble.sending.value
   && !osaAuthenticating.value
 ));
+
+function rememberManualFrameSelection(): void {
+  const input = manualFrameInput.value;
+  if (!input) return;
+  manualFrameSelectionStart.value = input.selectionStart ?? manualFrameHex.value.length;
+  manualFrameSelectionEnd.value = input.selectionEnd ?? manualFrameSelectionStart.value;
+}
+
+function updateManualFrameValue(value: string, cursor: number): void {
+  const formatted = formatHexInput(value, cursor);
+  manualFrameHex.value = formatted.value;
+  void restoreManualFrameSelection(formatted.cursor);
+}
+
+function handleManualFrameInput(event: Event): void {
+  const input = event.currentTarget as HTMLTextAreaElement;
+  updateManualFrameValue(input.value, input.selectionStart ?? input.value.length);
+}
+
+function handleManualFrameKeydown(event: KeyboardEvent): void {
+  if (event.key !== 'Backspace') return;
+  const input = event.currentTarget as HTMLTextAreaElement;
+  if (input.selectionStart !== input.selectionEnd || input.selectionStart === 0) return;
+  if (manualFrameHex.value[input.selectionStart - 1] !== ' ') return;
+  event.preventDefault();
+  rememberManualFrameSelection();
+  deleteManualFrameBackward();
+}
+
+async function restoreManualFrameSelection(position: number): Promise<void> {
+  await nextTick();
+  const input = manualFrameInput.value;
+  if (!input) return;
+  input.focus({ preventScroll: true });
+  input.setSelectionRange(position, position);
+  manualFrameSelectionStart.value = position;
+  manualFrameSelectionEnd.value = position;
+}
+
+function insertManualFrameText(text: string): void {
+  const start = manualFrameSelectionStart.value;
+  const end = manualFrameSelectionEnd.value;
+  const value = `${manualFrameHex.value.slice(0, start)}${text}${manualFrameHex.value.slice(end)}`;
+  updateManualFrameValue(value, start + text.length);
+}
+
+function deleteManualFrameBackward(): void {
+  const start = manualFrameSelectionStart.value;
+  const end = manualFrameSelectionEnd.value;
+  if (start === end && start === 0) {
+    void restoreManualFrameSelection(0);
+    return;
+  }
+
+  let deletionStart = start === end ? start - 1 : start;
+  while (start === end && deletionStart > 0 && /[\s:-]/.test(manualFrameHex.value[deletionStart])) {
+    deletionStart -= 1;
+  }
+  const value = `${manualFrameHex.value.slice(0, deletionStart)}${manualFrameHex.value.slice(end)}`;
+  updateManualFrameValue(value, deletionStart);
+}
+
+function stopDeleteRepeat(): void {
+  if (deleteRepeatDelay) clearTimeout(deleteRepeatDelay);
+  if (deleteRepeatInterval) clearInterval(deleteRepeatInterval);
+  deleteRepeatDelay = undefined;
+  deleteRepeatInterval = undefined;
+}
+
+function startDeleteRepeat(event: PointerEvent): void {
+  stopDeleteRepeat();
+  (event.currentTarget as HTMLButtonElement).setPointerCapture?.(event.pointerId);
+  deleteManualFrameBackward();
+  deleteRepeatDelay = setTimeout(() => {
+    deleteRepeatInterval = setInterval(deleteManualFrameBackward, 55);
+  }, 350);
+}
+
+function handleDeleteKeyClick(event: MouseEvent): void {
+  if (event.detail === 0) deleteManualFrameBackward();
+}
+
+async function toggleSystemKeyboard(): Promise<void> {
+  rememberManualFrameSelection();
+  manualFrameInput.value?.blur();
+  systemKeyboardEnabled.value = !systemKeyboardEnabled.value;
+  await restoreManualFrameSelection(manualFrameSelectionStart.value);
+}
 
 function localize(key: string): string {
   if (!key.startsWith('@')) return key;
@@ -1411,6 +1560,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  stopDeleteRepeat();
   cancelCampaign();
   finishManualResponseCollection();
   void stopAppRxMonitoring(appRxSubscription, line => console.debug(line));
@@ -1834,6 +1984,39 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
 }
 
 .tool-textarea { resize: vertical; font-family: monospace; }
+.hex-keypad {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+}
+.hex-keypad__keys {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.hex-keypad__key {
+  min-height: 42px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 8px;
+  color: var(--app-text);
+  background: var(--app-card-background, var(--ion-card-background, #fff));
+  font: 650 1rem/1 monospace;
+  touch-action: manipulation;
+}
+.hex-keypad__key:active { background: var(--app-page-background); }
+.hex-keypad__key:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: 1px;
+}
+.hex-keypad__key--wide {
+  grid-column: span 4;
+  font-family: inherit;
+  font-size: 0.82rem;
+}
+.hex-keypad__mode {
+  justify-self: stretch;
+  margin: 0;
+}
 .command-duration { font-variant-numeric: tabular-nums; }
 .command-list { display: grid; gap: 8px; }
 .rejoin-command {
