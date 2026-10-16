@@ -1,5 +1,14 @@
 {
-    "blob_only_configurations": [],
+    "blob_only_configurations": [
+        [
+            "11 05 8004 0000 08 00",
+            "11 50 00 50 02 03",
+            "11 02 0050 FB1E 41 0D 01 1E 05 0078 00FA 0032 01F4 003C",
+            "11 06 0402 15 0000 00 800A 803C 0000 000A 03",
+            "31 06 0402 15 0000 00 800A 803C 0000 000A 0B",
+            "11 06 0050 15 0006 04 85A0 85A0 0000 0064 34"
+        ]
+    ],
     "general_params": {
         "remove_config": {
             "label": "@removeCurrentConfigLabel",
@@ -36,12 +45,12 @@
     },
     "batch_params": {
         "batch_T_params": {
-            "label": "@tempLabel",
+            "label": "@tempLabel @probe 1 + @tempLabel @probe 2",
             "default_state": "true",
             "fields": {
                 "tBatchEchant": {
                     "type": "timeVal",
-                    "default_value": "60",
+                    "default_value": "10",
                     "min_value": "1",
                     "max_value": "120",
                     "step": "1",
@@ -76,7 +85,7 @@
             "fields": {
                 "gBatchEmission": {
                     "type": "timeVal",
-                    "default_value": "240",
+                    "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
                     "step": "1",
@@ -88,13 +97,14 @@
             }
         },
         "cfg_block": [
-            ["11 06 0402 15 0000 00 (tBatchEchant) (gBatchEmission) 0000 000A 24", "@cfgCommentBatchTemp"],
+            ["11 06 0402 15 0000 00 (tBatchEchant) (gBatchEmission) 0000 000A 03", "@cfgCommentBatchTemp - @probe 1"],
+            ["31 06 0402 15 0000 00 (tBatchEchant) (gBatchEmission) 0000 000A 0B", "@cfgCommentBatchTemp - @probe 2"],
             ["11 06 0050 15 0006 04 (bBatchEchant) 85A0 0000 0064 34", "@cfgCommentBatchBatt"]
         ]
     },
     "standard_params": {
         "standard_T_params": {
-            "label": "@tempLabel",
+            "label": "@tempLabel @probe 1",
             "fields": {
                 "tStandEchant": {
                     "type": "timeVal",
@@ -120,6 +130,46 @@
                     }
                 },
                 "tNotification": {
+                    "type": "hex2B",
+                    "default_value": "15 30",
+                    "min_value": "1",
+                    "max_value": "55",
+                    "HMI": {
+                        "label": "@thresholdLabel",
+                        "visual_type": "doubleSlider",
+                        "unit": "\u00b0C",
+                        "multiplier": "100"
+                    }
+                }
+            }
+        },
+        "standard_T2_params": {
+            "label": "@tempLabel @probe 2",
+            "fields": {
+                "t2StandEchant": {
+                    "type": "timeVal",
+                    "default_value": "10",
+                    "min_value": "1",
+                    "max_value": "60",
+                    "step": "1",
+                    "depends_on": "t2StandEmission",
+                    "HMI": {
+                        "label": "@measureLabel",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "t2StandEmission": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "1440",
+                    "step": "1",
+                    "HMI": {
+                        "label": "@emitMaxLabel",
+                        "visual_type": "timeSlider"
+                    }
+                },
+                "t2Notification": {
                     "type": "hex2B",
                     "default_value": "15 30",
                     "min_value": "1",
@@ -173,7 +223,8 @@
             }
         },
         "cfg_block": [
-            ["11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tNotification1) 0000 0171 (tNotification2) 0000 01", "@cfgCommentStandTemp"],
+            ["11 06 0402 80 0000 29 (tStandEchant) (tStandEmission) 70 (tNotification1) 0000 0171 (tNotification2) 0000 01", "@cfgCommentStandTemp - @probe 1"],
+            ["31 06 0402 80 0000 29 (t2StandEchant) (t2StandEmission) 70 (t2Notification1) 0000 0171 (t2Notification2) 0000 01", "@cfgCommentStandTemp - @probe 2"],
             ["11 06 0050 80 0006 41 (bStandEchant) (bStandEmission) 0e 70 04 (bNotification1) 0000 0171 04 (bNotification2) 0000 01", "@cfgCommentStandBatt"]
         ]
     }

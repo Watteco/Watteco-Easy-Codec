@@ -72,7 +72,14 @@ describe('productMeasurements', () => {
   });
 
   it('configures PT1000 Neo without pulse or binary input sections', () => {
-    expect(pt1000NeoConfig.blob_only_configurations).toEqual([]);
+    expect(pt1000NeoConfig.blob_only_configurations).toEqual([[
+      '11 05 8004 0000 08 00',
+      '11 50 00 50 02 03',
+      '11 02 0050 FB1E 41 0D 01 1E 05 0078 00FA 0032 01F4 003C',
+      '11 06 0402 15 0000 00 800A 803C 0000 000A 03',
+      '31 06 0402 15 0000 00 800A 803C 0000 000A 0B',
+      '11 06 0050 15 0006 04 85A0 85A0 0000 0064 34',
+    ]]);
     expect(Object.keys(pt1000NeoConfig.batch_params)).toEqual([
       'batch_T_params',
       'batch_B_params',
@@ -81,6 +88,7 @@ describe('productMeasurements', () => {
     ]);
     expect(Object.keys(pt1000NeoConfig.standard_params)).toEqual([
       'standard_T_params',
+      'standard_T2_params',
       'standard_B_params',
       'cfg_block',
     ]);

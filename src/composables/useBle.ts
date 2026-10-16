@@ -54,6 +54,7 @@ import {
 } from '@/utils/BLE/loraLink';
 import { getBleSignalLevel, type BleSignalLevel } from '@/utils/BLE/rssi';
 import { readAdminDeviceStatus } from '@/utils/BLE/adminStatus';
+import { buildCounterSetFrame } from '@/utils/BLE/counterCommands';
 
 export type DeviceLike = {
   deviceId: string;
@@ -105,6 +106,7 @@ const INTER_FRAME_DELAY_MS = 500;
 const INTER_CHUNK_DELAY_MS = 10;
 const MAX_MEASUREMENT_HISTORY_POINTS = 20;
 const BLE_RSSI_POLL_INTERVAL_MS = 2000;
+const COUNTER_RESPONSE_TIMEOUT_MS = 3000;
 const BONDED_DEVICES_STORAGE_KEY = 'easycodec.androidBondedDevices';
 const BONDING_ENABLED = true; // set to true to enable bonding on connect
 
@@ -139,6 +141,7 @@ const eventsLog = ref<string[]>([]);
 const wakeDiagnostics = ref<BleWakeDiagnostic[]>([]);
 const wakingSensor = ref(false);
 const configurationFrameLogs = ref<string[]>([]);
+const counterFrameLogs = ref<string[]>([]);
 const sending = ref(false);
 const osaAuthenticating = ref(false);
 const osaAuthenticated = ref<boolean | null>(null);
@@ -153,6 +156,7 @@ const loraLinkTestAvailable = ref<boolean | null>(null);
 const loraLinkStatus = ref<LoraLinkStatus | null>(null);
 const measurementValues = ref<Record<string, number | boolean | string>>({});
 const measurementHistory = ref<Record<string, MeasurementHistoryPoint[]>>({});
+const counterUpdateInProgress = ref(false);
 const bleRssi = ref<number | null>(null);
 const bleSignalLevel = ref<BleSignalLevel | null>(null);
 let measurementHistoryDeviceId: string | undefined;
@@ -409,6 +413,17 @@ function logConfigurationFrame(msg: string) {
 
 function clearConfigurationFrameLogs() {
   configurationFrameLogs.value = [];
+}
+
+function logCounterFrame(msg: string) {
+  const ts = new Date().toLocaleTimeString();
+  counterFrameLogs.value.unshift(`${ts} ${msg}`);
+  if (counterFrameLogs.value.length > 100) counterFrameLogs.value.pop();
+  log(msg);
+}
+
+function clearCounterFrameLogs() {
+  counterFrameLogs.value = [];
 }
 
 function prepareMeasurementHistory(deviceId: string) {
@@ -1108,6 +1123,83 @@ async function pollAllMeasurements(): Promise<number> {
   return pollMeasurementMonitoring(deviceId, log);
 }
 
+async function setCounterValue(
+  endpoint: number,
+  value: number,
+  osaKeyHex: string,
+  devEuiHex: string,
+): Promise<Uint8Array> {
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) throw new Error('Not connected to a BLE device');
+  if (counterUpdateInProgress.value) throw new Error('Another counter update is already running');
+
+  const frame = buildCounterSetFrame(endpoint, value);
+  if (!frame) throw new Error('Invalid counter endpoint or value');
+
+  counterUpdateInProgress.value = true;
+  let subscription: AppRxSubscription | undefined;
+  let response: Uint8Array | undefined;
+  let resolveResponse: ((frame: Uint8Array | undefined) => void) | undefined;
+  const responsePromise = new Promise<Uint8Array | undefined>((resolve) => {
+    resolveResponse = resolve;
+  });
+  const logCounter = (line: string) => logCounterFrame(`[COUNTER EP${endpoint}] ${line}`);
+
+  try {
+    if (osaAuthenticated.value !== true) {
+      osaAuthenticating.value = true;
+      logCounter('OSA authentication required; starting challenge');
+      try {
+        await authenticateOsa(deviceId, osaKeyHex, devEuiHex, logCounter);
+        osaAuthenticated.value = true;
+        logCounter('OSA authentication confirmed');
+      } catch (error) {
+        osaAuthenticated.value = false;
+        throw error;
+      } finally {
+        osaAuthenticating.value = false;
+      }
+    }
+    logCounter(`Set requested: ${value}`);
+    subscription = await startAppRxMonitoring(deviceId, (received) => {
+      if (response) return;
+      response = received;
+      resolveResponse?.(received);
+    }, logCounter);
+    await writeAppTx(deviceId, frame, logCounter);
+
+    if (subscription.notifications) {
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      const timeoutPromise = new Promise<undefined>((resolve) => {
+        timeoutId = setTimeout(() => resolve(undefined), COUNTER_RESPONSE_TIMEOUT_MS);
+      });
+      response = await Promise.race([responsePromise, timeoutPromise]);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    } else {
+      await delay(250);
+      response = await readAppRx(deviceId, subscription);
+      logCounter(`[APP RX] ${toSpacedHex(response)}`);
+    }
+
+    if (!response) {
+      logCounter(`No AppRx response after ${COUNTER_RESPONSE_TIMEOUT_MS} ms`);
+      throw new Error('The sensor did not confirm the counter update');
+    }
+    logCounter(`Update confirmed; polling measurements`);
+  } catch (error: any) {
+    logCounter(`Update failed: ${error?.message ?? error}`);
+    throw error;
+  } finally {
+    osaAuthenticating.value = false;
+    await stopAppRxMonitoring(subscription, logCounter);
+    counterUpdateInProgress.value = false;
+  }
+
+  const polled = await pollMeasurementMonitoring(deviceId, logCounter);
+  logCounter(`Measurement poll completed (${polled} characteristic(s))`);
+  return response;
+}
+
 function finishReconnectScan(found: boolean) {
   if (reconnectScanTimeoutId) {
     clearTimeout(reconnectScanTimeoutId);
@@ -1559,6 +1651,7 @@ export function useBle() {
   return {
     receivedFrames:   readonly(receivedFrames),
     configurationFrameLogs: readonly(configurationFrameLogs),
+    counterFrameLogs: readonly(counterFrameLogs),
     isNative:        readonly(isNative),
     bleInitialized:  readonly(bleInitialized),
     scanning:        readonly(scanning),
@@ -1585,6 +1678,7 @@ export function useBle() {
     loraLinkStatus: readonly(loraLinkStatus),
     measurementValues: readonly(measurementValues),
     measurementHistory: readonly(measurementHistory),
+    counterUpdateInProgress: readonly(counterUpdateInProgress),
     bleRssi: readonly(bleRssi),
     bleSignalLevel: readonly(bleSignalLevel),
 
@@ -1601,10 +1695,12 @@ export function useBle() {
     cancelReconnect,
     disconnect,
     pollAllMeasurements,
+    setCounterValue,
     clearMeasurementHistory,
     getDefaultConfigurationPreview,
     getCurrentConfigurationPreview,
     clearConfigurationFrameLogs,
+    clearCounterFrameLogs,
     sendOutputFrames,
     sendCurrentConfigurationFrames,
     sendLoraLinkTest,

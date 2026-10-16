@@ -47,6 +47,16 @@
                   :accent="currentCard.card.visual.accent"
                   :decimals="currentCard.card.decimals"
                   :compact="currentCard.card.compact"
+                  :editable="currentCard.card.counterEndpoint !== null"
+                  :disabled="!ble.connected.value || demoDataEnabled || counterUpdateBusy"
+                  :updating="counterUpdateStates[currentCard.card.id]?.state === 'sending'"
+                  :edit-label="localize('@counterEditLabel')"
+                  @edit="openCounterEditor(
+                    currentCard.card.id,
+                    currentCard.card.counterEndpoint,
+                    currentCard.card.value,
+                    currentCard.card.name,
+                  )"
                 />
                 <sensor-state-card
                   v-else
@@ -123,6 +133,35 @@
         {{ debugToolsVisible ? 'Hide' : 'DEV' }}
       </button>
     </div>
+
+    <div v-if="developerModeEnabled && ble.isNative.value" class="app-frame-debug-corner">
+      <div v-show="counterFrameDebugVisible" class="app-frame-debug-panel">
+        <div class="app-frame-debug-header">
+          <strong>APP TX / RX — Counters</strong>
+          <ion-button size="small" fill="clear" @click="ble.clearCounterFrameLogs()">
+            Clear
+          </ion-button>
+        </div>
+        <div class="app-frame-debug-logs" aria-live="polite">
+          <div v-for="(line, index) in ble.counterFrameLogs.value" :key="`${index}-${line}`">
+            {{ line }}
+          </div>
+          <div v-if="ble.counterFrameLogs.value.length === 0" class="app-frame-debug-empty">
+            No counter APP frames yet
+          </div>
+        </div>
+      </div>
+      <ion-button
+        size="small"
+        fill="solid"
+        color="medium"
+        class="app-frame-debug-toggle"
+        :aria-expanded="counterFrameDebugVisible"
+        @click="counterFrameDebugVisible = !counterFrameDebugVisible"
+      >
+        {{ counterFrameDebugVisible ? 'Close' : 'APP TX/RX' }}
+      </ion-button>
+    </div>
   </ion-page>
 </template>
 
@@ -135,9 +174,11 @@ import {
   IonContent,
   IonPage,
   alertController,
+  toastController,
   onIonViewDidEnter,
 } from '@ionic/vue';
 import { useBle } from '@/composables/useBle';
+import { useBleDebugCredentials, updateDebugDevEuiFromDeviceName } from '@/composables/useBleDebug';
 import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import { useTheme } from '@/composables/useTheme';
@@ -147,6 +188,8 @@ import SensorMetricCard from '@/components/sensor/SensorMetricCard.vue';
 import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.vue';
 import SensorStateCard from '@/components/sensor/SensorStateCard.vue';
 import { getAvailableProductChoices, getProductMeasurements } from '@/utils/productMeasurements';
+import { getCounterEndpoint, parseCounterValue } from '@/utils/BLE/counterCommands';
+import { presentAuthorizationDeniedAlert } from '@/utils/authorizationAlert';
 import {
   compareSensorCardLabels,
   getSensorCardLabel,
@@ -161,6 +204,7 @@ import frFR from '/localisation/fr_FR.json?url';
 
 const router = useRouter();
 const ble = useBle();
+const { debugOtaAppKeyHex, debugDevEuiHex } = useBleDebugCredentials();
 const { developerModeEnabled } = useDeveloperMode();
 const { isDarkMode } = useTheme();
 const { currentLanguage } = useLanguage();
@@ -190,6 +234,10 @@ const demoDataEnabled = ref(false);
 const debugToolsStorageKey = 'sensor-debug-tools-visible';
 const debugToolsVisible = ref(sessionStorage.getItem(debugToolsStorageKey) === 'true');
 const pollingAllMeasurements = ref(false);
+const counterFrameDebugVisible = ref(false);
+type CounterUpdateState = 'sending' | 'success' | 'error';
+const counterUpdateStates = ref<Record<string, { state: CounterUpdateState }>>({});
+const counterUpdateBusy = ref(false);
 const demoEndTimestamp = Date.now();
 const createDemoHistory = (values: number[]): HistoryPoint[] => values.map((value, index) => ({
   timestamp: demoEndTimestamp - (values.length - index - 1) * 5 * 60 * 1000,
@@ -251,6 +299,7 @@ const displayedCards = computed(() => sensorCards.value.map((card) => {
     unit: isBattery ? '%' : card.unit,
     decimals: isBattery ? 0 : getSensorDisplayDecimals(card.decimals, card.visual),
     compact: isBattery && batteryCardCount.value === 1,
+    counterEndpoint: getCounterEndpoint(card.id),
     value: demoDataEnabled.value
       ? getDemoValue(card.measId, card.visual.category)
       : typeof measuredValue === 'boolean'
@@ -386,13 +435,16 @@ const openBleMeasurementLog = async () => {
     .filter(([measurementId]) => measurementId !== 'battery_level_percent')
     .map(([measurementId, value]) => `${measurementId}: ${String(value)}`);
   const lines = ble.eventsLog.value
-    .filter(line => line.includes('[MEAS') && !line.includes('00002a19'))
+    .filter(line => (
+      (line.includes('[MEAS') && !line.includes('00002a19'))
+      || line.includes('[COUNTER EP')
+    ))
     .slice(0, 80);
   const message = [
     'Current app values:',
     ...(currentValues.length ? currentValues : ['No counter/state values']),
     '',
-    'Recent counter/state BLE activity:',
+    'Recent counter/state BLE activity and counter writes:',
     'READ = initial read, POLL = app read, NOTIFY = sensor notification, SAME = unchanged bytes',
     ...(lines.length ? lines : ['No counter/state BLE activity']),
   ].join('\n');
@@ -403,6 +455,102 @@ const openBleMeasurementLog = async () => {
     buttons: ['OK'],
   });
   await alert.present();
+};
+
+const presentCounterToast = async (message: string, color: 'success' | 'danger' | 'warning') => {
+  const toast = await toastController.create({
+    message,
+    color,
+    duration: 2500,
+    position: 'bottom',
+    positionAnchor: 'sensor-mobile-tabs',
+  });
+  await toast.present();
+};
+
+const openCounterEditor = async (
+  measurementId: string,
+  endpoint: number | null,
+  displayedValue: SensorValue,
+  label: string,
+) => {
+  if (endpoint === null || counterUpdateBusy.value) return;
+
+  const alert = await alertController.create({
+    header: label,
+    message: localize('@counterValueLabel'),
+    inputs: [{
+      name: 'counterValue',
+      type: 'number',
+      value: '',
+      min: 0,
+      max: 4294967295,
+      placeholder: typeof displayedValue === 'number' ? String(displayedValue) : '0',
+      attributes: {
+        inputmode: 'numeric',
+        step: '1',
+      },
+    }],
+    buttons: [
+      {
+        text: localize('@cancel'),
+        role: 'cancel',
+      },
+      {
+        text: `${ble.osaAuthenticated.value === true ? '🔓' : '🔒'} ${localize('@counterConfirmLabel')}`,
+        role: 'confirm',
+        handler: (values: { counterValue?: unknown }) => {
+          const value = parseCounterValue(values.counterValue);
+          if (value === null) {
+            void presentCounterToast(localize('@counterInvalidValue'), 'warning');
+            return false;
+          }
+          void updateCounter(measurementId, endpoint, value);
+          return true;
+        },
+      },
+    ],
+  });
+  await alert.present();
+};
+
+const updateCounter = async (measurementId: string, endpoint: number | null, value: number) => {
+  if (endpoint === null || counterUpdateBusy.value) return;
+  if (developerModeEnabled.value) counterFrameDebugVisible.value = true;
+  counterUpdateBusy.value = true;
+  counterUpdateStates.value = {
+    ...counterUpdateStates.value,
+    [measurementId]: { state: 'sending' },
+  };
+  try {
+    const device = ble.connectedDevice.value;
+    if (device?.devEui) debugDevEuiHex.value = device.devEui;
+    else updateDebugDevEuiFromDeviceName(device?.name);
+    await ble.setCounterValue(
+      endpoint,
+      value,
+      debugOtaAppKeyHex.value,
+      debugDevEuiHex.value,
+    );
+    counterUpdateStates.value = {
+      ...counterUpdateStates.value,
+      [measurementId]: { state: 'success' },
+    };
+    await presentCounterToast(localize('@counterUpdateSuccess'), 'success');
+  } catch (error) {
+    console.error(`Failed to update counter endpoint ${endpoint}`, error);
+    counterUpdateStates.value = {
+      ...counterUpdateStates.value,
+      [measurementId]: { state: 'error' },
+    };
+    if (ble.osaAuthenticated.value === false) {
+      await presentAuthorizationDeniedAlert(localize);
+    } else {
+      await presentCounterToast(localize('@counterUpdateFailed'), 'danger');
+    }
+  } finally {
+    counterUpdateBusy.value = false;
+  }
 };
 
 const pollAllMeasurements = async () => {
@@ -601,6 +749,57 @@ const toggleDebugTools = () => {
   overflow: auto;
   text-align: left;
   white-space: pre-wrap;
+}
+
+.app-frame-debug-corner {
+  position: fixed;
+  right: 12px;
+  bottom: calc(74px + env(safe-area-inset-bottom));
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.app-frame-debug-panel {
+  width: min(360px, calc(100vw - 24px));
+  max-height: 34vh;
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface);
+  color: var(--app-text);
+  box-shadow: 0 8px 24px rgba(28, 35, 45, 0.24);
+}
+
+.app-frame-debug-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 4px 12px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.app-frame-debug-logs {
+  max-height: 26vh;
+  padding: 8px 10px;
+  overflow: auto;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.app-frame-debug-empty {
+  color: var(--app-text-muted);
+  font-style: italic;
+}
+
+.app-frame-debug-toggle {
+  margin: 0;
+  font-size: 0.68rem;
 }
 
 </style>
