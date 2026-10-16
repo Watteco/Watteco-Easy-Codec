@@ -44,6 +44,15 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/ble-finder',
+    name: 'BleFinder',
+    component: () => import('@/views/BleSignalGaugePage.vue'),
+    beforeEnter: (_to, _from, next) => {
+      if (!isNative) { next('/tabs/downlink'); return; }
+      next();
+    }
+  },
+  {
     path: '/tabs/',
     component: TabsPage,
     children: [

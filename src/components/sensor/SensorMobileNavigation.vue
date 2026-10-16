@@ -3,7 +3,13 @@
     class="sensor-mobile-header"
     :class="{ 'sensor-mobile-header--disconnected': effectiveStatus !== 'connected' }"
   >
-    <img class="sensor-mobile-logo" :src="logoSrc" alt="Watteco" />
+    <img
+      class="sensor-mobile-logo"
+      :src="logoSrc"
+      alt="Watteco"
+      draggable="false"
+      @click="handleLogoTap"
+    />
 
     <div v-if="effectiveStatus !== 'choose'" class="sensor-mobile-identity">
       <strong>
@@ -131,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { IonIcon, IonSpinner, alertController, toastController } from '@ionic/vue';
 import {
@@ -150,6 +156,7 @@ import { getProductDisplayName, getProductMeasurements } from '@/utils/productMe
 import { getSensorVisual } from '@/utils/sensorVisuals';
 import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
 import type { BleSignalLevel } from '@/utils/BLE/rssi';
+import { createSecretTapSequence } from '@/utils/secretTapSequence';
 
 type SensorPage = 'data' | 'config' | 'tools';
 type ConnectionStatus = 'connected' | 'loading' | 'reconnect' | 'choose';
@@ -170,6 +177,19 @@ const ble = useBle();
 const { confirmationEnabled, setConfirmationEnabled } = useSessionExitConfirmation();
 const isDisconnecting = ref(false);
 const logoSrc = `${import.meta.env.BASE_URL}img/icon.png`;
+const finderShortcut = createSecretTapSequence({
+  requiredTaps: 20,
+  timeoutMs: 8_000,
+  onComplete: () => {
+    if (ble.connected.value) void router.push('/ble-finder');
+  },
+});
+
+const handleLogoTap = () => {
+  finderShortcut.tap(ble.connected.value);
+};
+
+onBeforeUnmount(finderShortcut.reset);
 
 const actualStatus = computed<ConnectionStatus>(() => {
   if (ble.connectionPhase.value === 'discovering') return 'loading';
