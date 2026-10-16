@@ -25,7 +25,11 @@ import {
 import { authenticateOsa } from '@/utils/BLE/osa';
 import { readProductId as readProductIdFromBle } from '@/utils/BLE/configReader';
 import { decodeAdvertisedProductId } from '@/utils/BLE/advertising';
-import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
+import {
+  BLE_SENSOR_NAME_PREFIX,
+  deriveDevEuiFromDeviceName,
+  isBleSensorName,
+} from '@/utils/BLE/deviceIdentity';
 import {
   MEASUREMENT_SOURCE_TO_ID,
   pollMeasurementMonitoring,
@@ -82,8 +86,6 @@ type MeasurementHistoryPoint = {
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
-const SCAN_NAME_PREFIXES = ['WS', 'WTC'];
-
 const MAX_CHUNK_SIZE = 20;   // BLE MTU-safe write size
 const MAX_RETRIES = 5;
 const MAX_CONNECT_ATTEMPTS = 2;
@@ -118,12 +120,6 @@ function toHex(buf: Uint8Array): string {
 }
 
 const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
-
-function hasAllowedScanPrefix(name?: string): boolean {
-  if (!name) return false;
-  const upperName = name.toUpperCase();
-  return SCAN_NAME_PREFIXES.some(prefix => upperName.startsWith(prefix.toUpperCase()));
-}
 
 /* ------------------------------------------------------------------ */
 /*  Singleton state (shared across all components)                     */
@@ -265,7 +261,7 @@ function registerVisibilityListener() {
 function recordScanResult(result: ScanResult, useFilters: boolean) {
   const advertisementAt = Date.now();
   const name = result.localName ?? result.device.name;
-  if (useFilters && !hasAllowedScanPrefix(name)) return;
+  if (useFilters && !isBleSensorName(name)) return;
 
   const advertisedProductId = decodeAdvertisedProductId(result.manufacturerData) ?? undefined;
   const advertisedProductReference = resolveAvailableProductReference(advertisedProductId) ?? undefined;
@@ -670,12 +666,12 @@ async function startScan(useFilters = true) {
 
   try {
     const options: any = {
+      // A later advertisement can complete the name or manufacturer data.
+      // The native WS5 filter keeps unrelated duplicate traffic off the bridge.
       allowDuplicates: true,
       scanMode: ScanMode.SCAN_MODE_LOW_LATENCY,
     };
-    if (useFilters && SCAN_NAME_PREFIXES.length === 1) {
-      options.namePrefix = SCAN_NAME_PREFIXES[0];
-    }
+    if (useFilters) options.namePrefix = BLE_SENSOR_NAME_PREFIX;
     await BleClient.requestLEScan(options, (result: ScanResult) => {
       recordScanResult(result, useFilters);
     });
@@ -715,10 +711,12 @@ async function startAutoScan(useFilters = true, maxAttempts = MAX_AUTO_SCAN_ATTE
 
   try {
     const options: any = {
+      // A later advertisement can complete the name or manufacturer data.
+      // The native WS5 filter keeps unrelated duplicate traffic off the bridge.
       allowDuplicates: true,
       scanMode: ScanMode.SCAN_MODE_LOW_LATENCY,
     };
-    if (useFilters && SCAN_NAME_PREFIXES.length === 1) options.namePrefix = SCAN_NAME_PREFIXES[0];
+    if (useFilters) options.namePrefix = BLE_SENSOR_NAME_PREFIX;
 
     await BleClient.requestLEScan(options, async (result: ScanResult) => {
       recordScanResult(result, useFilters);

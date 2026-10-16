@@ -1,5 +1,12 @@
 const WATTECO_DEV_EUI_PREFIX = '70B3D5E7';
 
+export const BLE_SENSOR_NAME_PREFIX = 'WS5';
+export const BLE_SENSOR_NAME_PATTERN = /^WS5[0-9A-F]{7}$/i;
+
+export function isBleSensorName(deviceName?: string): boolean {
+  return BLE_SENSOR_NAME_PATTERN.test(deviceName?.trim() ?? '');
+}
+
 export function deriveDevEuiFromDeviceName(deviceName?: string): string | null {
   const normalizedName = deviceName?.trim().toUpperCase();
   const extendedWsMatch = normalizedName?.match(/^WS([0-9A-F]{8})$/);
