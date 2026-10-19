@@ -95,7 +95,7 @@ function aesCmac128(key16: Uint8Array, data: Uint8Array): Uint8Array {
     lastBlock = xorBlock(lastBlock, k1);
   }
 
-  let x = new Uint8Array(BLOCK_SIZE);
+  let x: Uint8Array = new Uint8Array(BLOCK_SIZE);
   for (let i = 0; i < blocks.length - 1; i++) {
     const y = xorBlock(x, blocks[i]);
     x = aesEcbEncryptBlock(key16, y);

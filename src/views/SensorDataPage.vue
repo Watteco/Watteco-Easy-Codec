@@ -14,17 +14,34 @@
       <div class="sensor-data-container">
         <template v-if="isDashboardLoading">
           <section class="dashboard-section" role="status" :aria-label="localize('@bleLoading')">
-            <h2 class="section-title">{{ localize('@currentValues') }}</h2>
+            <h2 class="section-title" aria-hidden="true">
+              <span class="sensor-section-title-skeleton"></span>
+            </h2>
             <div class="sensor-grid" aria-hidden="true">
               <div v-for="index in 4" :key="`metric-skeleton-${index}`" class="sensor-card-skeleton">
                 <span class="sensor-card-skeleton__icon"></span>
                 <span class="sensor-card-skeleton__line sensor-card-skeleton__line--label"></span>
                 <span class="sensor-card-skeleton__line sensor-card-skeleton__line--value"></span>
               </div>
+              <div class="sensor-card-skeleton sensor-card-skeleton--state">
+                <div class="sensor-card-skeleton__heading">
+                  <span class="sensor-card-skeleton__icon"></span>
+                  <span class="sensor-card-skeleton__line sensor-card-skeleton__line--label"></span>
+                </div>
+                <div class="sensor-card-skeleton__states">
+                  <span v-for="index in 4" :key="`state-skeleton-${index}`" class="sensor-card-skeleton__state">
+                    <span class="sensor-card-skeleton__state-label"></span>
+                    <span class="sensor-card-skeleton__state-indicator"></span>
+                  </span>
+                </div>
+              </div>
             </div>
           </section>
 
           <section class="dashboard-section" aria-hidden="true">
+            <h2 class="section-title">
+              <span class="sensor-section-title-skeleton sensor-section-title-skeleton--history"></span>
+            </h2>
             <div class="sensor-card-skeleton sensor-card-skeleton--history">
               <span class="sensor-card-skeleton__line sensor-card-skeleton__line--label"></span>
               <span class="sensor-card-skeleton__chart"></span>
@@ -624,6 +641,18 @@ const toggleDebugTools = () => {
   letter-spacing: 0.02em;
 }
 
+.sensor-section-title-skeleton {
+  display: block;
+  width: 118px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(var(--ion-color-medium-rgb), 0.18);
+}
+
+.sensor-section-title-skeleton--history {
+  width: 76px;
+}
+
 .sensor-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -632,8 +661,8 @@ const toggleDebugTools = () => {
 
 .sensor-card-skeleton {
   position: relative;
-  min-height: 132px;
-  padding: 18px;
+  min-height: 100px;
+  padding: 12px 14px;
   overflow: hidden;
   background: var(--ion-card-background, var(--ion-background-color));
   border: 1px solid var(--app-nav-border);
@@ -672,6 +701,17 @@ const toggleDebugTools = () => {
   border-radius: 10px;
 }
 
+.sensor-card-skeleton__heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.sensor-card-skeleton__heading .sensor-card-skeleton__icon {
+  flex: 0 0 32px;
+  margin-bottom: 0;
+}
+
 .sensor-card-skeleton__line--label {
   width: 68%;
   height: 10px;
@@ -683,8 +723,53 @@ const toggleDebugTools = () => {
   margin-top: 12px;
 }
 
+.sensor-card-skeleton--state {
+  grid-column: 1 / -1;
+  min-height: 132px;
+  padding: 14px;
+}
+
+.sensor-card-skeleton--state .sensor-card-skeleton__line--label {
+  width: 72px;
+}
+
+.sensor-card-skeleton__states {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(38px, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.sensor-card-skeleton__state {
+  display: flex;
+  min-width: 38px;
+  align-items: center;
+  flex-direction: column;
+  gap: 7px;
+  padding: 7px 4px 8px;
+  border: 1px solid rgba(var(--ion-color-medium-rgb), 0.1);
+  border-radius: 12px;
+  background: rgba(var(--ion-color-medium-rgb), 0.08);
+}
+
+.sensor-card-skeleton__state-label {
+  width: 18px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(var(--ion-color-medium-rgb), 0.2);
+}
+
+.sensor-card-skeleton__state-indicator {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(var(--ion-color-medium-rgb), 0.25);
+  box-shadow: 0 0 0 4px rgba(var(--ion-color-medium-rgb), 0.08);
+}
+
 .sensor-card-skeleton--history {
   min-height: 230px;
+  padding: 16px;
 }
 
 .sensor-card-skeleton__chart {
