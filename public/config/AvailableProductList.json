@@ -471,7 +471,7 @@
 		},
 		{
 			"name": "BETA Pulse Sens'O Neo (50-70-260)",
-			"file": "50-70-260-PulseSensoNeoTest",
+			"file": "50-70-260-Pulse-Sens'O-Neo",
 			"compatibleProducts": ["50-70-260"],
 			"apps": ["EasyCodec"],
 			"mId": ["pulse-senso-neo"],
@@ -491,21 +491,21 @@
 			"docLink": "https://support.watteco.com/hygrotempo/"
 		},
 		{
-			"name": "BETA Pulse Sens'O Neo 1 input (50-70-260-670)",
-			"file": "50-70-260-670-PulseSensoNeo-1-input",
-			"compatibleProducts": ["50-70-260-670"],
+			"name": "BETA Pulse Sens'O Lite Neo (50-70-304)",
+			"file": "50-70-304-Pulse-Sens'O-Lite-Neo",
+			"compatibleProducts": ["50-70-304", "50-70-260-670"],
 			"apps": ["EasyCodec"],
-			"mId": ["pulse-senso-neo-1"],
+			"mId": ["pulse-senso-lite-neo"],
 			"category": "BETA",
 			"comment": ["One pulse input", "Une entrée impulsionnelle"],
 			"docLink": "https://support.watteco.com/"
 		},
 		{
-			"name": "BETA PT1000 Neo (50-70-260-672)",
-			"file": "50-70-260-672-PT1000-Neo",
-			"compatibleProducts": ["50-70-260-672"],
+			"name": "BETA Temp'O Neo PT1000 (50-70-307)",
+			"file": "50-70-307-Temp'O-Neo-PT1000",
+			"compatibleProducts": ["50-70-307", "50-70-260-672"],
 			"apps": ["EasyCodec"],
-			"mId": ["pt1000-neo"],
+			"mId": ["tempo-neo-pt1000"],
 			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel",
 			"category": "BETA",
 			"comment": ["PT1000 temperature measurement with Bluetooth Low Energy", "Mesure de température PT1000 avec Bluetooth Low Energy"],

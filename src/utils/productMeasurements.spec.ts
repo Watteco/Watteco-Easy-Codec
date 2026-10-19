@@ -9,7 +9,7 @@ import {
 } from '@/utils/productMeasurements';
 import { hasSensorVisual } from '@/utils/sensorVisuals';
 import availableProductList from '../../public/config/AvailableProductList.json';
-import pt1000NeoConfig from '../../public/config/50-70-260-672-PT1000-Neo.json';
+import pt1000NeoConfig from '../../public/config/50-70-307-Temp\'O-Neo-PT1000.json';
 
 describe('productMeasurements', () => {
   it('defines compatibleProducts for every catalogue entry', () => {
@@ -60,7 +60,7 @@ describe('productMeasurements', () => {
     const measurements = getProductMeasurements('50-70-260-672');
     const measurementIds = measurements.map(measurement => measurement.id);
 
-    expect(product?.mId).toEqual(['pt1000-neo']);
+    expect(product?.mId).toEqual(['tempo-neo-pt1000']);
     expect(measurementIds).toContain('temperature_1');
     expect(measurementIds).toContain('temperature_2');
     expect(measurementIds).not.toContain('temperature');
@@ -118,7 +118,7 @@ describe('productMeasurements', () => {
     expect(getProductConfigurationFile('50-70-260-671')).toBe("50-70-260-671-HygroTemp'O-Neo");
     expect(resolveAvailableProductReference('50-70-260-672')).toBe('50-70-260-672');
     expect(getProductDisplayName('50-70-260-672')).toBe('PT1000 Neo');
-    expect(getProductConfigurationFile('50-70-260-672')).toBe('50-70-260-672-PT1000-Neo');
+    expect(getProductConfigurationFile('50-70-260-672')).toBe('50-70-307-Temp\'O-Neo-PT1000');
   });
 
   it('matches all revisions only when compatibleProducts omits the revision', () => {
