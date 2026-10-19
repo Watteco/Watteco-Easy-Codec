@@ -14,23 +14,45 @@
       <div class="sensor-data-container">
         <template v-if="isDashboardLoading">
           <section class="dashboard-section" role="status" :aria-label="localize('@bleLoading')">
-            <h2 class="section-title" aria-hidden="true">
+            <h2 class="section-title section-title--skeleton" aria-hidden="true">
               <span class="sensor-section-title-skeleton"></span>
             </h2>
             <div class="sensor-grid" aria-hidden="true">
-              <div v-for="index in 4" :key="`metric-skeleton-${index}`" class="sensor-card-skeleton">
-                <span class="sensor-card-skeleton__icon"></span>
-                <span class="sensor-card-skeleton__line sensor-card-skeleton__line--label"></span>
+              <div
+                v-for="measurement in loadingDashboardLayout.metricMeasurements"
+                :key="`metric-skeleton-${measurement.measId}`"
+                class="sensor-card-skeleton"
+              >
+                <div class="sensor-card-skeleton__heading">
+                  <span class="sensor-card-skeleton__icon"></span>
+                  <span class="sensor-card-skeleton__line sensor-card-skeleton__line--label"></span>
+                </div>
                 <span class="sensor-card-skeleton__line sensor-card-skeleton__line--value"></span>
               </div>
-              <div class="sensor-card-skeleton sensor-card-skeleton--state">
+              <div
+                v-if="loadingDashboardLayout.stateMeasurements.length"
+                class="sensor-card-skeleton sensor-card-skeleton--state"
+                :class="{
+                  'sensor-card-skeleton--state-compact': loadingDashboardLayout.stateMeasurements.length <= 3,
+                  'sensor-card-skeleton--state-single': loadingDashboardLayout.stateMeasurements.length === 1,
+                  'sensor-card-skeleton--state-wide': loadingDashboardLayout.stateMeasurements.length > 3,
+                }"
+                :style="{ '--state-columns': loadingStateColumnCount }"
+              >
                 <div class="sensor-card-skeleton__heading">
                   <span class="sensor-card-skeleton__icon"></span>
                   <span class="sensor-card-skeleton__line sensor-card-skeleton__line--label"></span>
                 </div>
                 <div class="sensor-card-skeleton__states">
-                  <span v-for="index in 4" :key="`state-skeleton-${index}`" class="sensor-card-skeleton__state">
-                    <span class="sensor-card-skeleton__state-label"></span>
+                  <span
+                    v-for="measurement in loadingDashboardLayout.stateMeasurements"
+                    :key="`state-skeleton-${measurement.measId}`"
+                    class="sensor-card-skeleton__state"
+                  >
+                    <span
+                      v-if="loadingDashboardLayout.stateMeasurements.length > 1"
+                      class="sensor-card-skeleton__state-label"
+                    ></span>
                     <span class="sensor-card-skeleton__state-indicator"></span>
                   </span>
                 </div>
@@ -38,13 +60,23 @@
             </div>
           </section>
 
-          <section class="dashboard-section" aria-hidden="true">
-            <h2 class="section-title">
+          <section
+            v-if="loadingDashboardLayout.historyMeasurements.length"
+            class="dashboard-section"
+            aria-hidden="true"
+          >
+            <h2 class="section-title section-title--skeleton">
               <span class="sensor-section-title-skeleton sensor-section-title-skeleton--history"></span>
             </h2>
-            <div class="sensor-card-skeleton sensor-card-skeleton--history">
-              <span class="sensor-card-skeleton__line sensor-card-skeleton__line--label"></span>
-              <span class="sensor-card-skeleton__chart"></span>
+            <div class="sensor-grid">
+              <div
+                v-for="measurement in loadingDashboardLayout.historyMeasurements"
+                :key="`history-skeleton-${measurement.measId}`"
+                class="sensor-card-skeleton sensor-card-skeleton--history"
+              >
+                <span class="sensor-card-skeleton__line sensor-card-skeleton__line--label"></span>
+                <span class="sensor-card-skeleton__chart"></span>
+              </div>
             </div>
           </section>
         </template>
@@ -121,6 +153,9 @@
         </ion-button>
         <ion-button size="small" fill="solid" color="medium" @click="demoDataEnabled = !demoDataEnabled">
           Demo data: {{ demoDataEnabled ? 'on' : 'off' }}
+        </ion-button>
+        <ion-button size="small" fill="solid" color="medium" @click="ghostPreviewEnabled = !ghostPreviewEnabled">
+          Toggle ghost: {{ ghostPreviewEnabled ? 'on' : 'off' }}
         </ion-button>
         <ion-button size="small" fill="solid" color="medium" @click="openBleMeasurementLog">
           BLE values log
@@ -204,17 +239,16 @@ import SensorHistoryCard from '@/components/sensor/SensorHistoryCard.vue';
 import SensorMetricCard from '@/components/sensor/SensorMetricCard.vue';
 import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.vue';
 import SensorStateCard from '@/components/sensor/SensorStateCard.vue';
-import { getAvailableProductChoices, getProductMeasurements } from '@/utils/productMeasurements';
+import { getAvailableProductChoices } from '@/utils/productMeasurements';
 import { getCounterEndpoint, parseCounterValue } from '@/utils/BLE/counterCommands';
 import { presentAuthorizationDeniedAlert } from '@/utils/authorizationAlert';
 import {
   compareSensorCardLabels,
   getSensorCardLabel,
   getSensorDisplayDecimals,
-  getSensorVisual,
-  hasSensorVisual,
 } from '@/utils/sensorVisuals';
 import { playSensorPageTransition } from '@/utils/sensorPageTransition';
+import { getSensorDashboardLayout } from '@/utils/sensorDashboardLayout';
 
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
@@ -238,16 +272,46 @@ type HistoryPoint = {
 
 type SensorValue = boolean | number | string | null;
 
-const productMeasurements = computed(() => getProductMeasurements(ble.productReference.value));
+const defaultLoadingProductReference = '50-70-260';
+const loadingProductReference = computed(() => (
+  ble.productReference.value
+  ?? ble.connectedDevice.value?.productReference
+  ?? ble.lastConnectedDevice.value?.productReference
+));
+const detectedLoadingDashboardLayout = computed(() => getSensorDashboardLayout(
+  loadingProductReference.value,
+  isDarkMode.value,
+));
+const defaultLoadingDashboardLayout = computed(() => getSensorDashboardLayout(
+  defaultLoadingProductReference,
+  isDarkMode.value,
+));
+const loadingDashboardLayout = computed(() => {
+  const detectedLayout = detectedLoadingDashboardLayout.value;
+  return detectedLayout.metricMeasurements.length
+    || detectedLayout.stateMeasurements.length
+    || detectedLayout.historyMeasurements.length
+    ? detectedLayout
+    : defaultLoadingDashboardLayout.value;
+});
+const loadingStateColumnCount = computed(() => {
+  const entryCount = loadingDashboardLayout.value.stateMeasurements.length;
+  return String(Math.max(1, entryCount > 6 ? Math.ceil(entryCount / 2) : entryCount));
+});
+const dashboardLayout = computed(() => getSensorDashboardLayout(
+  ble.productReference.value,
+  isDarkMode.value,
+));
 const measurementValues = computed<Record<number, SensorValue>>(() => {
   const values: Record<number, SensorValue> = {};
-  for (const measurement of productMeasurements.value) {
+  for (const measurement of dashboardLayout.value.visibleMeasurements) {
     const value = ble.measurementValues.value[measurement.id];
     if (value !== undefined) values[measurement.measId] = value;
   }
   return values;
 });
 const demoDataEnabled = ref(false);
+const ghostPreviewEnabled = ref(false);
 const debugToolsStorageKey = 'sensor-debug-tools-visible';
 const debugToolsVisible = ref(sessionStorage.getItem(debugToolsStorageKey) === 'true');
 const pollingAllMeasurements = ref(false);
@@ -269,13 +333,7 @@ const demoHumidityHistory = createDemoHistory([
 const demoBatteryHistory = createDemoHistory([
   96, 95, 95, 94, 93, 92, 91, 91, 90, 89, 88, 87,
 ]);
-const sensorCards = computed(() => productMeasurements.value
-  .filter(measurement => hasSensorVisual(measurement.measId))
-  .map(measurement => ({
-    ...measurement,
-    visual: getSensorVisual(measurement.measId, isDarkMode.value),
-  }))
-  .filter(card => card.visual.category !== 'state'));
+const sensorCards = computed(() => dashboardLayout.value.displayMeasurements);
 const batteryCardCount = computed(() => sensorCards.value
   .filter(card => card.visual.category === 'battery')
   .length);
@@ -325,16 +383,13 @@ const displayedCards = computed(() => sensorCards.value.map((card) => {
   };
 }));
 
-const stateEntries = computed(() => productMeasurements.value
+const stateEntries = computed(() => dashboardLayout.value.stateMeasurements
   .map((measurement) => {
-    const visual = getSensorVisual(measurement.measId, isDarkMode.value);
-    if (visual.category !== 'state') return null;
-
     const match = measurement.id.match(/^pin_state(?:_(\d+))?$/);
     const inputNumber = match?.[1] ? Number(match[1]) : null;
     return {
       measId: measurement.measId,
-      visual,
+      visual: measurement.visual,
       inputNumber,
       label: inputNumber === null
         ? localize('@InputLabel')
@@ -344,7 +399,6 @@ const stateEntries = computed(() => productMeasurements.value
         : measurementValues.value[measurement.measId] ?? null,
     };
   })
-  .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
   .sort((left, right) => (left.inputNumber ?? 0) - (right.inputNumber ?? 0)));
 
 const stateCardVisual = computed(() => stateEntries.value[0]?.visual);
@@ -353,9 +407,12 @@ const stateCardLabel = computed(() => localize(
     ? '@SingleStateLabel'
     : stateCardVisual.value?.labelKey ?? '@PulseStateLabel',
 ));
+const currentMetricMeasurementIds = computed(() => new Set(
+  dashboardLayout.value.metricMeasurements.map(measurement => measurement.id),
+));
 const currentCards = computed(() => [
   ...displayedCards.value
-    .filter(card => batteryCardCount.value !== 1 || card.visual.category !== 'battery')
+    .filter(card => currentMetricMeasurementIds.value.has(card.id))
     .map(card => ({
       type: 'metric' as const,
       key: `metric-${card.measId}`,
@@ -374,8 +431,11 @@ const currentCards = computed(() => [
   || compareSensorCardLabels(left.sortLabel, right.sortLabel, currentLanguage.value)
 )));
 
+const historyMeasurementIds = computed(() => new Set(
+  dashboardLayout.value.historyMeasurements.map(measurement => measurement.id),
+));
 const historyCards = computed(() => displayedCards.value
-  .filter(card => card.visual.history)
+  .filter(card => historyMeasurementIds.value.has(card.id))
   .map((card) => {
     const historyKey = card.visual.category === 'battery'
       ? 'battery_level_percent'
@@ -403,14 +463,16 @@ const bannerPreviewStates: BannerPreview[] = ['actual', 'connected', 'reconnect'
 const bannerPreviewIndex = ref(0);
 const bannerPreview = computed(() => bannerPreviewStates[bannerPreviewIndex.value]);
 const actualBannerState = computed<BannerState>(() => {
-  if (ble.connectionPhase.value === 'discovering') return 'loading';
+  if (ghostPreviewEnabled.value || ble.connectionPhase.value === 'discovering') return 'loading';
   if (ble.connected.value) return 'connected';
   return ble.lastConnectedDevice.value ? 'reconnect' : 'choose';
 });
 const bannerState = computed<BannerState>(() => (
   bannerPreview.value === 'actual' ? actualBannerState.value : bannerPreview.value
 ));
-const isDashboardLoading = computed(() => ble.connectionPhase.value === 'discovering');
+const isDashboardLoading = computed(() => (
+  ghostPreviewEnabled.value || ble.connectionPhase.value === 'discovering'
+));
 const bannerDeviceName = computed(() => {
   if (bannerPreview.value === 'connected' && !ble.connectedDevice.value) return 'WS12345678';
   if (bannerPreview.value === 'reconnect' && !ble.lastConnectedDevice.value) return 'WS12345678';
@@ -649,6 +711,12 @@ const toggleDebugTools = () => {
   background: rgba(var(--ion-color-medium-rgb), 0.18);
 }
 
+.section-title--skeleton {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+}
+
 .sensor-section-title-skeleton--history {
   width: 76px;
 }
@@ -661,7 +729,7 @@ const toggleDebugTools = () => {
 
 .sensor-card-skeleton {
   position: relative;
-  min-height: 100px;
+  min-height: 102px;
   padding: 12px 14px;
   overflow: hidden;
   background: var(--ion-card-background, var(--ion-background-color));
@@ -724,9 +792,17 @@ const toggleDebugTools = () => {
 }
 
 .sensor-card-skeleton--state {
-  grid-column: 1 / -1;
-  min-height: 132px;
+  min-height: 134px;
   padding: 14px;
+}
+
+.sensor-card-skeleton--state-compact {
+  min-height: 108px;
+  padding: 10px 14px;
+}
+
+.sensor-card-skeleton--state-wide {
+  grid-column: 1 / -1;
 }
 
 .sensor-card-skeleton--state .sensor-card-skeleton__line--label {
@@ -735,14 +811,19 @@ const toggleDebugTools = () => {
 
 .sensor-card-skeleton__states {
   display: grid;
-  grid-template-columns: repeat(4, minmax(38px, 1fr));
+  grid-template-columns: repeat(var(--state-columns), minmax(38px, 1fr));
   gap: 6px;
   margin-top: 12px;
+}
+
+.sensor-card-skeleton--state-compact .sensor-card-skeleton__states {
+  margin-top: 8px;
 }
 
 .sensor-card-skeleton__state {
   display: flex;
   min-width: 38px;
+  min-height: 56px;
   align-items: center;
   flex-direction: column;
   gap: 7px;
@@ -750,6 +831,20 @@ const toggleDebugTools = () => {
   border: 1px solid rgba(var(--ion-color-medium-rgb), 0.1);
   border-radius: 12px;
   background: rgba(var(--ion-color-medium-rgb), 0.08);
+}
+
+.sensor-card-skeleton--state-single .sensor-card-skeleton__state {
+  min-height: 44px;
+  flex-direction: row;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 12px;
+}
+
+.sensor-card-skeleton--state-compact:not(.sensor-card-skeleton--state-single) .sensor-card-skeleton__state {
+  min-height: 44px;
+  gap: 5px;
+  padding: 5px 4px 6px;
 }
 
 .sensor-card-skeleton__state-label {
@@ -768,7 +863,8 @@ const toggleDebugTools = () => {
 }
 
 .sensor-card-skeleton--history {
-  min-height: 230px;
+  grid-column: 1 / -1;
+  min-height: 239px;
   padding: 16px;
 }
 

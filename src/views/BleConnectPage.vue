@@ -357,6 +357,7 @@ async function toggleScan() {
 async function onDeviceSelect(dev: DisplayDevice) {
   if (dev.isSimulated) {
     await ble.cancelScan();
+    ble.setProductReference(dev.productReference);
     proceed();
     return;
   }
