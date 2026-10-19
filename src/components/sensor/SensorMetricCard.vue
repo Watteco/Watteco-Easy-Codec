@@ -27,8 +27,8 @@
         >{{ label }}</span>
       </div>
 
-      <div ref="valueContainer" class="metric-value" :class="{ 'metric-value--empty': value === null }">
-        <span ref="valueElement" :class="valueLengthClass" :title="formattedValue">{{ formattedValue }}</span>
+      <div class="metric-value" :class="{ 'metric-value--empty': value === null }">
+        <span :class="valueLengthClass" :title="formattedValue">{{ formattedValue }}</span>
         <small v-if="unit">{{ unit }}</small>
       </div>
       <span v-if="editable" class="metric-edit-indicator" aria-hidden="true">
@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { IonCard, IonCardContent, IonIcon, IonSpinner } from '@ionic/vue';
 import { pencilOutline } from 'ionicons/icons';
 
@@ -79,12 +79,6 @@ const requestEdit = () => {
   emit('edit');
 };
 
-const valueContainer = ref<HTMLElement | null>(null);
-const valueElement = ref<HTMLElement | null>(null);
-const MIN_VALUE_FONT_SIZE_PX = 12;
-let valueResizeObserver: ResizeObserver | undefined;
-let fitAnimationFrame: number | undefined;
-
 const formattedValue = computed(() => {
   if (props.value === null) return '—';
   if (typeof props.value === 'number') {
@@ -96,92 +90,18 @@ const formattedValue = computed(() => {
   return props.value;
 });
 
-// WebViews can report flex-item text metrics after the first paint. These
-// conservative classes prevent a visible ellipsis until the measured fit runs.
 const valueLengthClass = computed(() => {
   const integerDigits = typeof props.value === 'number' && Number.isInteger(props.value)
     ? Math.abs(props.value).toString().length
     : 0;
-  if (integerDigits >= 10) return 'metric-value__number--uint32-max-length';
+  if (props.editable && integerDigits >= 10) return 'metric-value__number--counter-max';
+  if (props.editable && integerDigits >= 7) return 'metric-value__number--counter-long';
+  if (props.editable && integerDigits >= 4) return 'metric-value__number--counter-medium';
 
   const length = formattedValue.value.length;
   if (length >= 11) return 'metric-value__number--very-long';
   if (length >= 8) return 'metric-value__number--long';
   return '';
-});
-
-const fitDisplayedValue = () => {
-  const element = valueElement.value;
-  const container = valueContainer.value;
-  if (!element || !container) return;
-
-  element.style.removeProperty('font-size');
-  const containerStyle = getComputedStyle(container);
-  const horizontalPadding = Number.parseFloat(containerStyle.paddingLeft || '0')
-    + Number.parseFloat(containerStyle.paddingRight || '0');
-  const unitElement = container.querySelector('small');
-  const unitWidth = unitElement?.getBoundingClientRect().width ?? 0;
-  const gap = unitElement ? Number.parseFloat(containerStyle.columnGap || '0') : 0;
-  const availableWidth = container.clientWidth - horizontalPadding - unitWidth - gap;
-  if (availableWidth <= 0) return;
-
-  const elementStyle = getComputedStyle(element);
-  const baseFontSize = Number.parseFloat(elementStyle.fontSize);
-  if (!Number.isFinite(baseFontSize)) return;
-
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d');
-  let renderedWidth = element.scrollWidth;
-  if (context) {
-    context.font = elementStyle.font || [
-      elementStyle.fontStyle,
-      elementStyle.fontVariant,
-      elementStyle.fontWeight,
-      elementStyle.fontSize,
-      elementStyle.fontFamily,
-    ].join(' ');
-    renderedWidth = context.measureText(element.textContent ?? '').width;
-    const letterSpacing = Number.parseFloat(elementStyle.letterSpacing || '0');
-    if (Number.isFinite(letterSpacing)) {
-      renderedWidth += Math.max(0, (element.textContent?.length ?? 0) - 1) * letterSpacing;
-    }
-  }
-  if (availableWidth <= 0 || renderedWidth <= availableWidth) return;
-
-  const fittedFontSize = Math.max(
-    MIN_VALUE_FONT_SIZE_PX,
-    Math.floor(baseFontSize * (availableWidth / renderedWidth) * 98) / 100,
-  );
-  element.style.fontSize = `${fittedFontSize}px`;
-};
-
-const scheduleValueFit = () => {
-  if (fitAnimationFrame !== undefined) cancelAnimationFrame(fitAnimationFrame);
-  fitAnimationFrame = requestAnimationFrame(() => {
-    fitAnimationFrame = undefined;
-    fitDisplayedValue();
-  });
-};
-
-watch([formattedValue, () => props.unit, () => props.editable], async () => {
-  await nextTick();
-  scheduleValueFit();
-});
-
-onMounted(() => {
-  if (typeof ResizeObserver !== 'undefined' && valueContainer.value) {
-    valueResizeObserver = new ResizeObserver(scheduleValueFit);
-    valueResizeObserver.observe(valueContainer.value);
-  }
-  window.addEventListener('resize', scheduleValueFit);
-  void document.fonts?.ready.then(scheduleValueFit);
-  scheduleValueFit();
-});
-
-onBeforeUnmount(() => {
-  valueResizeObserver?.disconnect();
-  window.removeEventListener('resize', scheduleValueFit);
-  if (fitAnimationFrame !== undefined) cancelAnimationFrame(fitAnimationFrame);
 });
 </script>
 
@@ -199,6 +119,7 @@ onBeforeUnmount(() => {
   border-radius: 16px;
   background: var(--app-surface);
   box-shadow: var(--app-card-shadow);
+  container-type: inline-size;
 }
 
 .metric-card::before {
@@ -342,8 +263,21 @@ onBeforeUnmount(() => {
   letter-spacing: -0.055em;
 }
 
-.metric-value span.metric-value__number--uint32-max-length {
-  font-size: clamp(0.82rem, 3.3vw, 1.25rem);
+.metric-value span.metric-value__number--counter-medium {
+  font-size: clamp(0.9rem, 7vw, 2.4rem);
+  font-size: clamp(0.9rem, 15cqi, 2.4rem);
+  letter-spacing: -0.05em;
+}
+
+.metric-value span.metric-value__number--counter-long {
+  font-size: clamp(0.75rem, 5vw, 2.4rem);
+  font-size: clamp(0.75rem, 10cqi, 2.4rem);
+  letter-spacing: -0.055em;
+}
+
+.metric-value span.metric-value__number--counter-max {
+  font-size: clamp(0.68rem, 4vw, 2.4rem);
+  font-size: clamp(0.68rem, 8cqi, 2.4rem);
   letter-spacing: -0.06em;
 }
 
@@ -359,6 +293,11 @@ onBeforeUnmount(() => {
 
 .metric-card--editable .metric-value {
   padding-inline-end: 28px;
+}
+
+.metric-card--editable .metric-value span {
+  overflow: visible;
+  text-overflow: clip;
 }
 
 </style>

@@ -49,14 +49,14 @@ describe('SensorMetricCard counter editing', () => {
     expect(wrapper.emitted('edit')).toHaveLength(1);
   });
 
-  it('keeps the complete localized uint32 value available to the responsive fitter', () => {
+  it('keeps the complete localized uint32 value visible', () => {
     const value = 4294967295;
     const wrapper = mountCounterCard({ value });
     const displayedValue = wrapper.get('.metric-value span');
 
     expect(displayedValue.text()).toBe(value.toLocaleString());
     expect(displayedValue.attributes('title')).toBe(value.toLocaleString());
-    expect(displayedValue.classes()).toContain('metric-value__number--uint32-max-length');
+    expect(displayedValue.classes()).toContain('metric-value__number--counter-max');
   });
 
   it('applies a safe initial size to a nine-digit counter before WebView measurement', () => {
@@ -64,7 +64,7 @@ describe('SensorMetricCard counter editing', () => {
     const wrapper = mountCounterCard({ value });
 
     expect(wrapper.get('.metric-value span').classes())
-      .toContain('metric-value__number--very-long');
+      .toContain('metric-value__number--counter-long');
   });
 
   it('applies the smallest size to a ten-digit uint32 counter', () => {
@@ -73,6 +73,15 @@ describe('SensorMetricCard counter editing', () => {
     const displayedValue = wrapper.get('.metric-value span');
 
     expect(displayedValue.text()).toBe(value.toLocaleString());
-    expect(displayedValue.classes()).toContain('metric-value__number--uint32-max-length');
+    expect(displayedValue.classes()).toContain('metric-value__number--counter-max');
+  });
+
+  it('reduces a six-digit counter before it can overflow', () => {
+    const value = 200000;
+    const wrapper = mountCounterCard({ value });
+    const displayedValue = wrapper.get('.metric-value span');
+
+    expect(displayedValue.text()).toBe(value.toLocaleString());
+    expect(displayedValue.classes()).toContain('metric-value__number--counter-medium');
   });
 });
