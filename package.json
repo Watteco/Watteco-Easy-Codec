@@ -1,7 +1,7 @@
 {
   "name": "watteco-codec",
   "private": true,
-  "version": "0.11.15-dev.263",
+  "version": "0.11.15-dev.271",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -29,9 +29,11 @@
     "@capacitor/android": "6.1.1",
     "@capacitor/app": "6.0.0",
     "@capacitor/core": "6.1.1",
+    "@capacitor/filesystem": "^6.0.0",
     "@capacitor/haptics": "6.0.0",
     "@capacitor/ios": "^6.1.1",
     "@capacitor/keyboard": "6.0.1",
+    "@capacitor/share": "^6.0.0",
     "@capacitor/status-bar": "6.0.0",
     "@ionic/vue": "^8.0.0",
     "@ionic/vue-router": "^8.0.0",

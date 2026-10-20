@@ -48,6 +48,107 @@
         </ion-card>
 
       <div class="card-holder" v-show="sensorConfigLoaded">
+        <ion-card
+          class="category-card saved-config-menu"
+          :class="{ 'saved-config-menu--open': savedConfigurationsVisible }"
+        >
+          <div class="config-item collapsible-header" @click="savedConfigurationsVisible = !savedConfigurationsVisible">
+            <ion-button
+              class="visibility-button"
+              :aria-expanded="savedConfigurationsVisible"
+              @click.stop="savedConfigurationsVisible = !savedConfigurationsVisible"
+            >
+              <ion-icon
+                slot="icon-only"
+                :icon="chevronForwardOutline"
+                :class="{ 'chevron-expanded': savedConfigurationsVisible }"
+              />
+            </ion-button>
+            <ion-label>{{ localize('@loadSaveConfigurations') }}</ion-label>
+            <span class="saved-config-count" :aria-label="localize('@savedConfigurations')">
+              {{ savedConfigurations.length }}
+            </span>
+          </div>
+
+          <ion-card-content v-show="savedConfigurationsVisible" class="saved-config-panel">
+            <ion-select
+              v-if="savedConfigurations.length > 0"
+              class="saved-config-select"
+              interface="popover"
+              fill="outline"
+              :label="localize('@savedConfigurations')"
+              label-placement="stacked"
+              :value="selectedSavedConfigurationId"
+              :placeholder="localize('@selectSavedConfiguration')"
+              @ionChange="selectedSavedConfigurationId = $event.detail.value"
+            >
+              <ion-select-option value="">{{ localize('@newConfiguration') }}</ion-select-option>
+              <ion-select-option
+                v-for="configuration in savedConfigurations"
+                :key="configuration.id"
+                :value="configuration.id"
+              >
+                {{ configuration.name }}
+              </ion-select-option>
+            </ion-select>
+            <p v-else class="saved-config-empty">{{ localize('@noSavedConfiguration') }}</p>
+
+            <div class="saved-config-actions">
+              <ion-button class="saved-config-action--save" size="small" @click="saveCurrentConfiguration">
+                <ion-icon slot="start" :icon="saveOutline" />
+                {{ localize('@saveConfiguration') }}
+              </ion-button>
+              <ion-button
+                class="saved-config-action--load"
+                size="small"
+                fill="outline"
+                :disabled="!selectedSavedConfigurationId"
+                @click="loadSelectedConfiguration"
+              >
+                <ion-icon slot="start" :icon="folderOpenOutline" />
+                {{ localize('@loadConfiguration') }}
+              </ion-button>
+              <ion-button
+                class="saved-config-action--export"
+                size="small"
+                fill="outline"
+                :disabled="!selectedSavedConfigurationId"
+                @click="exportSelectedConfiguration"
+              >
+                <ion-icon slot="start" :icon="pushOutline" />
+                {{ localize('@exportConfiguration') }}
+              </ion-button>
+              <ion-button
+                class="saved-config-action--import"
+                size="small"
+                fill="outline"
+                @click="openConfigurationImport"
+              >
+                <ion-icon slot="start" :icon="downloadOutline" />
+                {{ localize('@importConfiguration') }}
+              </ion-button>
+              <ion-button
+                class="saved-config-action--delete"
+                size="small"
+                fill="clear"
+                color="danger"
+                :disabled="!selectedSavedConfigurationId"
+                @click="confirmDeleteSelectedConfiguration"
+              >
+                <ion-icon slot="start" :icon="trashOutline" />
+                {{ localize('@deleteConfiguration') }}
+              </ion-button>
+              <input
+                ref="savedConfigurationFileInput"
+                class="saved-config-file-input"
+                type="file"
+                accept=".json,application/json"
+                @change="importConfigurationFile"
+              />
+            </div>
+          </ion-card-content>
+        </ion-card>
+
         <!-- General (general_params) -->
         <ion-card v-if="sensorConfig && sensorConfig.general_params" class="category-card" :key="`general-${currentLanguage}-${selectedSensor}`">
           <div class="config-item collapsible-header" :class="{ 'collapsible-header--disabled': !generalChecked }" @click="onCategoryHeaderClick('general_params', generalChecked)">
@@ -1418,9 +1519,14 @@ import {
   IonSpinner,
   IonText,
   onIonViewDidEnter,
+  actionSheetController,
+  alertController,
+  toastController,
 } from '@ionic/vue';
-import { checkmarkCircleOutline, chevronForwardOutline, closeOutline, eyeOffOutline, eyeOutline, lockClosed, lockOpenOutline, refreshOutline } from 'ionicons/icons';
+import { checkmarkCircleOutline, chevronForwardOutline, closeOutline, downloadOutline, eyeOffOutline, eyeOutline, folderOpenOutline, lockClosed, lockOpenOutline, pushOutline, refreshOutline, saveOutline, shareSocialOutline, trashOutline } from 'ionicons/icons';
 import { Capacitor } from '@capacitor/core';
+import { Directory, Encoding, Filesystem } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { useBle } from '@/composables/useBle';
 import { useBleDebugCredentials, updateDebugDevEuiFromDeviceName } from '@/composables/useBleDebug';
 import { playSensorPageTransition } from '@/utils/sensorPageTransition';
@@ -1441,9 +1547,25 @@ import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
-import { getProductConfigurationFile } from '@/utils/productMeasurements';
+import { getProductConfigurationFile, getProductDisplayName } from '@/utils/productMeasurements';
 import { readAdminDeviceStatus } from '@/utils/BLE/adminStatus';
 import { presentAuthorizationDeniedAlert } from '@/utils/authorizationAlert';
+import { appVersion } from '@/utils/appVersion';
+import {
+  CONFIGURATION_SECTION_NAMES,
+  SAVED_CONFIGURATION_FORMAT,
+  SAVED_CONFIGURATION_SCHEMA_VERSION,
+  captureConfigurationSections,
+  configurationLoadReportCount,
+  createConfigurationId,
+  deleteSavedConfiguration,
+  parseSavedConfiguration,
+  readSavedConfigurations,
+  reconcileSavedConfiguration,
+  writeSavedConfiguration,
+  type ConfigurationSectionName,
+  type SavedConfiguration,
+} from '@/utils/savedConfigurations';
 
 // Import language files
 import enUS from '/localisation/en_US.json?url';
@@ -1595,6 +1717,12 @@ const categorizedProducts = computed<Record<string, Product[]>>(() => {
 const selectedSensor = ref(''); // Stores the currently selected sensor
 const pageInitialized = ref(false);
 const sensorConfig = ref<any | null>(null); // Dynamic configuration for the selected sensor
+const allSavedConfigurations = ref<SavedConfiguration[]>(readSavedConfigurations());
+const selectedSavedConfigurationId = ref('');
+const savedConfigurationFileInput = ref<HTMLInputElement | null>(null);
+const savedConfigurations = computed(() => allSavedConfigurations.value.filter(configuration => (
+  configuration.product.configurationFile === selectedSensor.value
+)));
 const batchChecked = ref(false); // State of the batch mode checkbox
 const standardChecked = ref(false); // State of the standard mode checkbox
 const modbusChecked = ref(true); // State of the modbus mode checkbox
@@ -1624,6 +1752,7 @@ const shouldActivateConfigurationAfterSend = computed(() => (
   !developerModeEnabled.value || activateConfigurationAfterSend.value
 ));
 const batchVisible = ref(true);
+const savedConfigurationsVisible = ref(false);
 const standardVisible = ref(true);
 const modbusVisible = ref(true);
 const configurationVisible = ref(true);
@@ -1860,6 +1989,7 @@ const loadAvailableProducts = async () => {
 const onSensorChange = async (event: SensorChangeEvent) => {
   // Reset all states first
   sensorConfig.value = null;
+  selectedSavedConfigurationId.value = '';
   paramGroupChecked.value = {};
   subcategoryVisible.value = {};
   framesVisible.value = {};
@@ -2862,6 +2992,379 @@ const resetToDefault = () => {
   }
 };
 
+const getSectionEnabledState = (): Partial<Record<ConfigurationSectionName, boolean>> => ({
+  general_params: generalChecked.value,
+  batch_params: batchChecked.value,
+  modbus_params: modbusChecked.value,
+  standard_params: standardChecked.value,
+  configuration_params: configurationChecked.value,
+  commande_params: commandeChecked.value,
+});
+
+const presentSavedConfigurationToast = async (
+  message: string,
+  color: 'success' | 'danger' = 'success',
+) => {
+  const mobileTabs = ble.isNative.value
+    ? document.getElementById('sensor-mobile-tabs') ?? undefined
+    : undefined;
+  const toast = await toastController.create({
+    message,
+    color,
+    duration: 2200,
+    position: 'bottom',
+    ...(mobileTabs ? { positionAnchor: mobileTabs } : {}),
+  });
+  await toast.present();
+};
+
+const getDefaultConfigurationName = (): string => {
+  const product = availableProducts.value.find(candidate => candidate.file === selectedSensor.value);
+  const sensorName = getProductDisplayName(ble.productReference.value)
+    || product?.name.replace(/\s*\(50-\d{2,3}[^)]*\).*$/i, '').trim()
+    || ble.connectedDevice.value?.name
+    || selectedSensor.value;
+  const locale = currentLanguage.value === 'fr' ? 'fr-FR' : 'en-GB';
+  const timestamp = new Intl.DateTimeFormat(locale, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date());
+  return `${timestamp} — ${sensorName}`.slice(0, 80);
+};
+
+const saveCurrentConfiguration = async () => {
+  if (!sensorConfig.value || !selectedSensor.value) return;
+  const selectedConfiguration = allSavedConfigurations.value.find(
+    configuration => configuration.id === selectedSavedConfigurationId.value,
+  );
+  const alert = await alertController.create({
+    header: localize(selectedConfiguration ? '@updateConfigurationTitle' : '@saveConfigurationTitle'),
+    inputs: [{
+      name: 'name',
+      type: 'text',
+      value: selectedConfiguration?.name ?? getDefaultConfigurationName(),
+      label: localize('@configurationName'),
+      placeholder: localize('@configurationNamePlaceholder'),
+      attributes: { maxlength: 80 },
+    }],
+    buttons: [
+      { text: localize('@cancel'), role: 'cancel' },
+      { text: localize('@confirm'), role: 'confirm' },
+    ],
+  });
+  await alert.present();
+  const result = await alert.onDidDismiss();
+  if (result.role !== 'confirm') return;
+
+  const name = String(result.data?.values?.name ?? '').trim();
+  if (!name) return;
+  const now = new Date().toISOString();
+  const product = availableProducts.value.find(candidate => candidate.file === selectedSensor.value);
+  const configuration: SavedConfiguration = {
+    format: SAVED_CONFIGURATION_FORMAT,
+    schemaVersion: SAVED_CONFIGURATION_SCHEMA_VERSION,
+    id: selectedConfiguration ? selectedConfiguration.id : createConfigurationId(),
+    name,
+    createdAt: selectedConfiguration ? selectedConfiguration.createdAt : now,
+    updatedAt: now,
+    appVersion,
+    product: {
+      configurationFile: selectedSensor.value,
+      ...(ble.productReference.value ? { reference: ble.productReference.value } : {}),
+      ...(product?.name ? { displayName: product.name } : {}),
+    },
+    sections: captureConfigurationSections(
+      sensorConfig.value,
+      getSectionEnabledState(),
+      paramGroupChecked.value,
+    ),
+  };
+
+  try {
+    allSavedConfigurations.value = writeSavedConfiguration(configuration);
+    selectedSavedConfigurationId.value = configuration.id;
+    await presentSavedConfigurationToast(localize('@configurationSaved'));
+  } catch (error) {
+    console.error('Failed to save configuration locally:', error);
+    await presentSavedConfigurationToast(localize('@configurationSaveFailed'), 'danger');
+  }
+};
+
+const applySectionEnabledState = (sectionName: ConfigurationSectionName, enabled: boolean) => {
+  const event = { detail: { checked: enabled } };
+  if (sectionName === 'general_params') onGeneralCheckedChange(event);
+  else if (sectionName === 'batch_params') onBatchCheckedChange(event);
+  else if (sectionName === 'modbus_params') onModbusCheckedChange(event);
+  else if (sectionName === 'standard_params') onStandardCheckedChange(event);
+  else if (sectionName === 'configuration_params') onConfigurationCheckedChange(event);
+  else if (sectionName === 'commande_params') onCommandeCheckedChange(event);
+};
+
+const loadSelectedConfiguration = async () => {
+  const saved = allSavedConfigurations.value.find(
+    configuration => configuration.id === selectedSavedConfigurationId.value,
+  );
+  if (!saved) return;
+
+  const savedId = saved.id;
+  await onSensorChange({ detail: { value: saved.product.configurationFile } });
+  if (!sensorConfig.value) return;
+
+  const reconciled = reconcileSavedConfiguration(saved, sensorConfig.value);
+  CONFIGURATION_SECTION_NAMES.forEach(sectionName => {
+    const section = reconciled.sections[sectionName];
+    if (section) applySectionEnabledState(sectionName, section.enabled);
+  });
+
+  CONFIGURATION_SECTION_NAMES.forEach(sectionName => {
+    const section = reconciled.sections[sectionName];
+    if (!section) return;
+    const groups = Object.entries(section.groups);
+    groups.filter(([, group]) => group.enabled).forEach(([groupName]) => {
+      onParamGroupCheckedChange({ detail: { checked: true } }, groupName, sectionName);
+    });
+    groups.filter(([, group]) => !group.enabled).forEach(([groupName]) => {
+      onParamGroupCheckedChange({ detail: { checked: false } }, groupName, sectionName);
+    });
+    groups.forEach(([groupName, group]) => {
+      Object.entries(group.values).forEach(([fieldName, value]) => {
+        onParamChange({ newValue: value }, sectionName, groupName, fieldName);
+      });
+    });
+  });
+
+  selectedSavedConfigurationId.value = savedId;
+  updateOutput();
+  await presentSavedConfigurationToast(localize('@configurationLoaded'));
+
+  if (configurationLoadReportCount(reconciled.report) > 0) {
+    const warning = await alertController.create({
+      header: localize('@configurationLoadWarningTitle'),
+      message: localize('@configurationLoadWarning'),
+      buttons: [localize('@confirm')],
+    });
+    await warning.present();
+  }
+};
+
+const configurationExportFilename = (configuration: SavedConfiguration): string => {
+  const safeName = configuration.name
+    .split('')
+    .filter(character => character.charCodeAt(0) >= 32)
+    .join('')
+    .replace(/[<>:"/\\|?*]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 70);
+  return `${safeName || 'easy-codec-configuration'}.json`;
+};
+
+const downloadConfigurationFile = (file: File) => {
+  const url = URL.createObjectURL(file);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = file.name;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+};
+
+const saveConfigurationFileOnDevice = async (
+  serialized: string,
+  filename: string,
+) => {
+  if (Capacitor.getPlatform() === 'android') {
+    const permission = await Filesystem.requestPermissions();
+    if (permission.publicStorage !== 'granted') {
+      await presentSavedConfigurationToast(
+        localize('@configurationStoragePermissionDenied'),
+        'danger',
+      );
+      return;
+    }
+  }
+
+  const path = `Easy Codec/${filename}`;
+  await Filesystem.writeFile({
+    path,
+    data: serialized,
+    directory: Directory.Documents,
+    encoding: Encoding.UTF8,
+    recursive: true,
+  });
+  await presentSavedConfigurationToast(
+    localize('@configurationSavedToDocuments').replace('{name}', filename),
+  );
+};
+
+const shareConfigurationFile = async (
+  selected: SavedConfiguration,
+  serialized: string,
+  filename: string,
+) => {
+  let nativeTemporaryFileCreated = false;
+
+  try {
+    await Filesystem.writeFile({
+      path: filename,
+      data: serialized,
+      directory: Directory.Cache,
+      encoding: Encoding.UTF8,
+    });
+    nativeTemporaryFileCreated = true;
+    const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache });
+    await Share.share({
+      title: selected.name,
+      text: localize('@configurationShareText'),
+      files: [uri],
+      dialogTitle: localize('@shareConfigurationFile'),
+    });
+    await presentSavedConfigurationToast(
+      localize('@configurationShared').replace('{name}', filename),
+    );
+  } finally {
+    if (nativeTemporaryFileCreated) {
+      try {
+        await Filesystem.deleteFile({ path: filename, directory: Directory.Cache });
+      } catch (error) {
+        console.warn('Failed to delete temporary configuration export:', error);
+      }
+    }
+  }
+};
+
+const exportSelectedConfiguration = async () => {
+  const selected = allSavedConfigurations.value.find(
+    configuration => configuration.id === selectedSavedConfigurationId.value,
+  );
+  if (!selected) return;
+
+  const serialized = JSON.stringify(selected, null, 2);
+  const filename = configurationExportFilename(selected);
+
+  try {
+    if (ble.isNative.value) {
+      const actionSheet = await actionSheetController.create({
+        header: localize('@exportConfigurationTitle'),
+        buttons: [
+          {
+            text: localize('@saveConfigurationFileOnDevice'),
+            icon: saveOutline,
+            role: 'save-on-device',
+          },
+          {
+            text: localize('@shareConfigurationFile'),
+            icon: shareSocialOutline,
+            role: 'share',
+          },
+          {
+            text: localize('@cancel'),
+            role: 'cancel',
+          },
+        ],
+      });
+      await actionSheet.present();
+      const { role } = await actionSheet.onDidDismiss();
+
+      if (role === 'save-on-device') {
+        await saveConfigurationFileOnDevice(serialized, filename);
+      } else if (role === 'share') {
+        await shareConfigurationFile(selected, serialized, filename);
+      }
+    } else {
+      const file = new File([serialized], filename, { type: 'application/json' });
+      downloadConfigurationFile(file);
+      await presentSavedConfigurationToast(
+        localize('@configurationDownloaded').replace('{name}', filename),
+      );
+    }
+  } catch (error) {
+    console.error('Failed to export configuration:', error);
+    await presentSavedConfigurationToast(localize('@configurationExportFailed'), 'danger');
+  }
+};
+
+const openConfigurationImport = () => {
+  savedConfigurationFileInput.value?.click();
+};
+
+const presentConfigurationImportError = async (messageKey: string) => {
+  const alert = await alertController.create({
+    header: localize('@configurationImportFailedTitle'),
+    message: localize(messageKey),
+    buttons: [localize('@confirm')],
+  });
+  await alert.present();
+};
+
+const importConfigurationFile = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+
+  try {
+    if (file.size > 1_000_000) {
+      await presentConfigurationImportError('@configurationImportInvalid');
+      return;
+    }
+    const parsed = parseSavedConfiguration(await file.text());
+    if (!parsed) {
+      await presentConfigurationImportError('@configurationImportInvalid');
+      return;
+    }
+    if (parsed.product.configurationFile !== selectedSensor.value) {
+      await presentConfigurationImportError('@configurationImportWrongProduct');
+      return;
+    }
+
+    const idAlreadyExists = allSavedConfigurations.value.some(
+      configuration => configuration.id === parsed.id,
+    );
+    const imported: SavedConfiguration = {
+      ...parsed,
+      id: idAlreadyExists ? createConfigurationId() : parsed.id,
+      updatedAt: new Date().toISOString(),
+    };
+    allSavedConfigurations.value = writeSavedConfiguration(imported);
+    selectedSavedConfigurationId.value = imported.id;
+    await presentSavedConfigurationToast(localize('@configurationImported'));
+  } catch (error) {
+    console.error('Failed to import configuration:', error);
+    await presentConfigurationImportError('@configurationImportInvalid');
+  }
+};
+
+const confirmDeleteSelectedConfiguration = async () => {
+  const selected = allSavedConfigurations.value.find(
+    configuration => configuration.id === selectedSavedConfigurationId.value,
+  );
+  if (!selected) return;
+
+  const alert = await alertController.create({
+    header: localize('@deleteConfigurationTitle'),
+    message: localize('@deleteConfigurationMessage'),
+    buttons: [
+      { text: localize('@cancel'), role: 'cancel' },
+      { text: localize('@deleteConfiguration'), role: 'destructive' },
+    ],
+  });
+  await alert.present();
+  const result = await alert.onDidDismiss();
+  if (result.role !== 'destructive') return;
+
+  try {
+    allSavedConfigurations.value = deleteSavedConfiguration(selected.id);
+    selectedSavedConfigurationId.value = '';
+    await presentSavedConfigurationToast(localize('@configurationDeleted'));
+  } catch (error) {
+    console.error('Failed to delete local configuration:', error);
+    await presentSavedConfigurationToast(localize('@configurationDeleteFailed'), 'danger');
+  }
+};
+
 // Technical custom frames do not count as expandable user-facing content.
 const hasUserVisibleFields = (fields?: Record<string, SensorParameter>) => {
   if (!fields) return false;
@@ -2921,6 +3424,85 @@ ion-content {
   box-shadow: var(--app-card-shadow);
   --background: color-mix(in srgb, var(--app-surface) 97%, transparent);
   backdrop-filter: blur(12px);
+}
+
+.saved-config-menu:not(.saved-config-menu--open) > .config-item {
+  border-bottom-color: transparent;
+}
+
+.saved-config-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: var(--ion-color-primary-shade);
+  background: rgba(var(--ion-color-primary-rgb), 0.12);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.saved-config-panel {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px 16px 20px;
+  background: var(--app-surface-subtle);
+}
+
+.saved-config-select {
+  width: 100%;
+  min-width: 0;
+  --border-color: var(--app-border-strong);
+  --highlight-color-focused: var(--ion-color-primary);
+}
+
+.saved-config-empty {
+  margin: 0;
+  color: var(--ion-color-medium);
+  font-size: 0.9rem;
+}
+
+.saved-config-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.saved-config-file-input {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .saved-config-panel {
+    grid-template-columns: 1fr;
+    padding: 12px 14px 14px;
+  }
+
+  .saved-config-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "save save"
+      "load delete"
+      "export import";
+    gap: 6px;
+  }
+
+  .saved-config-actions ion-button {
+    width: 100%;
+    margin: 0;
+  }
+
+  .saved-config-action--save { grid-area: save; }
+  .saved-config-action--load { grid-area: load; }
+  .saved-config-action--delete { grid-area: delete; }
+  .saved-config-action--export { grid-area: export; }
+  .saved-config-action--import { grid-area: import; }
 }
 
 #sensor-card ion-select {
