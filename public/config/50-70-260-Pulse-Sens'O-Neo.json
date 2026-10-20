@@ -280,7 +280,6 @@
         },
         "standard_PMultiStatePattern_params": {
             "label": "@PulseStatePatternLabel @InputLabel 1 + @InputLabel 2 + @InputLabel 3 + @InputLabel 4",
-            "subtitle": "@patternFixedOccurrenceSubtitle",
             "fields": {
                 "pMultiStatePatternStandEchant": {
                     "type": "timeVal",
@@ -312,6 +311,16 @@
                     "HMI": {
                         "label": "@patternLabel",
                         "visual_type": "pattern"
+                    }
+                },
+                "pMultiStatePatternOccurrences": {
+                    "type": "hex2B",
+                    "default_value": "1 1",
+                    "min_value": "1",
+                    "max_value": "65535",
+                    "HMI": {
+                        "label": "@patternOccurrencesLabel",
+                        "visual_type": "occurrences"
                     }
                 }
             }
@@ -371,7 +380,7 @@
 			["51 06 000f 00 0402 23 (p3StandEmission) (p3StandEmission) 00000000", "@cfgCommentStandIndex @InputLabel 3"],
 			["71 06 000f 00 0402 23 (p4StandEmission) (p4StandEmission) 00000000", "@cfgCommentStandIndex @InputLabel 4"],
 			["11 06 8005 00 0000 19 (pMultiStateStandEchant) (pMultiStateStandEmission) 00(pMultiStateNotification)", "@cfgCommentStandState @InputLabel 1 + @InputLabel 2 + @InputLabel 3 + @InputLabel 4"],
-            ["11 06 8005 88 0000 19 (pMultiStatePatternStandEchant) (pMultiStatePatternStandEmission) F1 (pMultiStatePattern1) (pMultiStatePattern2) 80 0001 0001", "@cfgCommentStandStatePattern @InputLabel 1 + @InputLabel 2 + @InputLabel 3 + @InputLabel 4"],
+            ["11 06 8005 88 0000 19 (pMultiStatePatternStandEchant) (pMultiStatePatternStandEmission) F1 (pMultiStatePattern1) (pMultiStatePattern2) 80 (pMultiStatePatternOccurrences1) (pMultiStatePatternOccurrences2)", "@cfgCommentStandStatePattern @InputLabel 1 + @InputLabel 2 + @InputLabel 3 + @InputLabel 4"],
             ["11 06 0050 80 0006 41 (bStandEchant) (bStandEmission) 0e 70 04 (bNotification1) 0000 0171 04 (bNotification2) 0000 01", "@cfgCommentStandBatt"]
         ]
     }

@@ -286,6 +286,18 @@
                       @update:value="onParamChange($event, 'general_params', groupName, paramName)"
                     />
 
+                    <occurrence-input
+                      v-if="param.HMI?.visual_type === 'occurrences'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="param.min_value"
+                      :max="param.max_value"
+                      :group-name="groupName"
+                      :param-name="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'general_params', groupName, paramName)"
+                    />
+
                     <!-- Using the NumInput component -->
                     <num-input
                       v-if="param.HMI?.visual_type === 'numInput' && param.type !== 'float'"
@@ -489,6 +501,18 @@
                       :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :bit-count="param.bit_count"
+                      :group-name="groupName"
+                      :param-name="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'modbus_params', groupName, paramName)"
+                    />
+
+                    <occurrence-input
+                      v-if="param.HMI?.visual_type === 'occurrences'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="param.min_value"
+                      :max="param.max_value"
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
@@ -700,6 +724,18 @@
                       :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :bit-count="param.bit_count"
+                      :group-name="groupName"
+                      :param-name="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'batch_params', groupName, paramName)"
+                    />
+
+                    <occurrence-input
+                      v-if="param.HMI?.visual_type === 'occurrences'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="param.min_value"
+                      :max="param.max_value"
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
@@ -934,6 +970,18 @@
                       @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
                     />
 
+                    <occurrence-input
+                      v-if="param.HMI?.visual_type === 'occurrences'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="param.min_value"
+                      :max="param.max_value"
+                      :group-name="groupName"
+                      :param-name="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
+                    />
+
                     <!-- Using the NumInput component -->
                     <num-input
                       v-if="param.HMI?.visual_type === 'numInput' && param.type !== 'float'"
@@ -1135,6 +1183,18 @@
                       @update:value="onParamChange($event, 'configuration_params', groupName, paramName)"
                     />
 
+                    <occurrence-input
+                      v-if="param.HMI?.visual_type === 'occurrences'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="param.min_value"
+                      :max="param.max_value"
+                      :group-name="groupName"
+                      :param-name="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'configuration_params', groupName, paramName)"
+                    />
+
                     <num-input
                       v-if="param.HMI?.visual_type === 'numInput' && param.type !== 'float'"
                       :label="param.HMI?.label"
@@ -1325,6 +1385,18 @@
                       :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :bit-count="param.bit_count"
+                      :group-name="groupName"
+                      :param-name="paramName"
+                      :localize="localize"
+                      @update:value="onParamChange($event, 'commande_params', groupName, paramName)"
+                    />
+
+                    <occurrence-input
+                      v-if="param.HMI?.visual_type === 'occurrences'"
+                      :label="param.HMI?.label"
+                      :value="param.selectedValue"
+                      :min="param.min_value"
+                      :max="param.max_value"
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
@@ -1603,6 +1675,7 @@ import CustomValue from '@/components/CustomValue.vue';
 import CustomFrame from '@/components/CustomFrame.vue';
 import DropDown from '@/components/DropDown.vue';
 import PatternInput from '@/components/PatternInput.vue';
+import OccurrenceInput from '@/components/OccurrenceInput.vue';
 import NumInput from '@/components/NumInput.vue';
 import FloatInput from '@/components/FloatInput.vue';
 import SliderInput from '@/components/Slider.vue';

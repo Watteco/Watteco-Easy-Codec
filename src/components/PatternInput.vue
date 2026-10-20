@@ -1,8 +1,17 @@
 <template>
   <div class="pattern-input">
-    <ion-label position="stacked">{{ label }}</ion-label>
+    <div class="pattern-heading">
+      <ion-label position="stacked">{{ label }}</ion-label>
+      <button
+        type="button"
+        class="pattern-help"
+        :aria-label="localize('@patternLegendHelp')"
+        :aria-expanded="legendVisible"
+        @click="legendVisible = !legendVisible"
+      >i</button>
+    </div>
 
-    <div class="pattern-legend" aria-hidden="true">
+    <div v-if="legendVisible" class="pattern-legend">
       <span class="pattern-legend__item pattern-state--ignored">X {{ localize('@patternIgnored') }}</span>
       <span class="pattern-legend__item pattern-state--zero">0 {{ localize('@patternExpectedZero') }}</span>
       <span class="pattern-legend__item pattern-state--one">1 {{ localize('@patternExpectedOne') }}</span>
@@ -27,12 +36,6 @@
       </button>
     </div>
 
-    <div class="pattern-result">
-      <code>{{ patternSummary }}</code>
-      <span>Val&nbsp;0x{{ valHex }}</span>
-      <span>Gap&nbsp;0x{{ gapHex }}</span>
-    </div>
-
     <p v-if="encoded.gap === 0" class="pattern-warning" role="status">
       {{ localize('@patternNoInputWarning') }}
     </p>
@@ -44,8 +47,6 @@ import { computed, ref, watch } from 'vue';
 import {
   decodeBinaryPattern,
   encodeBinaryPattern,
-  formatBinaryPattern,
-  formatBinaryPatternWord,
   normalizeBinaryPatternBitCount,
   type BinaryPatternState,
 } from '@/utils/binaryPattern';
@@ -69,10 +70,8 @@ const emit = defineEmits<{
 
 const normalizedBitCount = computed(() => normalizeBinaryPatternBitCount(props.bitCount ?? 1));
 const states = ref<BinaryPatternState[]>(decodeBinaryPattern(props.value, normalizedBitCount.value));
+const legendVisible = ref(false);
 const encoded = computed(() => encodeBinaryPattern(states.value));
-const patternSummary = computed(() => formatBinaryPattern(states.value));
-const valHex = computed(() => formatBinaryPatternWord(encoded.value.val));
-const gapHex = computed(() => formatBinaryPatternWord(encoded.value.gap));
 
 const stateSymbol = (state: BinaryPatternState): string => ({
   ignored: 'X',
@@ -120,12 +119,50 @@ watch(
   width: 100%;
 }
 
-.pattern-legend,
-.pattern-result {
+.pattern-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pattern-help {
+  display: grid;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.28);
+  border-radius: 50%;
+  background: rgba(var(--ion-color-primary-rgb), 0.08);
+  color: var(--ion-color-primary);
+  font-size: 0.8rem;
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1;
+  cursor: pointer;
+  place-items: center;
+  font-family: inherit;
+}
+
+.pattern-help:focus-visible {
+  outline: 3px solid rgba(var(--ion-color-primary-rgb), 0.3);
+  outline-offset: 2px;
+}
+
+.pattern-legend {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 7px;
+}
+
+.pattern-legend {
+  padding: 9px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 12px;
+  background: var(--app-surface);
+  box-shadow: 0 2px 8px rgba(28, 35, 45, 0.08);
 }
 
 .pattern-legend__item {
@@ -221,21 +258,6 @@ watch(
 
 .pattern-state--one .pattern-bit__indicator {
   box-shadow: 0 0 0 4px rgba(82, 151, 103, 0.13);
-}
-
-.pattern-result {
-  color: var(--app-text-secondary);
-  font-size: 0.76rem;
-}
-
-.pattern-result code {
-  padding: 5px 8px;
-  border: 1px solid var(--app-border-strong);
-  border-radius: 7px;
-  background: var(--app-surface-subtle);
-  color: var(--app-text);
-  font-size: 0.86rem;
-  font-weight: 800;
 }
 
 .pattern-warning {
