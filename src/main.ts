@@ -5,9 +5,10 @@ import router from './router';
 import { IonicVue } from '@ionic/vue';
 import { isPlatform } from '@ionic/vue';
 import { Capacitor } from '@capacitor/core';
-import { StatusBar, Style } from '@capacitor/status-bar';
+import { StatusBar } from '@capacitor/status-bar';
 import { OsaKeyStore } from './plugins/osaKeyStore';
 import { initializeTheme } from './composables/useTheme';
+import { setStatusBarStyle } from './utils/statusBar';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/vue/css/core.css';
@@ -46,9 +47,7 @@ if (Capacitor.isNativePlatform()) {
     });
   }
 
-  void StatusBar.setStyle({ style: Style.Dark }).catch(() => {
-    // Keep the application usable if the native status bar cannot be configured.
-  });
+  setStatusBarStyle('dark');
 }
 
 router.isReady().then(() => {

@@ -12,9 +12,18 @@
     </div>
 
     <div v-if="legendVisible" class="pattern-legend">
-      <span class="pattern-legend__item pattern-state--ignored">X {{ localize('@patternIgnored') }}</span>
-      <span class="pattern-legend__item pattern-state--zero">0 {{ localize('@patternExpectedZero') }}</span>
-      <span class="pattern-legend__item pattern-state--one">1 {{ localize('@patternExpectedOne') }}</span>
+      <span class="pattern-legend__item pattern-state--ignored">
+        <span class="pattern-legend__marker pattern-legend__marker--ignored" aria-hidden="true" />
+        {{ localize('@patternIgnored') }}
+      </span>
+      <span class="pattern-legend__item pattern-state--zero">
+        <span class="pattern-legend__marker pattern-legend__marker--zero" aria-hidden="true" />
+        {{ localize('@patternExpectedZero') }}
+      </span>
+      <span class="pattern-legend__item pattern-state--one">
+        <span class="pattern-legend__marker pattern-legend__marker--one" aria-hidden="true" />
+        {{ localize('@patternExpectedOne') }}
+      </span>
     </div>
 
     <div class="pattern-grid" role="group" :aria-label="label">
@@ -28,11 +37,12 @@
         :title="bitAriaLabel(bitIndex, state)"
         @click="cycleState(bitIndex)"
       >
-        <span class="pattern-bit__input">{{ localize('@InputLabel') }} {{ bitIndex + 1 }}</span>
-        <span class="pattern-bit__value">
-          <strong class="pattern-bit__state">{{ stateSymbol(state) }}</strong>
-          <span class="pattern-bit__indicator" aria-hidden="true" />
-        </span>
+        <span class="pattern-bit__input">{{ bitIndex + 1 }}</span>
+        <span
+          class="pattern-bit__indicator"
+          :class="{ 'pattern-bit__indicator--placeholder': state === 'ignored' }"
+          aria-hidden="true"
+        />
       </button>
     </div>
 
@@ -72,12 +82,6 @@ const normalizedBitCount = computed(() => normalizeBinaryPatternBitCount(props.b
 const states = ref<BinaryPatternState[]>(decodeBinaryPattern(props.value, normalizedBitCount.value));
 const legendVisible = ref(false);
 const encoded = computed(() => encodeBinaryPattern(states.value));
-
-const stateSymbol = (state: BinaryPatternState): string => ({
-  ignored: 'X',
-  zero: '0',
-  one: '1',
-})[state];
 
 const stateLabel = (state: BinaryPatternState): string => ({
   ignored: props.localize('@patternIgnored'),
@@ -166,11 +170,45 @@ watch(
 }
 
 .pattern-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 4px 8px;
   border: 1px solid;
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 700;
+}
+
+.pattern-legend__marker {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+}
+
+.pattern-legend__marker--zero,
+.pattern-legend__marker--one {
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.pattern-legend__marker--one {
+  background: currentColor;
+  box-shadow: 0 0 0 3px rgba(82, 151, 103, 0.13);
+}
+
+.pattern-legend__marker--ignored::after {
+  position: absolute;
+  top: 5px;
+  left: 0;
+  width: 13px;
+  height: 2px;
+  border-radius: 999px;
+  background: #b9565c;
+  content: '';
+  transform: rotate(-45deg);
 }
 
 .pattern-grid {
@@ -181,8 +219,11 @@ watch(
 }
 
 .pattern-bit {
+  position: relative;
   display: grid;
-  gap: 3px;
+  align-content: center;
+  justify-items: center;
+  gap: 7px;
   min-height: 62px;
   padding: 8px 6px;
   border: 1px solid;
@@ -191,11 +232,7 @@ watch(
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(28, 35, 45, 0.06);
   transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
-}
-
-.pattern-bit:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(28, 35, 45, 0.09);
+  overflow: hidden;
 }
 
 .pattern-bit:focus-visible {
@@ -203,22 +240,17 @@ watch(
   outline-offset: 2px;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .pattern-bit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(28, 35, 45, 0.09);
+  }
+}
+
 .pattern-bit__input {
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: 0.86rem;
+  font-weight: 750;
   color: var(--app-text);
-}
-
-.pattern-bit__value {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-}
-
-.pattern-bit__state {
-  font-size: 1.2rem;
-  line-height: 1;
 }
 
 .pattern-bit__indicator {
@@ -230,24 +262,36 @@ watch(
 }
 
 .pattern-state--ignored {
-  border-color: rgba(151, 145, 137, 0.18);
-  background: rgba(151, 145, 137, 0.08);
+  border-color: rgba(185, 86, 92, 0.24);
+  background: rgba(185, 86, 92, 0.025);
   color: #737981;
 }
 
-.pattern-state--ignored .pattern-bit__indicator {
-  background: transparent;
-  box-shadow: none;
+.pattern-bit__indicator--placeholder {
+  visibility: hidden;
+}
+
+.pattern-bit.pattern-state--ignored::after {
+  position: absolute;
+  top: 50%;
+  left: -8%;
+  width: 116%;
+  height: 2px;
+  border-radius: 999px;
+  background: #b9565c;
+  content: '';
+  transform: rotate(-38deg);
 }
 
 .pattern-state--zero {
-  border-color: rgba(76, 137, 174, 0.2);
-  background: rgba(76, 137, 174, 0.1);
-  color: #437e9f;
+  border-color: rgba(151, 145, 137, 0.16);
+  background: rgba(151, 145, 137, 0.07);
+  color: #969189;
 }
 
 .pattern-state--zero .pattern-bit__indicator {
-  box-shadow: 0 0 0 4px rgba(76, 137, 174, 0.13);
+  background: transparent;
+  box-shadow: none;
 }
 
 .pattern-state--one {

@@ -137,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { IonIcon, IonSpinner, alertController, toastController } from '@ionic/vue';
 import {
@@ -157,6 +157,7 @@ import { getSensorVisual } from '@/utils/sensorVisuals';
 import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
 import type { BleSignalLevel } from '@/utils/BLE/rssi';
 import { createSecretTapSequence } from '@/utils/secretTapSequence';
+import { setStatusBarStyle } from '@/utils/statusBar';
 
 type SensorPage = 'data' | 'config' | 'tools';
 type ConnectionStatus = 'connected' | 'loading' | 'reconnect' | 'choose';
@@ -198,6 +199,11 @@ const actualStatus = computed<ConnectionStatus>(() => {
 });
 
 const effectiveStatus = computed(() => props.status ?? actualStatus.value);
+watch(effectiveStatus, status => {
+  setStatusBarStyle(status === 'connected' ? 'dark' : 'light');
+}, { immediate: true });
+
+onBeforeUnmount(() => setStatusBarStyle('dark'));
 const effectiveLoraWanJoined = computed<boolean | null>(() => {
   if (props.loraWanStatus === 'joined') return true;
   if (props.loraWanStatus === 'not-joined') return false;
