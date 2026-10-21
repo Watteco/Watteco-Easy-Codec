@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "fallbackDelayMs": 500,
+  "rules": [
+    {
+      "name": "readAttribute",
+      "requestCmdId": "00",
+      "response": {
+        "cmdId": "01",
+        "timeoutMs": 2000,
+        "correlateBy": ["frameControl", "clusterId", "attributeId"],
+        "statusByteOffset": 6,
+        "successStatus": "00"
+      }
+    },
+    {
+      "name": "writeAttribute",
+      "requestCmdId": "02",
+      "response": {
+        "cmdId": "04",
+        "timeoutMs": 2000,
+        "correlateBy": ["frameControl", "clusterId"],
+        "statusByteOffset": 4,
+        "successStatus": "00",
+        "errorAttributeIdOffset": 5
+      }
+    },
+    {
+      "name": "writeAttributeNoResponse",
+      "requestCmdId": "05",
+      "response": null
+    },
+    {
+      "name": "configureReporting",
+      "requestCmdId": "06",
+      "response": {
+        "cmdId": "07",
+        "timeoutMs": 2000,
+        "correlateBy": ["frameControl", "clusterId", "reportingKind", "attributeId"],
+        "errorCorrelateBy": ["frameControl", "clusterId"],
+        "statusByteOffset": 4,
+        "successStatus": "00"
+      }
+    },
+    {
+      "name": "readReportingConfiguration",
+      "requestCmdId": "08",
+      "response": {
+        "cmdId": "09",
+        "timeoutMs": 2000,
+        "correlateBy": ["frameControl", "clusterId", "reportingKind", "attributeId"],
+        "statusByteOffset": 4,
+        "successStatus": "00"
+      }
+    },
+    {
+      "name": "askAllReportConfigurations",
+      "requestCmdId": "50",
+      "match": {
+        "clusterId": "0050",
+        "payloadPrefix": "09"
+      },
+      "collection": {
+        "mode": "multiple",
+        "firstResponseTimeoutMs": 2000,
+        "idleTimeoutMs": 1000,
+        "requestDelay": {
+          "byteOffset": 6,
+          "byteLength": 2,
+          "unitMs": 1000,
+          "marginMs": 500
+        }
+      }
+    }
+  ]
+}

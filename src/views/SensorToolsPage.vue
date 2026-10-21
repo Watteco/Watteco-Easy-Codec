@@ -490,9 +490,10 @@
                     :aria-label="localize('@toolsHexBackspace')"
                     @click="handleDeleteKeyClick"
                     @pointercancel="stopDeleteRepeat"
-                    @pointerdown.prevent="startDeleteRepeat"
+                    @pointerdown="startDeleteRepeat"
                     @pointerleave="stopDeleteRepeat"
-                    @pointerup="stopDeleteRepeat"
+                    @pointermove="moveDeleteRepeat"
+                    @pointerup="finishDeleteRepeat"
                   >
                     &#9003;
                   </button>
@@ -532,19 +533,14 @@
               <textarea
                 id="tools-command-response"
                 class="tool-input tool-textarea"
-                :value="lastCommandResponse"
+                :value="manualCommandResponse"
                 :placeholder="localize('@toolsNoCommandResponse')"
+                :aria-invalid="feedbackContext === 'manual-frame' && feedbackError"
+                :aria-live="feedbackError ? 'assertive' : 'polite'"
+                aria-atomic="true"
                 rows="3"
                 readonly
               ></textarea>
-              <p
-                v-if="feedback && feedbackContext === 'manual-frame'"
-                class="feedback"
-                :class="{ 'feedback--error': feedbackError }"
-                aria-live="polite"
-              >
-                {{ feedback }}
-              </p>
             </ion-card-content>
             </ion-card>
           </details>
@@ -617,6 +613,11 @@ import {
   type AppRxSubscription,
 } from '@/utils/BLE/appFrames';
 import { toSpacedHex } from '@/utils/BLE/blob';
+import {
+  getCustomAppFrameResponsePolicy,
+  matchesAppFrameResponse,
+  type CustomAppFrameResponsePolicy,
+} from '@/utils/BLE/appFrameResponseRules';
 import {
   buildLoraRejoinFrame,
   FACTORY_RESET_FRAME,
@@ -775,12 +776,23 @@ const commandSending = ref<'rejoin' | 'factory-reset' | 'reboot' | null>(null);
 let appRxSubscription: AppRxSubscription | undefined;
 let appRxResponseTimer: ReturnType<typeof setTimeout> | undefined;
 let resolveAppRxResponses: (() => void) | undefined;
+let manualResponsePolicy: CustomAppFrameResponsePolicy | undefined;
+let manualResponseRequest: Uint8Array | undefined;
 let deviceInformationDeviceId: string | undefined;
 let campaignCancelled = false;
 let campaignSequence = 0;
 let campaignDiagnosticSequence = 0;
 let deleteRepeatDelay: ReturnType<typeof setTimeout> | undefined;
 let deleteRepeatInterval: ReturnType<typeof setInterval> | undefined;
+let deletePointerId: number | undefined;
+let deletePointerStartX = 0;
+let deletePointerStartY = 0;
+let deleteRepeated = false;
+
+const manualCommandResponse = computed(() => (
+  lastCommandResponse.value
+  || (feedbackContext.value === 'manual-frame' ? feedback.value : '')
+));
 
 const status = computed(() => ble.loraLinkStatus.value);
 const bleDeviceName = computed(() => {
@@ -888,15 +900,43 @@ function stopDeleteRepeat(): void {
   if (deleteRepeatInterval) clearInterval(deleteRepeatInterval);
   deleteRepeatDelay = undefined;
   deleteRepeatInterval = undefined;
+  deletePointerId = undefined;
+  deleteRepeated = false;
 }
 
 function startDeleteRepeat(event: PointerEvent): void {
   stopDeleteRepeat();
+  if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+  deletePointerId = event.pointerId;
+  deletePointerStartX = event.clientX;
+  deletePointerStartY = event.clientY;
   (event.currentTarget as HTMLButtonElement).setPointerCapture?.(event.pointerId);
-  deleteManualFrameBackward();
   deleteRepeatDelay = setTimeout(() => {
+    if (deletePointerId !== event.pointerId) return;
+    deleteRepeated = true;
+    deleteManualFrameBackward();
     deleteRepeatInterval = setInterval(deleteManualFrameBackward, 55);
   }, 350);
+}
+
+function moveDeleteRepeat(event: PointerEvent): void {
+  if (event.pointerId !== deletePointerId) return;
+  const moved = Math.hypot(
+    event.clientX - deletePointerStartX,
+    event.clientY - deletePointerStartY,
+  );
+  if (moved <= 10) return;
+
+  (event.currentTarget as HTMLButtonElement).releasePointerCapture?.(event.pointerId);
+  stopDeleteRepeat();
+}
+
+function finishDeleteRepeat(event: PointerEvent): void {
+  if (event.pointerId !== deletePointerId) return;
+  const shouldDeleteOnce = !deleteRepeated;
+  stopDeleteRepeat();
+  if (shouldDeleteOnce) deleteManualFrameBackward();
 }
 
 function handleDeleteKeyClick(event: MouseEvent): void {
@@ -1245,11 +1285,24 @@ async function refreshDeviceStatus(includeDeviceInformation = true): Promise<voi
 
 function receiveAppFrame(frame: Uint8Array): void {
   if (!awaitingManualResponse.value) return;
+  if (
+    manualResponsePolicy?.mode === 'single'
+    && manualResponseRequest
+    && !matchesAppFrameResponse(manualResponseRequest, frame)
+  ) return;
   const response = toSpacedHex(frame).toUpperCase();
   lastCommandResponse.value = lastCommandResponse.value
     ? `${lastCommandResponse.value}\n${response}`
     : response;
-  resetAppRxResponseTimer(APP_RX_IDLE_TIMEOUT_MS);
+  if (manualResponsePolicy?.mode === 'single') {
+    finishManualResponseCollection();
+    return;
+  }
+  resetAppRxResponseTimer(
+    manualResponsePolicy?.mode === 'multiple'
+      ? manualResponsePolicy.idleTimeoutMs
+      : APP_RX_IDLE_TIMEOUT_MS,
+  );
 }
 
 function finishManualResponseCollection(): void {
@@ -1277,7 +1330,11 @@ function prepareManualResponseCollection(): Promise<void> {
 
 function startFirstAppRxResponseTimeout(): void {
   if (!awaitingManualResponse.value || lastCommandResponse.value) return;
-  resetAppRxResponseTimer(APP_RX_FIRST_RESPONSE_TIMEOUT_MS);
+  resetAppRxResponseTimer(
+    manualResponsePolicy && manualResponsePolicy.mode !== 'none'
+      ? manualResponsePolicy.firstResponseTimeoutMs
+      : APP_RX_FIRST_RESPONSE_TIMEOUT_MS,
+  );
 }
 
 function logAppFrame(line: string): void {
@@ -1349,9 +1406,18 @@ async function sendManualFrame(): Promise<void> {
 
   manualFrameSending.value = true;
   lastCommandResponse.value = '';
-  feedback.value = localize('@toolsFrameWaitingResponse');
   feedbackError.value = false;
+  manualResponsePolicy = getCustomAppFrameResponsePolicy(frame);
+  manualResponseRequest = frame;
+  feedback.value = manualResponsePolicy.mode === 'none'
+    ? localize('@toolsSendingFrame')
+    : localize('@toolsFrameWaitingResponse');
   try {
+    if (manualResponsePolicy.mode === 'none') {
+      await writeAppTx(deviceId, frame, logAppFrame);
+      feedback.value = localize('@toolsFrameSentNoResponseExpected');
+      return;
+    }
     appRxSubscription = await startAppRxMonitoring(deviceId, receiveAppFrame, logAppFrame);
     if (!appRxSubscription.notifications) {
       throw new Error(localize('@toolsFrameNotificationsUnavailable'));
@@ -1370,6 +1436,8 @@ async function sendManualFrame(): Promise<void> {
     finishManualResponseCollection();
     await stopAppRxMonitoring(appRxSubscription, logAppFrame);
     appRxSubscription = undefined;
+    manualResponsePolicy = undefined;
+    manualResponseRequest = undefined;
     manualFrameSending.value = false;
     if (authenticationWasRequired) await refreshDeviceInformation();
   }

@@ -78,7 +78,7 @@ describe('productMeasurements', () => {
       '11 02 0050 FB1E 41 0D 01 1E 05 0078 00FA 0032 01F4 003C',
       '11 06 0402 15 0000 00 800A 803C 0000 000A 03',
       '31 06 0402 15 0000 00 800A 803C 0000 000A 0B',
-      '11 06 0050 15 0006 04 85A0 85A0 0000 0064 34',
+      '11 06 0050 15 0006 04 85A0 85A0 0000 0064 33',
     ]]);
     expect(Object.keys(pt1000NeoConfig.batch_params)).toEqual([
       'batch_T_params',
@@ -131,6 +131,19 @@ describe('productMeasurements', () => {
     expect(getAvailableProductChoices()).toContainEqual(expect.objectContaining({
       reference: '50-70-260',
     }));
+  });
+
+  it('lists the Neo range first in the debug selector', () => {
+    const choices = getAvailableProductChoices();
+    const neoChoices = choices.filter(choice => /\bneo\b/i.test(choice.label));
+
+    expect(choices.slice(0, neoChoices.length)).toEqual(neoChoices);
+    expect(neoChoices.map(choice => choice.label)).toEqual([
+      "HygroTemp'O Neo (50-70-260-671)",
+      "Pulse Sens'O Lite Neo (50-70-304)",
+      "Pulse Sens'O Neo (50-70-260)",
+      "Temp'O Neo PT1000 (50-70-307)",
+    ]);
   });
 
   it('resolves the Easy Codec configuration file from a product reference', () => {

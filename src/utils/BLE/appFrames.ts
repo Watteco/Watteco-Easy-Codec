@@ -14,6 +14,37 @@ export type AppRxSubscription = {
   notifications: boolean;
 };
 
+export type ConfigurationFrame = {
+  hex: string;
+  label: string;
+};
+
+export type ConfigurationFrameOutcome =
+  | 'success'
+  | 'no-response-expected'
+  | 'device-error'
+  | 'timeout'
+  | 'transport-error';
+
+export type ConfigurationFrameResult = {
+  index: number;
+  total: number;
+  frame: ConfigurationFrame;
+  outcome: ConfigurationFrameOutcome;
+  responseHex?: string;
+  status?: number;
+  errorAttributeId?: number;
+  errorMessage?: string;
+};
+
+export type CurrentConfigurationSendResult = {
+  state: 'success' | 'partial' | 'failed' | 'authorization-denied' | 'not-started';
+  total: number;
+  processed: number;
+  frames: ConfigurationFrameResult[];
+  errorMessage?: string;
+};
+
 type AppTxWriteOptions = {
   expectedWriteError?: (error: unknown) => boolean;
 };
@@ -34,10 +65,24 @@ export function takeFirstConfigurationFrames(frames: readonly string[]): string[
 }
 
 export function readOutputFrameHexes(outputArea: Element): string[] {
+  return readOutputConfigurationFrames(outputArea).map(frame => frame.hex);
+}
+
+export function readOutputConfigurationFrames(outputArea: Element): ConfigurationFrame[] {
   return Array.from(outputArea.children)
     .filter(child => child.tagName === 'SPAN')
-    .map(child => (child.textContent ?? '').replace(/\s+/g, ''))
-    .filter(frame => /^(?:[0-9a-fA-F]{2})+$/.test(frame));
+    .map(child => ({
+      hex: (child.textContent ?? '').replace(/\s+/g, ''),
+      label: child.getAttribute('title')?.trim() ?? '',
+    }))
+    .filter(frame => /^(?:[0-9a-fA-F]{2})+$/.test(frame.hex));
+}
+
+export function takeFirstConfigurationFrameEntries(
+  frames: readonly ConfigurationFrame[],
+): ConfigurationFrame[] {
+  const separatorIndex = frames.findIndex(frame => frame.hex.replace(/\s+/g, '') === '00');
+  return frames.slice(0, separatorIndex < 0 ? frames.length : separatorIndex);
 }
 
 export async function startAppRxMonitoring(

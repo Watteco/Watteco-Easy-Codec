@@ -189,7 +189,7 @@
     <div v-if="developerModeEnabled && ble.isNative.value" class="app-frame-debug-corner">
       <div v-show="counterFrameDebugVisible" class="app-frame-debug-panel">
         <div class="app-frame-debug-header">
-          <strong>APP TX / RX — Counters</strong>
+          <strong>APP TX / RX - Counters</strong>
           <ion-button size="small" fill="clear" @click="ble.clearCounterFrameLogs()">
             Clear
           </ion-button>

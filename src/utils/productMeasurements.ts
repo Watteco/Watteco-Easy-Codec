@@ -24,6 +24,18 @@ export type AvailableProductChoice = {
   reference: string;
 };
 
+const isNeoProductChoice = (product: AvailableProductChoice): boolean => (
+  /\bneo\b/i.test(product.label)
+);
+
+const compareAvailableProductChoices = (
+  left: AvailableProductChoice,
+  right: AvailableProductChoice,
+): number => {
+  const neoPriority = Number(isNeoProductChoice(right)) - Number(isNeoProductChoice(left));
+  return neoPriority || left.label.localeCompare(right.label);
+};
+
 const getProductLabels = (product: Product): string[] => (
   (Array.isArray(product.name) ? product.name : [product.name])
     .filter((name): name is string => typeof name === 'string')
@@ -140,7 +152,7 @@ export const getAvailableProductChoices = (): AvailableProductChoice[] => (
       return reference && label ? { label, reference } : null;
     })
     .filter((product): product is AvailableProductChoice => product !== null)
-    .sort((left, right) => left.label.localeCompare(right.label))
+    .sort(compareAvailableProductChoices)
 );
 
 export const getProductDisplayName = (productReference?: string | null): string | null => {

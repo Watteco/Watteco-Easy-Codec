@@ -1578,6 +1578,35 @@
             <ion-icon :icon="checkmarkCircleOutline" aria-hidden="true" />
             <span>{{ localize('@bleConfigurationSentMessage') }}</span>
           </div>
+          <div
+            v-if="currentConfigurationSendResult && (currentConfigurationSendResult.state === 'partial' || currentConfigurationSendResult.state === 'failed')"
+            class="ble-send-warning"
+            role="alert"
+            aria-live="polite"
+          >
+            <div class="ble-send-warning-title">
+              <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
+              <strong>{{ localize(currentConfigurationSendResult.state === 'partial'
+                ? '@bleConfigurationCompletedWithErrors'
+                : '@bleConfigurationInterrupted') }}</strong>
+            </div>
+            <p>
+              {{ currentConfigurationSendResult.processed }}/{{ currentConfigurationSendResult.total }}
+              {{ localize('@bleConfigurationStepsCompleted') }}.
+              <template v-if="currentConfigurationSendResult.state === 'partial'">
+                {{ localize('@bleConfigurationOtherSettingsSent') }}
+              </template>
+            </p>
+            <ul class="ble-send-failures">
+              <li v-for="failure in configurationFailureResults" :key="`${failure.index}-${failure.outcome}`">
+                <strong>{{ failure.frame.label || `${localize('@bleConfigurationSetting')} ${failure.index}` }}</strong>
+                <span>{{ describeConfigurationFrameFailure(failure) }}</span>
+              </li>
+            </ul>
+            <ion-button size="small" fill="outline" color="warning" @click="copyCurrentConfigurationDiagnostic">
+              {{ localize('@bleConfigurationCopyDiagnostic') }}
+            </ion-button>
+          </div>
           <div v-if="ble.pairing.value" class="ble-status-msg">
             <ion-text color="warning">Confirm the secure Bluetooth pairing on Android to continue.</ion-text>
           </div>
@@ -1661,7 +1690,7 @@ import {
   alertController,
   toastController,
 } from '@ionic/vue';
-import { checkmarkCircleOutline, chevronForwardOutline, closeOutline, downloadOutline, eyeOffOutline, eyeOutline, folderOpenOutline, lockClosed, lockOpenOutline, pushOutline, refreshOutline, saveOutline, shareSocialOutline, trashOutline } from 'ionicons/icons';
+import { alertCircleOutline, checkmarkCircleOutline, chevronForwardOutline, closeOutline, downloadOutline, eyeOffOutline, eyeOutline, folderOpenOutline, lockClosed, lockOpenOutline, pushOutline, refreshOutline, saveOutline, shareSocialOutline, trashOutline } from 'ionicons/icons';
 import { Capacitor } from '@capacitor/core';
 import { Directory, Encoding, Filesystem } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -1689,6 +1718,11 @@ import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { getProductConfigurationFile, getProductDisplayName } from '@/utils/productMeasurements';
 import { readAdminDeviceStatus } from '@/utils/BLE/adminStatus';
+import { getAppFrameStatusName } from '@/utils/BLE/appFrameResponseRules';
+import type {
+  ConfigurationFrameResult,
+  CurrentConfigurationSendResult,
+} from '@/utils/BLE/appFrames';
 import { presentAuthorizationDeniedAlert } from '@/utils/authorizationAlert';
 import { appVersion } from '@/utils/appVersion';
 import {
@@ -1878,6 +1912,7 @@ const framesAvailable = ref(false);
 const configurationSendMode = ref<'default' | 'current' | null>(null);
 const currentConfigurationProgress = ref({ sent: 0, total: 0 });
 const configurationSendSuccessMode = ref<'default' | 'current' | null>(null);
+const currentConfigurationSendResult = ref<CurrentConfigurationSendResult | null>(null);
 let configurationSendSuccessTimer: ReturnType<typeof setTimeout> | undefined;
 const defaultConfigurationPreviewVisible = ref(false);
 const currentConfigurationPreviewVisible = ref(false);
@@ -2170,6 +2205,7 @@ const resetCheckboxes = () => {
   configurationChecked.value = false;
   commandeChecked.value = false;
   generalChecked.value = true;
+  currentConfigurationSendResult.value = null;
 
   Object.keys(outputData).forEach(data => {
     outputData[data] = false;
@@ -2353,6 +2389,7 @@ const initParams = () => {
 // Update the output display with the generated frames
 const updateOutput = () => {
   let outputFrameTxt = "";
+  if (configurationSendMode.value === null) currentConfigurationSendResult.value = null;
   
   const outputArea = document.getElementById("outputArea");
   if (!sensorConfig.value) {
@@ -2781,6 +2818,90 @@ const copyFramesNoSpaces = () => {
   }
 };
 
+const configurationFailureResults = computed(() => (
+  currentConfigurationSendResult.value?.frames.filter(result => (
+    result.outcome === 'device-error'
+    || result.outcome === 'timeout'
+    || result.outcome === 'transport-error'
+  )) ?? []
+));
+
+const formatConfigurationStatus = (status: number): string => {
+  const code = status.toString(16).padStart(2, '0').toUpperCase();
+  const translatedStatuses = new Set([
+    '7E', '80', '81', '82', '85', '86', '87', '88', '89', '8C', '8D', '94', 'C0', 'C1', 'C2', 'C3',
+  ]);
+  const description = translatedStatuses.has(code)
+    ? localize(`@bleConfigurationStatus${code}`)
+    : localize('@bleConfigurationUnknownError');
+  return `${description} (0x${code})`;
+};
+
+const describeConfigurationFrameFailure = (result: ConfigurationFrameResult): string => {
+  if (result.outcome === 'timeout') return localize('@bleConfigurationNotConfirmed');
+  if (result.outcome === 'transport-error') return localize('@bleConfigurationTransportError');
+  if (result.status === undefined) return localize('@bleConfigurationMalformedResponse');
+  return `${localize('@bleConfigurationRejected')} - ${formatConfigurationStatus(result.status)}`;
+};
+
+const getConfigurationProductName = (): string => {
+  const product = availableProducts.value.find(candidate => candidate.file === selectedSensor.value);
+  return getProductDisplayName(ble.productReference.value)
+    || product?.name
+    || ble.connectedDevice.value?.name
+    || selectedSensor.value;
+};
+
+const buildCurrentConfigurationDiagnostic = (): string => {
+  const result = currentConfigurationSendResult.value;
+  if (!result) return '';
+
+  const lines = [
+    `Watteco Easy Codec ${appVersion}`,
+    `Product: ${getConfigurationProductName()}`,
+    `BLE device: ${ble.connectedDevice.value?.name ?? ble.connectedDevice.value?.deviceId ?? 'unknown'}`,
+    `Date: ${new Date().toISOString()}`,
+    '',
+    `Configuration result: ${result.state}`,
+    `Processed: ${result.processed}/${result.total}`,
+  ];
+
+  for (const failure of configurationFailureResults.value) {
+    const statusCode = failure.status === undefined
+      ? 'n/a'
+      : `0x${failure.status.toString(16).padStart(2, '0').toUpperCase()}`;
+    const statusName = failure.status === undefined
+      ? null
+      : getAppFrameStatusName(failure.status);
+    lines.push(
+      '',
+      `Step: ${failure.index}/${failure.total}`,
+      `Setting: ${failure.frame.label || `#${failure.index}`}`,
+      `Outcome: ${failure.outcome}`,
+      `Status: ${statusCode}${statusName ? ` - ${statusName}` : ''}`,
+      ...(failure.errorAttributeId === undefined
+        ? []
+        : [`Attribute: 0x${failure.errorAttributeId.toString(16).padStart(4, '0').toUpperCase()}`]),
+      `TX: ${failure.frame.hex}`,
+      `RX: ${failure.responseHex ?? 'none'}`,
+      ...(failure.errorMessage ? [`Error: ${failure.errorMessage}`] : []),
+    );
+  }
+
+  return lines.join('\n');
+};
+
+const copyCurrentConfigurationDiagnostic = async () => {
+  const diagnostic = buildCurrentConfigurationDiagnostic();
+  if (!diagnostic) return;
+  try {
+    await navigator.clipboard.writeText(diagnostic);
+    await presentSavedConfigurationToast(localize('@bleConfigurationDiagnosticCopied'));
+  } catch (error) {
+    console.error('Failed to copy configuration diagnostic:', error);
+  }
+};
+
 // Send frames via BLE (native only)
 const handleConfigurationSendResult = async (
   sentFrameCount: number,
@@ -2850,16 +2971,25 @@ const sendDefaultConfigurationBle = async () => {
 
 const sendCurrentConfigurationBle = async () => {
   configurationSendSuccessMode.value = null;
+  currentConfigurationSendResult.value = null;
   currentConfigurationProgress.value = { sent: 0, total: 0 };
   configurationSendMode.value = 'current';
   if (developerModeEnabled.value) appFrameDebugVisible.value = true;
   try {
-    const sentFrameCount = await ble.sendCurrentConfigurationFrames(
+    const result = await ble.sendCurrentConfigurationFrames(
       debugOtaAppKeyHex.value,
       debugDevEuiHex.value,
       (sent, total) => { currentConfigurationProgress.value = { sent, total }; },
     );
-    await handleConfigurationSendResult(sentFrameCount, 'current');
+    currentConfigurationSendResult.value = result;
+    if (result.state === 'success') {
+      await handleConfigurationSendResult(result.processed, 'current');
+    } else if (result.state === 'authorization-denied') {
+      configurationOsaAuthenticated.value = false;
+      await presentAuthorizationDeniedAlert(localize);
+    } else if (result.processed > 0) {
+      configurationOsaAuthenticated.value = true;
+    }
   } finally {
     configurationSendMode.value = null;
   }
@@ -3169,7 +3299,7 @@ const getDefaultConfigurationName = (): string => {
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(new Date());
-  return `${timestamp} — ${sensorName}`.slice(0, 80);
+  return `${timestamp} - ${sensorName}`.slice(0, 80);
 };
 
 const saveCurrentConfiguration = async () => {
@@ -4253,6 +4383,54 @@ ion-range::part(pin)::before {
 .ble-send-success ion-icon {
   flex: 0 0 auto;
   font-size: 1.35rem;
+}
+
+.ble-send-warning {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid rgba(var(--ion-color-warning-rgb), 0.5);
+  border-radius: 10px;
+  background: rgba(var(--ion-color-warning-rgb), 0.12);
+  color: var(--app-text);
+}
+
+.ble-send-warning-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ion-color-warning-shade);
+}
+
+.ble-send-warning-title ion-icon {
+  flex: 0 0 auto;
+  font-size: 1.35rem;
+}
+
+.ble-send-warning p {
+  margin: 8px 0;
+  line-height: 1.4;
+}
+
+.ble-send-failures {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 0;
+  background: transparent;
+  list-style: none;
+}
+
+.ble-send-failures li {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(var(--ion-color-warning-rgb), 0.1);
+}
+
+.ble-send-failures span {
+  font-size: 0.84rem;
+  line-height: 1.35;
 }
 
 .ble-activation-option {

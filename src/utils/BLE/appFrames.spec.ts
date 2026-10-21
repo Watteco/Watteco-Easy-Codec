@@ -2,10 +2,12 @@ import { BleClient } from '@capacitor-community/bluetooth-le';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   parseAppFrameHex,
+  readOutputConfigurationFrames,
   readOutputFrameHexes,
   startAppRxMonitoring,
   stopAppRxMonitoring,
   takeFirstConfigurationFrames,
+  takeFirstConfigurationFrameEntries,
 } from '@/utils/BLE/appFrames';
 import { findCharacteristicByUuid } from '@/utils/BLE/connection';
 
@@ -65,6 +67,20 @@ describe('current configuration frame selection', () => {
     expect(takeFirstConfigurationFrames(readOutputFrameHexes(outputArea))).toEqual([
       '115000500203',
       '1105800400000800',
+    ]);
+  });
+
+  it('keeps the localized setting label attached to each frame', () => {
+    const outputArea = document.createElement('div');
+    outputArea.innerHTML = '<span title="Configures the BLE connection">11 02 0050 FB1E 41 01 00</span><br><span>00</span><br>';
+
+    const frames = readOutputConfigurationFrames(outputArea);
+    expect(frames).toEqual([
+      { hex: '11020050FB1E410100', label: 'Configures the BLE connection' },
+      { hex: '00', label: '' },
+    ]);
+    expect(takeFirstConfigurationFrameEntries(frames)).toEqual([
+      { hex: '11020050FB1E410100', label: 'Configures the BLE connection' },
     ]);
   });
 

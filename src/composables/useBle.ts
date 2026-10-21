@@ -15,13 +15,26 @@ import {
 } from '@/utils/BLE/blob';
 import {
   readAppRx,
+  readOutputConfigurationFrames,
   readOutputFrameHexes,
   startAppRxMonitoring,
   stopAppRxMonitoring,
+  takeFirstConfigurationFrameEntries,
   takeFirstConfigurationFrames,
   writeAppTx,
   type AppRxSubscription,
+  type ConfigurationFrame,
+  type ConfigurationFrameResult,
+  type CurrentConfigurationSendResult,
 } from '@/utils/BLE/appFrames';
+import {
+  APP_FRAME_FALLBACK_DELAY_MS,
+  getAppFrameResponseErrorAttributeId,
+  getAppFrameResponseRule,
+  getAppFrameResponseStatus,
+  isSuccessfulAppFrameResponse,
+  matchesAppFrameResponse,
+} from '@/utils/BLE/appFrameResponseRules';
 import { authenticateOsa } from '@/utils/BLE/osa';
 import { readProductId as readProductIdFromBle } from '@/utils/BLE/configReader';
 import { decodeAdvertisedProductId } from '@/utils/BLE/advertising';
@@ -1466,6 +1479,12 @@ function getOutputFrameHexes(): string[] {
   return readOutputFrameHexes(outputArea);
 }
 
+function getOutputConfigurationFrames(): ConfigurationFrame[] {
+  const outputArea = document.getElementById('outputArea');
+  if (!outputArea) return [];
+  return readOutputConfigurationFrames(outputArea);
+}
+
 function getDefaultConfigurationPreview(
   blobOnlyConfigurations: readonly (readonly string[])[] = [],
 ): string[] {
@@ -1531,19 +1550,28 @@ async function sendCurrentConfigurationFrames(
   osaKeyHex: string,
   devEuiHex: string,
   onProgress?: (sent: number, total: number) => void,
-): Promise<number> {
+): Promise<CurrentConfigurationSendResult> {
   clearConfigurationFrameLogs();
   const deviceId = connectedDevice.value?.deviceId;
   if (!connected.value || !deviceId) {
     statusMessage.value = 'Not connected to a BLE device';
-    return -1;
+    return { state: 'not-started', total: 0, processed: 0, frames: [] };
   }
-  const currentConfigurationFrames = takeFirstConfigurationFrames(getOutputFrameHexes());
+  const currentConfigurationFrames = takeFirstConfigurationFrameEntries(
+    getOutputConfigurationFrames(),
+  );
   if (currentConfigurationFrames.length === 0) {
     statusMessage.value = 'No frames found before the first configuration separator';
-    return 0;
+    return { state: 'not-started', total: 0, processed: 0, frames: [] };
   }
-  if (sending.value) return 0;
+  if (sending.value) {
+    return {
+      state: 'not-started',
+      total: currentConfigurationFrames.length,
+      processed: 0,
+      frames: [],
+    };
+  }
 
   sending.value = true;
   onProgress?.(0, currentConfigurationFrames.length);
@@ -1551,6 +1579,38 @@ async function sendCurrentConfigurationFrames(
   statusMessage.value = 'Authenticating configuration transfer…';
   let osaAuthenticated = false;
   let appRxSubscription: AppRxSubscription | undefined;
+  let receivedFrameHandler: ((frame: Uint8Array) => void) | undefined;
+  const frameResults: ConfigurationFrameResult[] = [];
+  const total = currentConfigurationFrames.length;
+
+  const finishFrame = (result: ConfigurationFrameResult) => {
+    frameResults.push(result);
+    onProgress?.(frameResults.length, total);
+  };
+
+  const pollForResponse = async (
+    request: Uint8Array,
+    subscription: AppRxSubscription,
+    timeoutMs: number,
+  ): Promise<Uint8Array | null> => {
+    const deadline = Date.now() + timeoutMs;
+    let lastLoggedHex = '';
+    while (Date.now() < deadline) {
+      await delay(100);
+      try {
+        const response = await readAppRx(deviceId, subscription);
+        const responseHex = toSpacedHex(response);
+        if (responseHex !== lastLoggedHex) {
+          logConfigurationFrame(`[APP RX] ${responseHex}`);
+          lastLoggedHex = responseHex;
+        }
+        if (matchesAppFrameResponse(request, response)) return response;
+      } catch (error: any) {
+        logConfigurationFrame(`[APP RX] Read failed: ${error?.message ?? error}`);
+      }
+    }
+    return null;
+  };
   try {
     await authenticateOsa(deviceId, osaKeyHex, devEuiHex, log);
     osaAuthenticated = true;
@@ -1559,7 +1619,7 @@ async function sendCurrentConfigurationFrames(
     try {
       appRxSubscription = await startAppRxMonitoring(
         deviceId,
-        () => undefined,
+        frame => receivedFrameHandler?.(frame),
         logConfigurationFrame,
       );
       logConfigurationFrame(
@@ -1571,29 +1631,120 @@ async function sendCurrentConfigurationFrames(
       logConfigurationFrame(`[APP RX] Monitoring unavailable: ${error?.message ?? error}`);
     }
     statusMessage.value = `Applying ${currentConfigurationFrames.length} configuration frame(s)…`;
-    for (const [index, frameHex] of currentConfigurationFrames.entries()) {
-      await writeAppTx(deviceId, hexToBytes(frameHex), logConfigurationFrame);
-      onProgress?.(index + 1, currentConfigurationFrames.length);
-      await delay(INTER_FRAME_DELAY_MS);
-      if (appRxSubscription && !appRxSubscription.notifications) {
-        try {
-          const response = await readAppRx(deviceId, appRxSubscription);
-          logConfigurationFrame(`[APP RX] ${toSpacedHex(response)}`);
-        } catch (error: any) {
-          logConfigurationFrame(`[APP RX] Read failed: ${error?.message ?? error}`);
-        }
+    for (const [zeroBasedIndex, frame] of currentConfigurationFrames.entries()) {
+      const index = zeroBasedIndex + 1;
+      const request = hexToBytes(frame.hex);
+      const responseDefinition = getAppFrameResponseRule(request)?.response;
+      let notificationResponse: Promise<Uint8Array | null> | undefined;
+      let cancelNotificationWait: () => void = () => undefined;
+
+      if (responseDefinition && appRxSubscription?.notifications) {
+        notificationResponse = new Promise(resolve => {
+          let settled = false;
+          const finish = (response: Uint8Array | null) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timeoutId);
+            receivedFrameHandler = undefined;
+            resolve(response);
+          };
+          const timeoutId = setTimeout(() => finish(null), responseDefinition.timeoutMs);
+          receivedFrameHandler = response => {
+            if (matchesAppFrameResponse(request, response)) finish(response);
+          };
+          cancelNotificationWait = () => finish(null);
+        });
       }
+
+      try {
+        await writeAppTx(deviceId, request, logConfigurationFrame);
+      } catch (error: any) {
+        cancelNotificationWait();
+        const message = error?.message ?? String(error);
+        finishFrame({
+          index,
+          total,
+          frame,
+          outcome: 'transport-error',
+          errorMessage: message,
+        });
+        throw error;
+      }
+
+      if (!responseDefinition) {
+        await delay(APP_FRAME_FALLBACK_DELAY_MS);
+        finishFrame({ index, total, frame, outcome: 'no-response-expected' });
+        continue;
+      }
+
+      let response: Uint8Array | null = null;
+      if (notificationResponse) {
+        response = await notificationResponse;
+      } else if (appRxSubscription) {
+        response = await pollForResponse(request, appRxSubscription, responseDefinition.timeoutMs);
+      } else {
+        await delay(responseDefinition.timeoutMs);
+      }
+      receivedFrameHandler = undefined;
+
+      if (!response) {
+        logConfigurationFrame(
+          `[APP RX] Timeout after ${responseDefinition.timeoutMs} ms for ${toSpacedHex(request)}`,
+        );
+        finishFrame({ index, total, frame, outcome: 'timeout' });
+        continue;
+      }
+
+      const status = getAppFrameResponseStatus(request, response);
+      const responseHex = toSpacedHex(response);
+      const errorAttributeId = getAppFrameResponseErrorAttributeId(request, response);
+      if (status !== null && isSuccessfulAppFrameResponse(request, response)) {
+        finishFrame({ index, total, frame, outcome: 'success', responseHex, status });
+        continue;
+      }
+
+      logConfigurationFrame(
+        `[APP RX] Device rejected frame ${index}/${total}${status === null ? '' : ` with status 0x${status.toString(16).padStart(2, '0')}`}`,
+      );
+      finishFrame({
+        index,
+        total,
+        frame,
+        outcome: 'device-error',
+        responseHex,
+        ...(status === null ? {} : { status }),
+        ...(errorAttributeId === null ? {} : { errorAttributeId }),
+        ...(status === null ? { errorMessage: 'Malformed application response' } : {}),
+      });
     }
-    statusMessage.value = 'Current configuration applied';
-    return currentConfigurationFrames.length;
+
+    const partial = frameResults.some(result => (
+      result.outcome === 'device-error' || result.outcome === 'timeout'
+    ));
+    statusMessage.value = partial
+      ? 'Current configuration completed with errors'
+      : 'Current configuration applied';
+    return {
+      state: partial ? 'partial' : 'success',
+      total,
+      processed: frameResults.length,
+      frames: frameResults,
+    };
   } catch (error: any) {
     const message = error?.message ?? String(error);
     logConfigurationFrame(`APP TX ERROR ${message}`);
     statusMessage.value = osaAuthenticated
       ? `Current configuration transfer failed: ${message}`
       : 'Configuration authorization failed';
-    return osaAuthenticated ? -1 : -2;
+    return {
+      state: osaAuthenticated ? 'failed' : 'authorization-denied',
+      total,
+      processed: frameResults.length,
+      frames: frameResults,
+      errorMessage: message,
+    };
   } finally {
+    receivedFrameHandler = undefined;
     await stopAppRxMonitoring(appRxSubscription, logConfigurationFrame);
     osaAuthenticating.value = false;
     sending.value = false;

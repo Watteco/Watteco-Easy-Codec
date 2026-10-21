@@ -6,7 +6,7 @@
             "11 02 0050 FB1E 41 0D 01 1E 05 0078 00FA 0032 01F4 003C",
             "11 06 0402 15 0000 00 800A 803C 0000 000A 03",
             "31 06 0402 15 0000 00 800A 803C 0000 000A 0B",
-            "11 06 0050 15 0006 04 85A0 85A0 0000 0064 34"
+            "11 06 0050 15 0006 04 85A0 85A0 0000 0064 33"
         ]
     ],
     "general_params": {
@@ -99,7 +99,7 @@
         "cfg_block": [
             ["11 06 0402 15 0000 00 (tBatchEchant) (gBatchEmission) 0000 000A 03", "@cfgCommentBatchTemp - @probe 1"],
             ["31 06 0402 15 0000 00 (tBatchEchant) (gBatchEmission) 0000 000A 0B", "@cfgCommentBatchTemp - @probe 2"],
-            ["11 06 0050 15 0006 04 (bBatchEchant) 85A0 0000 0064 34", "@cfgCommentBatchBatt"]
+            ["11 06 0050 15 0006 04 (bBatchEchant) 85A0 0000 0064 33", "@cfgCommentBatchBatt"]
         ]
     },
     "standard_params": {
