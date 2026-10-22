@@ -5,6 +5,7 @@
     <!-- Slider (ion-range) -->
     <ion-range
       class="range-slider"
+      color="primary"
       :min="min"
       :max="max"
       :value="value"
@@ -68,6 +69,8 @@ const onRangeChange = (event) => {
   --bar-background-active: var(--ion-color-primary);
   --knob-background: var(--ion-color-primary);
   --knob-size: 28px;
+  --pin-background: var(--ion-color-primary);
+  --pin-color: var(--ion-color-primary-contrast);
   --padding-start: 4px;
   --padding-end: 4px;
 }
@@ -96,7 +99,8 @@ ion-range::part(pin) {
   justify-content: center;
   box-sizing: border-box;
   padding: 0 5px;
-  color: #fff;
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
   border-radius: 999px;
   transform: translate3d(0, 14px, 0) scale(1.01);
   min-width: 30px;
