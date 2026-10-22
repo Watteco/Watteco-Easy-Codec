@@ -1495,6 +1495,22 @@
 
         <!-- Native: BLE send (connection managed by BleConnectPage) -->
         <div v-if="ble.isNative.value" class="ble-panel">
+          <ion-button
+            v-if="supportsReportingConfigurationRead"
+            class="ble-read-configuration"
+            expand="block"
+            fill="outline"
+            :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value"
+            @click="readCurrentConfigurationBle"
+          >
+            <ion-icon
+              slot="start"
+              :icon="configurationOsaAuthenticated === true ? lockOpenOutline : lockClosed"
+            />
+            {{ configurationReadInProgress
+              ? localize('@bleReadingSensorConfiguration')
+              : localize('@bleReadSensorConfiguration') }}
+          </ion-button>
           <div class="ble-actions">
             <div v-if="framesAvailable" class="ble-action">
               <ion-button
@@ -1577,6 +1593,87 @@
           <div v-if="configurationSendSuccessMode" class="ble-send-success" role="status" aria-live="polite">
             <ion-icon :icon="checkmarkCircleOutline" aria-hidden="true" />
             <span>{{ localize('@bleConfigurationSentMessage') }}</span>
+          </div>
+          <div
+            v-if="configurationReadResult"
+            :class="configurationReadHasWarnings ? 'ble-send-warning' : 'ble-send-success'"
+            :role="configurationReadHasWarnings ? 'alert' : 'status'"
+            aria-live="polite"
+          >
+            <div :class="configurationReadHasWarnings ? 'ble-send-warning-title' : ''">
+              <ion-icon
+                :icon="configurationReadHasWarnings ? alertCircleOutline : checkmarkCircleOutline"
+                aria-hidden="true"
+              />
+              <strong>
+                {{ configurationReadResult.matchedFrameCount }}
+                {{ localize('@bleReportingConfigurationsLoaded') }}
+              </strong>
+            </div>
+            <template v-if="configurationReadHasWarnings">
+              <p>{{ localize(paramGroupChecked.remove_config
+                ? '@bleIncompatibleConfigurationsWillBeRemoved'
+                : '@bleIncompatibleConfigurationsMayConflict') }}</p>
+              <ul class="ble-send-failures">
+                <li v-if="configurationReadResult.unmatchedFrames.length > 0">
+                  <strong>{{ localize('@bleUnknownReportingConfigurations') }}</strong>
+                  <span>{{ configurationReadResult.unmatchedFrames.length }}</span>
+                </li>
+                <li v-for="conflict in configurationReadResult.conflicts" :key="`conflict-${conflict.fieldName}`">
+                  <strong>{{ conflict.fieldName }}</strong>
+                  <span>{{ conflict.values.join(' / ') }}</span>
+                </li>
+                <li v-if="configurationReadResult.exclusiveGroupConflicts.length > 0">
+                  <strong>{{ localize('@bleExclusiveConfigurationConflict') }}</strong>
+                  <span>{{ configurationReadResult.exclusiveGroupConflicts.flat().join(' / ') }}</span>
+                </li>
+                <li v-if="configurationReadResult.unsupportedValues.length > 0">
+                  <strong>{{ localize('@bleUnsupportedConfigurationValues') }}</strong>
+                  <span>{{ configurationReadResult.unsupportedValues.map(value => `${value.fieldName}: ${value.rawHex}`).join(', ') }}</span>
+                </li>
+                <li v-if="configurationReadResult.invalidFrames.length > 0">
+                  <strong>{{ localize('@bleInvalidReportingResponses') }}</strong>
+                  <span>{{ configurationReadResult.invalidFrames.length }}</span>
+                </li>
+              </ul>
+              <div v-if="developerModeEnabled" class="ble-reporting-diagnostics">
+                <strong>{{ localize('@bleReportingConfigurationDiagnostics') }}</strong>
+                <ul>
+                  <li
+                    v-for="(frame, index) in configurationReadResult.unmatchedFrameDetails"
+                    :key="`unmatched-frame-${index}`"
+                  >
+                    <code>{{ frame.hex }}</code>
+                    <span v-if="frame.reason === 'length-mismatch'">
+                      {{ localize('@bleReportingFrameLengthMismatch') }}
+                      ({{ frame.normalizedLength }} / {{ frame.expectedLengths.join(', ') }})
+                    </span>
+                    <span v-else>{{ localize('@bleReportingFrameFixedBytesMismatch') }}</span>
+                  </li>
+                  <li
+                    v-for="(frame, index) in configurationReadResult.invalidFrames"
+                    :key="`invalid-frame-${index}`"
+                  >
+                    <code>{{ frame.hex }}</code>
+                    <span>{{ frame.status === undefined
+                      ? localize('@bleReportingFrameMalformed')
+                      : `${localize('@bleReportingFrameRejected')} - ${formatConfigurationStatus(frame.status)}` }}</span>
+                  </li>
+                  <li
+                    v-for="(value, index) in configurationReadResult.unsupportedValues"
+                    :key="`unsupported-value-${index}`"
+                  >
+                    <code>{{ value.frameHex }}</code>
+                    <span>
+                      {{ value.fieldName }} ({{ value.rawHex }}) —
+                      {{ localize(value.reason === 'seconds-not-representable'
+                        ? '@bleReportingSecondsNotRepresentable'
+                        : '@bleReportingValueOutOfRange') }}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </template>
           </div>
           <div
             v-if="currentConfigurationSendResult && (currentConfigurationSendResult.state === 'partial' || currentConfigurationSendResult.state === 'failed')"
@@ -1720,6 +1817,11 @@ import { getProductConfigurationFile, getProductDisplayName } from '@/utils/prod
 import { readAdminDeviceStatus } from '@/utils/BLE/adminStatus';
 import { readFirmwareVersion } from '@/utils/BLE/deviceInformation';
 import { getAppFrameStatusName } from '@/utils/BLE/appFrameResponseRules';
+import {
+  parseReportingConfigurations,
+  type ReportingConfigurationParseResult,
+  type ReportingConfigurationSectionName,
+} from '@/utils/BLE/reportingConfiguration';
 import type {
   ConfigurationFrameResult,
   CurrentConfigurationSendResult,
@@ -1926,6 +2028,15 @@ const categorizedProducts = computed<Record<string, Product[]>>(() => {
 });
 
 const selectedSensor = ref(''); // Stores the currently selected sensor
+const REPORTING_CONFIGURATION_READ_PRODUCTS = new Set([
+  "50-70-260-Pulse-Sens'O-Neo",
+  "50-70-260-671-HygroTemp'O-Neo",
+  "50-70-304-Pulse-Sens'O-Lite-Neo",
+  "50-70-307-Temp'O-Neo-PT1000",
+]);
+const supportsReportingConfigurationRead = computed(() => (
+  REPORTING_CONFIGURATION_READ_PRODUCTS.has(selectedSensor.value)
+));
 const pageInitialized = ref(false);
 const sensorConfig = ref<any | null>(null); // Dynamic configuration for the selected sensor
 const allSavedConfigurations = ref<SavedConfiguration[]>(readSavedConfigurations());
@@ -1950,7 +2061,20 @@ const configurationSendMode = ref<'default' | 'current' | null>(null);
 const currentConfigurationProgress = ref({ sent: 0, total: 0 });
 const configurationSendSuccessMode = ref<'default' | 'current' | null>(null);
 const currentConfigurationSendResult = ref<CurrentConfigurationSendResult | null>(null);
+const configurationReadInProgress = ref(false);
+const configurationReadResult = ref<ReportingConfigurationParseResult | null>(null);
+const configurationReadHasWarnings = computed(() => {
+  const result = configurationReadResult.value;
+  return !!result && (
+    result.unmatchedFrames.length > 0
+    || result.conflicts.length > 0
+    || result.exclusiveGroupConflicts.length > 0
+    || result.invalidFrames.length > 0
+    || result.unsupportedValues.length > 0
+  );
+});
 let configurationSendSuccessTimer: ReturnType<typeof setTimeout> | undefined;
+let configurationReadSuccessTimer: ReturnType<typeof setTimeout> | undefined;
 const defaultConfigurationPreviewVisible = ref(false);
 const currentConfigurationPreviewVisible = ref(false);
 const defaultConfigurationPreview = ref('');
@@ -2243,6 +2367,11 @@ const resetCheckboxes = () => {
   commandeChecked.value = false;
   generalChecked.value = true;
   currentConfigurationSendResult.value = null;
+  configurationReadResult.value = null;
+  if (configurationReadSuccessTimer) {
+    clearTimeout(configurationReadSuccessTimer);
+    configurationReadSuccessTimer = undefined;
+  }
 
   Object.keys(outputData).forEach(data => {
     outputData[data] = false;
@@ -2813,6 +2942,7 @@ onUnmounted(() => {
   document.removeEventListener('click', handleCopyButtonClick);
   cancelFrameLongPress();
   if (configurationSendSuccessTimer) clearTimeout(configurationSendSuccessTimer);
+  if (configurationReadSuccessTimer) clearTimeout(configurationReadSuccessTimer);
 });
 
 // Calculate appropriate slider step sizes
@@ -3039,6 +3169,95 @@ const sendCurrentConfigurationBle = async () => {
     if (result.processed > 0) void refreshConfigurationFirmwareVersion();
   } finally {
     configurationSendMode.value = null;
+  }
+};
+
+const setReportingSectionFromSensor = (
+  sectionName: ReportingConfigurationSectionName,
+  matchedGroups: Set<string>,
+) => {
+  const section = sensorConfig.value?.[sectionName];
+  if (!section) return;
+  const enabled = matchedGroups.size > 0;
+  if (sectionName === 'batch_params') onBatchCheckedChange({ detail: { checked: enabled } });
+  else onStandardCheckedChange({ detail: { checked: enabled } });
+
+  Object.keys(section).forEach(groupName => {
+    if (groupName === 'cfg_block' || groupName === 'global_params' || groupName === 'group_relationships') return;
+    if (section[groupName]?.fields) {
+      setGroupEnabled(sectionName, groupName, matchedGroups.has(groupName));
+    }
+  });
+};
+
+const applyReportingConfigurationRead = (result: ReportingConfigurationParseResult) => {
+  const groupsBySection: Record<ReportingConfigurationSectionName, Set<string>> = {
+    batch_params: new Set<string>(),
+    standard_params: new Set<string>(),
+  };
+  result.matchedGroups.forEach(({ sectionName, groupName }) => {
+    groupsBySection[sectionName].add(groupName);
+  });
+  setReportingSectionFromSensor('batch_params', groupsBySection.batch_params);
+  setReportingSectionFromSensor('standard_params', groupsBySection.standard_params);
+
+  for (const sectionName of ['batch_params', 'standard_params'] as const) {
+    const section = sensorConfig.value?.[sectionName];
+    if (!section) continue;
+    for (const [groupName, candidate] of Object.entries(section)) {
+      const group = candidate as SensorParameterGroup;
+      if (!group?.fields) continue;
+      for (const fieldName of Object.keys(group.fields)) {
+        const value = result.fieldValues[fieldName];
+        if (value !== undefined) onParamChange({ newValue: value }, sectionName, groupName, fieldName);
+      }
+    }
+  }
+  updateOutput();
+};
+
+const readCurrentConfigurationBle = async () => {
+  if (!sensorConfig.value || configurationReadInProgress.value) return;
+  configurationReadInProgress.value = true;
+  configurationReadResult.value = null;
+  if (configurationReadSuccessTimer) {
+    clearTimeout(configurationReadSuccessTimer);
+    configurationReadSuccessTimer = undefined;
+  }
+  if (developerModeEnabled.value) appFrameDebugVisible.value = true;
+  try {
+    const readResult = await ble.readCurrentReportingConfigurations(
+      debugOtaAppKeyHex.value,
+      debugDevEuiHex.value,
+    );
+    if (readResult.state === 'authorization-denied') {
+      configurationOsaAuthenticated.value = false;
+      await presentAuthorizationDeniedAlert(localize);
+      return;
+    }
+    if (readResult.state !== 'success') {
+      const alert = await alertController.create({
+        header: localize('@bleConfigurationReadFailed'),
+        message: readResult.errorMessage || localize('@bleConfigurationReadNoResponse'),
+        buttons: ['OK'],
+      });
+      await alert.present();
+      return;
+    }
+    configurationOsaAuthenticated.value = true;
+    const parsed = parseReportingConfigurations(sensorConfig.value, readResult.frames);
+    if (parsed.matchedFrameCount + parsed.unmatchedFrames.length > 0) {
+      applyReportingConfigurationRead(parsed);
+    }
+    configurationReadResult.value = parsed;
+    if (!configurationReadHasWarnings.value) {
+      configurationReadSuccessTimer = setTimeout(() => {
+        configurationReadResult.value = null;
+        configurationReadSuccessTimer = undefined;
+      }, 5000);
+    }
+  } finally {
+    configurationReadInProgress.value = false;
   }
 };
 
@@ -4360,6 +4579,10 @@ ion-range::part(pin)::before {
   align-items: flex-start;
 }
 
+.ble-read-configuration {
+  margin: 0 0 10px;
+}
+
 .ble-action {
   flex: 1 1 240px;
 }
@@ -4477,6 +4700,37 @@ ion-range::part(pin)::before {
 
 .ble-send-failures span {
   font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.ble-reporting-diagnostics {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(var(--ion-color-warning-rgb), 0.35);
+}
+
+.ble-reporting-diagnostics > ul {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ble-reporting-diagnostics li {
+  display: grid;
+  gap: 4px;
+}
+
+.ble-reporting-diagnostics code {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.ble-reporting-diagnostics span {
+  font-size: 0.82rem;
   line-height: 1.35;
 }
 

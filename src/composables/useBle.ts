@@ -34,6 +34,7 @@ import {
   getAppFrameResponseStatus,
   isSuccessfulAppFrameResponse,
   matchesAppFrameResponse,
+  prepareCustomAppTxRequest,
 } from '@/utils/BLE/appFrameResponseRules';
 import { authenticateOsa } from '@/utils/BLE/osa';
 import { readProductId as readProductIdFromBle } from '@/utils/BLE/configReader';
@@ -1751,6 +1752,104 @@ async function sendCurrentConfigurationFrames(
   }
 }
 
+export type CurrentReportingConfigurationReadResult = {
+  state: 'success' | 'failed' | 'authorization-denied' | 'not-started';
+  frames: Uint8Array[];
+  errorMessage?: string;
+};
+
+async function readCurrentReportingConfigurations(
+  osaKeyHex: string,
+  devEuiHex: string,
+): Promise<CurrentReportingConfigurationReadResult> {
+  clearConfigurationFrameLogs();
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) {
+    statusMessage.value = 'Not connected to a BLE device';
+    return { state: 'not-started', frames: [] };
+  }
+  if (sending.value) return { state: 'not-started', frames: [] };
+
+  // 0x03 requests both standard (0x01) and batch (0x02) report configurations.
+  const request = Uint8Array.of(0x11, 0x50, 0x00, 0x50, 0x09, 0x03, 0x00, 0x00);
+  const prepared = prepareCustomAppTxRequest(request);
+  const policy = prepared.responsePolicy;
+  const firstResponseTimeoutMs = policy.mode === 'multiple' || policy.mode === 'legacy'
+    ? policy.firstResponseTimeoutMs
+    : policy.mode === 'single'
+      ? policy.firstResponseTimeoutMs
+      : 2000;
+  const idleTimeoutMs = policy.mode === 'multiple' || policy.mode === 'legacy'
+    ? policy.idleTimeoutMs
+    : firstResponseTimeoutMs;
+
+  sending.value = true;
+  osaAuthenticating.value = true;
+  statusMessage.value = 'Authenticating configuration read...';
+  let osaAuthenticated = false;
+  let subscription: AppRxSubscription | undefined;
+  let collectionTimer: ReturnType<typeof setTimeout> | undefined;
+  let finishCollection: (() => void) | undefined;
+  const frames: Uint8Array[] = [];
+  const collectionComplete = new Promise<void>(resolve => { finishCollection = resolve; });
+  const resetCollectionTimer = (timeoutMs: number) => {
+    if (collectionTimer !== undefined) clearTimeout(collectionTimer);
+    collectionTimer = setTimeout(() => finishCollection?.(), timeoutMs);
+  };
+
+  try {
+    await authenticateOsa(deviceId, osaKeyHex, devEuiHex, log);
+    osaAuthenticated = true;
+    setOsaAuthenticated(true);
+    osaAuthenticating.value = false;
+    statusMessage.value = 'Reading reporting configurations...';
+
+    subscription = await startAppRxMonitoring(
+      deviceId,
+      frame => {
+        // The firmware capture timeout is sliding on every diverted ZCD frame,
+        // including unrelated autonomous reports. Mirror that behavior locally,
+        // while retaining only reporting-configuration responses for parsing.
+        resetCollectionTimer(idleTimeoutMs);
+        if (frame.length < 2 || frame[1] !== 0x09) return;
+        frames.push(new Uint8Array(frame));
+      },
+      logConfigurationFrame,
+    );
+    if (!subscription.notifications) {
+      throw new Error('AppRx notifications are required to collect reporting configurations');
+    }
+
+    await writeAppTx(deviceId, prepared.appTxFrame, logConfigurationFrame);
+    if (frames.length === 0) resetCollectionTimer(firstResponseTimeoutMs);
+    await collectionComplete;
+    if (frames.length === 0) {
+      const message = 'No reporting configuration response received';
+      statusMessage.value = message;
+      return { state: 'failed', frames, errorMessage: message };
+    }
+    statusMessage.value = `${frames.length} reporting configuration(s) received`;
+    return { state: 'success', frames };
+  } catch (error: any) {
+    const message = error?.message ?? String(error);
+    logConfigurationFrame(`CONFIG READ ERROR ${message}`);
+    statusMessage.value = osaAuthenticated
+      ? `Configuration read failed: ${message}`
+      : 'Configuration authorization failed';
+    return {
+      state: osaAuthenticated ? 'failed' : 'authorization-denied',
+      frames,
+      errorMessage: message,
+    };
+  } finally {
+    if (collectionTimer !== undefined) clearTimeout(collectionTimer);
+    finishCollection = undefined;
+    await stopAppRxMonitoring(subscription, logConfigurationFrame);
+    osaAuthenticating.value = false;
+    sending.value = false;
+  }
+}
+
 async function sendLoraLinkTest(options: LoraLinkTestOptions): Promise<void> {
   const deviceId = connectedDevice.value?.deviceId;
   if (!connected.value || !deviceId) throw new Error('Not connected to a BLE device');
@@ -1854,6 +1953,7 @@ export function useBle() {
     clearCounterFrameLogs,
     sendOutputFrames,
     sendCurrentConfigurationFrames,
+    readCurrentReportingConfigurations,
     sendLoraLinkTest,
     refreshLoraLinkStatus,
     getDeviceName,
