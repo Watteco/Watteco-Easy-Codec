@@ -1718,6 +1718,7 @@ import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { getProductConfigurationFile, getProductDisplayName } from '@/utils/productMeasurements';
 import { readAdminDeviceStatus } from '@/utils/BLE/adminStatus';
+import { readFirmwareVersion } from '@/utils/BLE/deviceInformation';
 import { getAppFrameStatusName } from '@/utils/BLE/appFrameResponseRules';
 import type {
   ConfigurationFrameResult,
@@ -1842,22 +1843,53 @@ const ble = useBle();
 
 const { debugOtaAppKeyHex, debugDevEuiHex } = useBleDebugCredentials();
 const configurationOsaAuthenticated = ref<boolean | null>(null);
+const configurationFirmwareLongName = ref<string | null>(null);
+const configurationFirmwareVersion = ref<string | null>(null);
 const appFrameDebugVisible = ref(false);
+let configurationFirmwareVersionPromise: Promise<void> | undefined;
 
 async function refreshConfigurationOsaStatus(): Promise<void> {
   const deviceId = ble.connectedDevice.value?.deviceId;
   if (!ble.connected.value || !deviceId) {
     configurationOsaAuthenticated.value = null;
+    configurationFirmwareLongName.value = null;
+    configurationFirmwareVersion.value = null;
     return;
   }
   try {
     const status = await readAdminDeviceStatus(deviceId, line => console.debug(line));
     configurationOsaAuthenticated.value = status.osaAuthenticated;
+    configurationFirmwareLongName.value = status.firmwareLongName;
     ble.setOsaAuthenticated(status.osaAuthenticated);
   } catch {
     configurationOsaAuthenticated.value = null;
+    configurationFirmwareLongName.value = null;
     ble.setOsaAuthenticated(null);
   }
+}
+
+async function refreshConfigurationFirmwareVersion(): Promise<void> {
+  if (configurationFirmwareVersion.value) return;
+  if (configurationFirmwareVersionPromise) return configurationFirmwareVersionPromise;
+  const deviceId = ble.connectedDevice.value?.deviceId;
+  if (!ble.connected.value || !deviceId || configurationOsaAuthenticated.value !== true) return;
+
+  configurationFirmwareVersionPromise = (async () => {
+    try {
+      const firmwareVersion = await readFirmwareVersion(
+        deviceId,
+        line => console.debug(line),
+      );
+      if (ble.connectedDevice.value?.deviceId === deviceId) {
+        configurationFirmwareVersion.value = firmwareVersion;
+      }
+    } catch (error) {
+      console.debug('Failed to read firmware version for configuration diagnostic', error);
+    } finally {
+      configurationFirmwareVersionPromise = undefined;
+    }
+  })();
+  return configurationFirmwareVersionPromise;
 }
 
 watch(
@@ -1870,7 +1902,12 @@ watch(
   () => ble.connected.value,
   connectedNow => {
     if (connectedNow) void refreshConfigurationOsaStatus();
-    else configurationOsaAuthenticated.value = null;
+    else {
+      configurationOsaAuthenticated.value = null;
+      configurationFirmwareLongName.value = null;
+      configurationFirmwareVersion.value = null;
+      configurationFirmwareVersionPromise = undefined;
+    }
   },
   { immediate: true }
 );
@@ -2855,15 +2892,23 @@ const getConfigurationProductName = (): string => {
 const buildCurrentConfigurationDiagnostic = (): string => {
   const result = currentConfigurationSendResult.value;
   if (!result) return '';
+  const successfulFrameCount = Math.max(
+    0,
+    result.processed - configurationFailureResults.value.length,
+  );
 
   const lines = [
     `Watteco Easy Codec ${appVersion}`,
     `Product: ${getConfigurationProductName()}`,
+    `ProductID: ${ble.productReference.value ?? 'unknown'}`,
     `BLE device: ${ble.connectedDevice.value?.name ?? ble.connectedDevice.value?.deviceId ?? 'unknown'}`,
+    `Firmware version: ${configurationFirmwareVersion.value ?? 'unknown'}`,
+    `Firmware long name: ${configurationFirmwareLongName.value ?? 'unknown'}`,
     `Date: ${new Date().toISOString()}`,
     '',
     `Configuration result: ${result.state}`,
     `Processed: ${result.processed}/${result.total}`,
+    `Success: ${successfulFrameCount}/${result.total}`,
   ];
 
   for (const failure of configurationFailureResults.value) {
@@ -2892,6 +2937,7 @@ const buildCurrentConfigurationDiagnostic = (): string => {
 };
 
 const copyCurrentConfigurationDiagnostic = async () => {
+  await refreshConfigurationFirmwareVersion();
   const diagnostic = buildCurrentConfigurationDiagnostic();
   if (!diagnostic) return;
   try {
@@ -2990,6 +3036,7 @@ const sendCurrentConfigurationBle = async () => {
     } else if (result.processed > 0) {
       configurationOsaAuthenticated.value = true;
     }
+    if (result.processed > 0) void refreshConfigurationFirmwareVersion();
   } finally {
     configurationSendMode.value = null;
   }

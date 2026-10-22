@@ -614,8 +614,8 @@ import {
 } from '@/utils/BLE/appFrames';
 import { toSpacedHex } from '@/utils/BLE/blob';
 import {
-  getCustomAppFrameResponsePolicy,
   matchesAppFrameResponse,
+  prepareCustomAppTxRequest,
   type CustomAppFrameResponsePolicy,
 } from '@/utils/BLE/appFrameResponseRules';
 import {
@@ -1407,14 +1407,15 @@ async function sendManualFrame(): Promise<void> {
   manualFrameSending.value = true;
   lastCommandResponse.value = '';
   feedbackError.value = false;
-  manualResponsePolicy = getCustomAppFrameResponsePolicy(frame);
-  manualResponseRequest = frame;
+  const preparedRequest = prepareCustomAppTxRequest(frame);
+  manualResponsePolicy = preparedRequest.responsePolicy;
+  manualResponseRequest = preparedRequest.responseRequest;
   feedback.value = manualResponsePolicy.mode === 'none'
     ? localize('@toolsSendingFrame')
     : localize('@toolsFrameWaitingResponse');
   try {
     if (manualResponsePolicy.mode === 'none') {
-      await writeAppTx(deviceId, frame, logAppFrame);
+      await writeAppTx(deviceId, preparedRequest.appTxFrame, logAppFrame);
       feedback.value = localize('@toolsFrameSentNoResponseExpected');
       return;
     }
@@ -1423,7 +1424,7 @@ async function sendManualFrame(): Promise<void> {
       throw new Error(localize('@toolsFrameNotificationsUnavailable'));
     }
     const responsesComplete = prepareManualResponseCollection();
-    await writeAppTx(deviceId, frame, logAppFrame);
+    await writeAppTx(deviceId, preparedRequest.appTxFrame, logAppFrame);
     startFirstAppRxResponseTimeout();
     await responsesComplete;
     feedback.value = lastCommandResponse.value

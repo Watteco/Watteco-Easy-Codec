@@ -57,12 +57,14 @@ function buildRequest(field: DeviceInformationField): Uint8Array {
   return Uint8Array.of(0x11, 0x00, 0x00, 0x00, 0x00, field);
 }
 
-export async function readDeviceInformation(
+async function readDeviceInformationFields(
   deviceId: string,
+  fields: readonly DeviceInformationField[],
   onLog: (line: string) => void,
-): Promise<DeviceInformation> {
+): Promise<Map<DeviceInformationField, Uint8Array | null>> {
   let subscription: AppRxSubscription | undefined;
   let receivedFrame: ((frame: Uint8Array) => void) | undefined;
+  const responses = new Map<DeviceInformationField, Uint8Array | null>();
 
   try {
     subscription = await startAppRxMonitoring(
@@ -97,12 +99,30 @@ export async function readDeviceInformation(
       return response;
     };
 
-    const firmwareVersion = decodeFirmwareVersionResponse(await request(2) ?? new Uint8Array());
-    const manufacturer = decodeManufacturerResponse(await request(4) ?? new Uint8Array());
-    const pcbVersion = decodePcbVersionResponse(await request(5) ?? new Uint8Array());
-    return { firmwareVersion, manufacturer, pcbVersion };
+    for (const field of fields) responses.set(field, await request(field));
+    return responses;
   } finally {
     receivedFrame = undefined;
     await stopAppRxMonitoring(subscription, onLog);
   }
+}
+
+export async function readFirmwareVersion(
+  deviceId: string,
+  onLog: (line: string) => void,
+): Promise<string | null> {
+  const responses = await readDeviceInformationFields(deviceId, [2], onLog);
+  return decodeFirmwareVersionResponse(responses.get(2) ?? new Uint8Array());
+}
+
+export async function readDeviceInformation(
+  deviceId: string,
+  onLog: (line: string) => void,
+): Promise<DeviceInformation> {
+  const responses = await readDeviceInformationFields(deviceId, [2, 4, 5], onLog);
+  return {
+    firmwareVersion: decodeFirmwareVersionResponse(responses.get(2) ?? new Uint8Array()),
+    manufacturer: decodeManufacturerResponse(responses.get(4) ?? new Uint8Array()),
+    pcbVersion: decodePcbVersionResponse(responses.get(5) ?? new Uint8Array()),
+  };
 }

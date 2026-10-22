@@ -4,6 +4,7 @@ type CorrelationField = 'frameControl' | 'clusterId' | 'attributeId' | 'reportin
 
 export type AppFrameResponseDefinition = {
   cmdId: string;
+  errorCmdIds?: string[];
   timeoutMs: number;
   correlateBy: CorrelationField[];
   errorCorrelateBy?: CorrelationField[];
@@ -25,7 +26,12 @@ type AppFrameResponseCollection = {
     byteOffset: number;
     byteLength: number;
     unitMs: number;
-    marginMs: number;
+  };
+  appTxCapture?: {
+    tag: string;
+    minimumTimeoutSeconds: number;
+    additionalTimeoutSeconds: number;
+    localMarginMs: number;
   };
 };
 
@@ -42,6 +48,12 @@ export type CustomAppFrameResponsePolicy =
   | { mode: 'none' }
   | { mode: 'single'; firstResponseTimeoutMs: number }
   | { mode: 'multiple'; firstResponseTimeoutMs: number; idleTimeoutMs: number };
+
+export type PreparedCustomAppTxRequest = {
+  appTxFrame: Uint8Array;
+  responseRequest: Uint8Array;
+  responsePolicy: CustomAppFrameResponsePolicy;
+};
 
 type AppFrameResponseRulesFile = {
   version: number;
@@ -113,6 +125,63 @@ function readUnsignedBigEndian(frame: Uint8Array, offset: number, length: number
   return value;
 }
 
+function parseHexBytes(value: string): Uint8Array {
+  return Uint8Array.from(
+    value.match(/[0-9a-f]{2}/gi)?.map(byte => parseHexByte(byte)) ?? [],
+  );
+}
+
+function startsWithBytes(frame: Uint8Array, prefix: Uint8Array): boolean {
+  return prefix.length > 0
+    && frame.length >= prefix.length
+    && prefix.every((byte, index) => frame[index] === byte);
+}
+
+function getCaptureTimeoutSeconds(
+  frame: Uint8Array,
+  collection: AppFrameResponseCollection,
+): number | null {
+  const capture = collection.appTxCapture;
+  if (!capture) return null;
+  const requestDelay = collection.requestDelay;
+  const delay = requestDelay
+    ? readUnsignedBigEndian(frame, requestDelay.byteOffset, requestDelay.byteLength)
+    : null;
+  const delaySeconds = delay === null || !requestDelay
+    ? 0
+    : Math.ceil((delay * requestDelay.unitMs) / 1000);
+  return Math.max(
+    capture.minimumTimeoutSeconds,
+    delaySeconds + capture.additionalTimeoutSeconds,
+  );
+}
+
+function getMultipleResponsePolicy(
+  frame: Uint8Array,
+  collection: AppFrameResponseCollection,
+  captureTimeoutSeconds = getCaptureTimeoutSeconds(frame, collection),
+): CustomAppFrameResponsePolicy {
+  const requestDelay = collection.requestDelay;
+  const requestDelayValue = requestDelay
+    ? readUnsignedBigEndian(frame, requestDelay.byteOffset, requestDelay.byteLength)
+    : null;
+  let idleTimeoutMs = collection.idleTimeoutMs;
+  if (requestDelay && requestDelayValue !== null) {
+    idleTimeoutMs = Math.max(idleTimeoutMs, requestDelayValue * requestDelay.unitMs);
+  }
+  if (captureTimeoutSeconds !== null && collection.appTxCapture) {
+    idleTimeoutMs = Math.max(
+      idleTimeoutMs,
+      (captureTimeoutSeconds * 1000) + collection.appTxCapture.localMarginMs,
+    );
+  }
+  return {
+    mode: 'multiple',
+    firstResponseTimeoutMs: Math.max(collection.firstResponseTimeoutMs, idleTimeoutMs),
+    idleTimeoutMs,
+  };
+}
+
 export function getCustomAppFrameResponsePolicy(
   frame: Uint8Array,
 ): CustomAppFrameResponsePolicy {
@@ -121,26 +190,7 @@ export function getCustomAppFrameResponsePolicy(
     return { mode: 'legacy', firstResponseTimeoutMs: 2000, idleTimeoutMs: 1000 };
   }
   if (rule.collection?.mode === 'multiple') {
-    let idleTimeoutMs = rule.collection.idleTimeoutMs;
-    const requestDelay = rule.collection.requestDelay;
-    if (requestDelay) {
-      const delay = readUnsignedBigEndian(
-        frame,
-        requestDelay.byteOffset,
-        requestDelay.byteLength,
-      );
-      if (delay !== null) {
-        idleTimeoutMs = Math.max(
-          idleTimeoutMs,
-          (delay * requestDelay.unitMs) + requestDelay.marginMs,
-        );
-      }
-    }
-    return {
-      mode: 'multiple',
-      firstResponseTimeoutMs: Math.max(rule.collection.firstResponseTimeoutMs, idleTimeoutMs),
-      idleTimeoutMs,
-    };
+    return getMultipleResponsePolicy(frame, rule.collection);
   }
   if (rule.response === null) return { mode: 'none' };
   if (rule.response) {
@@ -149,14 +199,73 @@ export function getCustomAppFrameResponsePolicy(
   return { mode: 'legacy', firstResponseTimeoutMs: 2000, idleTimeoutMs: 1000 };
 }
 
+export function prepareCustomAppTxRequest(frame: Uint8Array): PreparedCustomAppTxRequest {
+  for (const rule of responseRules.rules) {
+    const collection = rule.collection;
+    const capture = collection?.appTxCapture;
+    if (!collection || !capture) continue;
+    const tag = parseHexBytes(capture.tag);
+    const headerLength = tag.length + 2;
+    if (!startsWithBytes(frame, tag) || frame.length <= headerLength) continue;
+
+    const responseRequest = frame.slice(headerLength);
+    if (!frameMatchesRule(responseRequest, rule)) continue;
+    const captureTimeoutSeconds = readUnsignedBigEndian(frame, tag.length, 2);
+    return {
+      appTxFrame: frame,
+      responseRequest,
+      responsePolicy: getMultipleResponsePolicy(
+        responseRequest,
+        collection,
+        captureTimeoutSeconds,
+      ),
+    };
+  }
+
+  const rule = getAppFrameResponseRule(frame);
+  const collection = rule?.collection;
+  const capture = collection?.appTxCapture;
+  if (!collection || !capture) {
+    return {
+      appTxFrame: frame,
+      responseRequest: frame,
+      responsePolicy: getCustomAppFrameResponsePolicy(frame),
+    };
+  }
+
+  const tag = parseHexBytes(capture.tag);
+  const captureTimeoutSeconds = getCaptureTimeoutSeconds(frame, collection);
+  if (tag.length === 0 || captureTimeoutSeconds === null) {
+    return {
+      appTxFrame: frame,
+      responseRequest: frame,
+      responsePolicy: getMultipleResponsePolicy(frame, collection),
+    };
+  }
+
+  const appTxFrame = new Uint8Array(tag.length + 2 + frame.length);
+  appTxFrame.set(tag);
+  appTxFrame[tag.length] = (captureTimeoutSeconds >> 8) & 0xff;
+  appTxFrame[tag.length + 1] = captureTimeoutSeconds & 0xff;
+  appTxFrame.set(frame, tag.length + 2);
+  return {
+    appTxFrame,
+    responseRequest: frame,
+    responsePolicy: getMultipleResponsePolicy(frame, collection, captureTimeoutSeconds),
+  };
+}
+
 export function matchesAppFrameResponse(request: Uint8Array, response: Uint8Array): boolean {
   const rule = getAppFrameResponseRule(request);
   if (!rule?.response || response.length < 2) return false;
-  if (response[1] !== parseHexByte(rule.response.cmdId)) return false;
 
   const responseStatus = response[rule.response.statusByteOffset];
   const isErrorResponse = responseStatus !== undefined
     && responseStatus !== parseHexByte(rule.response.successStatus);
+  const matchesResponseCmdId = response[1] === parseHexByte(rule.response.cmdId);
+  const matchesErrorCmdId = isErrorResponse
+    && rule.response.errorCmdIds?.some(cmdId => response[1] === parseHexByte(cmdId));
+  if (!matchesResponseCmdId && !matchesErrorCmdId) return false;
   const correlateBy = isErrorResponse && rule.response.errorCorrelateBy
     ? rule.response.errorCorrelateBy
     : rule.response.correlateBy;

@@ -35,6 +35,7 @@
       "requestCmdId": "06",
       "response": {
         "cmdId": "07",
+        "errorCmdIds": ["06"],
         "timeoutMs": 2000,
         "correlateBy": ["frameControl", "clusterId", "reportingKind", "attributeId"],
         "errorCorrelateBy": ["frameControl", "clusterId"],
@@ -67,8 +68,13 @@
         "requestDelay": {
           "byteOffset": 6,
           "byteLength": 2,
-          "unitMs": 1000,
-          "marginMs": 500
+          "unitMs": 1000
+        },
+        "appTxCapture": {
+          "tag": "EF01",
+          "minimumTimeoutSeconds": 1,
+          "additionalTimeoutSeconds": 1,
+          "localMarginMs": 500
         }
       }
     }

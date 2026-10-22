@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   APP_FRAME_FALLBACK_DELAY_MS,
   getCustomAppFrameResponsePolicy,
+  prepareCustomAppTxRequest,
   getAppFrameResponseRule,
   getAppFrameResponseErrorAttributeId,
   getAppFrameResponseStatus,
@@ -78,6 +79,25 @@ describe('application frame response rules', () => {
     expect(getAppFrameStatusName(0xc3)).toBe('Invalid batch tag size');
   });
 
+  it('accepts a configure-reporting error that echoes the request command ID', () => {
+    const request = Uint8Array.of(
+      0x53, 0x06, 0x04, 0x02, 0x15, 0x00, 0x00, 0x00,
+      0x80, 0x3c, 0x80, 0xf0, 0x00, 0x00, 0x00, 0x0a, 0x24,
+    );
+    const response = Uint8Array.of(0x53, 0x06, 0x04, 0x02, 0x81);
+
+    expect(matchesAppFrameResponse(request, response)).toBe(true);
+    expect(getAppFrameResponseStatus(request, response)).toBe(0x81);
+    expect(isSuccessfulAppFrameResponse(request, response)).toBe(false);
+  });
+
+  it('does not accept an echoed configure-reporting command ID as a success', () => {
+    const request = Uint8Array.of(0x53, 0x06, 0x04, 0x02, 0x15, 0x00, 0x00);
+    const response = Uint8Array.of(0x53, 0x06, 0x04, 0x02, 0x00);
+
+    expect(matchesAppFrameResponse(request, response)).toBe(false);
+  });
+
   it('does not accept a short error response from another endpoint or cluster', () => {
     const request = Uint8Array.of(
       0x11, 0x06, 0x00, 0x50, 0x15, 0x00, 0x06, 0x04,
@@ -121,8 +141,8 @@ describe('application frame response rules', () => {
       Uint8Array.of(0x11, 0x50, 0x00, 0x50, 0x09, 0x03, 0x00, 0x03),
     )).toEqual({
       mode: 'multiple',
-      firstResponseTimeoutMs: 3500,
-      idleTimeoutMs: 3500,
+      firstResponseTimeoutMs: 4500,
+      idleTimeoutMs: 4500,
     });
     expect(getCustomAppFrameResponsePolicy(
       Uint8Array.of(0x11, 0x50, 0x00, 0x50, 0x02, 0x03),
@@ -130,6 +150,40 @@ describe('application frame response rules', () => {
       mode: 'legacy',
       firstResponseTimeoutMs: 2000,
       idleTimeoutMs: 1000,
+    });
+  });
+
+  it('wraps the asynchronous configuration request in an AppTx capture envelope', () => {
+    const request = Uint8Array.of(0x11, 0x50, 0x00, 0x50, 0x09, 0x01, 0x00, 0x00);
+    const prepared = prepareCustomAppTxRequest(request);
+
+    expect(Array.from(prepared.appTxFrame)).toEqual([
+      0xef, 0x01, 0x00, 0x01,
+      0x11, 0x50, 0x00, 0x50, 0x09, 0x01, 0x00, 0x00,
+    ]);
+    expect(prepared.responseRequest).toEqual(request);
+    expect(prepared.responsePolicy).toEqual({
+      mode: 'multiple',
+      firstResponseTimeoutMs: 2000,
+      idleTimeoutMs: 1500,
+    });
+  });
+
+  it('keeps an existing AppTx capture envelope without adding it twice', () => {
+    const request = Uint8Array.of(
+      0xef, 0x01, 0x00, 0x03,
+      0x11, 0x50, 0x00, 0x50, 0x09, 0x03, 0x00, 0x01,
+    );
+    const prepared = prepareCustomAppTxRequest(request);
+
+    expect(prepared.appTxFrame).toEqual(request);
+    expect(Array.from(prepared.responseRequest)).toEqual([
+      0x11, 0x50, 0x00, 0x50, 0x09, 0x03, 0x00, 0x01,
+    ]);
+    expect(prepared.responsePolicy).toEqual({
+      mode: 'multiple',
+      firstResponseTimeoutMs: 3500,
+      idleTimeoutMs: 3500,
     });
   });
 });
