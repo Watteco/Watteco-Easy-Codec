@@ -38,7 +38,7 @@ Après l'ajout d'un plugin Capacitor, lancer `npm run ios` pour construire les a
 
 - Préparer un build iOS avec le mode développeur BLE :
   - `npm run ios:debug`
-  - Incrémente automatiquement la version `-dev.N` avant le build et affiche la version générée à la fin, comme `android:debug`.
+  - Incrémente automatiquement la version `-dev.N` avant le build si Git contient des changements, puis affiche la version générée à la fin, comme `android:debug`.
   - Puis relancer l'application sur l'iPhone depuis Xcode. Dans les paramètres de l'application, cinq appuis rapides sur la version activent le mode développeur pour cette session.
 
 ### Remarques importantes

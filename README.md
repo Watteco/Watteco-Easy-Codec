@@ -84,8 +84,9 @@ The project is currently hosted at: [Watteco Easy Codec](https://lora.watteco.fr
 the header and BLE Settings; Android reads it as its `versionName`.
 Development versions use `0.11.15-dev.4` and display as `v0.11.15d4`.
 
-- `npm run android:debug` increments the development suffix before building,
-  updating both `package.json` and `package-lock.json`. A stable version starts
+- `npm run android:debug` increments the development suffix before building when
+  Git contains staged or unstaged changes, updating both `package.json` and
+  `package-lock.json`. A stable version starts
   at `dev.0`; an existing `dev.N` becomes `dev.N+1`. After a successful build
   and Android sync, the resulting version is printed again on the final line.
 - `npm run build:android:debug` builds the current version without incrementing it.
