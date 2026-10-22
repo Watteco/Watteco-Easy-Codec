@@ -22,6 +22,9 @@ Pour prévisualiser localement le build web généré :
 
 La plateforme iOS est maintenant présente dans le projet.
 
+Avant le premier build, ou après une modification des dépendances, lancer `npm install`.
+Après l'ajout d'un plugin Capacitor, lancer `npm run ios` pour construire les assets et synchroniser aussi les dépendances natives CocoaPods. Le script `ios:debug` utilise `cap copy ios` et ne met pas à jour les Pods.
+
 ### Commandes utiles
 
 - Build web iOS avec la bonne configuration Capacitor :
