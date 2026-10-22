@@ -21,7 +21,7 @@ async function incrementDebugVersion() {
   })
 
   if (gitStatus.trim() === '') {
-    console.log('Depot Git propre : version debug inchangee')
+    console.log('Clean git: keeping version number')
     return
   }
 
@@ -32,10 +32,10 @@ async function incrementDebugVersion() {
   const match = /^(\d+\.\d+\.\d+)(?:-dev\.(\d+))?$/.exec(manifest.version)
 
   if (!match) {
-    throw new Error('Version invalide dans package.json. Format attendu : 0.12.0 ou 0.12.0-dev.2')
+    throw new Error('package.json version format invalid. Expected: a.b.c or a.b.c-dev.d')
   }
   if (!lock.packages?.['']) {
-    throw new Error('Entree racine introuvable dans package-lock.json')
+    throw new Error('Root entry not found in package-lock.json')
   }
 
   const [, baseVersion, debugNumber] = match

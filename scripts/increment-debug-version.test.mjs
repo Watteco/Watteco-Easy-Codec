@@ -47,7 +47,7 @@ for (const [version, gitState, expected] of [
       assert.equal(actualLock.packages[''].version, expected)
       assert.deepEqual(actualLock.packages.dependency, lock.packages.dependency)
       if (gitState === 'clean') {
-        assert.match(result.stdout, /version debug inchangee/)
+        assert.match(result.stdout, /keeping version number/)
       }
     } else {
       assert.notEqual(result.status, 0)
