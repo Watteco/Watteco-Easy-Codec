@@ -66,6 +66,19 @@ describe('application frame response rules', () => {
     expect(matchesAppFrameResponse(batchRequest, standardResponse)).toBe(false);
   });
 
+  it('correlates a threshold reporting response with its 0x80 reporting kind', () => {
+    const request = Uint8Array.of(
+      0x31, 0x06, 0x04, 0x02, 0x80, 0x00, 0x00, 0x29,
+      0x80, 0x0a, 0x80, 0x3c, 0x70, 0x05, 0xdc, 0x00,
+      0x00, 0x01, 0x71, 0x0b, 0xb8, 0x00, 0x01,
+    );
+    const response = Uint8Array.of(0x31, 0x07, 0x04, 0x02, 0x00, 0x80, 0x00, 0x00);
+
+    expect(matchesAppFrameResponse(request, response)).toBe(true);
+    expect(getAppFrameResponseStatus(request, response)).toBe(0x00);
+    expect(isSuccessfulAppFrameResponse(request, response)).toBe(true);
+  });
+
   it('accepts a short configure-reporting error response', () => {
     const request = Uint8Array.of(
       0x11, 0x06, 0x00, 0x50, 0x15, 0x00, 0x06, 0x04,

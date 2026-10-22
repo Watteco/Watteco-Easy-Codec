@@ -283,7 +283,7 @@ export function matchesAppFrameResponse(request: Uint8Array, response: Uint8Arra
 
     if (field === 'reportingKind') {
       if (request.length < 5 || response.length < 6) return false;
-      if ((request[4] & 0x01) !== response[5]) return false;
+      if ((request[4] & 0x81) !== response[5]) return false;
     }
   }
 
