@@ -24,7 +24,7 @@
           :aria-label="settingsLabel"
           @click="settingsOpen = true"
         >
-          <ion-icon :icon="settingsOutline" aria-hidden="true" />
+          <state-mapping-icon :inverted="inverted" aria-hidden="true" />
         </button>
       </div>
 
@@ -79,16 +79,30 @@
 
       <div class="state-settings__mapping" :aria-label="mappingLabel">
         <div class="state-settings__row">
-          <span class="state-settings__preview state-settings__preview--active" aria-hidden="true">
-            <span class="state-indicator state-indicator--active" />
+          <span
+            class="state-settings__preview"
+            :class="inverted ? 'state-settings__preview--inactive' : 'state-settings__preview--active'"
+            aria-hidden="true"
+          >
+            <span
+              class="state-indicator"
+              :class="inverted ? 'state-indicator--inactive' : 'state-indicator--active'"
+            />
           </span>
-          <span class="state-settings__value">{{ inverted ? lowLabel : highLabel }}</span>
+          <span class="state-settings__value">{{ highLabel }}</span>
         </div>
         <div class="state-settings__row">
-          <span class="state-settings__preview state-settings__preview--inactive" aria-hidden="true">
-            <span class="state-indicator state-indicator--inactive" />
+          <span
+            class="state-settings__preview"
+            :class="inverted ? 'state-settings__preview--active' : 'state-settings__preview--inactive'"
+            aria-hidden="true"
+          >
+            <span
+              class="state-indicator"
+              :class="inverted ? 'state-indicator--active' : 'state-indicator--inactive'"
+            />
           </span>
-          <span class="state-settings__value">{{ inverted ? highLabel : lowLabel }}</span>
+          <span class="state-settings__value">{{ lowLabel }}</span>
         </div>
       </div>
 
@@ -102,9 +116,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import { IonCard, IonCardContent, IonIcon, IonModal } from '@ionic/vue';
-import { closeOutline, settingsOutline, swapVerticalOutline, toggleOutline } from 'ionicons/icons';
+import { closeOutline, swapVerticalOutline, toggleOutline } from 'ionicons/icons';
+import StateMappingIcon from '@/components/sensor/StateMappingIcon.vue';
+import { useStateVisualPreference } from '@/composables/useStateVisualPreference';
 
 type SensorStateValue = boolean | number | string | null;
 
@@ -137,22 +153,7 @@ const props = withDefaults(defineProps<{
 });
 
 const settingsOpen = ref(false);
-const inverted = ref(false);
-const storageKey = () => `easycodec.stateVisualInverted.${props.preferenceKey}`;
-
-const loadPreference = () => {
-  if (typeof localStorage === 'undefined') return;
-  inverted.value = localStorage.getItem(storageKey()) === 'true';
-};
-
-watch(() => props.preferenceKey, loadPreference, { immediate: true });
-
-const toggleInversion = () => {
-  inverted.value = !inverted.value;
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(storageKey(), String(inverted.value));
-  }
-};
+const { inverted, toggleInversion } = useStateVisualPreference(() => props.preferenceKey);
 
 const normalizeState = (value: SensorStateValue): boolean | null => {
   if (typeof value === 'boolean') return value;
@@ -275,6 +276,10 @@ const formatState = (value: SensorStateValue): string => {
 .state-settings-button {
   margin-right: -12px;
   transform: translateY(-10px);
+}
+
+.state-settings-button .state-mapping-icon {
+  flex: 0 0 auto;
 }
 
 .state-settings__close {
@@ -416,6 +421,11 @@ const formatState = (value: SensorStateValue): string => {
   place-items: center;
   border: 1px solid transparent;
   border-radius: 14px;
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.state-settings__preview .state-indicator {
+  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
 }
 
 .state-settings__preview--active {

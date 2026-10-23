@@ -35,7 +35,7 @@ describe('SensorStateCard state display settings', () => {
   beforeEach(() => localStorage.clear());
 
   it('opens a touch-accessible settings sheet that shows the actual mapping', async () => {
-    const wrapper = mountCard();
+    const wrapper = mountCard('mapping-open');
 
     await wrapper.get('.state-settings-button').trigger('click');
 
@@ -45,7 +45,7 @@ describe('SensorStateCard state display settings', () => {
   });
 
   it('inverts only the visual mapping and keeps the real state labels explicit', async () => {
-    const wrapper = mountCard();
+    const wrapper = mountCard('mapping-invert');
 
     expect(wrapper.findAll('.state-item')[0].classes()).toContain('state-item--active');
     await wrapper.get('.state-settings__invert').trigger('click');
@@ -53,7 +53,7 @@ describe('SensorStateCard state display settings', () => {
     expect(wrapper.findAll('.state-item')[0].classes()).toContain('state-item--inactive');
     expect(wrapper.findAll('.state-item')[1].classes()).toContain('state-item--active');
     expect(wrapper.findAll('.state-settings__value').map(value => value.text()))
-      .toEqual(['Low (0)', 'High (1)']);
+      .toEqual(['High (1)', 'Low (0)']);
     expect(wrapper.findAll('.state-item')[0].attributes('aria-label')).toBe('1: Active');
   });
 

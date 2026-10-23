@@ -8,7 +8,9 @@
         :aria-label="localize('@patternLegendHelp')"
         :aria-expanded="legendVisible"
         @click="legendVisible = !legendVisible"
-      >i</button>
+      >
+        <state-mapping-icon :inverted="inverted" aria-hidden="true" />
+      </button>
     </div>
 
     <div v-if="legendVisible" class="pattern-legend">
@@ -16,14 +18,46 @@
         <span class="pattern-legend__marker pattern-legend__marker--ignored" aria-hidden="true" />
         {{ localize('@patternIgnored') }}
       </span>
-      <span class="pattern-legend__item pattern-state--zero">
-        <span class="pattern-legend__marker pattern-legend__marker--zero" aria-hidden="true" />
+      <span class="pattern-legend__item" :class="visualStateClass('zero')">
+        <span
+          class="pattern-legend__marker"
+          :class="visualMarkerClass('zero')"
+          aria-hidden="true"
+        />
         {{ localize('@patternExpectedZero') }}
       </span>
-      <span class="pattern-legend__item pattern-state--one">
-        <span class="pattern-legend__marker pattern-legend__marker--one" aria-hidden="true" />
+      <span class="pattern-legend__item" :class="visualStateClass('one')">
+        <span
+          class="pattern-legend__marker"
+          :class="visualMarkerClass('one')"
+          aria-hidden="true"
+        />
         {{ localize('@patternExpectedOne') }}
       </span>
+
+      <div class="pattern-display-setting">
+        <div class="pattern-display-setting__mapping" :aria-label="localize('@stateDisplayMappingLabel')">
+          <span
+            class="pattern-display-setting__swatch"
+            :class="visualStateClass('one')"
+            aria-hidden="true"
+          >
+            <span class="pattern-display-setting__indicator" />
+          </span>
+          <span>{{ localize('@highStateLabel') }}</span>
+          <span
+            class="pattern-display-setting__swatch"
+            :class="visualStateClass('zero')"
+            aria-hidden="true"
+          >
+            <span class="pattern-display-setting__indicator" />
+          </span>
+          <span>{{ localize('@lowStateLabel') }}</span>
+        </div>
+        <button type="button" class="pattern-display-setting__invert" @click="toggleInversion">
+          {{ localize('@invertStateDisplayLabel') }}
+        </button>
+      </div>
     </div>
 
     <div class="pattern-grid" role="group" :aria-label="label">
@@ -32,7 +66,7 @@
         :key="bitIndex"
         type="button"
         class="pattern-bit"
-        :class="`pattern-state--${state}`"
+        :class="[`pattern-state--${state}`, visualStateClass(state)]"
         :aria-label="bitAriaLabel(bitIndex, state)"
         :title="bitAriaLabel(bitIndex, state)"
         @click="cycleState(bitIndex)"
@@ -54,6 +88,9 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import StateMappingIcon from '@/components/sensor/StateMappingIcon.vue';
+import { useBle } from '@/composables/useBle';
+import { useStateVisualPreference } from '@/composables/useStateVisualPreference';
 import {
   decodeBinaryPattern,
   encodeBinaryPattern,
@@ -68,6 +105,7 @@ const props = defineProps<{
   allowEmpty?: boolean;
   groupName?: string | number;
   paramName?: string | number;
+  stateVisualPreferenceKey?: string;
   localize: (key: string) => string;
 }>();
 
@@ -83,6 +121,28 @@ const normalizedBitCount = computed(() => normalizeBinaryPatternBitCount(props.b
 const states = ref<BinaryPatternState[]>(decodeBinaryPattern(props.value, normalizedBitCount.value));
 const legendVisible = ref(false);
 const encoded = computed(() => encodeBinaryPattern(states.value));
+const ble = useBle();
+const stateVisualPreferenceKey = computed(() => (
+  props.stateVisualPreferenceKey
+  ?? ble.connectedDevice.value?.deviceId
+  ?? ble.lastConnectedDevice.value?.deviceId
+  ?? ble.productReference.value
+  ?? 'default'
+));
+const { inverted, toggleInversion } = useStateVisualPreference(() => stateVisualPreferenceKey.value);
+
+const isVisuallyActive = (state: BinaryPatternState): boolean => (
+  state !== 'ignored' && (state === 'one') !== inverted.value
+);
+const visualStateClass = (state: BinaryPatternState): string => {
+  if (state === 'ignored') return '';
+  return isVisuallyActive(state) ? 'pattern-visual--active' : 'pattern-visual--inactive';
+};
+const visualMarkerClass = (state: Exclude<BinaryPatternState, 'ignored'>): string => (
+  isVisuallyActive(state)
+    ? 'pattern-legend__marker--active'
+    : 'pattern-legend__marker--inactive'
+);
 
 const stateLabel = (state: BinaryPatternState): string => ({
   ignored: props.localize('@patternIgnored'),
@@ -134,20 +194,19 @@ watch(
 .pattern-help {
   display: grid;
   flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
+  width: 44px;
+  height: 44px;
   padding: 0;
-  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.28);
-  border-radius: 50%;
-  background: rgba(var(--ion-color-primary-rgb), 0.08);
-  color: var(--ion-color-primary);
-  font-size: 0.8rem;
-  font-weight: 800;
-  font-style: italic;
-  line-height: 1;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--app-text-secondary);
   cursor: pointer;
   place-items: center;
-  font-family: inherit;
+}
+
+.pattern-help:active {
+  background: var(--app-surface-subtle);
 }
 
 .pattern-help:focus-visible {
@@ -160,6 +219,58 @@ watch(
   flex-wrap: wrap;
   align-items: center;
   gap: 7px;
+}
+
+.pattern-display-setting {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--app-border);
+}
+
+.pattern-display-setting__mapping {
+  display: grid;
+  grid-template-columns: 28px auto;
+  align-items: center;
+  gap: 5px 8px;
+  color: var(--app-text);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.pattern-display-setting__swatch {
+  display: grid;
+  width: 28px;
+  height: 22px;
+  box-sizing: border-box;
+  place-items: center;
+  border: 1px solid;
+  border-radius: 7px;
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.pattern-display-setting__indicator {
+  width: 7px;
+  height: 7px;
+  box-sizing: border-box;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.pattern-display-setting__invert {
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 10px;
+  background: var(--app-surface-subtle);
+  color: var(--app-text-secondary);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .pattern-legend {
@@ -189,13 +300,13 @@ watch(
   height: 12px;
 }
 
-.pattern-legend__marker--zero,
-.pattern-legend__marker--one {
+.pattern-legend__marker--inactive,
+.pattern-legend__marker--active {
   border: 2px solid currentColor;
   border-radius: 50%;
 }
 
-.pattern-legend__marker--one {
+.pattern-legend__marker--active {
   background: currentColor;
   box-shadow: 0 0 0 3px rgba(82, 151, 103, 0.13);
 }
@@ -284,24 +395,27 @@ watch(
   transform: rotate(-38deg);
 }
 
-.pattern-state--zero {
+.pattern-visual--inactive {
   border-color: rgba(151, 145, 137, 0.16);
   background: rgba(151, 145, 137, 0.07);
   color: #969189;
 }
 
-.pattern-state--zero .pattern-bit__indicator {
+.pattern-visual--inactive .pattern-bit__indicator,
+.pattern-visual--inactive .pattern-display-setting__indicator {
   background: transparent;
   box-shadow: none;
 }
 
-.pattern-state--one {
+.pattern-visual--active {
   border-color: rgba(82, 151, 103, 0.2);
   background: rgba(82, 151, 103, 0.1);
   color: #477f58;
 }
 
-.pattern-state--one .pattern-bit__indicator {
+.pattern-visual--active .pattern-bit__indicator,
+.pattern-visual--active .pattern-display-setting__indicator {
+  background: currentColor;
   box-shadow: 0 0 0 4px rgba(82, 151, 103, 0.13);
 }
 

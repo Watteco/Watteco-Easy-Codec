@@ -287,6 +287,7 @@
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
+                      :state-visual-preference-key="stateVisualPreferenceKey"
                       @update:value="onParamChange($event, 'general_params', groupName, paramName)"
                     />
 
@@ -513,6 +514,7 @@
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
+                      :state-visual-preference-key="stateVisualPreferenceKey"
                       @update:value="onParamChange($event, 'modbus_params', groupName, paramName)"
                     />
 
@@ -741,6 +743,7 @@
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
+                      :state-visual-preference-key="stateVisualPreferenceKey"
                       @update:value="onParamChange($event, 'batch_params', groupName, paramName)"
                     />
 
@@ -986,6 +989,7 @@
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
+                      :state-visual-preference-key="stateVisualPreferenceKey"
                       @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
                     />
 
@@ -1204,6 +1208,7 @@
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
+                      :state-visual-preference-key="stateVisualPreferenceKey"
                       @update:value="onParamChange($event, 'configuration_params', groupName, paramName)"
                     />
 
@@ -1417,6 +1422,7 @@
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
+                      :state-visual-preference-key="stateVisualPreferenceKey"
                       @update:value="onParamChange($event, 'commande_params', groupName, paramName)"
                     />
 
@@ -2067,6 +2073,12 @@ const categorizedProducts = computed<Record<string, Product[]>>(() => {
 });
 
 const selectedSensor = ref(''); // Stores the currently selected sensor
+const stateVisualPreferenceKey = computed(() => (
+  ble.connectedDevice.value?.deviceId
+  ?? ble.lastConnectedDevice.value?.deviceId
+  ?? ble.productReference.value
+  ?? (selectedSensor.value || 'default')
+));
 const REPORTING_CONFIGURATION_READ_PRODUCTS = new Set([
   "50-70-260-Pulse-Sens'O-Neo",
   "50-70-260-671-HygroTemp'O-Neo",
