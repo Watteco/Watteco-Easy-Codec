@@ -80,16 +80,18 @@ describe('reporting configuration parsing', () => {
     });
   });
 
-  it('reports mutually exclusive Pulse Neo reporting groups', () => {
+  it('parses the Pulse Neo pattern reporting mode in the shared multi-state group', () => {
     const result = parseReportingConfigurations(pulseConfig, [
-      frame('11 09 8005 00 00 0000 19 800A 85A0 0001'),
       frame('11 09 8005 00 88 0000 19 800A 85A0 F1 0001 0002 80 0003 0004'),
     ]);
 
-    expect(result.exclusiveGroupConflicts).toEqual([[
-      'standard_PMultiState_params',
-      'standard_PMultiStatePattern_params',
-    ]]);
+    expect(result.exclusiveGroupConflicts).toEqual([]);
+    expect(result.matchedGroups).toContainEqual({
+      sectionName: 'standard_params',
+      groupName: 'standard_PMultiState_params',
+    });
+    expect(result.fieldValues.pMultiStateStandEchant).toBe('10');
+    expect(result.fieldValues.pMultiStateStandEmission).toBe('1440');
     expect(result.fieldValues.pMultiStatePattern).toBe('1 2');
     expect(result.fieldValues.pMultiStatePatternOccurrences).toBe('3 4');
   });

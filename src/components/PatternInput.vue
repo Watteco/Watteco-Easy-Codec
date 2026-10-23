@@ -46,8 +46,8 @@
       </button>
     </div>
 
-    <p v-if="encoded.gap === 0" class="pattern-warning" role="status">
-      {{ localize('@patternNoInputWarning') }}
+    <p v-if="encoded.gap === 0" :class="allowEmpty ? 'pattern-empty' : 'pattern-warning'" role="status">
+      {{ localize(allowEmpty ? '@patternPeriodicOnly' : '@patternNoInputWarning') }}
     </p>
   </div>
 </template>
@@ -65,6 +65,7 @@ const props = defineProps<{
   label?: string;
   value?: string;
   bitCount?: number | string;
+  allowEmpty?: boolean;
   groupName?: string | number;
   paramName?: string | number;
   localize: (key: string) => string;
@@ -309,6 +310,13 @@ watch(
   color: #a23a45;
   font-size: 0.76rem;
   font-weight: 700;
+}
+
+.pattern-empty {
+  margin: 0;
+  color: var(--app-text-secondary);
+  font-size: 0.74rem;
+  font-weight: 650;
 }
 
 @media (max-width: 600px) {

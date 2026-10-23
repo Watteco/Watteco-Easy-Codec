@@ -337,6 +337,7 @@
 	"patternExpectedOne": "Attendue à 1",
 	"patternLegendHelp": "Afficher la signification des états du pattern",
 	"patternNoInputWarning": "Au moins une entrée doit participer au pattern.",
+	"patternPeriodicOnly": "Report périodique uniquement.",
 	"patternFixedOccurrenceSubtitle": "Déclenchement et réarmement après une occurrence",
 	"patternOccurrencesLabel": "Nombre de mesures avant report",
 	"patternOccurrencesHelpLabel": "Expliquer le réglage des occurrences",

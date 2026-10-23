@@ -335,6 +335,7 @@
     "patternExpectedOne": "Expected at 1",
     "patternLegendHelp": "Show the meaning of the pattern states",
     "patternNoInputWarning": "At least one input should be included in the pattern.",
+    "patternPeriodicOnly": "Periodic reporting only.",
     "patternFixedOccurrenceSubtitle": "Triggers and rearms after one occurrence",
     "patternOccurrencesLabel": "Number of measurements before report",
     "patternOccurrencesHelpLabel": "Explain the occurrence settings",

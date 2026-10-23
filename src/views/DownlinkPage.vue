@@ -202,7 +202,7 @@
               <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && hasUserVisibleFields(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
-                          v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
+                          v-show="isParameterVisible('general_params', groupName, paramName, param)"
                           class="config-card">
                   <ion-item class="config-item">
                     <!-- Using the TimeSlider component -->
@@ -280,6 +280,7 @@
                       :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :bit-count="param.bit_count"
+                      :allow-empty="param.allow_empty === true || param.allow_empty === 'true'"
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
@@ -432,7 +433,7 @@
               <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && hasUserVisibleFields(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
-                          v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
+                          v-show="isParameterVisible('modbus_params', groupName, paramName, param)"
                           class="config-card">
                   <ion-item class="config-item">
                     <!-- Using the TimeSlider component -->
@@ -501,6 +502,7 @@
                       :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :bit-count="param.bit_count"
+                      :allow-empty="param.allow_empty === true || param.allow_empty === 'true'"
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
@@ -655,7 +657,7 @@
               <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && hasUserVisibleFields(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
-                          v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
+                          v-show="isParameterVisible('batch_params', groupName, paramName, param)"
                           class="config-card">
                   <ion-item class="config-item">
                     <!-- Using the TimeSlider component -->
@@ -724,6 +726,7 @@
                       :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :bit-count="param.bit_count"
+                      :allow-empty="param.allow_empty === true || param.allow_empty === 'true'"
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
@@ -894,7 +897,7 @@
               <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && hasUserVisibleFields(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
-                          v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
+                          v-show="isParameterVisible('standard_params', groupName, paramName, param)"
                           class="config-card">
                   <ion-item class="config-item">
                     
@@ -964,6 +967,7 @@
                       :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :bit-count="param.bit_count"
+                      :allow-empty="param.allow_empty === true || param.allow_empty === 'true'"
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
@@ -1113,7 +1117,7 @@
               <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && hasUserVisibleFields(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
-                          v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
+                          v-show="isParameterVisible('configuration_params', groupName, paramName, param)"
                           class="config-card">
                   <ion-item class="config-item">
                     <time-slider
@@ -1177,6 +1181,7 @@
                       :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :bit-count="param.bit_count"
+                      :allow-empty="param.allow_empty === true || param.allow_empty === 'true'"
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
@@ -1321,7 +1326,7 @@
               <ul v-show="subcategoryVisible[groupName] && paramGroupChecked[groupName] && hasUserVisibleFields(paramGroup.fields)">
                 <ion-card v-for="(param, paramName) in paramGroup.fields" 
                           :key="paramName" 
-                          v-show="param.hidden !== 'true' && param.HMI?.visual_type !== 'customFrame'"
+                          v-show="isParameterVisible('commande_params', groupName, paramName, param)"
                           class="config-card">
                   <ion-item class="config-item">
                     <time-slider
@@ -1385,6 +1390,7 @@
                       :label="param.HMI?.label"
                       :value="param.selectedValue"
                       :bit-count="param.bit_count"
+                      :allow-empty="param.allow_empty === true || param.allow_empty === 'true'"
                       :group-name="groupName"
                       :param-name="paramName"
                       :localize="localize"
@@ -1814,6 +1820,14 @@ import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { getProductConfigurationFile, getProductDisplayName } from '@/utils/productMeasurements';
+import {
+  findPatternReportingContext,
+  isPatternReportingFieldVisible,
+  shouldIncludePatternReportingFrame,
+  type PatternReportingContext,
+  type PatternReportingField,
+  type PatternReportingSection,
+} from '@/utils/patternReporting';
 import { readAdminDeviceStatus } from '@/utils/BLE/adminStatus';
 import { readFirmwareVersion } from '@/utils/BLE/deviceInformation';
 import { getAppFrameStatusName } from '@/utils/BLE/appFrameResponseRules';
@@ -2105,6 +2119,50 @@ const sensorImage = ref(''); // Reactive variable to store the sensor image path
 const isEnforcingRelationships = ref(false);
 
 const isTrueFlag = (value: unknown) => value === true || value === "true";
+
+const getPatternReportingContext = (
+  bigGroupName: string,
+  groupName: string | number,
+): PatternReportingContext | null => {
+  const section = sensorConfig.value?.[bigGroupName] as PatternReportingSection | undefined;
+  return findPatternReportingContext(section, String(groupName));
+};
+
+const isParameterVisible = (
+  bigGroupName: string,
+  groupName: string | number,
+  paramName: string | number,
+  param: SensorParameter,
+): boolean => {
+  if (param.hidden === 'true' || param.HMI?.visual_type === 'customFrame') return false;
+  const context = getPatternReportingContext(bigGroupName, groupName);
+  const fields = sensorConfig.value?.[bigGroupName]?.[groupName]?.fields as
+    | Record<string, PatternReportingField>
+    | undefined;
+  return !context || !fields
+    ? true
+    : isPatternReportingFieldVisible(context, String(paramName), fields);
+};
+
+const shouldIncludeConfiguredFrame = (
+  bigGroupName: string,
+  frame: string,
+  onlyGroupName?: string | number,
+): boolean => {
+  const section = sensorConfig.value?.[bigGroupName] as PatternReportingSection | undefined;
+  if (!section) return true;
+  const groupNames = onlyGroupName === undefined
+    ? Object.keys(section)
+    : [String(onlyGroupName)];
+
+  return groupNames.every(groupName => {
+    const context = findPatternReportingContext(section, groupName);
+    const fields = (section[groupName] as SensorParameterGroup | undefined)?.fields as
+      | Record<string, PatternReportingField>
+      | undefined;
+    return !context || !fields || shouldIncludePatternReportingFrame(context, frame, fields);
+  });
+};
 
 const isMandatoryGroup = (bigGroupName: string, groupName: string | number) => {
   return isTrueFlag(sensorConfig.value?.[bigGroupName]?.[groupName]?.mandatory);
@@ -2600,6 +2658,8 @@ const updateOutput = () => {
       } else if (typeof cfgEntry === "string") {
         frame = cfgEntry;
       }
+
+      if (!shouldIncludeConfiguredFrame(bigGroupName, frame)) return;
 
       // Special handling for Modbus frames in the main output
       if (frame.includes('8007 0000 41 06')) {
@@ -3190,7 +3250,21 @@ const setReportingSectionFromSensor = (
   });
 };
 
+const inferPatternReportingFieldValues = (result: ReportingConfigurationParseResult) => {
+  result.matchedGroups.forEach(({ sectionName, groupName }) => {
+    const context = getPatternReportingContext(sectionName, groupName);
+    if (!context) return;
+
+    if (result.fieldValues[context.patternFieldName] !== undefined) {
+      result.fieldValues[context.controlFieldName] = 'false';
+    } else if (result.fieldValues[context.controlFieldName] !== undefined) {
+      result.fieldValues[context.patternFieldName] = '0 0';
+    }
+  });
+};
+
 const applyReportingConfigurationRead = (result: ReportingConfigurationParseResult) => {
+  inferPatternReportingFieldValues(result);
   const groupsBySection: Record<ReportingConfigurationSectionName, Set<string>> = {
     batch_params: new Set<string>(),
     standard_params: new Set<string>(),
@@ -3370,6 +3444,8 @@ const generateFramesForGroup = (bigGroupName: string, groupName: string | number
       const frameDesc = cfgEntry[1];
       let includeFrame = false;
       const hasPlaceholder = frame.includes('(') && frame.includes(')');
+
+      if (!shouldIncludeConfiguredFrame(bigGroupName, frame, groupKey)) return;
 
       if (!hasPlaceholder) {
         includeFrame = true;

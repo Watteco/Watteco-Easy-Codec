@@ -156,6 +156,8 @@ Cela permet d'exposer les options standard dans l'UI sans les activer par défau
 | `string` | `textInput` ou `customValue` | Texte libre ou valeur fixe | Selon contenu |
 | `frame` | `customFrame` | Trame fixe non éditable | Injectée telle quelle |
 | `dropdown` | `dropdown` | Choix listé | Valeur choisie injectée |
+| `hex2B` | `pattern` | Pattern binaire MultiBinary (`Val Gap`) | Deux valeurs sur 2 octets via les placeholders suffixés `1` et `2` |
+| `hex2B` | `occurrences` | Occurrences haute et basse d'un pattern | Deux valeurs sur 2 octets via les placeholders suffixés `1` et `2` |
 
 Remarques:
 
@@ -215,6 +217,58 @@ Remarques:
 }
 ```
 
+### Pattern binaire MultiBinary
+
+Le `visual_type` `pattern` affiche une entrée à trois états pour chaque bit :
+
+- ignorée ;
+- attendue à `0` ;
+- attendue à `1`.
+
+La valeur du champ est stockée sous la forme décimale `Val Gap`. Un bit à `1` dans `Gap` fait participer l'entrée correspondante au pattern ; lorsqu'elle participe, le même bit dans `Val` indique la valeur attendue. L'entrée 1 correspond au bit 0. Par exemple, `5 263` représente `[X0XXXXX101]` sur 10 entrées.
+
+```json
+"multiStatePattern": {
+    "type": "hex2B",
+    "default_value": "0 0",
+    "bit_count": 4,
+    "allow_empty": true,
+    "HMI": {
+        "label": "@patternLabel",
+        "visual_type": "pattern"
+    }
+}
+```
+
+- `bit_count` définit le nombre d'entrées affichées, de 1 à 16.
+- `allow_empty` est optionnel et vaut `false` par défaut. Avec `true`, `Gap = 0` est présenté comme un état valide de reporting périodique. Sans cette option, l'interface avertit qu'au moins une entrée doit participer au pattern.
+- `allow_empty` ne déclenche pas la logique MultiBinary et ne choisit aucune trame : il adapte uniquement la présentation du pattern vide.
+
+Dans une trame, les placeholders suffixés donnent accès aux deux valeurs :
+
+```json
+"... F1 (multiStatePattern1) (multiStatePattern2) ..."
+```
+
+### Occurrences d'un pattern
+
+Le `visual_type` `occurrences` expose les deux compteurs du mode threshold : le nombre de mesures consécutives correspondant au pattern, puis le nombre de mesures consécutives différentes avant report.
+
+```json
+"multiStatePatternOccurrences": {
+    "type": "hex2B",
+    "default_value": "1 1",
+    "min_value": "1",
+    "max_value": "65535",
+    "HMI": {
+        "label": "@patternOccurrencesLabel",
+        "visual_type": "occurrences"
+    }
+}
+```
+
+Comme pour `pattern`, les deux valeurs sont référencées dans la trame avec les suffixes `1` et `2`.
+
 ## Cas de logique entre champs
 
 ### 1) Checkbox inversée (`inverted`)
@@ -262,6 +316,25 @@ Types supportés:
 ]
 ```
 
+### 4) Reporting MultiBinary standard et pattern dans un même groupe
+
+Easy Codec combine automatiquement les deux interfaces lorsqu'un même groupe contient :
+
+- un champ `HMI.visual_type: "pattern"` référencé par une trame de `cfg_block` ;
+- un champ booléen `checkbox` référencé par une autre trame standard du groupe.
+
+Le nom des champs, le produit et les octets fixes de la trame ne sont pas imposés. La liaison est détectée à partir des placeholders. Les périodes de mesure et d'émission peuvent être partagées en utilisant les mêmes placeholders dans les deux trames.
+
+Le choix de la trame devient alors :
+
+| État | Trame générée |
+|------|---------------|
+| Checkbox « sur variation » cochée | Trame standard avec notification sur variation ; le pattern est masqué |
+| Checkbox décochée et `Gap = 0` | Trame standard sans notification sur variation, pour le reporting périodique |
+| Checkbox décochée et `Gap != 0` | Trame pattern ; les occurrences sont affichées si elles sont référencées par cette trame |
+
+Si aucune trame ne référence le champ `pattern`, aucune combinaison n'est activée et les composants conservent leur comportement indépendant. Un champ `pattern` peut donc être utilisé seul ; dans ce cas, omettez généralement `allow_empty`.
+
 ## Paramètres d'affichage de section
 
 - `default_state`: active/désactive au chargement (`"true"` / `"false"`)
@@ -283,6 +356,8 @@ Types supportés:
 | `dropdown` | `dropdown` | ![dropDown](img/readme-ui/dropDown.png) |
 | `frame` | `customFrame` | N/A |
 | `string` (fixe) | `customValue` | N/A |
+| `hex2B` | `pattern` | N/A |
+| `hex2B` | `occurrences` | N/A |
 
 Astuce: gardez des noms de fichiers d'images stables pour éviter de retoucher la doc à chaque update UI.
 
