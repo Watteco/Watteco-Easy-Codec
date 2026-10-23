@@ -4,6 +4,7 @@ import {
   captureConfigurationSections,
   configurationLoadReportCount,
   deleteSavedConfiguration,
+  isSavedFieldValueValid,
   parseSavedConfiguration,
   readSavedConfigurations,
   reconcileSavedConfiguration,
@@ -58,6 +59,23 @@ const savedConfiguration = (overrides: Partial<SavedConfiguration> = {}): SavedC
 describe('savedConfigurations', () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  it('accepts explicit seconds for time values while preserving minute bounds', () => {
+    const field = {
+      type: 'timeVal',
+      min_value: '1',
+      max_value: '60',
+      HMI: { visual_type: 'timeSlider', allow_seconds: true },
+    };
+
+    expect(isSavedFieldValueValid('10s', field)).toBe(true);
+    expect(isSavedFieldValueValid('10', field)).toBe(true);
+    expect(isSavedFieldValueValid('3601s', field)).toBe(false);
+    expect(isSavedFieldValueValid('10s', {
+      ...field,
+      HMI: { visual_type: 'timeSlider' },
+    })).toBe(false);
   });
 
   it('captures values and activation state without copying the product definition', () => {

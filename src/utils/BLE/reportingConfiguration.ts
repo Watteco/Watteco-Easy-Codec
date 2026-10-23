@@ -1,3 +1,5 @@
+import { decodeTimeValue, parseTimeValue, timeValueToSeconds } from '@/utils/timeValue';
+
 export type ReportingConfigurationSectionName = 'batch_params' | 'standard_params';
 
 type ParameterDefinition = {
@@ -5,7 +7,11 @@ type ParameterDefinition = {
   inverted?: string;
   min_value?: string | number;
   max_value?: string | number;
-  HMI?: Record<string, unknown> & { multiplier?: string | number };
+  HMI?: Record<string, unknown> & {
+    multiplier?: string | number;
+    allow_seconds?: boolean;
+    seconds_min?: string | number;
+  };
   [property: string]: unknown;
 };
 
@@ -216,12 +222,9 @@ function decodePlaceholder(
   const rawHex = bytes.map(byte => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
   const definition = token.location.definition;
   if (definition.type === 'timeVal') {
-    const value = (rawValue & 0x8000) !== 0
-      ? rawValue & 0x7fff
-      : rawValue % 60 === 0
-        ? rawValue / 60
-        : null;
-    if (value === null) {
+    const value = decodeTimeValue(rawValue);
+    const parsed = parseTimeValue(value);
+    if (!value || !parsed || (parsed.unit === 'seconds' && definition.HMI?.allow_seconds !== true)) {
       return {
         unsupported: {
           fieldName: token.location.fieldName,
@@ -232,7 +235,11 @@ function decodePlaceholder(
     }
     const minimum = Number(definition.min_value ?? Number.NEGATIVE_INFINITY);
     const maximum = Number(definition.max_value ?? Number.POSITIVE_INFINITY);
-    if (value < minimum || value > maximum) {
+    const durationSeconds = timeValueToSeconds(value) ?? Number.POSITIVE_INFINITY;
+    const belowMinimum = parsed.unit === 'seconds'
+      ? parsed.value < Number(definition.HMI?.seconds_min ?? 1)
+      : parsed.value < minimum;
+    if (belowMinimum || durationSeconds > maximum * 60) {
       return {
         unsupported: {
           fieldName: token.location.fieldName,
@@ -241,7 +248,7 @@ function decodePlaceholder(
         },
       };
     }
-    return { value: String(value) };
+    return { value };
   }
   if (definition.type === 'bool') {
     const truthy = definition.inverted === 'true' ? rawValue === 0 : rawValue !== 0;

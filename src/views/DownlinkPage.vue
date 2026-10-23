@@ -212,6 +212,10 @@
                       :max="param.max_value"
                       :value="param.selectedValue"
                       :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                      :max-duration="param.dynamicMaxValue"
+                      :allow-seconds="param.HMI?.allow_seconds === true"
+                      :seconds-min="param.HMI?.seconds_min ?? 1"
+                      :seconds-step="param.HMI?.seconds_step ?? 1"
                       :groupName="groupName"
                       :paramName="paramName"
                       :outputFormat="param.HMI?.outputFormat"
@@ -443,6 +447,10 @@
                       :max="param.max_value"
                       :value="param.selectedValue"
                       :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                      :max-duration="param.dynamicMaxValue"
+                      :allow-seconds="param.HMI?.allow_seconds === true"
+                      :seconds-min="param.HMI?.seconds_min ?? 1"
+                      :seconds-step="param.HMI?.seconds_step ?? 1"
                       :groupName="groupName"
                       :paramName="paramName"
                       :outputFormat="param.HMI?.outputFormat"
@@ -667,6 +675,10 @@
                       :max="param.max_value"
                       :value="param.selectedValue"
                       :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                      :max-duration="param.dynamicMaxValue"
+                      :allow-seconds="param.HMI?.allow_seconds === true"
+                      :seconds-min="param.HMI?.seconds_min ?? 1"
+                      :seconds-step="param.HMI?.seconds_step ?? 1"
                       :groupName="groupName"
                       :paramName="paramName"
                       :outputFormat="param.HMI?.outputFormat"
@@ -908,6 +920,10 @@
                       :max="param.max_value"
                       :value="param.selectedValue"
                       :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                      :max-duration="param.dynamicMaxValue"
+                      :allow-seconds="param.HMI?.allow_seconds === true"
+                      :seconds-min="param.HMI?.seconds_min ?? 1"
+                      :seconds-step="param.HMI?.seconds_step ?? 1"
                       :groupName="groupName"
                       :paramName="paramName"
                       :outputFormat="param.HMI?.outputFormat"
@@ -1126,6 +1142,10 @@
                       :max="param.max_value"
                       :value="param.selectedValue"
                       :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                      :max-duration="param.dynamicMaxValue"
+                      :allow-seconds="param.HMI?.allow_seconds === true"
+                      :seconds-min="param.HMI?.seconds_min ?? 1"
+                      :seconds-step="param.HMI?.seconds_step ?? 1"
                       :groupName="groupName"
                       :paramName="paramName"
                       :outputFormat="param.HMI?.outputFormat"
@@ -1335,6 +1355,10 @@
                       :max="param.max_value"
                       :value="param.selectedValue"
                       :step="`${param.step ? param.step : calculateSteps(param.min_value, param.max_value) }`"
+                      :max-duration="param.dynamicMaxValue"
+                      :allow-seconds="param.HMI?.allow_seconds === true"
+                      :seconds-min="param.HMI?.seconds_min ?? 1"
+                      :seconds-step="param.HMI?.seconds_step ?? 1"
                       :groupName="groupName"
                       :paramName="paramName"
                       :outputFormat="param.HMI?.outputFormat"
@@ -1841,6 +1865,7 @@ import type {
 } from '@/utils/BLE/appFrames';
 import { presentAuthorizationDeniedAlert } from '@/utils/authorizationAlert';
 import { appVersion } from '@/utils/appVersion';
+import { encodeTimeValueHex, timeValueToSeconds } from '@/utils/timeValue';
 import {
   CONFIGURATION_SECTION_NAMES,
   SAVED_CONFIGURATION_FORMAT,
@@ -1923,6 +1948,7 @@ interface SensorParameter {
   selectedValue?: string;
   max_value?: string | number;
   originalMaxValue?: string | number;
+  dynamicMaxValue?: string | number;
   [property: string]: unknown;
 }
 
@@ -2750,6 +2776,19 @@ const convertToHexFrameValue = (value: string, param:{
     return value.padStart(padLength, '0');
   }
 
+  if (param.type === 'timeVal') {
+    if (param.HMI?.outputFormat === 'HHMM') {
+      const totalMinutes = localMinutesToUtcMinutes(parseInt(value, 10));
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return hours.toString(16).padStart(2, '0') + minutes.toString(16).padStart(2, '0');
+    }
+    if (param.isHours && /^\d+$/.test(value)) {
+      value = (parseInt(value) * 60).toString();
+    }
+    return encodeTimeValueHex(value) ?? `-Error: ${value} is not a valid timeVal-`;
+  }
+
   if (value.includes(" ")) {
     output = "";
     value.split(" ").forEach(function(item) {
@@ -2762,19 +2801,7 @@ const convertToHexFrameValue = (value: string, param:{
     if (param.HMI.multiplier) {
       value = (parseInt(value) * param.HMI.multiplier).toString();
     }
-    if (param.type == "timeVal") {
-      if (param.HMI?.outputFormat === 'HHMM') {
-        const totalMinutes = localMinutesToUtcMinutes(parseInt(value, 10));
-        const hours = Math.floor(totalMinutes / 60);
-        const minutes = totalMinutes % 60;
-        output = hours.toString(16).padStart(2, '0') + minutes.toString(16).padStart(2, '0');
-      } else {
-        if (param.isHours) {
-          value = (parseInt(value) * 60).toString();
-        }
-        output = (parseInt(value) + 32768).toString(16).padStart(4, '0');
-      }
-    } else if (param.type.startsWith("hex")) {
+    if (param.type.startsWith("hex")) {
       const bytes = parseInt(param.type.replace("hex", ""), 10);
       output = parseInt(value).toString(16).padStart(bytes * 2, '0');
     } else if (param.type == "bool") {
@@ -3387,17 +3414,23 @@ const updateMaxValues = (bigGroupName: string, groupName: string, paramName: str
       );
     }
     if (emissionParam) {
-      const emissionValue = bigGroupName === 'batch_params' 
-        ? parseInt(sensorConfig.value[bigGroupName].global_params.fields[emissionParam].selectedValue, 10)
-        : parseInt(sensorConfig.value[bigGroupName][groupName].fields[emissionParam].selectedValue, 10);
-      
-      // Ensure the max_value does not exceed the originally set max_value
-      const originalMaxValue = parseInt(param.originalMaxValue, 10);
-      param.max_value = Math.min(emissionValue, originalMaxValue);
+      const emissionValue = bigGroupName === 'batch_params'
+        ? sensorConfig.value[bigGroupName].global_params.fields[emissionParam].selectedValue
+        : sensorConfig.value[bigGroupName][groupName].fields[emissionParam].selectedValue;
+      const emissionSeconds = timeValueToSeconds(emissionValue);
+      const originalMaximum = param.originalMaxValue ?? param.max_value;
+      const originalMaximumSeconds = timeValueToSeconds(originalMaximum);
+      if (emissionSeconds === null || originalMaximumSeconds === null) return;
 
-      if (parseInt(param.selectedValue, 10) > param.max_value) {
-        param.selectedValue = param.max_value.toString();
-        outputVals[paramName] = convertToHexFrameValue(param.max_value.toString(), param);
+      param.dynamicMaxValue = emissionSeconds < originalMaximumSeconds
+        ? emissionValue
+        : originalMaximum;
+
+      const selectedSeconds = timeValueToSeconds(param.selectedValue);
+      const maximumSeconds = Math.min(emissionSeconds, originalMaximumSeconds);
+      if (selectedSeconds !== null && selectedSeconds > maximumSeconds) {
+        param.selectedValue = String(param.dynamicMaxValue);
+        outputVals[paramName] = convertToHexFrameValue(param.selectedValue, param);
         updateOutput();
       }
     }

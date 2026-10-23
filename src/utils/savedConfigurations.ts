@@ -1,3 +1,5 @@
+import { parseTimeValue, timeValueToSeconds } from '@/utils/timeValue';
+
 export const SAVED_CONFIGURATION_FORMAT = 'watteco-easy-codec-configuration' as const;
 export const SAVED_CONFIGURATION_SCHEMA_VERSION = 1 as const;
 export const SAVED_CONFIGURATIONS_STORAGE_KEY = 'easycodec.savedConfigurations.v1';
@@ -231,8 +233,30 @@ export const isSavedFieldValueValid = (
     if (!field.choices.some(choice => choiceValue(choice) === value)) return false;
   }
 
-  const numericType = field.type === 'timeVal'
-    || field.type === 'float'
+  if (field.type === 'timeVal') {
+    const parsed = parseTimeValue(value);
+    if (!parsed) return false;
+    const hmi = isRecord(field.HMI) ? field.HMI : {};
+    const secondsAllowed = hmi.outputFormat !== 'HHMM' && hmi.allow_seconds === true;
+    if (parsed.unit === 'seconds' && !secondsAllowed) return false;
+
+    const minimum = field.min_value === undefined ? undefined : Number(field.min_value);
+    const maximum = field.max_value === undefined ? undefined : Number(field.max_value);
+    if (parsed.unit === 'seconds') {
+      const secondsMinimum = Number(hmi.seconds_min ?? 1);
+      if (Number.isFinite(secondsMinimum) && parsed.value < secondsMinimum) return false;
+    } else if (minimum !== undefined && Number.isFinite(minimum) && parsed.value < minimum) {
+      return false;
+    }
+    const durationSeconds = timeValueToSeconds(value);
+    if (
+      durationSeconds === null
+      || (maximum !== undefined && Number.isFinite(maximum) && durationSeconds > maximum * 60)
+    ) return false;
+    return true;
+  }
+
+  const numericType = field.type === 'float'
     || (typeof field.type === 'string' && field.type.startsWith('hex'));
   if (!numericType) return true;
 

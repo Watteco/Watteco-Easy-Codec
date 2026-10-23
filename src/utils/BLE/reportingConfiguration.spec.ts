@@ -124,17 +124,29 @@ describe('reporting configuration parsing', () => {
     expect(result.fieldValues.p1StandEmission).toBeUndefined();
   });
 
-  it('flags sub-minute values that the current form cannot represent', () => {
+  it('flags seconds when the field has not opted in', () => {
     const result = parseReportingConfigurations(pt1000Config, [
       frame('11 09 0402 00 15 0000 00 000A 803C 0000 000A 03'),
     ]);
 
     expect(result.matchedFrameCount).toBe(1);
+    expect(result.fieldValues.tBatchEchant).toBeUndefined();
     expect(result.unsupportedValues).toEqual([{
       fieldName: 'tBatchEchant',
       rawHex: '000A',
       reason: 'seconds-not-representable',
       frameHex: '11 09 04 02 00 15 00 00 00 00 0A 80 3C 00 00 00 0A 03',
     }]);
+  });
+
+  it('preserves seconds when the field explicitly opts in', () => {
+    const config = structuredClone(pt1000Config) as any;
+    config.batch_params.batch_T_params.fields.tBatchEchant.HMI.allow_seconds = true;
+    const result = parseReportingConfigurations(config, [
+      frame('11 09 0402 00 15 0000 00 000A 803C 0000 000A 03'),
+    ]);
+
+    expect(result.fieldValues.tBatchEchant).toBe('10s');
+    expect(result.unsupportedValues).toEqual([]);
   });
 });

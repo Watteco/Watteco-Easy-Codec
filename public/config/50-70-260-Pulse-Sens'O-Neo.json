@@ -252,7 +252,8 @@
                     "depends_on": "pMultiStateStandEmission",
                     "HMI": {
                         "label": "@measureLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
 		
