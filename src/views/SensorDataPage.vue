@@ -112,6 +112,15 @@
                   :label="stateCardLabel"
                   :active-label="localize('@activeState')"
                   :inactive-label="localize('@inactiveState')"
+                  :settings-label="localize('@stateDisplaySettingsLabel')"
+                  :settings-title="localize('@stateDisplaySettingsTitle')"
+                  :mapping-label="localize('@stateDisplayMappingLabel')"
+                  :invert-label="localize('@invertStateDisplayLabel')"
+                  :settings-note="localize('@stateDisplaySettingsNote')"
+                  :close-label="localize('@closeLabel')"
+                  :high-label="localize('@highStateLabel')"
+                  :low-label="localize('@lowStateLabel')"
+                  :preference-key="stateVisualPreferenceKey"
                   :entries="stateEntries"
                   :accent="stateCardVisual?.accent"
                   :icon="stateCardVisual?.icon"
@@ -402,6 +411,12 @@ const stateEntries = computed(() => dashboardLayout.value.stateMeasurements
   .sort((left, right) => (left.inputNumber ?? 0) - (right.inputNumber ?? 0)));
 
 const stateCardVisual = computed(() => stateEntries.value[0]?.visual);
+const stateVisualPreferenceKey = computed(() => (
+  ble.connectedDevice.value?.deviceId
+  ?? ble.lastConnectedDevice.value?.deviceId
+  ?? ble.productReference.value
+  ?? 'default'
+));
 const stateCardLabel = computed(() => localize(
   stateEntries.value.length === 1
     ? '@SingleStateLabel'

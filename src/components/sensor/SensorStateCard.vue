@@ -18,6 +18,14 @@
           <ion-icon :icon="icon" />
         </span>
         <span class="state-title">{{ label }}</span>
+        <button
+          type="button"
+          class="state-settings-button"
+          :aria-label="settingsLabel"
+          @click="settingsOpen = true"
+        >
+          <ion-icon :icon="settingsOutline" aria-hidden="true" />
+        </button>
       </div>
 
       <div class="state-list">
@@ -26,8 +34,8 @@
           :key="entry.measId"
           class="state-item"
           :class="{
-            'state-item--active': normalizeState(entry.value) === true,
-            'state-item--inactive': normalizeState(entry.value) === false,
+            'state-item--active': getVisualState(entry.value) === true,
+            'state-item--inactive': getVisualState(entry.value) === false,
             'state-item--empty': normalizeState(entry.value) === null,
           }"
           :aria-label="`${entry.label}: ${formatState(entry.value)}`"
@@ -37,8 +45,8 @@
           <span
             class="state-indicator"
             :class="{
-              'state-indicator--active': normalizeState(entry.value) === true,
-              'state-indicator--inactive': normalizeState(entry.value) === false,
+              'state-indicator--active': getVisualState(entry.value) === true,
+              'state-indicator--inactive': getVisualState(entry.value) === false,
               'state-indicator--empty': normalizeState(entry.value) === null,
             }"
             aria-hidden="true"
@@ -47,11 +55,56 @@
       </div>
     </ion-card-content>
   </ion-card>
+
+  <ion-modal
+    class="state-settings-modal"
+    :style="{ '--state-accent': accent }"
+    :is-open="settingsOpen"
+    :initial-breakpoint="0.55"
+    :breakpoints="[0, 0.55]"
+    @did-dismiss="settingsOpen = false"
+  >
+    <div class="state-settings">
+      <div class="state-settings__header">
+        <h2>{{ settingsTitle }}</h2>
+        <button
+          type="button"
+          class="state-settings__close"
+          :aria-label="closeLabel"
+          @click="settingsOpen = false"
+        >
+          <ion-icon :icon="closeOutline" aria-hidden="true" />
+        </button>
+      </div>
+
+      <div class="state-settings__mapping" :aria-label="mappingLabel">
+        <div class="state-settings__row">
+          <span class="state-settings__preview state-settings__preview--active" aria-hidden="true">
+            <span class="state-indicator state-indicator--active" />
+          </span>
+          <span class="state-settings__value">{{ inverted ? lowLabel : highLabel }}</span>
+        </div>
+        <div class="state-settings__row">
+          <span class="state-settings__preview state-settings__preview--inactive" aria-hidden="true">
+            <span class="state-indicator state-indicator--inactive" />
+          </span>
+          <span class="state-settings__value">{{ inverted ? highLabel : lowLabel }}</span>
+        </div>
+      </div>
+
+      <button type="button" class="state-settings__invert" @click="toggleInversion">
+        <ion-icon :icon="swapVerticalOutline" aria-hidden="true" />
+        <span>{{ invertLabel }}</span>
+      </button>
+      <p class="state-settings__note">{{ settingsNote }}</p>
+    </div>
+  </ion-modal>
 </template>
 
 <script setup lang="ts">
-import { IonCard, IonCardContent, IonIcon } from '@ionic/vue';
-import { toggleOutline } from 'ionicons/icons';
+import { ref, watch } from 'vue';
+import { IonCard, IonCardContent, IonIcon, IonModal } from '@ionic/vue';
+import { closeOutline, settingsOutline, swapVerticalOutline, toggleOutline } from 'ionicons/icons';
 
 type SensorStateValue = boolean | number | string | null;
 
@@ -59,6 +112,15 @@ const props = withDefaults(defineProps<{
   label: string;
   activeLabel: string;
   inactiveLabel: string;
+  settingsLabel: string;
+  settingsTitle: string;
+  mappingLabel: string;
+  invertLabel: string;
+  settingsNote: string;
+  closeLabel: string;
+  highLabel?: string;
+  lowLabel?: string;
+  preferenceKey?: string;
   accent?: string;
   icon?: string;
   entries: Array<{
@@ -69,7 +131,28 @@ const props = withDefaults(defineProps<{
 }>(), {
   accent: '#DB6F2B',
   icon: toggleOutline,
+  highLabel: 'High (1)',
+  lowLabel: 'Low (0)',
+  preferenceKey: 'default',
 });
+
+const settingsOpen = ref(false);
+const inverted = ref(false);
+const storageKey = () => `easycodec.stateVisualInverted.${props.preferenceKey}`;
+
+const loadPreference = () => {
+  if (typeof localStorage === 'undefined') return;
+  inverted.value = localStorage.getItem(storageKey()) === 'true';
+};
+
+watch(() => props.preferenceKey, loadPreference, { immediate: true });
+
+const toggleInversion = () => {
+  inverted.value = !inverted.value;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(storageKey(), String(inverted.value));
+  }
+};
 
 const normalizeState = (value: SensorStateValue): boolean | null => {
   if (typeof value === 'boolean') return value;
@@ -80,6 +163,11 @@ const normalizeState = (value: SensorStateValue): boolean | null => {
   if (['true', '1', 'on', 'active', 'open', 'high'].includes(normalized)) return true;
   if (['false', '0', 'off', 'inactive', 'closed', 'low'].includes(normalized)) return false;
   return null;
+};
+
+const getVisualState = (value: SensorStateValue): boolean | null => {
+  const state = normalizeState(value);
+  return state === null ? null : inverted.value ? !state : state;
 };
 
 const getColumnCount = (entryCount: number): number => (
@@ -160,12 +248,43 @@ const formatState = (value: SensorStateValue): string => {
 }
 
 .state-title {
+  flex: 1;
   overflow: hidden;
   color: var(--app-text-secondary);
   font-size: 0.82rem;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.state-settings-button,
+.state-settings__close {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--app-text-secondary);
+  font-size: 18px;
+}
+
+.state-settings-button {
+  margin-right: -12px;
+  transform: translateY(-10px);
+}
+
+.state-settings__close {
+  color: var(--app-text);
+  font-size: 22px;
+}
+
+.state-settings-button:active,
+.state-settings__close:active {
+  background: var(--app-surface-subtle);
 }
 
 .state-list {
@@ -253,5 +372,91 @@ const formatState = (value: SensorStateValue): string => {
 .state-indicator--empty {
   border-color: #aeb4bb;
   border-style: dashed;
+}
+
+.state-settings-modal {
+  --border-radius: 20px 20px 0 0;
+}
+
+.state-settings {
+  padding: 8px 20px max(24px, env(safe-area-inset-bottom));
+  color: var(--app-text);
+}
+
+.state-settings__header {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.state-settings__header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.state-settings__mapping {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 18px;
+}
+
+.state-settings__row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.state-settings__preview {
+  display: grid;
+  min-height: 62px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 14px;
+}
+
+.state-settings__preview--active {
+  border-color: rgba(82, 151, 103, 0.16);
+  background: rgba(82, 151, 103, 0.09);
+}
+
+.state-settings__preview--inactive {
+  border-color: rgba(151, 145, 137, 0.12);
+  background: rgba(151, 145, 137, 0.07);
+}
+
+.state-settings__value {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.state-settings__invert {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 10px 16px;
+  border: 1px solid color-mix(in srgb, var(--state-accent) 30%, var(--app-border));
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--state-accent) 10%, var(--app-surface));
+  color: var(--state-accent);
+  font: inherit;
+  font-weight: 650;
+}
+
+.state-settings__invert ion-icon {
+  font-size: 20px;
+}
+
+.state-settings__note {
+  margin: 12px 2px 0;
+  color: var(--app-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.4;
 }
 </style>
