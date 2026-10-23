@@ -71,52 +71,52 @@
           </div>
 
           <ion-card-content v-show="savedConfigurationsVisible" class="saved-config-panel">
-            <ion-select
-              v-if="savedConfigurations.length > 0"
-              class="saved-config-select"
-              interface="popover"
-              fill="outline"
-              :label="localize('@savedConfigurations')"
-              label-placement="stacked"
-              :value="selectedSavedConfigurationId"
-              :placeholder="localize('@selectSavedConfiguration')"
-              @ionChange="selectedSavedConfigurationId = $event.detail.value"
-            >
-              <ion-select-option value="">{{ localize('@newConfiguration') }}</ion-select-option>
-              <ion-select-option
-                v-for="configuration in savedConfigurations"
-                :key="configuration.id"
-                :value="configuration.id"
+            <div class="saved-config-picker">
+              <ion-select
+                v-if="savedConfigurations.length > 0"
+                class="saved-config-select"
+                interface="popover"
+                fill="outline"
+                :label="localize('@savedConfigurations')"
+                label-placement="stacked"
+                :value="selectedSavedConfigurationId"
+                :placeholder="localize('@selectSavedConfiguration')"
+                @ionChange="selectedSavedConfigurationId = $event.detail.value"
               >
-                {{ configuration.name }}
-              </ion-select-option>
-            </ion-select>
-            <p v-else class="saved-config-empty">{{ localize('@noSavedConfiguration') }}</p>
+                <ion-select-option value="">{{ localize('@newConfiguration') }}</ion-select-option>
+                <ion-select-option
+                  v-for="configuration in savedConfigurations"
+                  :key="configuration.id"
+                  :value="configuration.id"
+                >
+                  {{ configuration.name }}
+                </ion-select-option>
+              </ion-select>
+              <p v-else class="saved-config-empty">{{ localize('@noSavedConfiguration') }}</p>
 
-            <div class="saved-config-actions">
-              <ion-button class="saved-config-action--save" size="small" @click="saveCurrentConfiguration">
-                <ion-icon slot="start" :icon="saveOutline" />
-                {{ localize('@saveConfiguration') }}
-              </ion-button>
               <ion-button
                 class="saved-config-action--load"
-                size="small"
-                fill="outline"
-                :disabled="!selectedSavedConfigurationId"
+                expand="block"
+                :disabled="!selectedSavedConfiguration"
+                :aria-label="selectedSavedConfiguration
+                  ? localize('@loadNamedConfiguration').replace('{name}', selectedSavedConfiguration.name)
+                  : localize('@selectConfigurationToLoad')"
                 @click="loadSelectedConfiguration"
               >
-                <ion-icon slot="start" :icon="folderOpenOutline" />
+                <ion-icon slot="start" :icon="checkmarkCircleOutline" />
                 {{ localize('@loadConfiguration') }}
               </ion-button>
+            </div>
+
+            <div class="saved-config-actions">
               <ion-button
-                class="saved-config-action--export"
+                class="saved-config-action--save"
                 size="small"
                 fill="outline"
-                :disabled="!selectedSavedConfigurationId"
-                @click="exportSelectedConfiguration"
+                @click="saveCurrentConfiguration"
               >
-                <ion-icon slot="start" :icon="pushOutline" />
-                {{ localize('@exportConfiguration') }}
+                <ion-icon slot="start" :icon="saveOutline" />
+                {{ localize('@saveConfiguration') }}
               </ion-button>
               <ion-button
                 class="saved-config-action--import"
@@ -128,15 +128,14 @@
                 {{ localize('@importConfiguration') }}
               </ion-button>
               <ion-button
-                class="saved-config-action--delete"
+                class="saved-config-action--more"
                 size="small"
-                fill="clear"
-                color="danger"
-                :disabled="!selectedSavedConfigurationId"
-                @click="confirmDeleteSelectedConfiguration"
+                fill="outline"
+                :disabled="!selectedSavedConfiguration"
+                :aria-label="localize('@configurationActions')"
+                @click="openSavedConfigurationActions"
               >
-                <ion-icon slot="start" :icon="trashOutline" />
-                {{ localize('@deleteConfiguration') }}
+                <ion-icon slot="icon-only" :icon="ellipsisVerticalOutline" />
               </ion-button>
               <input
                 ref="savedConfigurationFileInput"
@@ -1671,7 +1670,7 @@
                   >
                     <code>{{ value.frameHex }}</code>
                     <span>
-                      {{ value.fieldName }} ({{ value.rawHex }}) —
+                      {{ value.fieldName }} ({{ value.rawHex }}) -
                       {{ localize(value.reason === 'seconds-not-representable'
                         ? '@bleReportingSecondsNotRepresentable'
                         : '@bleReportingValueOutOfRange') }}
@@ -1793,7 +1792,7 @@ import {
   alertController,
   toastController,
 } from '@ionic/vue';
-import { alertCircleOutline, checkmarkCircleOutline, chevronForwardOutline, closeOutline, downloadOutline, eyeOffOutline, eyeOutline, folderOpenOutline, lockClosed, lockOpenOutline, pushOutline, refreshOutline, saveOutline, shareSocialOutline, trashOutline } from 'ionicons/icons';
+import { alertCircleOutline, checkmarkCircleOutline, chevronForwardOutline, closeOutline, downloadOutline, ellipsisVerticalOutline, eyeOffOutline, eyeOutline, lockClosed, lockOpenOutline, pushOutline, refreshOutline, saveOutline, shareSocialOutline, trashOutline } from 'ionicons/icons';
 import { Capacitor } from '@capacitor/core';
 import { Directory, Encoding, Filesystem } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -2059,6 +2058,9 @@ const savedConfigurationFileInput = ref<HTMLInputElement | null>(null);
 const savedConfigurations = computed(() => allSavedConfigurations.value.filter(configuration => (
   configuration.product.configurationFile === selectedSensor.value
 )));
+const selectedSavedConfiguration = computed(() => savedConfigurations.value.find(
+  configuration => configuration.id === selectedSavedConfigurationId.value,
+) ?? null);
 const batchChecked = ref(false); // State of the batch mode checkbox
 const standardChecked = ref(false); // State of the standard mode checkbox
 const modbusChecked = ref(true); // State of the modbus mode checkbox
@@ -3898,6 +3900,36 @@ const exportSelectedConfiguration = async () => {
   }
 };
 
+const openSavedConfigurationActions = async () => {
+  const selected = selectedSavedConfiguration.value;
+  if (!selected) return;
+
+  const actionSheet = await actionSheetController.create({
+    header: selected.name,
+    buttons: [
+      {
+        text: localize('@exportConfiguration'),
+        icon: pushOutline,
+        data: { action: 'export' },
+      },
+      {
+        text: localize('@deleteConfiguration'),
+        icon: trashOutline,
+        role: 'destructive',
+        data: { action: 'delete' },
+      },
+      {
+        text: localize('@cancel'),
+        role: 'cancel',
+      },
+    ],
+  });
+  await actionSheet.present();
+  const result = await actionSheet.onDidDismiss();
+  if (result.data?.action === 'export') await exportSelectedConfiguration();
+  else if (result.data?.action === 'delete') await confirmDeleteSelectedConfiguration();
+};
+
 const openConfigurationImport = () => {
   savedConfigurationFileInput.value?.click();
 };
@@ -4057,12 +4089,16 @@ ion-content {
 }
 
 .saved-config-panel {
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr) auto;
-  align-items: center;
-  gap: 14px;
+  display: block;
   padding: 14px 16px 16px 20px;
   background: var(--app-surface-subtle);
+}
+
+.saved-config-picker {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(240px, auto);
+  align-items: end;
+  gap: 8px 14px;
 }
 
 .saved-config-select {
@@ -4078,11 +4114,28 @@ ion-content {
   font-size: 0.9rem;
 }
 
+.saved-config-action--load {
+  min-width: 0;
+  margin: 0;
+  font-weight: 750;
+}
+
+.saved-config-action--load::part(native) {
+  padding-inline: 18px;
+}
+
 .saved-config-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 6px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--app-border);
+}
+
+.saved-config-action--more {
+  flex: 0 0 auto;
 }
 
 .saved-config-file-input {
@@ -4091,17 +4144,19 @@ ion-content {
 
 @media (max-width: 760px) {
   .saved-config-panel {
-    grid-template-columns: 1fr;
     padding: 12px 14px 14px;
+  }
+
+  .saved-config-picker {
+    grid-template-columns: 1fr;
   }
 
   .saved-config-actions {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       "save save"
-      "load delete"
-      "export import";
+      "import more";
     gap: 6px;
   }
 
@@ -4111,10 +4166,8 @@ ion-content {
   }
 
   .saved-config-action--save { grid-area: save; }
-  .saved-config-action--load { grid-area: load; }
-  .saved-config-action--delete { grid-area: delete; }
-  .saved-config-action--export { grid-area: export; }
   .saved-config-action--import { grid-area: import; }
+  .saved-config-action--more { grid-area: more; }
 }
 
 #sensor-card ion-select {
