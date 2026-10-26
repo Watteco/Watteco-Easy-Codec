@@ -126,6 +126,12 @@ const findProductByReference = (products: Product[], value: string): Product | u
 const modelRows = getSection(mappingSource, 'models');
 const objectRows = getSection(mappingSource, 'objects');
 
+const displayUnits: Readonly<Record<string, string>> = {
+  Cel: '°C',
+};
+
+const getDisplayUnit = (unit: string): string => displayUnits[unit] ?? unit;
+
 export const extractProductReference = (value?: string | null): string | null => (
   value?.match(/\d{2,3}(?:-\d{2,3}){2,}/)?.[0] ?? null
 );
@@ -203,7 +209,7 @@ export const getProductMeasurements = (productReference?: string | null): Produc
       id: object.id,
       measId,
       name: object.name || object.id,
-      unit: object.units,
+      unit: getDisplayUnit(object.units),
       decimals: Number.isInteger(Number(object.precision)) ? Number(object.precision) : 0,
     });
   }

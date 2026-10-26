@@ -71,6 +71,13 @@ describe('productMeasurements', () => {
     expect(measurementIds).not.toContain('multi_state');
   });
 
+  it('uses display-friendly measurement units', () => {
+    const measurements = getProductMeasurements('50-70-260-672');
+
+    expect(measurements.find(measurement => measurement.id === 'temperature_1')?.unit).toBe('°C');
+    expect(measurements.find(measurement => measurement.id === 'battery_voltage')?.unit).toBe('V');
+  });
+
   it('configures PT1000 Neo without pulse or binary input sections', () => {
     expect(pt1000NeoConfig.blob_only_configurations).toEqual([[
       '11 05 8004 0000 08 00',

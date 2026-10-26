@@ -256,7 +256,7 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
       pushDebugLog(`[OSA store] Using valid stored key for ${stored.devEui}; key hidden`);
       return await runOsaChallenge(ble.connectedDevice.value.deviceId, stored.keyHex, stored.devEui, pushDebugLog);
     } catch (error: any) {
-      pushDebugLog(`[OSA store] Authentication unavailable — ${error?.message ?? error}`);
+      pushDebugLog(`[OSA store] Authentication unavailable - ${error?.message ?? error}`);
       return false;
     }
   }
@@ -271,9 +271,9 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
       const firstRead = await OsaKeyStore.get({ devEui });
       const secondRead = await OsaKeyStore.get({ devEui });
       const verified = firstRead.keyHex === keyHex.toUpperCase() && secondRead.keyHex === firstRead.keyHex;
-      pushDebugLog(`[OSA store] ${verified ? 'PASS' : 'FAIL'} — stored and read twice, expires ${new Date(firstRead.expiresAt).toLocaleString()}; key hidden`);
+      pushDebugLog(`[OSA store] ${verified ? 'PASS' : 'FAIL'} - stored and read twice, expires ${new Date(firstRead.expiresAt).toLocaleString()}; key hidden`);
     } catch (error: any) {
-      pushDebugLog(`[OSA store] FAIL — ${error?.message ?? error}`);
+      pushDebugLog(`[OSA store] FAIL - ${error?.message ?? error}`);
     }
   }
 
@@ -282,21 +282,21 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
       const stored = await OsaKeyStore.get({ devEui: debugDevEuiHex.value });
       debugOtaAppKeyHex.value = stored.keyHex;
       pushDebugLog(`[OSA store] Key loaded for ${stored.devEui}; expires ${new Date(stored.expiresAt).toLocaleString()}; key hidden`);
-    } catch (error: any) { pushDebugLog(`[OSA store] Read failed — ${error?.message ?? error}`); }
+    } catch (error: any) { pushDebugLog(`[OSA store] Read failed - ${error?.message ?? error}`); }
   }
 
   async function deleteStoredOsaKey() {
     try {
       const result = await OsaKeyStore.delete({ devEui: debugDevEuiHex.value });
       pushDebugLog(`[OSA store] ${result.deleted ? 'Key deleted' : 'No key found'} for ${result.devEui}`);
-    } catch (error: any) { pushDebugLog(`[OSA store] Delete failed — ${error?.message ?? error}`); }
+    } catch (error: any) { pushDebugLog(`[OSA store] Delete failed - ${error?.message ?? error}`); }
   }
 
   async function purgeExpiredOsaKeys() {
     try {
       const result = await OsaKeyStore.purgeExpired();
       pushDebugLog(`[OSA store] Purged ${result.purged ?? 0} expired/invalid record(s)`);
-    } catch (error: any) { pushDebugLog(`[OSA store] Purge failed — ${error?.message ?? error}`); }
+    } catch (error: any) { pushDebugLog(`[OSA store] Purge failed - ${error?.message ?? error}`); }
   }
 
   watch(
