@@ -752,9 +752,9 @@ const feedbackError = ref(false);
 const feedbackContext = ref<'commands' | 'network-test' | 'manual-frame'>('commands');
 const deviceStatus = ref<DeviceStatus>({
   firmwareLongName: null,
-  firmwareVersion: null,
-  manufacturer: null,
-  pcbVersion: null,
+  firmwareVersion: undefined,
+  manufacturer: undefined,
+  pcbVersion: undefined,
   sensorTime: null,
   runningTimeSeconds: null,
   osaAuthenticated: null,
@@ -1085,17 +1085,23 @@ function formatRxWindow(window: number | null): string {
   return `#${window}`;
 }
 
-function formatDeviceInformation(value: string | null): string {
+function deviceInformationIsCurrent(): boolean {
+  return deviceInformationDeviceId !== undefined
+    && deviceInformationDeviceId === ble.connectedDevice.value?.deviceId;
+}
+
+function formatDeviceInformation(value: string | null | undefined): string {
   if (value) return value;
   if (deviceInformationRequiresAuthentication.value) {
     return localize('@toolsAuthenticationRequired');
   }
-  if (deviceStatus.value.osaAuthenticated === true) return localize('@toolsNotProvided');
+  if (deviceInformationLoading.value) return localize('@toolsRefreshing');
+  if (value === null && deviceInformationIsCurrent()) return localize('@toolsNotProvided');
   return '—';
 }
 
-function deviceInformationIsNotProvided(value: string | null): boolean {
-  return deviceStatus.value.osaAuthenticated === true && !value;
+function deviceInformationIsNotProvided(value: string | null | undefined): boolean {
+  return value === null && deviceInformationIsCurrent();
 }
 
 function delay(milliseconds: number): Promise<void> {
@@ -1232,9 +1238,9 @@ function clearDeviceInformation(): void {
   deviceInformationDeviceId = undefined;
   deviceStatus.value = {
     ...deviceStatus.value,
-    firmwareVersion: null,
-    manufacturer: null,
-    pcbVersion: null,
+    firmwareVersion: undefined,
+    manufacturer: undefined,
+    pcbVersion: undefined,
   };
 }
 
@@ -1254,10 +1260,25 @@ async function refreshDeviceInformation(): Promise<void> {
   ) return;
 
   deviceInformationLoading.value = true;
-  clearDeviceInformation();
   try {
     const deviceInformation = await readDeviceInformation(deviceId, line => console.debug(line));
-    deviceStatus.value = { ...deviceStatus.value, ...deviceInformation };
+    if (
+      !ble.connected.value
+      || ble.connectedDevice.value?.deviceId !== deviceId
+      || deviceStatus.value.osaAuthenticated !== true
+    ) return;
+    deviceStatus.value = {
+      ...deviceStatus.value,
+      firmwareVersion: deviceInformation.firmwareVersion === undefined
+        ? deviceStatus.value.firmwareVersion
+        : deviceInformation.firmwareVersion,
+      manufacturer: deviceInformation.manufacturer === undefined
+        ? deviceStatus.value.manufacturer
+        : deviceInformation.manufacturer,
+      pcbVersion: deviceInformation.pcbVersion === undefined
+        ? deviceStatus.value.pcbVersion
+        : deviceInformation.pcbVersion,
+    };
     deviceInformationDeviceId = deviceId;
   } catch (error: any) {
     console.error('Failed to read device information', error);

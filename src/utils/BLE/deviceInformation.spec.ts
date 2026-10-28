@@ -1,9 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   decodeFirmwareVersionResponse,
   decodeManufacturerResponse,
   decodePcbVersionResponse,
+  readDeviceInformation,
 } from '@/utils/BLE/deviceInformation';
+
+vi.mock('@/utils/BLE/appFrames', () => ({
+  startAppRxMonitoring: vi.fn().mockResolvedValue({ notifications: true }),
+  stopAppRxMonitoring: vi.fn().mockResolvedValue(undefined),
+  writeAppTx: vi.fn().mockResolvedValue(undefined),
+  readAppRx: vi.fn(),
+}));
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('device information response decoders', () => {
   it('decodes the semantic firmware version and little-endian ui24 build number', () => {
@@ -52,5 +64,18 @@ describe('device information response decoders', () => {
       0x11, 0x01, 0x00, 0x00, 0x00, 0x05, 0x00, 0x42,
       0x04, 0xff, 0xff, 0xff, 0xff,
     ))).toBeNull();
+  });
+
+  it('keeps fields unknown when the device does not answer', async () => {
+    vi.useFakeTimers();
+    const resultPromise = readDeviceInformation('device-id', () => undefined);
+
+    await vi.runAllTimersAsync();
+
+    await expect(resultPromise).resolves.toEqual({
+      firmwareVersion: undefined,
+      manufacturer: undefined,
+      pcbVersion: undefined,
+    });
   });
 });

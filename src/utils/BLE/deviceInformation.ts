@@ -7,9 +7,11 @@ import {
 } from '@/utils/BLE/appFrames';
 
 export type DeviceInformation = {
-  firmwareVersion: string | null;
-  manufacturer: string | null;
-  pcbVersion: string | null;
+  // null means that the device explicitly returned an empty/0xff value.
+  // undefined means that no usable response was received.
+  firmwareVersion: string | null | undefined;
+  manufacturer: string | null | undefined;
+  pcbVersion: string | null | undefined;
 };
 
 type DeviceInformationField = 2 | 4 | 5;
@@ -51,6 +53,26 @@ export function decodeManufacturerResponse(frame: Uint8Array): string | null {
 
 export function decodePcbVersionResponse(frame: Uint8Array): string | null {
   return decodeStringResponse(frame, 5);
+}
+
+function decodeReceivedFirmwareVersion(frame: Uint8Array | null | undefined): string | null | undefined {
+  if (!frame || frame[7] !== 0x0d || frame.length < 14) return undefined;
+  return decodeFirmwareVersionResponse(frame);
+}
+
+function decodeReceivedString(
+  frame: Uint8Array | null | undefined,
+  field: 4 | 5,
+): string | null | undefined {
+  if (
+    !frame
+    || frame[7] !== 0x42
+    || frame.length < 9
+    || frame.length < 9 + frame[8]
+  ) return undefined;
+  return field === 4
+    ? decodeManufacturerResponse(frame)
+    : decodePcbVersionResponse(frame);
 }
 
 function buildRequest(field: DeviceInformationField): Uint8Array {
@@ -120,9 +142,12 @@ export async function readDeviceInformation(
   onLog: (line: string) => void,
 ): Promise<DeviceInformation> {
   const responses = await readDeviceInformationFields(deviceId, [2, 4, 5], onLog);
+  const firmwareResponse = responses.get(2);
+  const manufacturerResponse = responses.get(4);
+  const pcbResponse = responses.get(5);
   return {
-    firmwareVersion: decodeFirmwareVersionResponse(responses.get(2) ?? new Uint8Array()),
-    manufacturer: decodeManufacturerResponse(responses.get(4) ?? new Uint8Array()),
-    pcbVersion: decodePcbVersionResponse(responses.get(5) ?? new Uint8Array()),
+    firmwareVersion: decodeReceivedFirmwareVersion(firmwareResponse),
+    manufacturer: decodeReceivedString(manufacturerResponse, 4),
+    pcbVersion: decodeReceivedString(pcbResponse, 5),
   };
 }
