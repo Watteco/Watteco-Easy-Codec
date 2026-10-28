@@ -143,6 +143,7 @@ import { IonIcon, IonSpinner, alertController, toastController } from '@ionic/vu
 import {
   alertCircleOutline,
   bluetoothOutline,
+  closeOutline,
   lockClosed,
   lockOpenOutline,
   logOutOutline,
@@ -299,6 +300,16 @@ const presentReconnectWaitingToast = async () => {
     position: 'bottom',
     positionAnchor: 'sensor-mobile-tabs',
     cssClass: 'connection-waiting-toast',
+    buttons: [
+      {
+        icon: closeOutline,
+        side: 'end',
+        role: 'cancel',
+        htmlAttributes: {
+          'aria-label': props.localize('@closeLabel'),
+        },
+      },
+    ],
   });
   await toast.present();
   return toast;
