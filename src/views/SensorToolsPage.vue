@@ -1520,12 +1520,14 @@ async function sendSensorReboot(): Promise<void> {
   commandSending.value = 'reboot';
   feedback.value = '';
   feedbackError.value = false;
+  ble.expectDeviceRestart(deviceId);
   try {
     await rebootDevice(deviceId, line => console.debug(line));
     feedback.value = localize('@toolsRebootSent');
     closeOsaSessionAfterRestart();
     await ble.reconnectAfterDeviceRestart(deviceId);
   } catch (error: any) {
+    ble.cancelExpectedDeviceRestart(deviceId);
     feedbackError.value = true;
     feedback.value = error?.message ?? String(error);
   } finally {

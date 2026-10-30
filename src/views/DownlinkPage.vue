@@ -2359,6 +2359,7 @@ const loadLocalizationFiles = async () => {
 const localization = computed(() => {
   return languages.value[currentLanguage.value];
 });
+const warnedMissingLocalizationKeys = new Set<string>();
 
 const localize = (key: string): string => {
   return key.split(' ').map(word => {
@@ -2367,7 +2368,14 @@ const localize = (key: string): string => {
       if (localizedValue) {
         return localizedValue;
       } else {
-        console.warn(`Localization key not found: ${word}`);
+        const warningKey = `${currentLanguage.value}:${word}`;
+        if (
+          Object.keys(localization.value).length > 0
+          && !warnedMissingLocalizationKeys.has(warningKey)
+        ) {
+          warnedMissingLocalizationKeys.add(warningKey);
+          console.warn(`Localization key not found: ${word}`);
+        }
         return word; // Return the key itself if no match is found
       }
     }

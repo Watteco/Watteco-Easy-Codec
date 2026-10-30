@@ -69,6 +69,7 @@ import {
 import { getBleSignalLevel, type BleSignalLevel } from '@/utils/BLE/rssi';
 import { readAdminDeviceStatus } from '@/utils/BLE/adminStatus';
 import { buildCounterSetFrame } from '@/utils/BLE/counterCommands';
+import { createDiagnosticLogger } from '@/utils/diagnosticLogger';
 
 export type DeviceLike = {
   deviceId: string;
@@ -123,6 +124,7 @@ const BLE_RSSI_POLL_INTERVAL_MS = 2000;
 const COUNTER_RESPONSE_TIMEOUT_MS = 3000;
 const BONDED_DEVICES_STORAGE_KEY = 'easycodec.androidBondedDevices';
 const BONDING_ENABLED = true; // set to true to enable bonding on connect
+const diagnosticLogger = createDiagnosticLogger('ble');
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -202,6 +204,8 @@ const wakeQueue: Array<{
   generation: number;
 }> = [];
 const wakeQueuedDeviceIds = new Set<string>();
+type ExpectedDisconnectReason = 'request' | 'restart';
+const expectedDisconnectReasons = new Map<string, ExpectedDisconnectReason>();
 
 type BluetoothLeWithFastConnect = typeof BluetoothLe & {
   connectWithoutDiscovery(options: { deviceId: string; timeout?: number }): Promise<void>;
@@ -416,6 +420,8 @@ function log(msg: string) {
   const ts = new Date().toLocaleTimeString();
   eventsLog.value.unshift(`${ts} ${msg}`);
   if (eventsLog.value.length > 200) eventsLog.value.pop();
+  if (/\b(?:error|failed|failure)\b/i.test(msg)) diagnosticLogger.warn(msg);
+  else diagnosticLogger.debug(msg);
 }
 
 function logConfigurationFrame(msg: string) {
@@ -438,6 +444,38 @@ function logCounterFrame(msg: string) {
 
 function clearCounterFrameLogs() {
   counterFrameLogs.value = [];
+}
+
+async function disconnectBleDevice(deviceId: string) {
+  expectedDisconnectReasons.set(deviceId, 'request');
+  try {
+    await BleClient.disconnect(deviceId);
+  } catch (error) {
+    expectedDisconnectReasons.delete(deviceId);
+    throw error;
+  }
+  setTimeout(() => {
+    if (expectedDisconnectReasons.get(deviceId) === 'request') {
+      expectedDisconnectReasons.delete(deviceId);
+    }
+  }, 5000);
+}
+
+function expectDeviceRestart(deviceId: string) {
+  expectedDisconnectReasons.set(deviceId, 'restart');
+  diagnosticLogger.info('BLE device restart requested; disconnect expected', { deviceId });
+  setTimeout(() => {
+    if (expectedDisconnectReasons.get(deviceId) === 'restart') {
+      expectedDisconnectReasons.delete(deviceId);
+      diagnosticLogger.warn('Expected BLE restart disconnect was not observed', { deviceId });
+    }
+  }, 30000);
+}
+
+function cancelExpectedDeviceRestart(deviceId: string) {
+  if (expectedDisconnectReasons.get(deviceId) === 'restart') {
+    expectedDisconnectReasons.delete(deviceId);
+  }
 }
 
 function prepareMeasurementHistory(deviceId: string) {
@@ -666,6 +704,7 @@ async function initialize() {
   if (!isNative.value) return;
   if (initialized) return;
   initialized = true;
+  diagnosticLogger.info('BLE initialization started');
   try {
     await BleClient.initialize();
     loadBondedDevicesFromStorage();
@@ -673,8 +712,10 @@ async function initialize() {
     statusMessage.value = 'BLE initialized';
     flushTimer = setInterval(() => flushPending(), FLUSH_INTERVAL_MS);
     registerVisibilityListener();
+    diagnosticLogger.info('BLE initialization completed');
   } catch (e) {
     console.error('BLE init failed:', e);
+    diagnosticLogger.error('BLE initialization failed', { error: e });
     statusMessage.value = 'BLE not available';
   }
 }
@@ -689,6 +730,7 @@ async function startScan(useFilters = true) {
   devices.value = [];
   scanning.value = true;
   statusMessage.value = 'Scanning…';
+  diagnosticLogger.info('BLE scan started', { useFilters, timeoutMs: SCAN_TIMEOUT_MS });
 
   // Promise that resolves when this scan attempt ends (via stopScan)
   const prom = new Promise<void>((resolve) => { scanResolve = resolve; });
@@ -707,6 +749,7 @@ async function startScan(useFilters = true) {
     scanTimeoutId = setTimeout(() => stopScan(), SCAN_TIMEOUT_MS);
   } catch (e: any) {
     statusMessage.value = 'Scan failed: ' + (e?.message ?? e);
+    diagnosticLogger.error('BLE scan failed', { useFilters, error: e });
     scanning.value = false;
     if (scanResolve) { scanResolve(); scanResolve = undefined; }
   }
@@ -720,6 +763,7 @@ async function stopScan() {
   if (scanTimeoutId) { clearTimeout(scanTimeoutId); scanTimeoutId = undefined; }
   scanning.value = false;
   statusMessage.value = `Found ${devices.value.length} device(s)`;
+  diagnosticLogger.info('BLE scan stopped', { deviceCount: devices.value.length });
   if (scanResolve) { scanResolve(); scanResolve = undefined; }
 }
 
@@ -732,6 +776,7 @@ async function startAutoScan(useFilters = true, maxAttempts = MAX_AUTO_SCAN_ATTE
   autoScanCanceled = false;
   scanning.value = true;
   statusMessage.value = 'Auto-scanning…';
+  diagnosticLogger.info('BLE auto-scan started', { useFilters, maxAttempts });
 
   const attemptDuration = SCAN_TIMEOUT_MS;
   const totalDuration = Math.max(1, maxAttempts) * attemptDuration;
@@ -774,11 +819,16 @@ async function startAutoScan(useFilters = true, maxAttempts = MAX_AUTO_SCAN_ATTE
   } catch (e: any) {
     scanFailed = true;
     statusMessage.value = 'Auto-scan failed: ' + (e?.message ?? e);
+    diagnosticLogger.error('BLE auto-scan failed', { useFilters, maxAttempts, error: e });
   } finally {
     if (scanTimeoutId) { clearTimeout(scanTimeoutId); scanTimeoutId = undefined; }
     scanning.value = false;
     if (!scanFailed) {
       statusMessage.value = `Found ${devices.value.length} device(s) after ${Math.min(attempts || 1, maxAttempts)} attempt(s)`;
+      diagnosticLogger.info('BLE auto-scan completed', {
+        deviceCount: devices.value.length,
+        attempts: Math.min(attempts || 1, maxAttempts),
+      });
     }
     autoScanCanceled = false;
   }
@@ -818,6 +868,13 @@ async function connectToDeviceUntil(
   for (let attempt = 1; attempt <= MAX_CONNECT_ATTEMPTS; attempt++) {
     if (isCanceled?.()) return;
     const retryingInvalidBond = attempt > 1;
+    const attemptStartedAt = Date.now();
+    diagnosticLogger.info('BLE connection attempt started', {
+      deviceId: device.deviceId,
+      deviceName: device.name,
+      attempt,
+      bonded: hasRememberedBond(device.deviceId),
+    });
     try {
       if (isAndroidNativePlatform()) {
         await ensureBonded(device.deviceId, retryingInvalidBond);
@@ -828,6 +885,20 @@ async function connectToDeviceUntil(
         ? undefined
         : { timeout: Math.max(1, connectionDeadline - Date.now()) };
       await BleClient.connect(device.deviceId, () => {
+        const expectedReason = expectedDisconnectReasons.get(device.deviceId);
+        expectedDisconnectReasons.delete(device.deviceId);
+        const disconnectContext = {
+          deviceId: device.deviceId,
+          deviceName: device.name,
+          connectionPhase: connectionPhase.value,
+        };
+        if (expectedReason === 'restart') {
+          diagnosticLogger.info('BLE device disconnected for expected restart', disconnectContext);
+        } else if (expectedReason === 'request') {
+          diagnosticLogger.info('BLE device disconnected on request', disconnectContext);
+        } else {
+          diagnosticLogger.warn('BLE device disconnected unexpectedly', disconnectContext);
+        }
         stopBleRssiMonitoring();
         void stopMeasurementMonitoring(device.deviceId, measurementSubscriptions, log);
         measurementSubscriptions = [];
@@ -849,7 +920,7 @@ async function connectToDeviceUntil(
       }, connectionOptions);
 
       if (isCanceled?.()) {
-        try { await BleClient.disconnect(device.deviceId); } catch { /* ignore cancellation cleanup errors */ }
+        try { await disconnectBleDevice(device.deviceId); } catch { /* ignore cancellation cleanup errors */ }
         return;
       }
 
@@ -967,6 +1038,10 @@ async function connectToDeviceUntil(
               statusMessage.value += ' (ready, notifications on)';
             } catch (ne) {
               console.warn('startNotifications failed:', ne);
+              diagnosticLogger.warn('BLE notifications could not be started', {
+                deviceId: device.deviceId,
+                error: ne,
+              });
               statusMessage.value += ' (ready, notifications failed)';
             }
           } else {
@@ -974,10 +1049,12 @@ async function connectToDeviceUntil(
           }
         } else {
           console.warn('No writable HMI characteristic found');
+          diagnosticLogger.warn('No writable HMI characteristic found', { deviceId: device.deviceId });
           statusMessage.value += ' (no writable char)';
         }
       } catch (e) {
         console.warn('Service discovery failed:', e);
+        diagnosticLogger.warn('BLE service discovery failed', { deviceId: device.deviceId, error: e });
       }
 
       if (isCanceled?.()) {
@@ -989,7 +1066,7 @@ async function connectToDeviceUntil(
         loraLinkAvailable.value = null;
         loraLinkTestAvailable.value = null;
         loraLinkStatus.value = null;
-        try { await BleClient.disconnect(device.deviceId); } catch { /* ignore cancellation cleanup errors */ }
+        try { await disconnectBleDevice(device.deviceId); } catch { /* ignore cancellation cleanup errors */ }
         connectedDevice.value = undefined;
         clearConnectionTarget();
         return;
@@ -1002,12 +1079,27 @@ async function connectToDeviceUntil(
         connectionPhase.value = 'ready';
         startBleRssiMonitoring(device.deviceId);
         void refreshOsaAuthenticationStatus();
+        diagnosticLogger.info('BLE connection ready', {
+          deviceId: device.deviceId,
+          deviceName: device.name,
+          productReference: productReference.value,
+          attempt,
+          durationMs: Date.now() - attemptStartedAt,
+          notifications: Boolean(targetNotifyCharUuid),
+        });
       }
       return;
     } catch (e: any) {
+      diagnosticLogger.warn('BLE connection attempt failed', {
+        deviceId: device.deviceId,
+        deviceName: device.name,
+        attempt,
+        durationMs: Date.now() - attemptStartedAt,
+        error: e,
+      });
       if (isAndroidNativePlatform() && attempt < MAX_CONNECT_ATTEMPTS && (hasRememberedBond(device.deviceId) || isLikelyBondIssue(e))) {
         handleBondInvalidation(device.deviceId, e?.message ?? String(e));
-        try { await BleClient.disconnect(device.deviceId); } catch { /* ignore retry cleanup errors */ }
+        try { await disconnectBleDevice(device.deviceId); } catch { /* ignore retry cleanup errors */ }
         clearConnectionTarget();
         connected.value = false;
         connectionPhase.value = 'connecting';
@@ -1032,6 +1124,11 @@ async function connectToDevice(device: DeviceLike): Promise<boolean> {
   connectingDevice = device;
   connecting.value = true;
   connectionPhase.value = 'connecting';
+  const connectionStartedAt = Date.now();
+  diagnosticLogger.info('BLE connection workflow started', {
+    deviceId: device.deviceId,
+    deviceName: device.name,
+  });
 
   try {
     const connectionDeadline = Date.now() + RECONNECT_TIMEOUT_MS;
@@ -1070,7 +1167,14 @@ async function connectToDevice(device: DeviceLike): Promise<boolean> {
       }
     }
 
-    if (!connectionCanceled) statusMessage.value = 'Connection failed: timeout';
+    if (!connectionCanceled) {
+      statusMessage.value = 'Connection failed: timeout';
+      diagnosticLogger.error('BLE connection workflow timed out', {
+        deviceId: device.deviceId,
+        deviceName: device.name,
+        durationMs: Date.now() - connectionStartedAt,
+      });
+    }
     return false;
   } finally {
     finishReconnectScan(false);
@@ -1078,7 +1182,13 @@ async function connectToDevice(device: DeviceLike): Promise<boolean> {
       reconnectScanActive = false;
       try { await BleClient.stopLEScan(); } catch { /* ignore connection scan cleanup errors */ }
     }
-    if (connectionCanceled) statusMessage.value = 'Connection canceled';
+    if (connectionCanceled) {
+      statusMessage.value = 'Connection canceled';
+      diagnosticLogger.info('BLE connection workflow canceled', {
+        deviceId: device.deviceId,
+        durationMs: Date.now() - connectionStartedAt,
+      });
+    }
     if (!connected.value) connectionPhase.value = 'idle';
     connecting.value = false;
     connectingDevice = undefined;
@@ -1098,7 +1208,7 @@ async function cancelConnect() {
   }
 
   if (connectingDevice) {
-    try { await BleClient.disconnect(connectingDevice.deviceId); } catch { /* ignore pending connection cancellation errors */ }
+    try { await disconnectBleDevice(connectingDevice.deviceId); } catch { /* ignore pending connection cancellation errors */ }
   }
   statusMessage.value = 'Connection canceled';
 }
@@ -1106,6 +1216,11 @@ async function cancelConnect() {
 async function disconnect() {
   stopBleRssiMonitoring();
   if (!connectedDevice.value) return;
+  const disconnectedDevice = connectedDevice.value;
+  diagnosticLogger.info('BLE disconnection requested', {
+    deviceId: disconnectedDevice.deviceId,
+    deviceName: disconnectedDevice.name,
+  });
   await stopMeasurementMonitoring(
     connectedDevice.value.deviceId,
     measurementSubscriptions,
@@ -1120,8 +1235,11 @@ async function disconnect() {
   loraLinkStatus.value = null;
   osaAuthenticated.value = null;
   try {
-    await BleClient.disconnect(connectedDevice.value.deviceId);
-  } catch (e) { console.error('Disconnect error:', e); }
+    await disconnectBleDevice(connectedDevice.value.deviceId);
+  } catch (e) {
+    console.error('Disconnect error:', e);
+    diagnosticLogger.warn('BLE disconnection failed', { deviceId: disconnectedDevice.deviceId, error: e });
+  }
   connected.value = false;
   connectionPhase.value = 'idle';
   connectedDevice.value = undefined;
@@ -1129,6 +1247,7 @@ async function disconnect() {
   clearConnectionTarget();
   pairing.value = false;
   statusMessage.value = 'Disconnected';
+  diagnosticLogger.info('BLE disconnection completed', { deviceId: disconnectedDevice.deviceId });
 }
 
 async function pollAllMeasurements(): Promise<number> {
@@ -1283,7 +1402,7 @@ async function cancelReconnect() {
 
   const deviceId = lastConnectedDevice.value?.deviceId;
   if (deviceId) {
-    try { await BleClient.disconnect(deviceId); } catch { /* ignore pending connection cancellation errors */ }
+    try { await disconnectBleDevice(deviceId); } catch { /* ignore pending connection cancellation errors */ }
   }
   statusMessage.value = 'Reconnection canceled';
 }
@@ -1303,6 +1422,11 @@ async function reconnectToLastDevice(): Promise<boolean> {
 
   reconnectCanceled = false;
   reconnecting.value = true;
+  const reconnectStartedAt = Date.now();
+  diagnosticLogger.info('BLE reconnection workflow started', {
+    deviceId: device.deviceId,
+    deviceName: device.name,
+  });
   try {
     const reconnectDeadline = Date.now() + RECONNECT_TIMEOUT_MS;
     do {
@@ -1325,7 +1449,13 @@ async function reconnectToLastDevice(): Promise<boolean> {
       // grant the actual GATT connection its complete timeout.
       const connectionDeadline = Date.now() + RECONNECT_CONNECT_TIMEOUT_MS;
       await connectToDeviceUntil(device, connectionDeadline, () => reconnectCanceled);
-      if (connected.value) return true;
+      if (connected.value) {
+        diagnosticLogger.info('BLE reconnection workflow completed', {
+          deviceId: device.deviceId,
+          durationMs: Date.now() - reconnectStartedAt,
+        });
+        return true;
+      }
 
       const remainingTime = reconnectDeadline - Date.now();
       if (remainingTime > 0) {
@@ -1333,6 +1463,10 @@ async function reconnectToLastDevice(): Promise<boolean> {
       }
     } while (Date.now() < reconnectDeadline);
 
+    diagnosticLogger.warn('BLE reconnection workflow timed out', {
+      deviceId: device.deviceId,
+      durationMs: Date.now() - reconnectStartedAt,
+    });
     return false;
   } finally {
     finishReconnectScan(false);
@@ -1942,6 +2076,8 @@ export function useBle() {
     cancelConnect,
     reconnectToLastDevice,
     reconnectAfterDeviceRestart,
+    expectDeviceRestart,
+    cancelExpectedDeviceRestart,
     cancelReconnect,
     disconnect,
     pollAllMeasurements,
