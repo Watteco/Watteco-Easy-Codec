@@ -42,19 +42,8 @@
             @ionChange="setConfirmationEnabled($event.detail.checked)"
           />
         </ion-item>
-        <ion-item>
-          <ion-label class="diagnostic-setting-label">
-            <strong>{{ localize('@diagnosticReport') }}</strong>
-            <p>{{ localize('@diagnosticReportDescription') }}</p>
-          </ion-label>
-          <ion-button
-            slot="end"
-            fill="outline"
-            :disabled="diagnosticExportInProgress"
-            @click="exportDiagnostics"
-          >
-            {{ diagnosticExportInProgress ? localize('@diagnosticExporting') : localize('@diagnosticExport') }}
-          </ion-button>
+        <ion-item button detail router-link="/diagnostic-report">
+          <ion-label>{{ localize('@diagnosticReport') }}</ion-label>
         </ion-item>
         <ion-item
           :button="developerModeAvailable"
@@ -79,7 +68,7 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import {
   IonBackButton, IonButtons, IonContent, IonHeader,
   IonPage, IonTitle, IonToolbar, IonList, IonItem, IonSelect, IonSelectOption, IonLabel, IonNote,
-  IonToggle, IonButton, toastController,
+  IonToggle,
 } from '@ionic/vue';
 import axios from 'axios';
 import { appVersion } from '@/utils/appVersion';
@@ -87,9 +76,6 @@ import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import { useTheme } from '@/composables/useTheme';
 import { useSessionExitConfirmation } from '@/composables/useSessionExitConfirmation';
-import { useBle } from '@/composables/useBle';
-import { exportDiagnosticReport } from '@/utils/diagnosticExport';
-import { createDiagnosticLogger } from '@/utils/diagnosticLogger';
 import type { LanguageCode, Translations } from '@/types/localization';
 
 import enUS from '/localisation/en_US.json?url';
@@ -98,15 +84,12 @@ import frFR from '/localisation/fr_FR.json?url';
 const { currentLanguage, changeLanguage } = useLanguage();
 const { themeMode, setThemeMode } = useTheme();
 const { confirmationEnabled, setConfirmationEnabled } = useSessionExitConfirmation();
-const ble = useBle();
-const settingsLogger = createDiagnosticLogger('settings');
 const {
   developerModeAvailable,
   developerModeEnabled,
   toggleDeveloperMode,
 } = useDeveloperMode();
 const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
-const diagnosticExportInProgress = ref(false);
 let versionTapCount = 0;
 let versionTapResetTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -130,60 +113,6 @@ function registerVersionTap() {
   versionTapResetTimer = setTimeout(() => {
     versionTapCount = 0;
   }, 2000);
-}
-
-async function exportDiagnostics() {
-  if (diagnosticExportInProgress.value) return;
-  diagnosticExportInProgress.value = true;
-  settingsLogger.info('Diagnostic export requested');
-  try {
-    const filename = await exportDiagnosticReport({
-      ble: {
-        initialized: ble.bleInitialized.value,
-        scanning: ble.scanning.value,
-        connected: ble.connected.value,
-        connectionPhase: ble.connectionPhase.value,
-        statusMessage: ble.statusMessage.value,
-        connectedDevice: ble.connectedDevice.value,
-        lastConnectedDevice: ble.lastConnectedDevice.value,
-        productReference: ble.productReference.value,
-        loraWanJoined: ble.loraWanJoined.value,
-        loraLinkAvailable: ble.loraLinkAvailable.value,
-        loraLinkTestAvailable: ble.loraLinkTestAvailable.value,
-        loraLinkStatus: ble.loraLinkStatus.value,
-        rssi: ble.bleRssi.value,
-        signalLevel: ble.bleSignalLevel.value,
-        recentEvents: ble.eventsLog.value,
-        recentReceivedFrames: ble.receivedFrames.value,
-        configurationFrames: ble.configurationFrameLogs.value,
-        counterFrames: ble.counterFrameLogs.value,
-        wakeDiagnostics: ble.wakeDiagnostics.value,
-      },
-    });
-    settingsLogger.info('Diagnostic export completed', { filename });
-    const toast = await toastController.create({
-      message: localize('@diagnosticExportSuccess'),
-      color: 'success',
-      duration: 2500,
-      position: 'bottom',
-    });
-    await toast.present();
-  } catch (error) {
-    if (/share canceled/i.test(String((error as { message?: unknown })?.message ?? error))) {
-      settingsLogger.info('Diagnostic share canceled');
-      return;
-    }
-    settingsLogger.error('Diagnostic export failed', { error });
-    const toast = await toastController.create({
-      message: localize('@diagnosticExportFailure'),
-      color: 'danger',
-      duration: 3000,
-      position: 'bottom',
-    });
-    await toast.present();
-  } finally {
-    diagnosticExportInProgress.value = false;
-  }
 }
 
 onMounted(async () => {
@@ -257,15 +186,4 @@ ion-list {
   flex: 0 0 auto;
 }
 
-.diagnostic-setting-label {
-  margin-right: 12px;
-  white-space: normal;
-}
-
-.diagnostic-setting-label p {
-  margin: 4px 0 0;
-  color: var(--ion-color-medium);
-  font-size: 0.85rem;
-  line-height: 1.3;
-}
 </style>

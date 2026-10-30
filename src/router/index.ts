@@ -25,6 +25,11 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/BLESettings.vue')
   },
   {
+    path: '/diagnostic-report',
+    name: 'DiagnosticReport',
+    component: () => import('@/views/DiagnosticReportPage.vue')
+  },
+  {
     path: '/sensor-data',
     name: 'SensorData',
     component: () => import('@/views/SensorDataPage.vue'),
