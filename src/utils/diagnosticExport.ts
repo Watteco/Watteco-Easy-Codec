@@ -8,7 +8,7 @@ export const DIAGNOSTIC_REPORT_FORMAT = 'watteco-easy-codec-diagnostic';
 export const DIAGNOSTIC_REPORT_SCHEMA_VERSION = 1;
 
 function diagnosticFilename(date = new Date()): string {
-  return `easy-codec-diagnostic-${date.toISOString().replace(/[:.]/g, '-')}.txt`;
+  return `wtc-neo-diagnostic-${date.toISOString().replace(/[:.]/g, '-')}.txt`;
 }
 
 export function buildDiagnosticReport(context: Record<string, unknown> = {}) {
@@ -62,8 +62,8 @@ export async function exportDiagnosticReport(context: Record<string, unknown> = 
     temporaryFileCreated = true;
     const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache });
     await Share.share({
-      title: 'Easy Codec diagnostic',
-      text: 'Easy Codec diagnostic report',
+      title: 'Watteco Neo diagnostic',
+      text: 'Watteco Neo diagnostic report',
       files: [uri],
       dialogTitle: 'Share diagnostic report',
     });
