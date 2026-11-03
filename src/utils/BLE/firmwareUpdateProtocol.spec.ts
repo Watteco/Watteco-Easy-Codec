@@ -7,6 +7,7 @@ import {
   buildPrepareCommand,
   crc32,
   deriveOtaLoaderName,
+  deriveApplicationNameFromOtaLoader,
   STM32WB_55CE512K_FIRST_SECTOR,
   STM32WB_55CE512K_SECTOR_COUNT,
 } from '@/utils/BLE/firmwareUpdateProtocol';
@@ -36,6 +37,12 @@ describe('firmware update protocol', () => {
     expect(deriveOtaLoaderName(' WS5F006761 ')).toBe('WS5F006761.OTA');
     expect(deriveOtaLoaderName('WS5F006761.OTA')).toBeNull();
     expect(deriveOtaLoaderName()).toBeNull();
+  });
+
+  it('derives the application name from a recovery loader', () => {
+    expect(deriveApplicationNameFromOtaLoader('WS5F006761.OTA')).toBe('WS5F006761');
+    expect(deriveApplicationNameFromOtaLoader(' ws5f006761.ota ')).toBe('ws5f006761');
+    expect(deriveApplicationNameFromOtaLoader('WS5F006761')).toBeNull();
   });
 
   it('calculates the standard reflected CRC-32 used by zlib', () => {

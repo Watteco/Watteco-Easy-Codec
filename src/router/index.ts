@@ -49,6 +49,15 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/firmware-update',
+    name: 'FirmwareUpdate',
+    component: () => import('@/views/FirmwareUpdatePage.vue'),
+    beforeEnter: (_to, _from, next) => {
+      if (!isNative) { next('/tabs/downlink'); return; }
+      next();
+    }
+  },
+  {
     path: '/ble-finder',
     name: 'BleFinder',
     component: () => import('@/views/BleSignalGaugePage.vue'),

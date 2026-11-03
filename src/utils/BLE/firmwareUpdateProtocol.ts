@@ -109,3 +109,10 @@ export function deriveOtaLoaderName(applicationName?: string): string | null {
   if (!normalizedName || normalizedName.toUpperCase().endsWith('.OTA')) return null;
   return `${normalizedName}.OTA`;
 }
+
+export function deriveApplicationNameFromOtaLoader(loaderName?: string): string | null {
+  const normalizedName = loaderName?.trim();
+  if (!normalizedName?.toUpperCase().endsWith('.OTA')) return null;
+  const applicationName = normalizedName.slice(0, -4);
+  return applicationName || null;
+}

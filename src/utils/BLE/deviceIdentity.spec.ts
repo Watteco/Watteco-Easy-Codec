@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   deriveDevEuiFromDeviceName,
   formatDevEui,
+  isBleOtaLoaderName,
   isBleSensorName,
+  isBleSensorOrOtaName,
 } from '@/utils/BLE/deviceIdentity';
 
 describe('Watteco BLE device identity', () => {
@@ -17,6 +19,15 @@ describe('Watteco BLE device identity', () => {
   it('reconstructs the DevEUI from an extended WS identifier', () => {
     expect(deriveDevEuiFromDeviceName('ws5f006763')).toBe('70B3D5E75F006763');
     expect(deriveDevEuiFromDeviceName('WS12345678')).toBe('70B3D5E712345678');
+    expect(deriveDevEuiFromDeviceName('WS5F006763.OTA')).toBe('70B3D5E75F006763');
+  });
+
+  it('recognizes OTA recovery loader names separately', () => {
+    expect(isBleOtaLoaderName('WS5F006763.OTA')).toBe(true);
+    expect(isBleOtaLoaderName('ws5f006763.ota')).toBe(true);
+    expect(isBleOtaLoaderName('WS5F006763')).toBe(false);
+    expect(isBleSensorOrOtaName('WS5F006763')).toBe(true);
+    expect(isBleSensorOrOtaName('WS5F006763.OTA')).toBe(true);
   });
 
   it('does not infer a DevEUI from an unrecognized or incomplete name', () => {

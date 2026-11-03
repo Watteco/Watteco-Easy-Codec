@@ -179,8 +179,7 @@
                       ? localize('@toolsSendingCommand')
                       : localize('@toolsFactoryReset') }}
                   </ion-button>
-                  <ion-button expand="block" disabled>
-                    <ion-icon slot="start" :icon="lockIcon" />
+                  <ion-button expand="block" @click="router.push('/firmware-update')">
                     {{ localize('@toolsFirmwareUpdate') }}
                   </ion-button>
                 </div>
@@ -598,6 +597,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
 import { IonButton, IonCard, IonCardContent, IonContent, IonIcon, IonPage, onIonViewDidEnter } from '@ionic/vue';
 import { chevronDownOutline, chevronForwardOutline, lockClosed, lockOpenOutline } from 'ionicons/icons';
@@ -717,6 +717,7 @@ const HEX_KEYPAD_KEYS = [
   '0', 'D', 'E', 'F',
 ] as const;
 const ble = useBle();
+const router = useRouter();
 const { developerModeEnabled } = useDeveloperMode();
 const {
   debugVisible,

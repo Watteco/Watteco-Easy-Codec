@@ -46,7 +46,7 @@ const PAGE_RETRY_COUNT = 3;
 const GATT_CCCD_UUID = '00002902-0000-1000-8000-00805f9b34fb';
 
 export type FirmwareUpdateProgress = {
-  phase: 'resume-probe' | 'application' | 'loader' | 'prepare' | 'transfer' | 'finish' | 'verify';
+  phase: 'resume-probe' | 'application-connect' | 'application' | 'loader' | 'prepare' | 'transfer' | 'finish' | 'verify';
   transferred: number;
   total: number;
   percent: number;
@@ -59,8 +59,10 @@ type FirmwareUpdateTransferOptions = {
   osaKeyHex: string;
   devEuiHex: string;
   image: FirmwareImagePlan;
+  loaderDevice?: BleDevice;
   onLog: (line: string) => void;
   onProgress: (progress: FirmwareUpdateProgress) => void;
+  reconnectApplication?: () => Promise<boolean>;
   expectApplicationRestart?: (deviceId: string) => void;
   cancelExpectedApplicationRestart?: (deviceId: string) => void;
 };
@@ -392,6 +394,7 @@ async function transferImage(
 
     let transferred = 0;
     let nextLoggedPercent = 0;
+    onProgress({ phase: 'transfer', transferred: 0, total: image.transferSize, percent: 0 });
     for (const region of image.transferRegions) {
       for (const page of flashPages(region)) {
         const expectedCrc = crc32(page.data);
@@ -477,18 +480,28 @@ export async function runFirmwareUpdateTransfer(options: FirmwareUpdateTransferO
   options.onLog(`[FW update] Looking for an active recovery loader ${otaName}`);
 
   let otaDevice: BleDevice;
-  try {
-    otaDevice = await scanForNamedDevice(otaName, OTA_RESUME_PROBE_MS, options.onLog);
-    options.onLog(`[FW update] Active loader found; resuming directly (${otaDevice.deviceId})`);
-  } catch (error) {
-    if (!(error instanceof DeviceNotFoundError)) throw error;
-    if (!options.applicationConnected) {
-      throw new Error(`Recovery loader ${otaName} was not found and the application is not connected`);
+  if (options.loaderDevice) {
+    otaDevice = options.loaderDevice;
+    options.onLog(`[FW update] Using selected recovery loader ${otaName} (${otaDevice.deviceId})`);
+  } else {
+    try {
+      otaDevice = await scanForNamedDevice(otaName, OTA_RESUME_PROBE_MS, options.onLog);
+      options.onLog(`[FW update] Active loader found; resuming directly (${otaDevice.deviceId})`);
+    } catch (error) {
+      if (!(error instanceof DeviceNotFoundError)) throw error;
+      if (!options.applicationConnected) {
+        options.onProgress({ phase: 'application-connect', transferred: 0, total, percent: 0 });
+        options.onLog(`[FW update] Application ${options.applicationName} is disconnected; starting the app reconnection workflow`);
+        if (!options.reconnectApplication || !await options.reconnectApplication()) {
+          throw new Error(`Could not reconnect to application ${options.applicationName}`);
+        }
+        options.onLog(`[FW update] Application ${options.applicationName} reconnected`);
+      }
+      options.onProgress({ phase: 'application', transferred: 0, total, percent: 0 });
+      await requestLoaderFromApplication(options);
+      options.onLog(`[FW update] Scanning for ${otaName}`);
+      otaDevice = await scanForNamedDevice(otaName, OTA_SCAN_TIMEOUT_MS, options.onLog);
     }
-    options.onProgress({ phase: 'application', transferred: 0, total, percent: 0 });
-    await requestLoaderFromApplication(options);
-    options.onLog(`[FW update] Scanning for ${otaName}`);
-    otaDevice = await scanForNamedDevice(otaName, OTA_SCAN_TIMEOUT_MS, options.onLog);
   }
 
   options.onProgress({ phase: 'loader', transferred: 0, total, percent: 0 });

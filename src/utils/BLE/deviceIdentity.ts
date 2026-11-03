@@ -2,13 +2,22 @@ const WATTECO_DEV_EUI_PREFIX = '70B3D5E7';
 
 export const BLE_SENSOR_NAME_PREFIX = 'WS5';
 export const BLE_SENSOR_NAME_PATTERN = /^WS5[0-9A-F]{7}$/i;
+export const BLE_OTA_LOADER_NAME_PATTERN = /^WS5[0-9A-F]{7}\.OTA$/i;
 
 export function isBleSensorName(deviceName?: string): boolean {
   return BLE_SENSOR_NAME_PATTERN.test(deviceName?.trim() ?? '');
 }
 
+export function isBleOtaLoaderName(deviceName?: string): boolean {
+  return BLE_OTA_LOADER_NAME_PATTERN.test(deviceName?.trim() ?? '');
+}
+
+export function isBleSensorOrOtaName(deviceName?: string): boolean {
+  return isBleSensorName(deviceName) || isBleOtaLoaderName(deviceName);
+}
+
 export function deriveDevEuiFromDeviceName(deviceName?: string): string | null {
-  const normalizedName = deviceName?.trim().toUpperCase();
+  const normalizedName = deviceName?.trim().toUpperCase().replace(/\.OTA$/, '');
   const extendedWsMatch = normalizedName?.match(/^WS([0-9A-F]{8})$/);
   if (extendedWsMatch) return `${WATTECO_DEV_EUI_PREFIX}${extendedWsMatch[1]}`;
 

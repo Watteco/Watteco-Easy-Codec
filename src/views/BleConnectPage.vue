@@ -77,10 +77,13 @@
           </div>
         </div>
 
-        <!-- Device list -->
-        <ion-list v-if="!ble.connected.value && displayedDevices.length" class="device-list">
+        <!-- Application devices -->
+        <h2 v-if="!ble.connected.value && applicationDevices.length" class="device-group-title">
+          {{ localize('@bleSensors') }}
+        </h2>
+        <ion-list v-if="!ble.connected.value && applicationDevices.length" class="device-list">
           <ion-item
-            v-for="dev in displayedDevices"
+            v-for="dev in applicationDevices"
             :key="dev.deviceId"
             button
             @click="onDeviceSelect(dev)"
@@ -103,6 +106,30 @@
               <p v-else-if="dev.isSimulated">{{ localize('@bleSimulatedSensor') }}</p>
             </ion-label>
             <ion-spinner v-if="(connecting || ble.pairing.value) && connectingDeviceId === dev.deviceId" slot="end" name="crescent" />
+          </ion-item>
+        </ion-list>
+
+        <!-- Recovery loaders stay available even when the application is erased. -->
+        <h2 v-if="!ble.connected.value && otaLoaderDevices.length" class="device-group-title device-group-title--ota">
+          {{ localize('@bleRecoveryLoaders') }}
+        </h2>
+        <ion-list v-if="!ble.connected.value && otaLoaderDevices.length" class="device-list device-list--ota">
+          <ion-item
+            v-for="dev in otaLoaderDevices"
+            :key="dev.deviceId"
+            button
+            @click="onDeviceSelect(dev)"
+            :disabled="connecting || ble.pairing.value"
+          >
+            <ion-icon :icon="cloudUploadOutline" slot="start" color="warning" />
+            <ion-label>
+              <h2>{{ ble.getDeviceName(dev) }}</h2>
+              <p>{{ localize('@bleRecoveryLoaderHint') }}</p>
+              <p v-if="formatDevEui(dev.devEui)" class="device-eui">
+                <span class="device-eui-label">DevEUI:&nbsp;</span>
+                <LeadingEllipsisText class="device-eui-value" :text="formatDevEui(dev.devEui) ?? ''" />
+              </p>
+            </ion-label>
           </ion-item>
         </ion-list>
 
@@ -223,6 +250,7 @@ import {
   addCircleOutline,
   bluetoothOutline,
   closeOutline,
+  cloudUploadOutline,
   searchOutline,
   settingsOutline,
 } from 'ionicons/icons';
@@ -234,6 +262,10 @@ import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { deriveDevEuiFromDeviceName, formatDevEui } from '@/utils/BLE/deviceIdentity';
+import {
+  recoveryDeviceFromOtaLoader,
+  saveFirmwareRecoveryDevice,
+} from '@/utils/BLE/firmwareUpdateRecovery';
 
 // Import language files
 import enUS from '/localisation/en_US.json?url';
@@ -283,6 +315,8 @@ const displayedDevices = computed<DisplayDevice[]>(() => {
   );
   return [...realDevices, ...uniqueSimulatedDevices];
 });
+const applicationDevices = computed(() => displayedDevices.value.filter(device => !device.isOtaLoader));
+const otaLoaderDevices = computed(() => displayedDevices.value.filter(device => device.isOtaLoader));
 const showScanningIndicator = computed(() => ble.scanning.value);
 const scanPanelRaised = computed(() => (
   ble.scanning.value || displayedDevices.value.length > 0
@@ -359,6 +393,15 @@ async function onDeviceSelect(dev: DisplayDevice) {
     await ble.cancelScan();
     ble.setProductReference(dev.productReference);
     proceed();
+    return;
+  }
+
+  if (dev.isOtaLoader) {
+    const recoveryDevice = recoveryDeviceFromOtaLoader(dev);
+    if (!recoveryDevice) return;
+    await ble.cancelScan();
+    saveFirmwareRecoveryDevice(recoveryDevice);
+    await router.push('/firmware-update');
     return;
   }
 
@@ -538,6 +581,24 @@ watch(() => ble.connectionPhase.value, (phase) => {
   background: transparent;
   padding-top: 4px;
   margin-bottom: 16px;
+}
+
+.device-group-title {
+  margin: 18px 4px 6px;
+  color: var(--ion-color-medium);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.device-group-title--ota {
+  color: var(--ion-color-warning-shade);
+}
+
+.device-list--ota ion-item {
+  --background: rgba(var(--ion-color-warning-rgb), 0.08);
+  border: 1px solid rgba(var(--ion-color-warning-rgb), 0.24);
 }
 
 .pairing-banner {

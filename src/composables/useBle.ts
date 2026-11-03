@@ -42,7 +42,8 @@ import { decodeAdvertisedProductId } from '@/utils/BLE/advertising';
 import {
   BLE_SENSOR_NAME_PREFIX,
   deriveDevEuiFromDeviceName,
-  isBleSensorName,
+  isBleOtaLoaderName,
+  isBleSensorOrOtaName,
 } from '@/utils/BLE/deviceIdentity';
 import {
   MEASUREMENT_SOURCE_TO_ID,
@@ -79,6 +80,7 @@ export type DeviceLike = {
   productReference?: string;
   productName?: string;
   devEui?: string;
+  isOtaLoader?: boolean;
 };
 
 export type BleConnectionPhase = 'idle' | 'connecting' | 'discovering' | 'ready';
@@ -283,7 +285,7 @@ function registerVisibilityListener() {
 function recordScanResult(result: ScanResult, useFilters: boolean) {
   const advertisementAt = Date.now();
   const name = result.localName ?? result.device.name;
-  if (useFilters && !isBleSensorName(name)) return;
+  if (useFilters && !isBleSensorOrOtaName(name)) return;
 
   const advertisedProductId = decodeAdvertisedProductId(result.manufacturerData) ?? undefined;
   const advertisedProductReference = resolveAvailableProductReference(advertisedProductId) ?? undefined;
@@ -299,6 +301,7 @@ function recordScanResult(result: ScanResult, useFilters: boolean) {
     productReference: advertisedProductReference ?? previous?.productReference,
     productName: advertisedProductName ?? previous?.productName,
     devEui: deriveDevEuiFromDeviceName(name) ?? previous?.devEui,
+    isOtaLoader: isBleOtaLoaderName(name),
   };
 
   if (index < 0) {
@@ -309,13 +312,14 @@ function recordScanResult(result: ScanResult, useFilters: boolean) {
     || previous?.productReference !== device.productReference
     || previous?.productName !== device.productName
     || previous?.devEui !== device.devEui
+    || previous?.isOtaLoader !== device.isOtaLoader
   ) {
     devices.value = devices.value.map((current, currentIndex) => (
       currentIndex === index ? device : current
     ));
   }
 
-  enqueueSensorWake(device, advertisementAt);
+  if (!device.isOtaLoader) enqueueSensorWake(device, advertisementAt);
 }
 
 function updateWakeDiagnostic(
