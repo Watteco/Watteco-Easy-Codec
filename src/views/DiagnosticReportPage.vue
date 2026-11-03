@@ -105,17 +105,20 @@
 import { computed, onMounted, ref } from 'vue';
 import {
   IonBackButton, IonButton, IonButtons, IonContent, IonHeader,
-  IonIcon, IonItem, IonLabel, IonList, IonNote, IonPage, IonTitle, IonToolbar, toastController,
+  IonIcon, IonItem, IonLabel, IonList, IonNote, IonPage, IonTitle, IonToolbar,
+  actionSheetController, toastController,
 } from '@ionic/vue';
 import { Capacitor } from '@capacitor/core';
-import { informationCircleOutline } from 'ionicons/icons';
+import { informationCircleOutline, saveOutline, shareSocialOutline } from 'ionicons/icons';
 import axios from 'axios';
 import { appVersion } from '@/utils/appVersion';
 import { useLanguage } from '@/composables/useLanguage';
 import { useBle } from '@/composables/useBle';
 import { formatDevEui } from '@/utils/BLE/deviceIdentity';
 import { getProductDisplayName } from '@/utils/productMeasurements';
-import { exportDiagnosticReport } from '@/utils/diagnosticExport';
+import {
+  exportDiagnosticReport, saveDiagnosticReport, shareDiagnosticReport,
+} from '@/utils/diagnosticExport';
 import { createDiagnosticLogger, getDiagnosticLogs } from '@/utils/diagnosticLogger';
 import type { LanguageCode, Translations } from '@/types/localization';
 
@@ -206,7 +209,7 @@ async function exportDiagnostics() {
   diagnosticExportInProgress.value = true;
   diagnosticLogger.info('Diagnostic export requested');
   try {
-    const filename = await exportDiagnosticReport({
+    const context = {
       ble: {
         initialized: ble.bleInitialized.value,
         scanning: ble.scanning.value,
@@ -228,10 +231,52 @@ async function exportDiagnostics() {
         counterFrames: ble.counterFrameLogs.value,
         wakeDiagnostics: ble.wakeDiagnostics.value,
       },
-    });
-    diagnosticLogger.info('Diagnostic export completed', { filename });
+    };
+
+    let exportAction: 'download' | 'save' | 'share' = 'download';
+    if (Capacitor.isNativePlatform()) {
+      const actionSheet = await actionSheetController.create({
+        header: localize('@diagnosticExportTitle'),
+        buttons: [
+          {
+            text: localize('@diagnosticSaveOnDevice'),
+            icon: saveOutline,
+            role: 'save-on-device',
+          },
+          {
+            text: localize('@diagnosticShare'),
+            icon: shareSocialOutline,
+            role: 'share',
+          },
+          {
+            text: localize('@cancel'),
+            role: 'cancel',
+          },
+        ],
+      });
+      await actionSheet.present();
+      const { role } = await actionSheet.onDidDismiss();
+      if (role === 'cancel' || role === 'backdrop') {
+        diagnosticLogger.info('Diagnostic export canceled');
+        return;
+      }
+      if (role !== 'save-on-device' && role !== 'share') return;
+      exportAction = role === 'save-on-device' ? 'save' : 'share';
+    }
+
+    const filename = exportAction === 'save'
+      ? await saveDiagnosticReport(context)
+      : exportAction === 'share'
+        ? await shareDiagnosticReport(context)
+        : await exportDiagnosticReport(context);
+    diagnosticLogger.info('Diagnostic export completed', { filename, exportAction });
+    const successMessage = exportAction === 'save'
+      ? localize('@diagnosticSavedToDocuments').replace('{name}', filename)
+      : exportAction === 'share'
+        ? localize('@diagnosticShareSuccess')
+        : localize('@diagnosticExportSuccess');
     const toast = await toastController.create({
-      message: localize('@diagnosticExportSuccess'),
+      message: successMessage,
       color: 'success',
       duration: 2500,
       position: 'bottom',

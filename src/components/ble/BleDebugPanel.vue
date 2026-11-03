@@ -60,6 +60,57 @@
         <ion-button size="small" fill="clear" @click="$emit('dump-services')" :disabled="!connected">Dump services</ion-button>
       </div>
       <div class="button-row">
+        <ion-button
+          size="small"
+          fill="solid"
+          color="warning"
+          @click="$emit('ota-probe')"
+          :disabled="!connected || otaProbeRunning"
+        >
+          {{ otaProbeRunning ? 'OTA probe running...' : 'Probe OTA loader' }}
+        </ion-button>
+      </div>
+      <div class="firmware-dry-run">
+        <label class="firmware-file-label">
+          Firmware (.bin/.hex)
+          <input
+            type="file"
+            accept=".bin,.hex,.ihex"
+            @change="$emit('firmware-file', ($event.target as HTMLInputElement).files?.[0] ?? null)"
+          />
+        </label>
+        <span v-if="firmwareFileName" class="selected-file">{{ firmwareFileName }}</span>
+        <label class="firmware-file-label">
+          Metadata (.sha256.json, optional)
+          <input
+            type="file"
+            accept=".json,.sha256.json,application/json"
+            @change="$emit('firmware-metadata-file', ($event.target as HTMLInputElement).files?.[0] ?? null)"
+          />
+        </label>
+        <span v-if="firmwareMetadataFileName" class="selected-file">{{ firmwareMetadataFileName }}</span>
+        <ion-button
+          size="small"
+          fill="outline"
+          color="warning"
+          @click="$emit('firmware-dry-run')"
+          :disabled="!firmwareFileName || firmwareDryRunRunning"
+        >
+          {{ firmwareDryRunRunning ? 'Validating firmware...' : 'Firmware dry-run' }}
+        </ion-button>
+        <ion-button
+          size="small"
+          fill="solid"
+          color="danger"
+          @click="$emit('firmware-update')"
+          :disabled="!firmwareUpdateAvailable || firmwareUpdateRunning"
+        >
+          {{ firmwareUpdateRunning
+            ? `Updating: ${firmwareUpdateProgress || 'starting'}`
+            : 'Start real firmware update' }}
+        </ion-button>
+      </div>
+      <div class="button-row">
         <ion-button size="small" fill="solid" color="warning" @click="$emit('test-osa-storage')">Test OSA secure store</ion-button>
         <ion-button size="small" fill="outline" @click="$emit('read-osa-storage')">Load OSA key</ion-button>
         <ion-button size="small" fill="outline" color="danger" @click="$emit('delete-osa-storage')">Delete OSA key</ion-button>
@@ -98,6 +149,13 @@ defineProps<{
   debugHex: string;
   debugOtaAppKeyHex: string;
   debugDevEuiHex: string;
+  otaProbeRunning: boolean;
+  firmwareFileName: string;
+  firmwareMetadataFileName: string;
+  firmwareDryRunRunning: boolean;
+  firmwareUpdateAvailable: boolean;
+  firmwareUpdateRunning: boolean;
+  firmwareUpdateProgress: string;
 }>();
 
 defineEmits<{
@@ -123,6 +181,11 @@ defineEmits<{
   (e: 'osa-stored-challenge'): void;
   (e: 'dump-services-only'): void;
   (e: 'dump-services'): void;
+  (e: 'ota-probe'): void;
+  (e: 'firmware-file', value: File | null): void;
+  (e: 'firmware-metadata-file', value: File | null): void;
+  (e: 'firmware-dry-run'): void;
+  (e: 'firmware-update'): void;
   (e: 'test-osa-storage'): void;
   (e: 'read-osa-storage'): void;
   (e: 'delete-osa-storage'): void;
@@ -180,6 +243,34 @@ defineEmits<{
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 6px;
+}
+
+.firmware-dry-run {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding: 6px;
+  border: 1px solid var(--app-border);
+  border-radius: 4px;
+}
+
+.firmware-file-label {
+  display: grid;
+  gap: 3px;
+  color: var(--app-text-muted);
+}
+
+.firmware-file-label input {
+  max-width: 100%;
+  font-size: 11px;
+}
+
+.selected-file {
+  overflow: hidden;
+  color: var(--app-text);
+  font-family: monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .logs {

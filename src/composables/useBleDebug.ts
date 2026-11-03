@@ -1,5 +1,6 @@
-import { ref, watch, onUnmounted, toValue } from 'vue';
+import { computed, ref, shallowRef, watch, onUnmounted, toValue } from 'vue';
 import type { MaybeRef } from 'vue';
+import { alertController } from '@ionic/vue';
 import {
   startDebugSubscriptions as startBleDebugSubscriptions,
   stopDebugSubscriptions as stopBleDebugSubscriptions,
@@ -24,6 +25,17 @@ import {
 } from '@/utils/BLE/configReader';
 import { OsaKeyStore } from '@/plugins/osaKeyStore';
 import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
+import { runFirmwareUpdateProbe } from '@/utils/BLE/firmwareUpdateProbe';
+import {
+  dryRunFirmwareImage,
+  formatFirmwareDryRun,
+  type FirmwareDryRunResult,
+} from '@/utils/BLE/firmwareImage';
+import {
+  runFirmwareUpdateTransfer,
+  type FirmwareUpdateProgress,
+} from '@/utils/BLE/firmwareUpdateTransfer';
+import { writeFirmwareDiagnosticLine } from '@/utils/BLE/firmwareUpdateDiagnostics';
 
 type UseBleDebugOptions = {
   enabled: MaybeRef<boolean>;
@@ -31,6 +43,29 @@ type UseBleDebugOptions = {
 
 const debugOtaAppKeyHex = ref('2B7E151628AED2A6ABF7158809CF4F3C');
 const debugDevEuiHex = ref('');
+const FIRMWARE_UPDATE_RECOVERY_KEY = 'easycodec.firmwareUpdateRecoveryDevice';
+
+type FirmwareRecoveryDevice = {
+  deviceId: string;
+  name: string;
+  devEuiHex: string;
+};
+
+function loadFirmwareRecoveryDevice(): FirmwareRecoveryDevice | null {
+  try {
+    const raw = localStorage.getItem(FIRMWARE_UPDATE_RECOVERY_KEY);
+    if (!raw) return null;
+    const value = JSON.parse(raw);
+    if (
+      typeof value?.deviceId !== 'string'
+      || typeof value?.name !== 'string'
+      || typeof value?.devEuiHex !== 'string'
+    ) return null;
+    return value;
+  } catch {
+    return null;
+  }
+}
 
 export function useBleDebugCredentials() {
   return { debugOtaAppKeyHex, debugDevEuiHex };
@@ -48,6 +83,17 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
   const debugVisible = ref(false);
   const debugLogs = ref<string[]>([]);
   const debugSubscribed = ref(false);
+  const otaProbeRunning = ref(false);
+  const firmwareFile = ref<File | null>(null);
+  const firmwareMetadataFile = ref<File | null>(null);
+  const firmwareDryRunRunning = ref(false);
+  const firmwareDryRunResult = shallowRef<FirmwareDryRunResult | null>(null);
+  const firmwareUpdateRunning = ref(false);
+  const firmwareUpdateProgress = ref('');
+  const firmwareRecoveryDevice = ref<FirmwareRecoveryDevice | null>(loadFirmwareRecoveryDevice());
+  if (!debugDevEuiHex.value && firmwareRecoveryDevice.value?.devEuiHex) {
+    debugDevEuiHex.value = firmwareRecoveryDevice.value.devEuiHex;
+  }
   const lastMirroredBleEvent = ref<string>('');
   const debugSubscriptionTargets = ref<BleSubscriptionTarget[]>([]);
 
@@ -58,6 +104,11 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
   const pushDebugLog = (line: string) => {
     debugLogs.value.unshift(line);
     if (debugLogs.value.length > 200) debugLogs.value.pop();
+    const belongsToFirmwareWorkflow = /^\[(?:FW dry-run|FW update|OTA probe)\]/.test(line)
+      || otaProbeRunning.value
+      || firmwareDryRunRunning.value
+      || firmwareUpdateRunning.value;
+    if (belongsToFirmwareWorkflow) writeFirmwareDiagnosticLine(line);
   };
 
   async function startDebugSubscriptions() {
@@ -299,6 +350,179 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
     } catch (error: any) { pushDebugLog(`[OSA store] Purge failed - ${error?.message ?? error}`); }
   }
 
+  async function probeOtaLoader() {
+    if (!isEnabled() || otaProbeRunning.value) return;
+    const device = ble.connectedDevice.value;
+    if (!ble.connected.value || !device?.deviceId || !device.name) {
+      pushDebugLog('[OTA probe] A named application device must be connected');
+      return;
+    }
+
+    otaProbeRunning.value = true;
+    try {
+      await stopDebugSubscriptions();
+      await runFirmwareUpdateProbe({
+        applicationDeviceId: device.deviceId,
+        applicationName: device.name,
+        osaKeyHex: debugOtaAppKeyHex.value,
+        devEuiHex: debugDevEuiHex.value,
+        onLog: pushDebugLog,
+        expectApplicationRestart: ble.expectDeviceRestart,
+        cancelExpectedApplicationRestart: ble.cancelExpectedDeviceRestart,
+      });
+    } catch (error: any) {
+      pushDebugLog(`[OTA probe] FAIL: ${error?.message ?? error}`);
+    } finally {
+      otaProbeRunning.value = false;
+    }
+  }
+
+  function selectFirmwareFile(file: File | null) {
+    firmwareFile.value = file;
+    firmwareDryRunResult.value = null;
+    firmwareUpdateProgress.value = '';
+    if (file) pushDebugLog(`[FW dry-run] Selected firmware: ${file.name}`);
+  }
+
+  function selectFirmwareMetadataFile(file: File | null) {
+    firmwareMetadataFile.value = file;
+    firmwareDryRunResult.value = null;
+    firmwareUpdateProgress.value = '';
+    pushDebugLog(file
+      ? `[FW dry-run] Selected metadata: ${file.name}`
+      : '[FW dry-run] Metadata cleared');
+  }
+
+  async function runFirmwareDryRun() {
+    if (!isEnabled() || firmwareDryRunRunning.value) return;
+    const selectedFirmware = firmwareFile.value;
+    if (!selectedFirmware) {
+      pushDebugLog('[FW dry-run] Select a .bin, .hex, or .ihex firmware first');
+      return;
+    }
+
+    firmwareDryRunRunning.value = true;
+    try {
+      const raw = new Uint8Array(await selectedFirmware.arrayBuffer());
+      const metadataText = firmwareMetadataFile.value
+        ? await firmwareMetadataFile.value.text()
+        : undefined;
+      const result = await dryRunFirmwareImage(selectedFirmware.name, raw, metadataText);
+      firmwareDryRunResult.value = result;
+      for (const line of formatFirmwareDryRun(result).reverse()) pushDebugLog(line);
+    } catch (error: any) {
+      firmwareDryRunResult.value = null;
+      pushDebugLog(`[FW dry-run] FAIL: ${error?.message ?? error}`);
+    } finally {
+      firmwareDryRunRunning.value = false;
+    }
+  }
+
+  function formatUpdateProgress(progress: FirmwareUpdateProgress): string {
+    if (progress.phase === 'transfer') {
+      return `${progress.percent}% (${progress.transferred}/${progress.total} bytes)`;
+    }
+    return progress.phase;
+  }
+
+  async function confirmDestructiveFirmwareUpdate(result: FirmwareDryRunResult): Promise<boolean> {
+    const alert = await alertController.create({
+      header: 'Start firmware update?',
+      message: [
+        `Profile: ${result.layout.systemProfile}`,
+        `Firmware: ${result.image.fileName}`,
+        `Transfer: ${result.image.transferSize} bytes`,
+        `Protected mask: 0x${result.image.protectedMask.toString(16).padStart(2, '0').toUpperCase()}`,
+        '',
+        'PREPARE will erase Flash. There is no rollback. Keep the app open and the sensor powered.',
+      ].join('<br>'),
+      backdropDismiss: false,
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        { text: 'Start update', role: 'destructive' },
+      ],
+    });
+    await alert.present();
+    const resultEvent = await alert.onDidDismiss();
+    return resultEvent.role === 'destructive';
+  }
+
+  async function startFirmwareUpdate() {
+    if (!isEnabled() || firmwareUpdateRunning.value) return;
+    const selectedFirmware = firmwareFile.value;
+    const rememberedDevice = ble.connectedDevice.value
+      ?? ble.lastConnectedDevice.value
+      ?? firmwareRecoveryDevice.value;
+    if (!selectedFirmware || !rememberedDevice?.deviceId || !rememberedDevice.name) {
+      pushDebugLog('[FW update] A firmware and a known application device are required');
+      return;
+    }
+
+    firmwareUpdateRunning.value = true;
+    firmwareUpdateProgress.value = 'validating';
+    let screenWakeLock: { release(): Promise<void> } | undefined;
+    try {
+      const raw = new Uint8Array(await selectedFirmware.arrayBuffer());
+      const metadataText = firmwareMetadataFile.value
+        ? await firmwareMetadataFile.value.text()
+        : undefined;
+      const result = await dryRunFirmwareImage(selectedFirmware.name, raw, metadataText);
+      firmwareDryRunResult.value = result;
+      if (!result.metadataVerified) {
+        throw new Error('A verified .sha256.json sidecar is mandatory for a real update');
+      }
+      if (!await confirmDestructiveFirmwareUpdate(result)) {
+        firmwareUpdateProgress.value = 'canceled';
+        pushDebugLog('[FW update] Canceled before reboot; Flash was not modified');
+        return;
+      }
+
+      firmwareRecoveryDevice.value = {
+        deviceId: rememberedDevice.deviceId,
+        name: rememberedDevice.name,
+        devEuiHex: debugDevEuiHex.value,
+      };
+      localStorage.setItem(
+        FIRMWARE_UPDATE_RECOVERY_KEY,
+        JSON.stringify(firmwareRecoveryDevice.value),
+      );
+
+      try {
+        const wakeLock = (navigator as Navigator & {
+          wakeLock?: { request(type: 'screen'): Promise<{ release(): Promise<void> }> };
+        }).wakeLock;
+        screenWakeLock = await wakeLock?.request('screen');
+        if (screenWakeLock) pushDebugLog('[FW update] Screen wake lock acquired');
+      } catch {
+        pushDebugLog('[FW update] Screen wake lock unavailable; keep the app visible');
+      }
+
+      if (ble.connected.value) await stopDebugSubscriptions();
+      await runFirmwareUpdateTransfer({
+        applicationDeviceId: rememberedDevice.deviceId,
+        applicationName: rememberedDevice.name,
+        applicationConnected: ble.connected.value && ble.connectedDevice.value?.deviceId === rememberedDevice.deviceId,
+        osaKeyHex: debugOtaAppKeyHex.value,
+        devEuiHex: debugDevEuiHex.value,
+        image: result.image,
+        onLog: pushDebugLog,
+        onProgress: progress => {
+          firmwareUpdateProgress.value = formatUpdateProgress(progress);
+        },
+        expectApplicationRestart: ble.expectDeviceRestart,
+        cancelExpectedApplicationRestart: ble.cancelExpectedDeviceRestart,
+      });
+      localStorage.removeItem(FIRMWARE_UPDATE_RECOVERY_KEY);
+      firmwareRecoveryDevice.value = null;
+    } catch (error: any) {
+      pushDebugLog(`[FW update] FAIL: ${error?.message ?? error}`);
+      pushDebugLog('[FW update] If PREPARE was accepted, keep the same firmware selected and press Start update again to resume the active loader');
+    } finally {
+      try { await screenWakeLock?.release(); } catch { /* already released */ }
+      firmwareUpdateRunning.value = false;
+    }
+  }
+
   watch(
     () => ble.eventsLog.value[0],
     (line) => {
@@ -349,6 +573,16 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
     debugVisible,
     debugLogs,
     debugSubscribed,
+    otaProbeRunning,
+    firmwareFileName: computed(() => firmwareFile.value?.name ?? ''),
+    firmwareMetadataFileName: computed(() => firmwareMetadataFile.value?.name ?? ''),
+    firmwareDryRunRunning,
+    firmwareUpdateAvailable: computed(() => (
+      firmwareDryRunResult.value?.metadataVerified === true
+      && Boolean(ble.connectedDevice.value ?? ble.lastConnectedDevice.value ?? firmwareRecoveryDevice.value)
+    )),
+    firmwareUpdateRunning,
+    firmwareUpdateProgress,
     debugHex,
     debugOtaAppKeyHex,
     debugDevEuiHex,
@@ -379,5 +613,10 @@ export function useBleDebug(ble: any, options: UseBleDebugOptions) {
     readStoredOsaKey,
     deleteStoredOsaKey,
     purgeExpiredOsaKeys,
+    probeOtaLoader,
+    selectFirmwareFile,
+    selectFirmwareMetadataFile,
+    runFirmwareDryRun,
+    startFirmwareUpdate,
   };
 }

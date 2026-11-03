@@ -558,6 +558,13 @@
       :logs="debugLogs"
       :connected="ble.connected.value"
       :subscribed="debugSubscribed"
+      :ota-probe-running="otaProbeRunning"
+      :firmware-file-name="firmwareFileName"
+      :firmware-metadata-file-name="firmwareMetadataFileName"
+      :firmware-dry-run-running="firmwareDryRunRunning"
+      :firmware-update-available="firmwareUpdateAvailable"
+      :firmware-update-running="firmwareUpdateRunning"
+      :firmware-update-progress="firmwareUpdateProgress"
       @start="startDebugSubscriptions"
       @stop="stopDebugSubscriptions"
       @clear="clearDebugLogs"
@@ -576,6 +583,11 @@
       @osa-stored-challenge="runStoredOsaChallenge"
       @dump-services-only="dumpServicesOnly"
       @dump-services="dumpServices"
+      @ota-probe="probeOtaLoader"
+      @firmware-file="selectFirmwareFile"
+      @firmware-metadata-file="selectFirmwareMetadataFile"
+      @firmware-dry-run="runFirmwareDryRun"
+      @firmware-update="startFirmwareUpdate"
       @test-osa-storage="testSecureOsaStorage"
       @read-osa-storage="readStoredOsaKey"
       @delete-osa-storage="deleteStoredOsaKey"
@@ -710,6 +722,13 @@ const {
   debugVisible,
   debugLogs,
   debugSubscribed,
+  otaProbeRunning,
+  firmwareFileName,
+  firmwareMetadataFileName,
+  firmwareDryRunRunning,
+  firmwareUpdateAvailable,
+  firmwareUpdateRunning,
+  firmwareUpdateProgress,
   debugHex,
   debugOtaAppKeyHex,
   debugDevEuiHex,
@@ -736,6 +755,11 @@ const {
   readStoredOsaKey,
   deleteStoredOsaKey,
   purgeExpiredOsaKeys,
+  probeOtaLoader,
+  selectFirmwareFile,
+  selectFirmwareMetadataFile,
+  runFirmwareDryRun,
+  startFirmwareUpdate,
 } = useBleDebug(ble, { enabled: developerModeEnabled });
 const { currentLanguage } = useLanguage();
 const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
