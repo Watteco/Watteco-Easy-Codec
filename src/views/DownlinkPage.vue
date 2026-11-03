@@ -1550,7 +1550,7 @@
             <div v-if="framesAvailable" class="ble-action">
               <ion-button
                 @click="sendDefaultConfigurationBle"
-                :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value"
+                :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value || configurationSendConfirmationMode !== null"
                 expand="block"
                 :color="configurationSendSuccessMode === 'default' ? 'success' : 'primary'"
               >
@@ -1591,7 +1591,7 @@
               <div class="ble-send-button-wrap">
                 <ion-button
                   @click="sendCurrentConfigurationBle"
-                  :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value"
+                  :disabled="!ble.connected.value || ble.sending.value || ble.pairing.value || configurationSendConfirmationMode !== null"
                   expand="block"
                   :color="configurationSendSuccessMode === 'current' ? 'success' : 'secondary'"
                 >
@@ -2112,6 +2112,7 @@ const paramGroupList: Record<string, any> = {}; // List of parameter groups
 const currentErrors: never[] = []; // Tracks current errors
 const framesAvailable = ref(false);
 const configurationSendMode = ref<'default' | 'current' | null>(null);
+const configurationSendConfirmationMode = ref<'default' | 'current' | null>(null);
 const currentConfigurationProgress = ref({ sent: 0, total: 0 });
 const configurationSendSuccessMode = ref<'default' | 'current' | null>(null);
 const currentConfigurationSendResult = ref<CurrentConfigurationSendResult | null>(null);
@@ -3238,7 +3239,34 @@ const toggleCurrentConfigurationPreview = () => {
   refreshConfigurationPreviews();
 };
 
+const confirmConfigurationSend = async (mode: 'default' | 'current'): Promise<boolean> => {
+  if (configurationSendConfirmationMode.value !== null) return false;
+
+  configurationSendConfirmationMode.value = mode;
+  try {
+    const alert = await alertController.create({
+      header: localize(mode === 'default'
+        ? '@bleConfirmDefaultConfigTitle'
+        : '@bleConfirmCurrentConfigTitle'),
+      message: localize(mode === 'default'
+        ? '@bleConfirmDefaultConfigMessage'
+        : '@bleConfirmCurrentConfigMessage'),
+      buttons: [
+        { text: localize('@cancel'), role: 'cancel' },
+        { text: localize('@confirm'), role: 'confirm' },
+      ],
+    });
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    return result.role === 'confirm';
+  } finally {
+    configurationSendConfirmationMode.value = null;
+  }
+};
+
 const sendDefaultConfigurationBle = async () => {
+  if (!await confirmConfigurationSend('default')) return;
+
   configurationSendSuccessMode.value = null;
   configurationSendMode.value = 'default';
   try {
@@ -3255,6 +3283,8 @@ const sendDefaultConfigurationBle = async () => {
 };
 
 const sendCurrentConfigurationBle = async () => {
+  if (!await confirmConfigurationSend('current')) return;
+
   configurationSendSuccessMode.value = null;
   currentConfigurationSendResult.value = null;
   currentConfigurationProgress.value = { sent: 0, total: 0 };
