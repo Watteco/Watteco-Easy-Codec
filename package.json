@@ -1,7 +1,7 @@
 {
   "name": "watteco-codec",
   "private": true,
-  "version": "0.11.15-dev.337",
+  "version": "0.11.15-dev.338",
   "type": "module",
   "scripts": {
     "dev": "vite",

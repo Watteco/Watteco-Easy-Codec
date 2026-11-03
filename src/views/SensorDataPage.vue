@@ -342,6 +342,12 @@ const demoHumidityHistory = createDemoHistory([
 const demoBatteryHistory = createDemoHistory([
   96, 95, 95, 94, 93, 92, 91, 91, 90, 89, 88, 87,
 ]);
+const getDemoCounterValue = (measId: number): number => 1248 + ((measId - 54) * 137);
+const createDemoCounterHistory = (measId: number): HistoryPoint[] => {
+  const currentValue = getDemoCounterValue(measId);
+  return createDemoHistory([54, 48, 43, 36, 31, 25, 19, 14, 10, 6, 2, 0]
+    .map(offset => currentValue - offset));
+};
 const sensorCards = computed(() => dashboardLayout.value.displayMeasurements);
 const batteryCardCount = computed(() => sensorCards.value
   .filter(card => card.visual.category === 'battery')
@@ -358,7 +364,7 @@ const numberedCardCounts = computed(() => sensorCards.value.reduce<Record<string
 
 const getDemoValue = (measId: number, category?: string): number | null => {
   if (category === 'battery') return 87;
-  if (measId >= 54 && measId <= 64) return 1248 + ((measId - 54) * 137);
+  if (measId >= 54 && measId <= 64) return getDemoCounterValue(measId);
   if ([49, 50, 51].includes(measId)) return 50.8;
   if ([8, ...Array.from({ length: 18 }, (_, index) => 249 + index)].includes(measId)) return 22.7;
   return null;
@@ -460,6 +466,8 @@ const historyCards = computed(() => displayedCards.value
       history: demoDataEnabled.value
         ? card.visual.category === 'battery'
           ? demoBatteryHistory
+          : card.measId >= 54 && card.measId <= 64
+            ? createDemoCounterHistory(card.measId)
           : [49, 50, 51].includes(card.measId)
             ? demoHumidityHistory
             : demoTemperatureHistory
