@@ -2079,14 +2079,8 @@ const stateVisualPreferenceKey = computed(() => (
   ?? ble.productReference.value
   ?? (selectedSensor.value || 'default')
 ));
-const REPORTING_CONFIGURATION_READ_PRODUCTS = new Set([
-  "50-70-260-Pulse-Sens'O-Neo",
-  "50-70-260-671-HygroTemp'O-Neo",
-  "50-70-304-Pulse-Sens'O-Lite-Neo",
-  "50-70-306-Temp'O-Neo-2-remote-probes",
-]);
 const supportsReportingConfigurationRead = computed(() => (
-  REPORTING_CONFIGURATION_READ_PRODUCTS.has(selectedSensor.value)
+  sensorConfig.value?.capabilities?.reporting_configuration_read === true
 ));
 const pageInitialized = ref(false);
 const sensorConfig = ref<any | null>(null); // Dynamic configuration for the selected sensor

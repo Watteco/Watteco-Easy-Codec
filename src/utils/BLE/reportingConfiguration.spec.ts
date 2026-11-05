@@ -12,6 +12,15 @@ function frame(value: string): Uint8Array {
 }
 
 describe('reporting configuration parsing', () => {
+  it('declares BLE reporting reads in each supported sensor configuration', () => {
+    expect([
+      tempoNeo2RemoteProbesConfig,
+      hygroTempConfig,
+      pulseConfig,
+      pulseLiteConfig,
+    ].every(config => config.capabilities.reporting_configuration_read)).toBe(true);
+  });
+
   it('loads every editable TempO Neo reporting value', () => {
     const result = parseReportingConfigurations(tempoNeo2RemoteProbesConfig, [
       frame('11 09 0050 00 80 0006 41 800A 85A0 0E 70 04 0B54 0000 01 71 04 0CE4 0000 01'),

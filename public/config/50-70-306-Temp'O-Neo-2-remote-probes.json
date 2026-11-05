@@ -1,4 +1,7 @@
 {
+    "capabilities": {
+        "reporting_configuration_read": true
+    },
     "blob_only_configurations": [
         [
             "11 05 8004 0000 08 00",

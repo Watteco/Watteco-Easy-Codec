@@ -30,6 +30,9 @@ Objectif: partir d'une configuration par défaut sous forme de trames hexadécim
 
 ```json
 {
+    "capabilities": {
+        "reporting_configuration_read": true
+    },
     "general_params": {
         "remove_config": {},
         "confirmed": {},
@@ -47,6 +50,8 @@ Objectif: partir d'une configuration par défaut sous forme de trames hexadécim
     "blob_only_configurations": []
 }
 ```
+
+La propriété racine optionnelle `capabilities.reporting_configuration_read` affiche l'action BLE permettant de lire la configuration de reporting courante et de la reporter dans l'interface. Activez-la uniquement lorsque les trames `batch_params` et `standard_params` du capteur sont prises en charge et testées par le parseur de configuration.
 
 ### Configurations supplémentaires réservées au BLOB
 

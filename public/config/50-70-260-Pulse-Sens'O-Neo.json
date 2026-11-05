@@ -1,4 +1,7 @@
 {
+    "capabilities": {
+        "reporting_configuration_read": true
+    },
     "blob_only_configurations": [],
     "general_params": {
         "remove_config": {
