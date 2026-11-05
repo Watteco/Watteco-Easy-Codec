@@ -18,15 +18,15 @@ afterEach(() => {
 });
 
 describe('device information response decoders', () => {
-  it('decodes the semantic firmware version and little-endian ui24 build number', () => {
+  it('decodes the semantic firmware version and big-endian ui24 revision', () => {
     const response = Uint8Array.of(
       0x11, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x0d,
       0x03, 0x06, 0x02, 0x00, 0x00, 0x00,
     );
     expect(decodeFirmwareVersionResponse(response)).toBe('3.6.2:0');
 
-    response.set([0x56, 0x34, 0x12], 11);
-    expect(decodeFirmwareVersionResponse(response)).toBe('3.6.2:1193046');
+    response.set([0x00, 0x1b, 0x54], 11);
+    expect(decodeFirmwareVersionResponse(response)).toBe('3.6.2:6996');
   });
 
   it('decodes length-prefixed manufacturer and PCB strings', () => {

@@ -36,7 +36,7 @@ export function decodeFirmwareVersionResponse(frame: Uint8Array): string | null 
   if (!isResponseFor(frame, 2) || frame[7] !== 0x0d || frame.length < 14) return null;
   if (frame.subarray(8, 14).every(byte => byte === 0xff)) return null;
   const semanticVersion = Array.from(frame.subarray(8, 11)).join('.');
-  const version = frame[11] | (frame[12] << 8) | (frame[13] << 16);
+  const version = (frame[11] << 16) | (frame[12] << 8) | frame[13];
   return `${semanticVersion}:${version}`;
 }
 
