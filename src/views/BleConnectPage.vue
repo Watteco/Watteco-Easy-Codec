@@ -36,7 +36,6 @@
           class="scan-panel"
           :class="{
             'scan-panel--raised': scanPanelRaised,
-            'scan-panel--scanning': showScanningIndicator && displayedDevices.length === 0,
           }"
         >
           <div
@@ -48,33 +47,85 @@
             <p>{{ localize('@bleScanPrompt') }}</p>
           </div>
 
+          <div class="scan-actions">
+            <ion-button
+              @click="connecting ? cancelConnection() : toggleScan()"
+              :color="ble.scanning.value || connecting ? 'medium' : 'primary'"
+              :disabled="ble.pairing.value && !connecting"
+              class="scan-button"
+            >
+              <ion-icon
+                slot="start"
+                :icon="ble.scanning.value || connecting ? closeOutline : searchOutline"
+              />
+              {{ localize(connecting ? '@bleCancelConnection' : ble.scanning.value ? '@bleCancelScan' : '@bleScan') }}
+            </ion-button>
+            <ion-button
+              class="auto-connect-button"
+              fill="outline"
+              :aria-label="localize('@bleAutoConnectSettings')"
+              :aria-expanded="autoConnectPanelVisible"
+              :disabled="ble.scanning.value || connecting || ble.pairing.value"
+              @click="toggleAutoConnectPanel"
+            >
+              <ion-icon :icon="locateOutline" aria-hidden="true" />
+            </ion-button>
+          </div>
+
+        </div>
+
+        <section v-if="autoConnectPanelVisible" class="auto-connect-panel">
+          <strong>{{ localize('@bleAutoConnectTitle') }}</strong>
+          <label class="dev-eui-input-label" for="auto-connect-dev-eui">
+            {{ localize('@bleDevEui') }}
+          </label>
+          <div class="dev-eui-input-row">
+            <span class="dev-eui-prefix">70:B3:D5:E7:</span>
+            <input
+              id="auto-connect-dev-eui"
+              :value="formattedDevEuiSuffix"
+              class="dev-eui-suffix-input"
+              type="text"
+              inputmode="text"
+              maxlength="23"
+              autocomplete="off"
+              autocapitalize="characters"
+              placeholder="5F:00:67:63"
+              :disabled="targetedWorkflowActive"
+              @input="onDevEuiSuffixInput"
+            />
+          </div>
           <ion-button
-            @click="connecting ? cancelConnection() : toggleScan()"
             expand="block"
-            :color="ble.scanning.value || connecting ? 'medium' : 'primary'"
-            :disabled="ble.pairing.value && !connecting"
-            class="scan-button"
+            class="auto-connect-action"
+            :color="targetedWorkflowActive ? 'medium' : 'primary'"
+            :disabled="!validTargetBleName && !targetedWorkflowActive"
+            @click="toggleTargetedConnection"
           >
             <ion-icon
               slot="start"
-              :icon="ble.scanning.value || connecting ? closeOutline : searchOutline"
+              :icon="targetedWorkflowActive ? closeOutline : locateOutline"
             />
-            {{ localize(connecting ? '@bleCancelConnection' : ble.scanning.value ? '@bleCancelScan' : '@bleScan') }}
+            {{ localize(targetedWorkflowActive ? '@bleAutoConnectCancel' : '@bleAutoConnectStart') }}
           </ion-button>
+          <p v-if="targetedWorkflowActive" class="auto-connect-waiting" role="status" aria-live="polite">
+            <ion-spinner name="crescent" />
+            <span>{{ localize('@bleAutoConnectWaiting') }}</span>
+          </p>
+        </section>
 
-          <div
-            v-if="showScanningIndicator && displayedDevices.length === 0"
-            class="scanning-state"
-            role="status"
-            aria-live="polite"
-          >
-            <div class="scan-orbit" aria-hidden="true">
-              <div class="scan-orbit-center">
-                <ion-icon :icon="bluetoothOutline" />
-              </div>
+        <div
+          v-if="showScanningIndicator && displayedDevices.length === 0"
+          class="scanning-state"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="scan-orbit" aria-hidden="true">
+            <div class="scan-orbit-center">
+              <ion-icon :icon="bluetoothOutline" />
             </div>
-            <p>{{ localize('@bleScanning') }}</p>
           </div>
+          <p>{{ localize('@bleScanning') }}</p>
         </div>
 
         <!-- Application devices -->
@@ -251,6 +302,7 @@ import {
   bluetoothOutline,
   closeOutline,
   cloudUploadOutline,
+  locateOutline,
   searchOutline,
   settingsOutline,
 } from 'ionicons/icons';
@@ -261,7 +313,14 @@ import LeadingEllipsisText from '@/components/LeadingEllipsisText.vue';
 import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
-import { deriveDevEuiFromDeviceName, formatDevEui } from '@/utils/BLE/deviceIdentity';
+import {
+  deriveBleDeviceNameFromDevEuiSuffix,
+  deriveDevEuiFromDeviceName,
+  formatDevEui,
+  formatDevEuiSuffix,
+  isBleSensorName,
+  normalizeDevEuiSuffixInput,
+} from '@/utils/BLE/deviceIdentity';
 import {
   recoveryDeviceFromOtaLoader,
   saveFirmwareRecoveryDevice,
@@ -303,6 +362,10 @@ const logoSrc = `${import.meta.env.BASE_URL}img/icon.png`;
 const connecting = ref(false);
 const connectingDeviceId = ref('');
 const wakeMenuVisible = ref(false);
+const autoConnectPanelVisible = ref(false);
+const devEuiSuffix = ref('');
+const autoConnectEnabled = ref(false);
+const targetedWorkflowActive = ref(false);
 type DisplayDevice = DeviceLike & { isSimulated?: boolean };
 
 const simulatedDevices = ref<DisplayDevice[]>([]);
@@ -318,6 +381,9 @@ const displayedDevices = computed<DisplayDevice[]>(() => {
 const applicationDevices = computed(() => displayedDevices.value.filter(device => !device.isOtaLoader));
 const otaLoaderDevices = computed(() => displayedDevices.value.filter(device => device.isOtaLoader));
 const showScanningIndicator = computed(() => ble.scanning.value);
+const formattedDevEuiSuffix = computed(() => formatDevEuiSuffix(devEuiSuffix.value));
+const targetBleName = computed(() => deriveBleDeviceNameFromDevEuiSuffix(devEuiSuffix.value));
+const validTargetBleName = computed(() => isBleSensorName(targetBleName.value ?? undefined));
 const scanPanelRaised = computed(() => (
   ble.scanning.value || displayedDevices.value.length > 0
 ));
@@ -382,10 +448,43 @@ function formatWakeDelta(start?: number, end?: number): string {
 
 async function toggleScan() {
   if (ble.scanning.value) {
+    autoConnectEnabled.value = false;
     await ble.cancelScan();
     return;
   }
   await ble.startAutoScan();
+}
+
+function toggleAutoConnectPanel() {
+  autoConnectPanelVisible.value = !autoConnectPanelVisible.value;
+}
+
+function onDevEuiSuffixInput(event: Event) {
+  const input = event.target as HTMLInputElement;
+  devEuiSuffix.value = normalizeDevEuiSuffixInput(input.value);
+  input.value = formattedDevEuiSuffix.value;
+}
+
+async function toggleTargetedConnection() {
+  if (targetedWorkflowActive.value) {
+    autoConnectEnabled.value = false;
+    if (connecting.value) await cancelConnection();
+    else await ble.cancelScan();
+    return;
+  }
+
+  const deviceName = targetBleName.value;
+  if (!deviceName || !validTargetBleName.value) return;
+
+  autoConnectEnabled.value = true;
+  targetedWorkflowActive.value = true;
+  try {
+    const device = await ble.startTargetedScan(deviceName);
+    if (device && autoConnectEnabled.value) await onDeviceSelect(device);
+  } finally {
+    targetedWorkflowActive.value = false;
+    autoConnectEnabled.value = false;
+  }
 }
 
 async function onDeviceSelect(dev: DisplayDevice) {
@@ -453,32 +552,129 @@ watch(() => ble.connectionPhase.value, (phase) => {
   height: 56px;
 }
 
-.scan-panel--scanning {
-  height: 238px;
-}
-
-.scan-button {
+.scan-actions {
   position: absolute;
   top: 230px;
   right: 0;
   left: 0;
   z-index: 1;
-  margin: 0;
+  display: flex;
+  gap: 8px;
   transition: top 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.scan-panel--raised .scan-button {
+.scan-panel--raised .scan-actions {
   top: 0;
 }
 
+.scan-button {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+.auto-connect-button {
+  flex: 0 0 48px;
+  width: 48px;
+  margin: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+.auto-connect-button ion-icon {
+  font-size: 21px;
+}
+
+.auto-connect-panel {
+  padding: 14px;
+  margin: 8px 0 4px;
+  background: var(--app-surface);
+  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.24);
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.auto-connect-panel > strong {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--ion-color-primary-shade);
+}
+
+.dev-eui-input-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--ion-color-medium-shade);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.dev-eui-input-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  font-family: monospace;
+  font-size: clamp(0.92rem, 4vw, 1.05rem);
+  font-weight: 700;
+  background: var(--app-page-background);
+  border: 1px solid rgba(var(--ion-color-medium-rgb), 0.42);
+  border-radius: 8px;
+}
+
+.dev-eui-prefix {
+  flex: 0 0 auto;
+  padding: 11px 0 11px 12px;
+  color: var(--ion-color-medium-shade);
+  white-space: nowrap;
+}
+
+.dev-eui-suffix-input {
+  box-sizing: border-box;
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 11px 12px 11px 0;
+  color: var(--ion-text-color);
+  font: inherit;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  text-transform: uppercase;
+}
+
+.dev-eui-suffix-input::placeholder {
+  color: var(--ion-color-medium);
+  opacity: 0.55;
+}
+
+.dev-eui-input-row:focus-within {
+  border-color: var(--ion-color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--ion-color-primary-rgb), 0.14);
+}
+
+.auto-connect-action {
+  margin: 12px 0 0;
+}
+
+.auto-connect-waiting {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 12px 0 0;
+  color: var(--ion-color-primary-shade);
+  font-size: 0.86rem;
+}
+
+.auto-connect-waiting ion-spinner {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
 .scanning-state {
-  position: absolute;
-  top: 88px;
-  right: 0;
-  left: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 40px 0 32px;
   color: var(--ion-color-medium-shade);
   animation: scanning-state-enter 320ms ease-out both;
 }
@@ -530,6 +726,7 @@ watch(() => ble.connectionPhase.value, (phase) => {
   flex-direction: row;
   justify-content: center;
   gap: 10px;
+  padding: 0;
   margin: -4px 0 20px;
 }
 
@@ -584,7 +781,7 @@ watch(() => ble.connectionPhase.value, (phase) => {
 }
 
 .device-group-title {
-  margin: 18px 4px 6px;
+  margin: 8px 4px 6px;
   color: var(--ion-color-medium);
   font-size: 0.82rem;
   font-weight: 700;
@@ -883,7 +1080,7 @@ watch(() => ble.connectionPhase.value, (phase) => {
 
 @media (prefers-reduced-motion: reduce) {
   .scan-panel,
-  .scan-button,
+  .scan-actions,
   .empty-state,
   .scanning-state {
     transition-duration: 1ms;

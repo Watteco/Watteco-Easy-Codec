@@ -282,10 +282,14 @@ function registerVisibilityListener() {
   });
 }
 
-function recordScanResult(result: ScanResult, useFilters: boolean) {
+function recordScanResult(
+  result: ScanResult,
+  useFilters: boolean,
+  enqueueWake = true,
+): DeviceLike | undefined {
   const advertisementAt = Date.now();
   const name = result.localName ?? result.device.name;
-  if (useFilters && !isBleSensorOrOtaName(name)) return;
+  if (useFilters && !isBleSensorOrOtaName(name)) return undefined;
 
   const advertisedProductId = decodeAdvertisedProductId(result.manufacturerData) ?? undefined;
   const advertisedProductReference = resolveAvailableProductReference(advertisedProductId) ?? undefined;
@@ -319,7 +323,8 @@ function recordScanResult(result: ScanResult, useFilters: boolean) {
     ));
   }
 
-  if (!device.isOtaLoader) enqueueSensorWake(device, advertisementAt);
+  if (enqueueWake && !device.isOtaLoader) enqueueSensorWake(device, advertisementAt);
+  return device;
 }
 
 function updateWakeDiagnostic(
@@ -822,6 +827,9 @@ async function startAutoScan(useFilters = true, maxAttempts = MAX_AUTO_SCAN_ATTE
     clearInterval(attemptTimer);
   } catch (e: any) {
     scanFailed = true;
+    const resolveScan = scanResolve;
+    scanResolve = undefined;
+    resolveScan?.();
     statusMessage.value = 'Auto-scan failed: ' + (e?.message ?? e);
     diagnosticLogger.error('BLE auto-scan failed', { useFilters, maxAttempts, error: e });
   } finally {
@@ -836,6 +844,76 @@ async function startAutoScan(useFilters = true, maxAttempts = MAX_AUTO_SCAN_ATTE
     }
     autoScanCanceled = false;
   }
+}
+
+async function startTargetedScan(targetDeviceName: string): Promise<DeviceLike | undefined> {
+  if (!bleInitialized.value) {
+    statusMessage.value = 'BLE not ready';
+    return undefined;
+  }
+  if (scanning.value) return undefined;
+
+  await cancelWakeQueueAndWait();
+  beginWakeScanSession();
+  devices.value = [];
+  autoScanCanceled = false;
+  scanning.value = true;
+  const normalizedTarget = targetDeviceName.trim().toUpperCase();
+  statusMessage.value = `Waiting for ${normalizedTarget}…`;
+  diagnosticLogger.info('BLE targeted scan started', {
+    targetDeviceName: normalizedTarget,
+    timeoutMs: MAX_AUTO_SCAN_ATTEMPTS * SCAN_TIMEOUT_MS,
+  });
+
+  let targetDevice: DeviceLike | undefined;
+  let scanFailed = false;
+  const scanFinished = new Promise<void>((resolve) => { scanResolve = resolve; });
+
+  try {
+    await BleClient.requestLEScan({
+      allowDuplicates: true,
+      namePrefix: BLE_SENSOR_NAME_PREFIX,
+      scanMode: ScanMode.SCAN_MODE_LOW_LATENCY,
+    }, (result: ScanResult) => {
+      // Reserve advertising windows for the requested connection instead of
+      // consuming them with the diagnostic wake queue.
+      const device = recordScanResult(result, true, false);
+      if (device?.name?.trim().toUpperCase() !== normalizedTarget || targetDevice) return;
+      targetDevice = device;
+      diagnosticLogger.info('BLE targeted device found', {
+        deviceId: device.deviceId,
+        deviceName: device.name,
+      });
+      void stopScan();
+    });
+
+    scanTimeoutId = setTimeout(() => {
+      void stopScan();
+    }, MAX_AUTO_SCAN_ATTEMPTS * SCAN_TIMEOUT_MS);
+    await scanFinished;
+  } catch (e: any) {
+    scanFailed = true;
+    const resolveScan = scanResolve;
+    scanResolve = undefined;
+    resolveScan?.();
+    statusMessage.value = 'Auto-scan failed: ' + (e?.message ?? e);
+    diagnosticLogger.error('BLE targeted scan failed', {
+      targetDeviceName: normalizedTarget,
+      error: e,
+    });
+  } finally {
+    if (scanTimeoutId) {
+      clearTimeout(scanTimeoutId);
+      scanTimeoutId = undefined;
+    }
+    scanning.value = false;
+    if (!scanFailed && !targetDevice && !autoScanCanceled) {
+      statusMessage.value = `Device ${normalizedTarget} not found`;
+    }
+    autoScanCanceled = false;
+  }
+
+  return targetDevice;
 }
 
 async function cancelScan() {
@@ -2073,6 +2151,7 @@ export function useBle() {
     initialize,
     startScan,
     startAutoScan,
+    startTargetedScan,
     cancelScan,
     stopScan,
     clearWakeDiagnostics,

@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  deriveBleDeviceNameFromDevEuiSuffix,
   deriveDevEuiFromDeviceName,
   formatDevEui,
+  formatDevEuiSuffix,
   isBleOtaLoaderName,
   isBleSensorName,
   isBleSensorOrOtaName,
+  normalizeDevEuiSuffixInput,
 } from '@/utils/BLE/deviceIdentity';
 
 describe('Watteco BLE device identity', () => {
@@ -51,5 +54,17 @@ describe('Watteco BLE device identity', () => {
     expect(formatDevEui('70B3D5E75F006799')).toBe('70:B3:D5:E7:5F:00:67:99');
     expect(formatDevEui('70:b3:d5:e7:5f:00:67:99')).toBe('70:B3:D5:E7:5F:00:67:99');
     expect(formatDevEui('invalid')).toBeNull();
+  });
+
+  it('normalizes and formats a DevEUI suffix while it is entered', () => {
+    expect(normalizeDevEuiSuffixInput('5f:00-67 63')).toBe('5F006763');
+    expect(normalizeDevEuiSuffixInput('70:B3:D5:E7:5F:00:67:63')).toBe('5F006763');
+    expect(normalizeDevEuiSuffixInput('00:11:22:33:5F:00:67:63')).toBe('');
+    expect(formatDevEuiSuffix('5f0067')).toBe('5F:00:67');
+  });
+
+  it('derives the BLE name from a complete DevEUI suffix', () => {
+    expect(deriveBleDeviceNameFromDevEuiSuffix('5F:00:67:63')).toBe('WS5F006763');
+    expect(deriveBleDeviceNameFromDevEuiSuffix('5F0067')).toBeNull();
   });
 });
