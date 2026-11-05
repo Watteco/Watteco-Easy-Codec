@@ -821,7 +821,7 @@ const toggleDebugTools = () => {
 
 .sensor-card-skeleton--state-compact {
   min-height: 108px;
-  padding: 10px 14px;
+  padding: 12px 14px 8px;
 }
 
 .sensor-card-skeleton--state-wide {

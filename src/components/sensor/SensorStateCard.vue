@@ -225,10 +225,11 @@ const formatState = (value: SensorStateValue): string => {
 
 .state-card--compact ion-card-content {
   min-height: 108px;
-  padding: 10px 14px;
+  padding: 12px 14px 8px;
 }
 
 .state-heading {
+  position: relative;
   display: flex;
   width: 100%;
   align-items: center;
@@ -250,6 +251,7 @@ const formatState = (value: SensorStateValue): string => {
 
 .state-title {
   flex: 1;
+  margin-inline-end: 41px;
   overflow: hidden;
   color: var(--app-text-secondary);
   font-size: 0.82rem;
@@ -274,8 +276,9 @@ const formatState = (value: SensorStateValue): string => {
 }
 
 .state-settings-button {
-  margin-right: -12px;
-  transform: translateY(-10px);
+  position: absolute;
+  top: -10px;
+  right: -12px;
 }
 
 .state-settings-button .state-mapping-icon {
