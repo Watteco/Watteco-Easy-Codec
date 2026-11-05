@@ -381,6 +381,7 @@
     "cfgCommentUnoccToOcc": "Délai de passage de inoccupé à occupé",
 	"cfgCommentCTNConfiguration": "Configure les coefficients de la CTN",
 	"cfgCommentBatchIndex": "Configure l'historisation du compteur",
+	"cfgCommentBatchState": "Configure l'historisation de l'état de l'entrée",
 	"cfgCommentStandIndex" : "Configure la périodicité d'émission du compteur",
 	"IndexLabel": "Compteur",
 	"PulseStateLabel": "Etats",

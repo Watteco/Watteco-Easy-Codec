@@ -9,7 +9,7 @@ import {
 } from '@/utils/productMeasurements';
 import { hasSensorVisual } from '@/utils/sensorVisuals';
 import availableProductList from '../../public/config/AvailableProductList.json';
-import pt1000NeoConfig from '../../public/config/50-70-307-Temp\'O-Neo-PT1000.json';
+import tempoNeo2RemoteProbesConfig from '../../public/config/50-70-306-Temp\'O-Neo-2-remote-probes.json';
 
 describe('productMeasurements', () => {
   it('defines compatibleProducts for every catalogue entry', () => {
@@ -53,7 +53,7 @@ describe('productMeasurements', () => {
     expect(measurements.some(measurement => measurement.id === 'humidity')).toBe(false);
   });
 
-  it('exposes both temperature occurrences and battery but no pulse input for PT1000 Neo', () => {
+  it('exposes both temperature occurrences and battery but no pulse input for TempO Neo', () => {
     const product = availableProductList.products.find(candidate => (
       candidate.compatibleProducts.includes('50-70-260-672')
     ));
@@ -78,8 +78,8 @@ describe('productMeasurements', () => {
     expect(measurements.find(measurement => measurement.id === 'battery_voltage')?.unit).toBe('V');
   });
 
-  it('configures PT1000 Neo without pulse or binary input sections', () => {
-    expect(pt1000NeoConfig.blob_only_configurations).toEqual([[
+  it('configures TempO Neo without pulse or binary input sections', () => {
+    expect(tempoNeo2RemoteProbesConfig.blob_only_configurations).toEqual([[
       '11 05 8004 0000 08 00',
       '11 50 00 50 02 03',
       '11 02 0050 FB1E 41 0D 01 1E 05 0078 00FA 0032 01F4 003C',
@@ -87,13 +87,13 @@ describe('productMeasurements', () => {
       '31 06 0402 15 0000 00 800A 803C 0000 000A 0B',
       '11 06 0050 15 0006 04 85A0 85A0 0000 0064 33',
     ]]);
-    expect(Object.keys(pt1000NeoConfig.batch_params)).toEqual([
+    expect(Object.keys(tempoNeo2RemoteProbesConfig.batch_params)).toEqual([
       'batch_T_params',
       'batch_B_params',
       'global_params',
       'cfg_block',
     ]);
-    expect(Object.keys(pt1000NeoConfig.standard_params)).toEqual([
+    expect(Object.keys(tempoNeo2RemoteProbesConfig.standard_params)).toEqual([
       'standard_T_params',
       'standard_T2_params',
       'standard_B_params',
@@ -124,8 +124,9 @@ describe('productMeasurements', () => {
     expect(getProductDisplayName('50-70-260-671')).toBe("HygroTemp'O Neo");
     expect(getProductConfigurationFile('50-70-260-671')).toBe("50-70-260-671-HygroTemp'O-Neo");
     expect(resolveAvailableProductReference('50-70-260-672')).toBe('50-70-260-672');
-    expect(getProductDisplayName('50-70-260-672')).toBe("Temp'O Neo PT1000");
-    expect(getProductConfigurationFile('50-70-260-672')).toBe('50-70-307-Temp\'O-Neo-PT1000');
+    expect(getProductDisplayName('50-70-260-672')).toBe("Temp'O Neo - 2 remote probes");
+    expect(getProductConfigurationFile('50-70-260-672')).toBe('50-70-306-Temp\'O-Neo-2-remote-probes');
+    expect(resolveAvailableProductReference('50-70-306')).toBe('50-70-306');
   });
 
   it('matches all revisions only when compatibleProducts omits the revision', () => {
@@ -149,7 +150,7 @@ describe('productMeasurements', () => {
       "HygroTemp'O Neo (50-70-260-671)",
       "Pulse Sens'O Lite Neo (50-70-304)",
       "Pulse Sens'O Neo (50-70-260)",
-      "Temp'O Neo PT1000 (50-70-307)",
+      "Temp'O Neo - 2 remote probes (50-70-306)",
     ]);
   });
 

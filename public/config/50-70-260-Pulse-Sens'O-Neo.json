@@ -1,46 +1,5 @@
 {
-    "blob_only_configurations": [
-        [
-            "11 05 8004 0000 08 00",
-            "11 50 00 50 02 03",
-            "11 02 0050 FB1E 41 0D 01 1E 05 0014 00FA 0014 007D 003C",
-            "11 06 000F 1D 0402 00 0005 8005 00000001 00000001 04",
-            "31 06 000F 1D 0402 00 0005 8005 00000001 00000001 0C",
-            "51 06 000F 1D 0402 00 0005 8005 00000001 00000001 14",
-            "71 06 000F 1D 0402 00 0005 8005 00000001 00000001 1C",
-            "53 06 0402 15 0000 00 001E 8005 0000 000A 24",
-            "53 06 0405 15 0000 00 001E 8005 0000 0064 2C",
-            "11 06 0050 15 0006 04 8005 8014 0000 0064 34"
-        ],
-        [
-            "11 05 8004 0000 08 00",
-            "11 50 0050 02 03",
-            "11 02 0050 FB1E 41 0D 01 1E 05 0078 00FA 0032 01F4 003C",
-            "53 05 000F 0403 21 FFFF",
-            "53 06 0402 80 0000 29 001E 801E 48 0028",
-            "53 06 0405 80 0000 21 8001 801E 48 0190",
-            "11 06 0050 00 0006 41 8001 85A0 05 00 04 01F4 00",
-            "53 06 000F 00 0055 10 0005 85A0 01",
-            "53 06 000C 80 0055 39 000A 85A0 48 40A00000",
-            "11 06 000F 00 0402 23 000A 85A0 00000064",
-            "31 06 000F 00 0402 23 000A 85A0 00000064",
-            "51 06 000F 00 0402 23 000A 85A0 00000064",
-            "71 06 000F 00 0402 23 000A 85A0 00000064"
-        ],
-        [
-            "11 50 0050 02 03",
-            "11 02 0050 FB1E 41 0D 01 1E 05 0014 00FA 0014 007D 003C",
-            "53 06 0402 80 0000 29 000A 8002 48 0028",
-            "53 06 0405 80 0000 21 000A 8002 48 0190",
-            "11 06 0050 00 0006 41 000A 8002 05 00 04 01F4 00",
-            "53 06 000F 00 0055 10 0001 8002 01",
-            "53 06 000C 80 0055 39 000A 8002 48 40A00000",
-            "11 06 000F 00 0402 23 0005 8005 0000000A",
-            "31 06 000F 00 0402 23 0005 8005 0000000A",
-            "51 06 000F 00 0402 23 0005 8005 0000000A",
-            "71 06 000F 00 0402 23 0005 8005 0000000A"
-        ]
-    ],
+    "blob_only_configurations": [],
     "general_params": {
         "remove_config": {
             "label": "@removeCurrentConfigLabel",
@@ -115,7 +74,13 @@
                         "label": "@echantLabel @InputLabel 3",
                         "visual_type": "timeSlider"
                     }
-                },
+                }
+            }
+        },
+        "batch_P4_params": {
+            "label": "@IndexLabel @InputLabel 4",
+            "default_state": "false",
+            "fields": {
                 "p4BatchEchant": {
                     "type": "timeVal",
                     "default_value": "60",
@@ -125,6 +90,78 @@
                     "depends_on": "gBatchEmission",
                     "HMI": {
                         "label": "@echantLabel @InputLabel 4",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "batch_S1_params": {
+            "label": "@PulseStateLabel @InputLabel 1",
+            "default_state": "false",
+            "fields": {
+                "s1BatchEchant": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "120",
+                    "step": "1",
+                    "depends_on": "gBatchEmission",
+                    "HMI": {
+                        "label": "@echantLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "batch_S2_params": {
+            "label": "@PulseStateLabel @InputLabel 2",
+            "default_state": "false",
+            "fields": {
+                "s2BatchEchant": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "120",
+                    "step": "1",
+                    "depends_on": "gBatchEmission",
+                    "HMI": {
+                        "label": "@echantLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "batch_S3_params": {
+            "label": "@PulseStateLabel @InputLabel 3",
+            "default_state": "false",
+            "fields": {
+                "s3BatchEchant": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "120",
+                    "step": "1",
+                    "depends_on": "gBatchEmission",
+                    "HMI": {
+                        "label": "@echantLabel",
+                        "visual_type": "timeSlider"
+                    }
+                }
+            }
+        },
+        "batch_S4_params": {
+            "label": "@PulseStateLabel @InputLabel 4",
+            "default_state": "false",
+            "fields": {
+                "s4BatchEchant": {
+                    "type": "timeVal",
+                    "default_value": "60",
+                    "min_value": "1",
+                    "max_value": "120",
+                    "step": "1",
+                    "depends_on": "gBatchEmission",
+                    "HMI": {
+                        "label": "@echantLabel",
                         "visual_type": "timeSlider"
                     }
                 }
@@ -167,7 +204,11 @@
             ["11 06 00 0F 1D 04 02 00 (p1BatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 04", "@cfgCommentBatchIndex @InputLabel 1"],
             ["31 06 00 0F 1D 04 02 00 (p2BatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 0C", "@cfgCommentBatchIndex @InputLabel 2"],
             ["51 06 00 0F 1D 04 02 00 (p3BatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 14", "@cfgCommentBatchIndex @InputLabel 3"],
-			["71 06 00 0F 1D 04 02 00 (p4BatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 1C", "@cfgCommentBatchIndex @InputLabel 4"],
+            ["71 06 00 0F 1D 04 02 00 (p4BatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 3C", "@cfgCommentBatchIndex @InputLabel 4"],
+			["11 06 000F 11 0055 00 (s1BatchEchant) (gBatchEmission) 00 01 1C", "@cfgCommentBatchState @InputLabel 1"],
+			["31 06 000F 11 0055 00 (s2BatchEchant) (gBatchEmission) 00 01 24", "@cfgCommentBatchState @InputLabel 2"],
+			["51 06 000F 11 0055 00 (s3BatchEchant) (gBatchEmission) 00 01 2C", "@cfgCommentBatchState @InputLabel 3"],
+			["71 06 000F 11 0055 00 (s4BatchEchant) (gBatchEmission) 00 01 44", "@cfgCommentBatchState @InputLabel 4"],
 			["11 06 00 50 15 00 06 04 (bBatchEchant) 85A0 00 00 00 64 34", "@cfgCommentBatchBatt"]
         ]
     },

@@ -381,6 +381,7 @@
     "cfgCommentUnoccToOcc": "Unoccupied to occupied delay",
     "cfgCommentCTNConfiguration": "Configures NTC coefficient",
     "cfgCommentBatchIndex": "Configures counter logging",
+    "cfgCommentBatchState": "Configures input state logging",
     "cfgCommentStandIndex": "Configures the periodicity of sending of counter",
     "IndexLabel": "Counter",
     "PulseStateLabel": "States",

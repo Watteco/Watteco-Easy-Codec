@@ -475,6 +475,7 @@
 			"compatibleProducts": ["50-70-260"],
 			"apps": ["EasyCodec"],
 			"mId": ["pulse-senso-neo"],
+			"BatchUncompressParams": "4 0,1,10,Index1 1,1,10,Index2 2,1,10,Index3 3,1,1,State1 4,1,1,State2 5,1,1,State3 6,100,6,VBAT 7,1,10,Index4 8,1,1,State4",
 			"category": "Digital input sensors",
 			"comment": ["",""],
 			"docLink": "https://support.watteco.com/"
@@ -485,7 +486,7 @@
 			"compatibleProducts": ["50-70-260-671"],
 			"apps": ["EasyCodec"],
 			"mId": ["hygrotempo-neo"],
-			"BatchUncompressParams": "2 0,10,7,Temperature 1,100,6,RelativeHumidity 2,1,6,BatteryLevel 3,1,1,OpenCase",
+			"BatchUncompressParams": "4 0,1,10,Index1 3,1,1,State1 4,10,7,Temperature 5,100,6,RelativeHumidity 6,100,6,VBAT",
 			"category": "unreleased",
 			"comment": ["Temperature, hygrometry measurement + break in alarm","Mesure de température et hygrometrie + alarme d'effraction"],
 			"docLink": "https://support.watteco.com/hygrotempo/"
@@ -496,20 +497,21 @@
 			"compatibleProducts": ["50-70-304", "50-70-260-670"],
 			"apps": ["EasyCodec"],
 			"mId": ["pulse-senso-lite-neo"],
+			"BatchUncompressParams": "4 0,1,10,Index1 3,1,1,State1 6,100,6,VBAT",
 			"category": "Digital input sensors",
 			"comment": ["One pulse input", "Une entrée impulsionnelle"],
 			"docLink": "https://support.watteco.com/"
 		},
 		{
-			"name": "Temp'O Neo PT1000 (50-70-307)",
-			"file": "50-70-307-Temp'O-Neo-PT1000",
-			"compatibleProducts": ["50-70-307", "50-70-260-672"],
+			"name": "Temp'O Neo - 2 remote probes (50-70-306)",
+			"file": "50-70-306-Temp'O-Neo-2-remote-probes",
+			"compatibleProducts": ["50-70-306", "50-70-260-672"],
 			"apps": ["EasyCodec"],
 			"mId": ["tempo-neo-pt1000"],
-			"BatchUncompressParams": "1 0,10,7,Temperature 1,100,6,BatteryLevel",
-			"category": "TH sensors",
-			"comment": ["PT1000 temperature measurement with Bluetooth Low Energy", "Mesure de température PT1000 avec Bluetooth Low Energy"],
-			"docLink": "https://support.watteco.com/pt1000/"
+			"BatchUncompressParams": "3 0,10,7,Temperature1 1,10,7,Temperature2 5,100,6,BatteryLevel",
+			"category": "TH sensors (Remote)",
+			"comment": ["2 channels remote temperature measurement with Bluetooth Low Energy", "Mesure de température déportée 2 voies avec Bluetooth Low Energy"],
+			"docLink": "https://support.watteco.com/remote-temperature-2/"
 		}
 	],
 	"in_developpement_products": [

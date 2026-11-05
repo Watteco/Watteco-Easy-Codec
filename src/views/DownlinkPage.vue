@@ -2083,7 +2083,7 @@ const REPORTING_CONFIGURATION_READ_PRODUCTS = new Set([
   "50-70-260-Pulse-Sens'O-Neo",
   "50-70-260-671-HygroTemp'O-Neo",
   "50-70-304-Pulse-Sens'O-Lite-Neo",
-  "50-70-307-Temp'O-Neo-PT1000",
+  "50-70-306-Temp'O-Neo-2-remote-probes",
 ]);
 const supportsReportingConfigurationRead = computed(() => (
   REPORTING_CONFIGURATION_READ_PRODUCTS.has(selectedSensor.value)
@@ -2496,70 +2496,51 @@ const resetCheckboxes = () => {
   framesCount.value = {};
 };
 
-// Reset all checkboxes to their default states // WIP
+// Apply each group's default independently. Enabling a section here must not
+// behave like a user toggling the section on, which intentionally enables all
+// of its child groups.
 const initializeStates = (config: SensorStateConfig) => {
-  const setParentAndChildStates = (
-    parentGroup: SensorParameterGroup,
-    groupName: string,
-    bigGroupName: string,
-  ) => {
-    // Check parent default_state
-    if (parentGroup.default_state === "true" || isTrueFlag(parentGroup.mandatory)) {
-      if (bigGroupName === "general_params") {
-        generalChecked.value = true;
-        onGeneralCheckedChange({ detail: { checked: true } });
-      } else if (bigGroupName === "batch_params") {
-        batchChecked.value = true;
-        onBatchCheckedChange({ detail: { checked: true } });
-      } else if (bigGroupName === "standard_params") {
-        standardChecked.value = true;
-        onStandardCheckedChange({ detail: { checked: true } });
-      } else if (bigGroupName === "modbus_params") {
-        modbusChecked.value = true;
-        onModbusCheckedChange({ detail: { checked: true } });
-      }else if (bigGroupName === "configuration_params") {
-        configurationChecked.value = true;
-        onConfigurationCheckedChange({ detail: { checked: true } });
-      }else if (bigGroupName === "commande_params") {
-        commandeChecked.value = true;
-        onCommandeCheckedChange({ detail: { checked: true } });
-      }
-      paramGroupChecked.value[groupName] = true;
-      onParamGroupCheckedChange({ detail: { checked: true } }, groupName, bigGroupName);
-    }
-
-    // Check children default_state
-    const fields = parentGroup.fields;
-    if (fields) {
-      Object.keys(fields).forEach((fieldName) => {
-        const field = fields[fieldName];
-        const defaultValue = field.default_value;
-        if (field.HMI && defaultValue) {
-          // Initialize field value
-          field.selectedValue = defaultValue;
-          outputVals[fieldName] = convertToHexFrameValue(defaultValue, field);
-
-          // Store the original max_value
-          field.originalMaxValue = field.max_value;
-
-          // Check individual default_state (if applicable)
-          if (parentGroup.default_state === "true" || isTrueFlag(parentGroup.mandatory)) {
-            paramGroupList[fieldName] = field;
-          }
-        }
-      });
-    }
+  const setSectionChecked = (sectionName: string, checked: boolean) => {
+    if (sectionName === "general_params") generalChecked.value = checked;
+    else if (sectionName === "batch_params") batchChecked.value = checked;
+    else if (sectionName === "standard_params") standardChecked.value = checked;
+    else if (sectionName === "modbus_params") modbusChecked.value = checked;
+    else if (sectionName === "configuration_params") configurationChecked.value = checked;
+    else if (sectionName === "commande_params") commandeChecked.value = checked;
   };
 
-  // Iterate over big groups
   ["batch_params", "modbus_params", "standard_params", "configuration_params", "commande_params", "general_params"].forEach((bigGroupName) => {
     const section = config[bigGroupName];
-    if (section) {
-      Object.keys(section).forEach((groupName) => {
-        const parentGroup = section[groupName];
-        setParentAndChildStates(parentGroup, groupName, bigGroupName);
+    if (!section) return;
+
+    const configurableGroups = Object.keys(section).filter(groupName => (
+      groupName !== "global_params"
+      && groupName !== "cfg_block"
+      && section[groupName]?.fields
+    ));
+    const sectionChecked = configurableGroups.some(groupName => {
+      const group = section[groupName];
+      return group.default_state === "true" || isTrueFlag(group.mandatory);
+    });
+
+    setSectionChecked(bigGroupName, sectionChecked);
+    outputData[bigGroupName] = sectionChecked;
+
+    configurableGroups.forEach(groupName => {
+      const group = section[groupName] as SensorParameterGroup;
+      const enabled = group.default_state === "true" || isTrueFlag(group.mandatory);
+      setGroupEnabled(bigGroupName, groupName, enabled);
+    });
+
+    const globalFields = section.global_params?.fields;
+    if (globalFields) {
+      Object.keys(globalFields).forEach(fieldName => {
+        globalFields[fieldName].enabled = sectionChecked;
+        paramGroupList[fieldName] = globalFields[fieldName];
       });
     }
+
+    if (sectionChecked) initializeExclusiveGroups(bigGroupName);
   });
 };
 
@@ -2575,24 +2556,6 @@ const loadSensorConfig = async (sensorFile: string) => {
 
     // Extract image path from config if available
     sensorImage.value = findSensorImage(sensorConfig.value);
-
-    // Initialize default states first
-    ["batch_params", "modbus_params", "standard_params", "configuration_params", "commande_params", "general_params"].forEach((section) => {
-      if (rawConfig[section]) {
-        Object.keys(rawConfig[section]).forEach((groupName) => {
-          const group = rawConfig[section][groupName];
-          if (group.default_state === "true" || isTrueFlag(group.mandatory)) {
-            paramGroupChecked.value[groupName] = true;
-            if (section === "general_params") generalChecked.value = true;
-            if (section === "batch_params") batchChecked.value = true;
-            if (section === "standard_params") standardChecked.value = true;
-            if (section === "modbus_params") modbusChecked.value = true;
-            if (section === "configuration_params") configurationChecked.value = true;
-            if (section === "commande_params") commandeChecked.value = true;
-          }
-        });
-      }
-    });
 
     // Initialize states for checkboxes and fields
     initializeStates(sensorConfig.value);

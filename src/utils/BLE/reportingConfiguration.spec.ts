@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import pt1000Config from '../../../public/config/50-70-307-Temp\'O-Neo-PT1000.json';
+import tempoNeo2RemoteProbesConfig from '../../../public/config/50-70-306-Temp\'O-Neo-2-remote-probes.json';
 import hygroTempConfig from '../../../public/config/50-70-260-671-HygroTemp\'O-Neo.json';
 import pulseConfig from '../../../public/config/50-70-260-Pulse-Sens\'O-Neo.json';
 import pulseLiteConfig from '../../../public/config/50-70-304-Pulse-Sens\'O-Lite-Neo.json';
@@ -12,8 +12,8 @@ function frame(value: string): Uint8Array {
 }
 
 describe('reporting configuration parsing', () => {
-  it('loads every editable PT1000 Neo reporting value', () => {
-    const result = parseReportingConfigurations(pt1000Config, [
+  it('loads every editable TempO Neo reporting value', () => {
+    const result = parseReportingConfigurations(tempoNeo2RemoteProbesConfig, [
       frame('11 09 0050 00 80 0006 41 800A 85A0 0E 70 04 0B54 0000 01 71 04 0CE4 0000 01'),
       frame('11 09 0402 00 80 0000 29 800A 803C 70 05DC 0000 01 71 0BB8 0000 01'),
       frame('31 09 0402 00 80 0000 29 800A 803C 70 05DC 0000 01 71 0BB8 0000 01'),
@@ -42,7 +42,7 @@ describe('reporting configuration parsing', () => {
   });
 
   it('detects an unknown reporting frame and a conflicting shared value', () => {
-    const result = parseReportingConfigurations(pt1000Config, [
+    const result = parseReportingConfigurations(tempoNeo2RemoteProbesConfig, [
       frame('11 09 0402 00 15 0000 00 800A 803C 0000 000A 03'),
       frame('31 09 0402 00 15 0000 00 800A 8030 0000 000A 0B'),
       frame('11 09 1234 00 80 0000 20 8001 8002'),
@@ -82,7 +82,7 @@ describe('reporting configuration parsing', () => {
 
   it('parses the Pulse Neo pattern reporting mode in the shared multi-state group', () => {
     const result = parseReportingConfigurations(pulseConfig, [
-      frame('11 09 8005 00 88 0000 19 800A 85A0 F1 0001 0002 80 0003 0004'),
+      frame('11 09 8005 00 88 0000 19 800A 85A0 F0 0001 0002 80 0003 0004'),
     ]);
 
     expect(result.exclusiveGroupConflicts).toEqual([]);
@@ -125,7 +125,7 @@ describe('reporting configuration parsing', () => {
   });
 
   it('flags seconds when the field has not opted in', () => {
-    const result = parseReportingConfigurations(pt1000Config, [
+    const result = parseReportingConfigurations(tempoNeo2RemoteProbesConfig, [
       frame('11 09 0402 00 15 0000 00 000A 803C 0000 000A 03'),
     ]);
 
@@ -140,7 +140,7 @@ describe('reporting configuration parsing', () => {
   });
 
   it('preserves seconds when the field explicitly opts in', () => {
-    const config = structuredClone(pt1000Config) as any;
+    const config = structuredClone(tempoNeo2RemoteProbesConfig) as any;
     config.batch_params.batch_T_params.fields.tBatchEchant.HMI.allow_seconds = true;
     const result = parseReportingConfigurations(config, [
       frame('11 09 0402 00 15 0000 00 000A 803C 0000 000A 03'),
