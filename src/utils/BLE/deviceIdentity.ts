@@ -18,6 +18,25 @@ export function formatDevEuiSuffix(value?: string): string {
   return normalized.match(/.{1,2}/g)?.join(':') ?? '';
 }
 
+export function getFormattedDevEuiSuffixCaret(
+  value: string,
+  selectionStart: number | null,
+): number {
+  const caret = selectionStart ?? value.length;
+  const compactValue = value.replace(/[^0-9A-F]/gi, '').toUpperCase();
+  const hexBeforeCaret = value.slice(0, caret).replace(/[^0-9A-F]/gi, '').length;
+  const pastedFullDevEui = compactValue.length === 16
+    && compactValue.startsWith(WATTECO_DEV_EUI_PREFIX);
+  const suffixHexBeforeCaret = pastedFullDevEui
+    ? Math.max(0, hexBeforeCaret - WATTECO_DEV_EUI_PREFIX.length)
+    : hexBeforeCaret;
+  const suffixLength = normalizeDevEuiSuffixInput(value).length;
+  const boundedHexCount = Math.min(suffixHexBeforeCaret, suffixLength);
+
+  if (boundedHexCount === 0) return 0;
+  return boundedHexCount + Math.floor((boundedHexCount - 1) / 2);
+}
+
 export function deriveBleDeviceNameFromDevEuiSuffix(value?: string): string | null {
   const normalized = normalizeDevEuiSuffixInput(value);
   if (!/^[0-9A-F]{8}$/.test(normalized)) return null;

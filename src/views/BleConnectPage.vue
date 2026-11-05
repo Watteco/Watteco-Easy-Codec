@@ -291,7 +291,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, nextTick, ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage, IonHeader, IonContent, IonButton, IonIcon, IonLabel, IonList,
@@ -318,6 +318,7 @@ import {
   deriveDevEuiFromDeviceName,
   formatDevEui,
   formatDevEuiSuffix,
+  getFormattedDevEuiSuffixCaret,
   isBleSensorName,
   normalizeDevEuiSuffixInput,
 } from '@/utils/BLE/deviceIdentity';
@@ -461,8 +462,11 @@ function toggleAutoConnectPanel() {
 
 function onDevEuiSuffixInput(event: Event) {
   const input = event.target as HTMLInputElement;
-  devEuiSuffix.value = normalizeDevEuiSuffixInput(input.value);
+  const rawValue = input.value;
+  const caret = getFormattedDevEuiSuffixCaret(rawValue, input.selectionStart);
+  devEuiSuffix.value = normalizeDevEuiSuffixInput(rawValue);
   input.value = formattedDevEuiSuffix.value;
+  void nextTick(() => input.setSelectionRange(caret, caret));
 }
 
 async function toggleTargetedConnection() {

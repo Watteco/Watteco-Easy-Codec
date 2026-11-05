@@ -4,6 +4,7 @@ import {
   deriveDevEuiFromDeviceName,
   formatDevEui,
   formatDevEuiSuffix,
+  getFormattedDevEuiSuffixCaret,
   isBleOtaLoaderName,
   isBleSensorName,
   isBleSensorOrOtaName,
@@ -66,5 +67,15 @@ describe('Watteco BLE device identity', () => {
   it('derives the BLE name from a complete DevEUI suffix', () => {
     expect(deriveBleDeviceNameFromDevEuiSuffix('5F:00:67:63')).toBe('WS5F006763');
     expect(deriveBleDeviceNameFromDevEuiSuffix('5F0067')).toBeNull();
+  });
+
+  it('keeps the caret beside the edited byte after formatting', () => {
+    expect(getFormattedDevEuiSuffixCaret('5F:0:67:63', 4)).toBe(4);
+    expect(getFormattedDevEuiSuffixCaret('5F:00:6:63', 7)).toBe(7);
+    expect(getFormattedDevEuiSuffixCaret('5F:00:67:63', 11)).toBe(11);
+  });
+
+  it('places the caret within the suffix after pasting a complete DevEUI', () => {
+    expect(getFormattedDevEuiSuffixCaret('70:B3:D5:E7:5F:00:67:63', 23)).toBe(11);
   });
 });
