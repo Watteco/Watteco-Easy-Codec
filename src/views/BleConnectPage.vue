@@ -90,7 +90,7 @@
               maxlength="23"
               autocomplete="off"
               autocapitalize="characters"
-              placeholder="5F:00:67:63"
+              placeholder="5F:12:34:56"
               :disabled="targetedWorkflowActive"
               @input="onDevEuiSuffixInput"
             />
