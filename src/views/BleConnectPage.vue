@@ -313,6 +313,7 @@ import LeadingEllipsisText from '@/components/LeadingEllipsisText.vue';
 import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
+import { createBundledTranslations } from '@/utils/localization';
 import {
   deriveBleDeviceNameFromDevEuiSuffix,
   deriveDevEuiFromDeviceName,
@@ -332,7 +333,7 @@ import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
 
 const { currentLanguage, changeLanguage } = useLanguage();
-const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
+const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 
 const generateCacheBuster = () => `?v=${new Date().getTime()}`;
 

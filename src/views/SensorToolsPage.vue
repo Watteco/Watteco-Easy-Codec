@@ -606,6 +606,7 @@ import { useBleDebug } from '@/composables/useBleDebug';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
+import { createBundledTranslations } from '@/utils/localization';
 import {
   eu868DataRateToSpreadingFactor,
   LoraLinkTestRejectedError,
@@ -763,7 +764,7 @@ const {
   startFirmwareUpdate,
 } = useBleDebug(ble, { enabled: developerModeEnabled });
 const { currentLanguage } = useLanguage();
-const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
+const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 const campaignSamples = ref<CampaignSample[]>([]);
 const campaignDiagnostics = ref<CampaignDiagnostic[]>([]);
 const previousCampaigns = ref<CampaignRun[]>([]);

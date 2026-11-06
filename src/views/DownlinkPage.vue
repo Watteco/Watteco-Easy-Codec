@@ -1846,6 +1846,7 @@ import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.v
 import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import { useLanguage } from '@/composables/useLanguage';
+import { createBundledTranslations } from '@/utils/localization';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { getProductConfigurationFile, getProductDisplayName } from '@/utils/productMeasurements';
@@ -1974,10 +1975,7 @@ type SensorStateConfig = Record<
 
 const { currentLanguage, changeLanguage } = useLanguage();
 
-const languages = ref<Record<LanguageCode, Translations>>({
-  en: {},
-  fr: {},
-});
+const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 
 const { developerModeEnabled } = useDeveloperMode();
 const isNativeApp = Capacitor.isNativePlatform();

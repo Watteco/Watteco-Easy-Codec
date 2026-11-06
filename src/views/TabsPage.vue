@@ -43,6 +43,7 @@ import { Capacitor } from '@capacitor/core';
 import axios from 'axios';
 import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
+import { createBundledTranslations } from '@/utils/localization';
 
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
@@ -77,7 +78,7 @@ import { arrowDownCircleOutline, arrowUpCircleOutline, batteryHalfOutline, serve
 // Define a reactive variable for the logo's src
 const logoSrc = ref('');
 const { currentLanguage } = useLanguage();
-const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
+const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 
 const localize = (key: string): string => {
   if (!key.startsWith('@')) return key;

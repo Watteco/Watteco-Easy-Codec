@@ -244,6 +244,7 @@ import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import { useTheme } from '@/composables/useTheme';
 import type { LanguageCode, Translations } from '@/types/localization';
+import { createBundledTranslations } from '@/utils/localization';
 import SensorHistoryCard from '@/components/sensor/SensorHistoryCard.vue';
 import SensorMetricCard from '@/components/sensor/SensorMetricCard.vue';
 import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.vue';
@@ -268,7 +269,7 @@ const { debugOtaAppKeyHex, debugDevEuiHex } = useBleDebugCredentials();
 const { developerModeEnabled } = useDeveloperMode();
 const { isDarkMode } = useTheme();
 const { currentLanguage } = useLanguage();
-const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
+const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 
 onIonViewDidEnter(() => {
   playSensorPageTransition('data', '.sensor-data-content');

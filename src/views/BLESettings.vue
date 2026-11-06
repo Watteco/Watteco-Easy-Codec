@@ -77,6 +77,7 @@ import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import { useTheme } from '@/composables/useTheme';
 import { useSessionExitConfirmation } from '@/composables/useSessionExitConfirmation';
 import type { LanguageCode, Translations } from '@/types/localization';
+import { createBundledTranslations } from '@/utils/localization';
 
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
@@ -89,7 +90,7 @@ const {
   developerModeEnabled,
   toggleDeveloperMode,
 } = useDeveloperMode();
-const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
+const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 let versionTapCount = 0;
 let versionTapResetTimer: ReturnType<typeof setTimeout> | undefined;
 

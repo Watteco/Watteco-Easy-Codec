@@ -85,6 +85,7 @@ import { useBle } from '@/composables/useBle';
 import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { getBleSignalPercent } from '@/utils/BLE/rssi';
+import { createBundledTranslations } from '@/utils/localization';
 
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
@@ -100,7 +101,7 @@ const temperatureEmojis = ['🧊', '🥶', '😨', '🙂', '😊', '🥵', '🔥
 const router = useRouter();
 const ble = useBle();
 const { currentLanguage } = useLanguage();
-const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
+const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 
 const localize = (key: string): string => {
   if (!key.startsWith('@')) return key;

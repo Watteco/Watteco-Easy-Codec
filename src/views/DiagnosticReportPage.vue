@@ -121,6 +121,7 @@ import {
 } from '@/utils/diagnosticExport';
 import { createDiagnosticLogger, getDiagnosticLogs } from '@/utils/diagnosticLogger';
 import type { LanguageCode, Translations } from '@/types/localization';
+import { createBundledTranslations } from '@/utils/localization';
 
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
@@ -128,7 +129,7 @@ import frFR from '/localisation/fr_FR.json?url';
 const { currentLanguage } = useLanguage();
 const ble = useBle();
 const diagnosticLogger = createDiagnosticLogger('settings');
-const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
+const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 const diagnosticExportInProgress = ref(false);
 const diagnosticLogs = getDiagnosticLogs();
 

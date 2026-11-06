@@ -140,6 +140,7 @@ import axios from 'axios';
 import { Capacitor } from '@capacitor/core';
 import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
+import { createBundledTranslations } from '@/utils/localization';
 import {
   IonPage,
   IonContent,
@@ -234,7 +235,7 @@ const copyFrame = async () => {
 
 // Language related code
 const { currentLanguage, changeLanguage } = useLanguage();
-const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
+const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 
 // Import language files
 import enUS from '/localisation/en_US.json?url';

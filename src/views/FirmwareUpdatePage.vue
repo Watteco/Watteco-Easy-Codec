@@ -176,6 +176,7 @@ import {
 import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { loadFirmwareRecoveryDevice } from '@/utils/BLE/firmwareUpdateRecovery';
+import { createBundledTranslations } from '@/utils/localization';
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
 
@@ -183,7 +184,7 @@ const ble = useBle();
 const enabled = ref(true);
 const recoveryDevice = ref(loadFirmwareRecoveryDevice());
 const { currentLanguage } = useLanguage();
-const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
+const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 const {
   debugLogs,
   firmwareFileName,
