@@ -28,3 +28,14 @@ end
 post_install do |installer|
   assertDeploymentTarget(installer)
 end
+
+post_integrate do |installer|
+  # CocoaPods < 1.12.1 resolves archive framework symlinks relative to the
+  # script's working directory. Keep the upstream fix across cap sync / pod install.
+  # https://github.com/CocoaPods/CocoaPods/pull/11828
+  Dir.glob(File.join(installer.sandbox.root, 'Target Support Files', '*', '*-frameworks.sh')).each do |path|
+    script = File.read(path)
+    fixed_script = script.gsub('source="$(readlink "${source}")"', 'source="$(readlink -f "${source}")"')
+    File.write(path, fixed_script) if fixed_script != script
+  end
+end

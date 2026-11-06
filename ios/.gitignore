@@ -1,6 +1,8 @@
 App/build
 App/Pods
 App/output
+# Timestamped Xcode distribution exports
+/App/App [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*/
 App/App/public
 DerivedData
 xcuserdata

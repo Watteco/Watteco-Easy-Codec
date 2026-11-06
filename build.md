@@ -56,6 +56,12 @@ Après l'ajout d'un plugin Capacitor, lancer `npm run ios` pour construire les a
 2. ouvrir ensuite le projet iOS sur un Mac
 3. lancer les étapes natives Xcode / CocoaPods si nécessaire
 
+### Archivage Xcode
+
+Ouvrir `ios/App/App.xcworkspace`, sélectionner une destination iOS générique, puis lancer **Product > Archive**.
+
+Si `rsync` signale `../../../IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Capacitor.framework: (l)stat: No such file or directory`, relancer `npm run sync:ios` puis l'archive. Le `Podfile` applique après génération des scripts le correctif CocoaPods de résolution des liens symboliques (`readlink -f`), nécessaire avec CocoaPods antérieur à 1.12.1.
+
 ## Android / Capacitor
 
 Pour éviter les problèmes de `base path` sur Android, utiliser les scripts npm dédiés.
