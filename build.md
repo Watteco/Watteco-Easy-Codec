@@ -60,6 +60,10 @@ Après l'ajout d'un plugin Capacitor, lancer `npm run ios` pour construire les a
 
 Ouvrir `ios/App/App.xcworkspace`, sélectionner une destination iOS générique, puis lancer **Product > Archive**.
 
+La version native est synchronisée depuis `package.json` par `npm run ios`, `npm run ios:debug`, les builds iOS et `npm run sync:ios`. Par exemple, `0.11.15-dev.366` devient **Version 0.11.15 / Build 367** : la version conserve les trois nombres, et le build vaut le compteur `dev` + 1. Une version sans suffixe utilise le build `1`.
+
+Si seule la version du package a changé, lancer `npm run version:ios` avant d'archiver. L'action Archive seule ne relit pas `package.json`. Les archives déjà créées conservent leur ancienne version. Pour plusieurs envois d'une même version sur App Store Connect, veiller à augmenter le compteur `dev` afin d'obtenir un nouveau numéro de build.
+
 Si `rsync` signale `../../../IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Capacitor.framework: (l)stat: No such file or directory`, relancer `npm run sync:ios` puis l'archive. Le `Podfile` applique après génération des scripts le correctif CocoaPods de résolution des liens symboliques (`readlink -f`), nécessaire avec CocoaPods antérieur à 1.12.1.
 
 ## Android / Capacitor
