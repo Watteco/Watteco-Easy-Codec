@@ -30,11 +30,25 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/DiagnosticReportPage.vue')
   },
   {
+    path: '/kms/login',
+    name: 'KmsLogin',
+    component: () => import('@/views/KmsLoginPage.vue')
+  },
+  {
     path: '/sensor-data',
     name: 'SensorData',
     component: () => import('@/views/SensorDataPage.vue'),
     beforeEnter: (_to, _from, next) => {
       // The sensor dashboard is only part of the native application flow.
+      if (!isNative) { next('/tabs/downlink'); return; }
+      next();
+    }
+  },
+  {
+    path: '/special-mode',
+    name: 'SpecialMode',
+    component: () => import('@/views/SpecialModePage.vue'),
+    beforeEnter: (_to, _from, next) => {
       if (!isNative) { next('/tabs/downlink'); return; }
       next();
     }

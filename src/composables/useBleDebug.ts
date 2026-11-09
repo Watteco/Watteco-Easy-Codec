@@ -24,7 +24,10 @@ import {
   readProductId as readProductIdFromBle,
 } from '@/utils/BLE/configReader';
 import { OsaKeyStore } from '@/plugins/osaKeyStore';
-import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
+import {
+  updateDebugDevEuiFromDeviceName,
+  useBleDebugCredentials,
+} from '@/composables/useBleDebugCredentials';
 import { runFirmwareUpdateProbe } from '@/utils/BLE/firmwareUpdateProbe';
 import {
   dryRunFirmwareImage,
@@ -47,18 +50,9 @@ type UseBleDebugOptions = {
   enabled: MaybeRef<boolean>;
 };
 
-const debugOtaAppKeyHex = ref('2B7E151628AED2A6ABF7158809CF4F3C');
-const debugDevEuiHex = ref('');
-export function useBleDebugCredentials() {
-  return { debugOtaAppKeyHex, debugDevEuiHex };
-}
+export { updateDebugDevEuiFromDeviceName, useBleDebugCredentials } from '@/composables/useBleDebugCredentials';
 
-export function updateDebugDevEuiFromDeviceName(deviceName?: string): boolean {
-  const derivedDevEui = deriveDevEuiFromDeviceName(deviceName);
-  if (!derivedDevEui) return false;
-  debugDevEuiHex.value = derivedDevEui;
-  return true;
-}
+const { debugOtaAppKeyHex, debugDevEuiHex } = useBleDebugCredentials();
 
 export function useBleDebug(ble: any, options: UseBleDebugOptions) {
   const isEnabled = () => toValue(options.enabled);

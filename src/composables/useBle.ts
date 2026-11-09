@@ -42,8 +42,10 @@ import { decodeAdvertisedProductId } from '@/utils/BLE/advertising';
 import {
   BLE_SENSOR_NAME_PREFIX,
   deriveDevEuiFromDeviceName,
+  isBleDiscoverableName,
   isBleOtaLoaderName,
-  isBleSensorOrOtaName,
+  isBleSpecialModeName,
+  matchesTargetBleName,
 } from '@/utils/BLE/deviceIdentity';
 import {
   MEASUREMENT_SOURCE_TO_ID,
@@ -71,6 +73,7 @@ import { getBleSignalLevel, type BleSignalLevel } from '@/utils/BLE/rssi';
 import { readAdminDeviceStatus } from '@/utils/BLE/adminStatus';
 import { buildCounterSetFrame } from '@/utils/BLE/counterCommands';
 import { createDiagnosticLogger } from '@/utils/diagnosticLogger';
+import { BST_SERVICE_UUID, normalizeUuid } from '@/utils/BLE/characteristics';
 
 export type DeviceLike = {
   deviceId: string;
@@ -81,6 +84,7 @@ export type DeviceLike = {
   productName?: string;
   devEui?: string;
   isOtaLoader?: boolean;
+  isSpecialMode?: boolean;
 };
 
 export type BleConnectionPhase = 'idle' | 'connecting' | 'discovering' | 'ready';
@@ -289,7 +293,7 @@ function recordScanResult(
 ): DeviceLike | undefined {
   const advertisementAt = Date.now();
   const name = result.localName ?? result.device.name;
-  if (useFilters && !isBleSensorOrOtaName(name)) return undefined;
+  if (useFilters && !isBleDiscoverableName(name)) return undefined;
 
   const advertisedProductId = decodeAdvertisedProductId(result.manufacturerData) ?? undefined;
   const advertisedProductReference = resolveAvailableProductReference(advertisedProductId) ?? undefined;
@@ -306,6 +310,7 @@ function recordScanResult(
     productName: advertisedProductName ?? previous?.productName,
     devEui: deriveDevEuiFromDeviceName(name) ?? previous?.devEui,
     isOtaLoader: isBleOtaLoaderName(name),
+    isSpecialMode: isBleSpecialModeName(name),
   };
 
   if (index < 0) {
@@ -317,13 +322,16 @@ function recordScanResult(
     || previous?.productName !== device.productName
     || previous?.devEui !== device.devEui
     || previous?.isOtaLoader !== device.isOtaLoader
+    || previous?.isSpecialMode !== device.isSpecialMode
   ) {
     devices.value = devices.value.map((current, currentIndex) => (
       currentIndex === index ? device : current
     ));
   }
 
-  if (enqueueWake && !device.isOtaLoader) enqueueSensorWake(device, advertisementAt);
+  if (enqueueWake && !device.isOtaLoader && !device.isSpecialMode) {
+    enqueueSensorWake(device, advertisementAt);
+  }
   return device;
 }
 
@@ -878,7 +886,7 @@ async function startTargetedScan(targetDeviceName: string): Promise<DeviceLike |
       // Reserve advertising windows for the requested connection instead of
       // consuming them with the diagnostic wake queue.
       const device = recordScanResult(result, true, false);
-      if (device?.name?.trim().toUpperCase() !== normalizedTarget || targetDevice) return;
+      if (!device || !matchesTargetBleName(device.name, normalizedTarget) || targetDevice) return;
       targetDevice = device;
       diagnosticLogger.info('BLE targeted device found', {
         deviceId: device.deviceId,
@@ -1272,6 +1280,81 @@ async function connectToDevice(device: DeviceLike): Promise<boolean> {
       });
     }
     if (!connected.value) connectionPhase.value = 'idle';
+    connecting.value = false;
+    connectingDevice = undefined;
+  }
+}
+
+async function connectToSpecialModeDevice(device: DeviceLike): Promise<boolean> {
+  if (!device.isSpecialMode) return false;
+  if (connected.value) return connectedDevice.value?.deviceId === device.deviceId;
+  if (connecting.value) return false;
+
+  await cancelScan();
+  connectionCanceled = false;
+  connectingDevice = device;
+  connecting.value = true;
+  connectionPhase.value = 'connecting';
+  stopBleRssiMonitoring();
+  clearConnectionTarget();
+  productReference.value = null;
+  osaAuthenticated.value = null;
+  statusMessage.value = `Connecting to ${device.name || device.deviceId}â€¦`;
+  diagnosticLogger.info('BST temporary connection started', {
+    deviceId: device.deviceId,
+    deviceName: device.name,
+  });
+
+  try {
+    await BleClient.connect(device.deviceId, () => {
+      diagnosticLogger.info('BST temporary connection closed', {
+        deviceId: device.deviceId,
+        deviceName: device.name,
+      });
+      connected.value = false;
+      connectionPhase.value = 'idle';
+      if (connectedDevice.value?.deviceId === device.deviceId) {
+        connectedDevice.value = undefined;
+      }
+      pairing.value = false;
+      osaAuthenticated.value = null;
+      statusMessage.value = 'Device disconnected';
+    }, { timeout: RECONNECT_CONNECT_TIMEOUT_MS });
+
+    if (connectionCanceled) {
+      try { await disconnectBleDevice(device.deviceId); } catch { /* cancellation cleanup */ }
+      return false;
+    }
+
+    connectedDevice.value = device;
+    connectionPhase.value = 'discovering';
+    const services = await BleClient.getServices(device.deviceId);
+    const serviceUuids = new Set(services.map(service => normalizeUuid(service.uuid)));
+    if (!serviceUuids.has(BST_SERVICE_UUID)) {
+      throw new Error('BST service 8004 was not discovered');
+    }
+
+    connected.value = true;
+    connectionPhase.value = 'ready';
+    statusMessage.value = `Connected to ${device.name || device.deviceId}`;
+    diagnosticLogger.info('BST temporary connection ready', {
+      deviceId: device.deviceId,
+      deviceName: device.name,
+    });
+    return true;
+  } catch (error: any) {
+    statusMessage.value = 'Connection failed: ' + (error?.message ?? error);
+    diagnosticLogger.error('BST temporary connection failed', {
+      deviceId: device.deviceId,
+      deviceName: device.name,
+      error,
+    });
+    try { await disconnectBleDevice(device.deviceId); } catch { /* connection may not exist */ }
+    connected.value = false;
+    connectedDevice.value = undefined;
+    connectionPhase.value = 'idle';
+    return false;
+  } finally {
     connecting.value = false;
     connectingDevice = undefined;
   }
@@ -2156,6 +2239,7 @@ export function useBle() {
     stopScan,
     clearWakeDiagnostics,
     connectToDevice,
+    connectToSpecialModeDevice,
     cancelConnect,
     reconnectToLastDevice,
     reconnectAfterDeviceRestart,

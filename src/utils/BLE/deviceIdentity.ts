@@ -3,6 +3,7 @@ export const WATTECO_DEV_EUI_PREFIX = '70B3D5E7';
 export const BLE_SENSOR_NAME_PREFIX = 'WS5';
 export const BLE_SENSOR_NAME_PATTERN = /^WS5[0-9A-F]{7}$/i;
 export const BLE_OTA_LOADER_NAME_PATTERN = /^WS5[0-9A-F]{7}\.OTA$/i;
+export const BLE_SPECIAL_MODE_NAME_PATTERN = /^WS5[0-9A-F]{7}\.BST$/i;
 
 export function normalizeDevEuiSuffixInput(value?: string): string {
   let normalized = value?.replace(/[^0-9A-F]/gi, '').toUpperCase() ?? '';
@@ -51,12 +52,27 @@ export function isBleOtaLoaderName(deviceName?: string): boolean {
   return BLE_OTA_LOADER_NAME_PATTERN.test(deviceName?.trim() ?? '');
 }
 
+export function isBleSpecialModeName(deviceName?: string): boolean {
+  return BLE_SPECIAL_MODE_NAME_PATTERN.test(deviceName?.trim() ?? '');
+}
+
 export function isBleSensorOrOtaName(deviceName?: string): boolean {
   return isBleSensorName(deviceName) || isBleOtaLoaderName(deviceName);
 }
 
+export function isBleDiscoverableName(deviceName?: string): boolean {
+  return isBleSensorOrOtaName(deviceName) || isBleSpecialModeName(deviceName);
+}
+
+export function matchesTargetBleName(deviceName: string | undefined, targetName: string): boolean {
+  const normalizedDeviceName = deviceName?.trim().toUpperCase();
+  const normalizedTargetName = targetName.trim().toUpperCase();
+  return normalizedDeviceName === normalizedTargetName
+    || normalizedDeviceName === `${normalizedTargetName}.BST`;
+}
+
 export function deriveDevEuiFromDeviceName(deviceName?: string): string | null {
-  const normalizedName = deviceName?.trim().toUpperCase().replace(/\.OTA$/, '');
+  const normalizedName = deviceName?.trim().toUpperCase().replace(/\.(?:BST|OTA)$/, '');
   const extendedWsMatch = normalizedName?.match(/^WS([0-9A-F]{8})$/);
   if (extendedWsMatch) return `${WATTECO_DEV_EUI_PREFIX}${extendedWsMatch[1]}`;
 

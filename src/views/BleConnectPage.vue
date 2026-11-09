@@ -151,7 +151,17 @@
             @click="onDeviceSelect(dev)"
             :disabled="connecting || ble.pairing.value"
           >
-            <ion-icon :icon="bluetoothOutline" slot="start" color="primary" />
+            <div slot="start" class="device-source-icon">
+              <ion-icon :icon="bluetoothOutline" color="primary" aria-hidden="true" />
+              <span
+                v-if="kmsAccess.hasPrivilegedAccess(dev.devEui)"
+                class="kms-access-badge"
+                role="img"
+                :aria-label="localize('@kmsPrivilegedSensor')"
+              >
+                <ion-icon :icon="key" aria-hidden="true" />
+              </span>
+            </div>
             <ion-label>
               <h2>{{ dev.productName ?? ble.getDeviceName(dev) }}</h2>
               <p
@@ -233,7 +243,7 @@
     </ion-content>
   <div v-if="developerModeEnabled" class="debug-stack">
     <section
-      v-if="wakeMenuVisible"
+      v-if="debugToolsVisible && wakeMenuVisible"
       class="wake-debug-menu"
       aria-label="BLE wake timings"
     >
@@ -270,7 +280,7 @@
         </article>
       </div>
     </section>
-    <div class="debug-corner">
+    <div v-show="debugToolsVisible" id="ble-connect-debug-actions" class="debug-actions">
       <ion-button
         size="small"
         fill="solid"
@@ -284,16 +294,47 @@
         size="small"
         fill="solid"
         color="medium"
-        @click="addSimulatedSensor"
+        @click="addSimulatedSensor(false)"
         class="debug-corner-button"
       >
         <ion-icon slot="start" :icon="addCircleOutline" />
         {{ localize('@bleAddSimulatedSensor') }}
       </ion-button>
+      <ion-button
+        size="small"
+        fill="solid"
+        color="medium"
+        @click="addSimulatedSensor(true)"
+        class="debug-corner-button"
+      >
+        <ion-icon slot="start" :icon="key" />
+        {{ localize('@bleAddSimulatedKmsSensor') }}
+      </ion-button>
+      <ion-button
+        size="small"
+        fill="solid"
+        color="warning"
+        @click="router.push('/special-mode?preview=1')"
+        class="debug-corner-button"
+      >
+        <ion-icon slot="start" :icon="warningOutline" />
+        {{ localize('@blePreviewSpecialMode') }}
+      </ion-button>
       <ion-button size="small" fill="solid" color="medium" @click="proceed" class="debug-corner-button">
         {{ localize('@bleSkipDev') }}
       </ion-button>
     </div>
+    <button
+      type="button"
+      class="debug-toggle"
+      :class="{ 'debug-toggle--collapsed': !debugToolsVisible }"
+      :aria-expanded="debugToolsVisible"
+      aria-controls="ble-connect-debug-actions"
+      :title="debugToolsVisible ? 'Hide debug tools' : 'Show debug tools'"
+      @click="toggleDebugTools"
+    >
+      {{ debugToolsVisible ? 'Hide' : 'DEV' }}
+    </button>
   </div>
   <div v-if="!ble.isNative.value" class="language-switcher">
     <LanguageSwitcher :current-language="currentLanguage" @update:language="changeLanguage" />
@@ -316,7 +357,9 @@ import {
   locateOutline,
   qrCodeOutline,
   searchOutline,
+  key,
   settingsOutline,
+  warningOutline,
 } from 'ionicons/icons';
 import { useBle, type DeviceLike } from '@/composables/useBle';
 import axios from 'axios';
@@ -324,6 +367,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import LeadingEllipsisText from '@/components/LeadingEllipsisText.vue';
 import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
+import { useKmsAccess } from '@/composables/useKmsAccess';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { createBundledTranslations } from '@/utils/localization';
 import { extractDevEuiFromQrPayload } from '@/utils/lorawanQr';
@@ -372,11 +416,14 @@ const localize = (key: string) => {
 
 const ble = useBle();
 const router = useRouter();
+const kmsAccess = useKmsAccess();
 const { developerModeEnabled } = useDeveloperMode();
 const logoSrc = `${import.meta.env.BASE_URL}img/icon.png`;
 const connecting = ref(false);
 const connectingDeviceId = ref('');
 const wakeMenuVisible = ref(false);
+const debugToolsStorageKey = 'ble-connect-debug-tools-visible';
+const debugToolsVisible = ref(sessionStorage.getItem(debugToolsStorageKey) === 'true');
 const autoConnectPanelVisible = ref(false);
 const devEuiSuffix = ref('');
 const autoConnectEnabled = ref(false);
@@ -388,7 +435,10 @@ type DisplayDevice = DeviceLike & { isSimulated?: boolean };
 const simulatedDevices = ref<DisplayDevice[]>([]);
 const nextSimulatedSensorNumber = ref(123456);
 const displayedDevices = computed<DisplayDevice[]>(() => {
-  const realDevices = [...ble.devices.value];
+  // Special-mode devices are intentionally reachable only through the
+  // DevEUI-targeted workflow: their advertising window is too short for a
+  // reliable manual selection.
+  const realDevices = ble.devices.value.filter(device => !device.isSpecialMode);
   const realDeviceNames = new Set(realDevices.map(device => device.name));
   const uniqueSimulatedDevices = simulatedDevices.value.filter(
     device => !realDeviceNames.has(device.name),
@@ -427,7 +477,7 @@ onMounted(async () => {
   await loadLocalizationFiles();
 });
 
-function addSimulatedSensor() {
+function addSimulatedSensor(withKmsAccess: boolean) {
   if (!developerModeEnabled.value) return;
 
   let name = `WS5F${nextSimulatedSensorNumber.value}`;
@@ -436,16 +486,23 @@ function addSimulatedSensor() {
     name = `WS5F${nextSimulatedSensorNumber.value}`;
   }
 
+  const devEui = deriveDevEuiFromDeviceName(name) ?? undefined;
   simulatedDevices.value.push({
     deviceId: `debug:${name}`,
     name,
     advertisedProductId: '50-70-260-001',
     productReference: '50-70-260',
     productName: "Pulse Sens'O Neo",
-    devEui: deriveDevEuiFromDeviceName(name) ?? undefined,
+    devEui,
     isSimulated: true,
   });
+  if (withKmsAccess) kmsAccess.addPrivilegedDevEui(devEui);
   nextSimulatedSensorNumber.value += 1;
+}
+
+function toggleDebugTools() {
+  debugToolsVisible.value = !debugToolsVisible.value;
+  sessionStorage.setItem(debugToolsStorageKey, String(debugToolsVisible.value));
 }
 
 function isDeviceConnecting(device: DisplayDevice): boolean {
@@ -569,7 +626,8 @@ async function onDeviceSelect(dev: DisplayDevice) {
   connecting.value = true;
   connectingDeviceId.value = dev.deviceId;
   try {
-    await ble.connectToDevice(dev);
+    if (dev.isSpecialMode) await ble.connectToSpecialModeDevice(dev);
+    else await ble.connectToDevice(dev);
   } finally {
     connecting.value = false;
     connectingDeviceId.value = '';
@@ -588,7 +646,11 @@ function proceed() {
 // its controls locked while service discovery and subscriptions are prepared.
 watch(() => ble.connectionPhase.value, (phase) => {
   if (phase === 'discovering' || phase === 'ready') {
-    router.replace('/sensor-data');
+    const specialModeConnection = ble.connectedDevice.value?.isSpecialMode;
+    if (specialModeConnection && phase !== 'ready') return;
+    router.replace(
+      specialModeConnection ? '/special-mode' : '/sensor-data',
+    );
   }
 }, { immediate: true, flush: 'sync' });
 </script>
@@ -907,6 +969,32 @@ watch(() => ble.connectionPhase.value, (phase) => {
   font-weight: 600;
 }
 
+.device-source-icon {
+  position: relative;
+  display: grid;
+  width: 28px;
+  height: 34px;
+  margin-right: 16px;
+  color: var(--ion-color-primary);
+  font-size: 24px;
+  place-items: center;
+}
+
+.kms-access-badge {
+  position: absolute;
+  right: -5px;
+  bottom: 0;
+  display: grid;
+  width: 17px;
+  height: 17px;
+  border: 2px solid var(--app-surface);
+  border-radius: 50%;
+  background: var(--ion-color-success, #2f9e44);
+  color: #fff;
+  font-size: 9px;
+  place-items: center;
+}
+
 .device-list ion-label { min-width: 0; }
 
 .device-list ion-item p {
@@ -993,19 +1081,42 @@ watch(() => ble.connectionPhase.value, (phase) => {
   display: flex;
   max-height: calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   flex-direction: column;
+  align-items: flex-start;
   gap: 6px;
 }
 
-.debug-corner {
+.debug-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .debug-corner-button {
   margin: 0;
   --padding-start: 8px;
   --padding-end: 8px;
+}
+
+.debug-toggle {
+  min-width: 52px;
+  margin: 4px 4px 0;
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(73, 78, 86, 0.9);
+  box-shadow: 0 2px 5px rgba(28, 35, 45, 0.2);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.debug-toggle--collapsed {
+  min-width: 44px;
+  opacity: 0.72;
 }
 
 .wake-debug-menu {

@@ -9,6 +9,20 @@ import {
 import { findCharacteristicByUuid } from '@/utils/BLE/connection';
 import { parseHexToUint8Array, toSpacedHex, toUint8ArrayFromBleValue } from '@/utils/BLE/blob';
 
+export type OsaGattProfile = {
+  serviceUuid: string;
+  challengeUuid: string;
+  responseUuid: string;
+  statusUuid: string;
+};
+
+export const ADMIN_OSA_GATT_PROFILE: OsaGattProfile = {
+  serviceUuid: OSA_ADMIN_SERVICE_UUID,
+  challengeUuid: OSA_CHALLENGE_CHAR_UUID,
+  responseUuid: OSA_RESPONSE_CHAR_UUID,
+  statusUuid: OSA_STATUS_CHAR_UUID,
+};
+
 export async function runOsaChallenge(
   deviceId: string,
   otaAppKeyHex: string,
@@ -107,7 +121,8 @@ export async function authenticateOsa(
   deviceId: string,
   otaAppKeyHex: string,
   devEuiHex: string,
-  onLog: (line: string) => void
+  onLog: (line: string) => void,
+  profile: OsaGattProfile = ADMIN_OSA_GATT_PROFILE,
 ): Promise<void> {
   const otaAppKey = parseHexToUint8Array(otaAppKeyHex);
   const devEui = parseHexToUint8Array(devEuiHex);
@@ -115,9 +130,9 @@ export async function authenticateOsa(
   if (!devEui || devEui.length !== 8) throw new Error('DevEUI must be exactly 8 bytes');
 
   const [challengeChar, responseChar, statusChar] = await Promise.all([
-    findCharacteristicByUuid(deviceId, OSA_ADMIN_SERVICE_UUID, OSA_CHALLENGE_CHAR_UUID, onLog),
-    findCharacteristicByUuid(deviceId, OSA_ADMIN_SERVICE_UUID, OSA_RESPONSE_CHAR_UUID, onLog),
-    findCharacteristicByUuid(deviceId, OSA_ADMIN_SERVICE_UUID, OSA_STATUS_CHAR_UUID, onLog),
+    findCharacteristicByUuid(deviceId, profile.serviceUuid, profile.challengeUuid, onLog),
+    findCharacteristicByUuid(deviceId, profile.serviceUuid, profile.responseUuid, onLog),
+    findCharacteristicByUuid(deviceId, profile.serviceUuid, profile.statusUuid, onLog),
   ]);
   if (!challengeChar || !responseChar || !statusChar) throw new Error('OSA characteristics not found');
 
