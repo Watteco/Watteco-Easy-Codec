@@ -94,7 +94,18 @@
               :disabled="targetedWorkflowActive"
               @input="onDevEuiSuffixInput"
             />
+            <ion-button
+              class="qr-scan-button"
+              fill="clear"
+              :aria-label="localize('@bleQrScan')"
+              :disabled="targetedWorkflowActive || qrScanInProgress || ble.scanning.value || connecting || ble.pairing.value"
+              @click="scanSensorQrCode"
+            >
+              <ion-spinner v-if="qrScanInProgress" name="crescent" />
+              <ion-icon v-else :icon="qrCodeOutline" aria-hidden="true" />
+            </ion-button>
           </div>
+          <p class="qr-scan-hint">{{ localize('@bleQrScanHint') }}</p>
           <ion-button
             expand="block"
             class="auto-connect-action"
@@ -211,9 +222,9 @@
         <div
           v-if="visibleStatusMessage"
           class="status-msg"
-          :role="visibleErrorMessage ? 'alert' : 'status'"
+          :role="visibleErrorMessage || qrScanMessage ? 'alert' : 'status'"
         >
-          <ion-note :color="visibleErrorMessage ? 'danger' : undefined">
+          <ion-note :color="visibleErrorMessage || qrScanMessage ? 'danger' : undefined">
             {{ visibleStatusMessage }}
           </ion-note>
         </div>
@@ -303,6 +314,7 @@ import {
   closeOutline,
   cloudUploadOutline,
   locateOutline,
+  qrCodeOutline,
   searchOutline,
   settingsOutline,
 } from 'ionicons/icons';
@@ -314,6 +326,7 @@ import { useLanguage } from '@/composables/useLanguage';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { createBundledTranslations } from '@/utils/localization';
+import { extractDevEuiFromQrPayload } from '@/utils/lorawanQr';
 import {
   deriveBleDeviceNameFromDevEuiSuffix,
   deriveDevEuiFromDeviceName,
@@ -368,6 +381,8 @@ const autoConnectPanelVisible = ref(false);
 const devEuiSuffix = ref('');
 const autoConnectEnabled = ref(false);
 const targetedWorkflowActive = ref(false);
+const qrScanInProgress = ref(false);
+const qrScanMessage = ref('');
 type DisplayDevice = DeviceLike & { isSimulated?: boolean };
 
 const simulatedDevices = ref<DisplayDevice[]>([]);
@@ -402,7 +417,8 @@ const visibleErrorMessage = computed(() => {
   return '';
 });
 const visibleStatusMessage = computed(() => (
-  visibleErrorMessage.value
+  qrScanMessage.value
+  || visibleErrorMessage.value
   || (developerModeEnabled.value ? ble.statusMessage.value : '')
 ));
 
@@ -466,8 +482,49 @@ function onDevEuiSuffixInput(event: Event) {
   const rawValue = input.value;
   const caret = getFormattedDevEuiSuffixCaret(rawValue, input.selectionStart);
   devEuiSuffix.value = normalizeDevEuiSuffixInput(rawValue);
+  qrScanMessage.value = '';
   input.value = formattedDevEuiSuffix.value;
   void nextTick(() => input.setSelectionRange(caret, caret));
+}
+
+async function scanSensorQrCode() {
+  if (qrScanInProgress.value || targetedWorkflowActive.value) return;
+
+  qrScanMessage.value = '';
+  qrScanInProgress.value = true;
+  try {
+    const {
+      CapacitorBarcodeScanner,
+      CapacitorBarcodeScannerCameraDirection,
+      CapacitorBarcodeScannerScanOrientation,
+      CapacitorBarcodeScannerTypeHint,
+    } = await import('@capacitor/barcode-scanner');
+    const result = await CapacitorBarcodeScanner.scanBarcode({
+      hint: CapacitorBarcodeScannerTypeHint.QR_CODE,
+      scanInstructions: localize('@bleQrScanInstructions'),
+      scanButton: false,
+      cameraDirection: CapacitorBarcodeScannerCameraDirection.BACK,
+      scanOrientation: CapacitorBarcodeScannerScanOrientation.ADAPTIVE,
+    });
+    if (!result.ScanResult) return;
+
+    const devEui = extractDevEuiFromQrPayload(result.ScanResult);
+    const suffix = normalizeDevEuiSuffixInput(devEui ?? undefined);
+    if (!devEui || !suffix) {
+      qrScanMessage.value = localize('@bleQrInvalid');
+      return;
+    }
+
+    devEuiSuffix.value = suffix;
+    qrScanInProgress.value = false;
+    await nextTick();
+    await toggleTargetedConnection();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/cancel/i.test(message)) qrScanMessage.value = localize('@bleQrScanFailed');
+  } finally {
+    qrScanInProgress.value = false;
+  }
 }
 
 async function toggleTargetedConnection() {
@@ -604,6 +661,25 @@ watch(() => ble.connectionPhase.value, (phase) => {
   color: var(--ion-color-primary-shade);
 }
 
+.qr-scan-button {
+  flex: 0 0 38px;
+  width: 38px;
+  min-width: 0;
+  height: 38px;
+  min-height: 0;
+  margin: 0;
+  font-size: 1.4rem;
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+.qr-scan-hint {
+  margin: 7px 0 12px;
+  color: var(--ion-color-medium-shade);
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
 .dev-eui-input-label {
   display: block;
   margin-bottom: 5px;
@@ -619,7 +695,7 @@ watch(() => ble.connectionPhase.value, (phase) => {
   min-width: 0;
   overflow: hidden;
   font-family: monospace;
-  font-size: clamp(0.92rem, 4vw, 1.05rem);
+  font-size: clamp(0.86rem, 3.8vw, 1.02rem);
   font-weight: 700;
   background: var(--app-page-background);
   border: 1px solid rgba(var(--ion-color-medium-rgb), 0.42);
@@ -628,7 +704,7 @@ watch(() => ble.connectionPhase.value, (phase) => {
 
 .dev-eui-prefix {
   flex: 0 0 auto;
-  padding: 11px 0 11px 12px;
+  padding: 11px 0 11px 10px;
   color: var(--ion-color-medium-shade);
   white-space: nowrap;
 }
@@ -637,7 +713,7 @@ watch(() => ble.connectionPhase.value, (phase) => {
   box-sizing: border-box;
   min-width: 0;
   flex: 1 1 auto;
-  padding: 11px 12px 11px 0;
+  padding: 11px 8px 11px 0;
   color: var(--ion-text-color);
   font: inherit;
   background: transparent;

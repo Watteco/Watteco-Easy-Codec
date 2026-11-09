@@ -1,7 +1,7 @@
 {
   "name": "watteco-codec",
   "private": true,
-  "version": "0.11.15-dev.369",
+  "version": "0.11.15-dev.377",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -29,6 +29,7 @@
     "@capacitor-community/bluetooth-le": "^6.1.0",
     "@capacitor/android": "6.1.1",
     "@capacitor/app": "6.0.0",
+    "@capacitor/barcode-scanner": "^1.0.4",
     "@capacitor/core": "6.1.1",
     "@capacitor/filesystem": "^6.0.0",
     "@capacitor/haptics": "6.0.0",

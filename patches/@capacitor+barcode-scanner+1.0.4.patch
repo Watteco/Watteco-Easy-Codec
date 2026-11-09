@@ -1,0 +1,12 @@
+diff --git a/node_modules/@capacitor/barcode-scanner/android/build.gradle b/node_modules/@capacitor/barcode-scanner/android/build.gradle
+index b343f11..cea6efc 100644
+--- a/node_modules/@capacitor/barcode-scanner/android/build.gradle
++++ b/node_modules/@capacitor/barcode-scanner/android/build.gradle
+@@ -57,4 +57,7 @@ android {
+         sourceCompatibility JavaVersion.VERSION_17
+         targetCompatibility JavaVersion.VERSION_17
+     }
++    kotlinOptions {
++        jvmTarget = JavaVersion.VERSION_17.toString()
++    }
+ }
