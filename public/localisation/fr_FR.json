@@ -90,7 +90,7 @@
     "bleQrScanFailed": "Impossible de lire le code QR. Vérifiez l'accès à la caméra.",
     "bleAutoConnectStart": "Attendre et se connecter",
     "bleAutoConnectCancel": "Annuler l'attente",
-    "bleAutoConnectWaiting": "En attente du capteur…",
+    "bleAutoConnectWaiting": "En attente du capteur… Cela peut prendre jusqu'à 2 minutes.",
     "bleDevicesFound": "Capteurs disponibles",
     "bleScanPrompt": "Lancez un scan pour trouver un capteur à proximité.",
     "blePairingInProgress": "Appairage sécurisé en cours",

@@ -90,7 +90,7 @@
     "bleQrScanFailed": "Unable to read the QR code. Check camera access.",
     "bleAutoConnectStart": "Wait and connect",
     "bleAutoConnectCancel": "Cancel waiting",
-    "bleAutoConnectWaiting": "Waiting for the sensor…",
+    "bleAutoConnectWaiting": "Waiting for the sensor… This can take up to 2 minutes.",
     "bleDevicesFound": "Available sensors",
     "bleScanPrompt": "Scan to find a nearby sensor.",
     "blePairingInProgress": "Secure pairing in progress",
