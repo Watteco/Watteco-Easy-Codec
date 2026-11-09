@@ -25,6 +25,16 @@ La plateforme iOS est maintenant présente dans le projet.
 Avant le premier build, ou après une modification des dépendances, lancer `npm install`.
 Après l'ajout d'un plugin Capacitor, lancer `npm run ios` pour construire les assets et synchroniser aussi les dépendances natives CocoaPods. Le script `ios:debug` utilise `cap copy ios` et ne met pas à jour les Pods.
 
+Si `pod install` échoue avec `ffi_c.bundle` et `incompatible architecture (have 'x86_64', need 'arm64e' or 'arm64')`, vérifier quel CocoaPods est utilisé avec `which pod`. Sur ce Mac, Ruby et CocoaPods ARM sont déjà installés via Homebrew. Pour les sélectionner dans le terminal courant :
+
+```sh
+export PATH="/opt/homebrew/opt/ruby/bin:/opt/homebrew/lib/ruby/gems/4.0.0/bin:$PATH"
+pod --version
+npm run sync:ios
+```
+
+Le chemin des exécutables des gems dépend de la version Ruby installée. Après une mise à jour de Ruby, le vérifier avec `ruby -r rubygems -e 'puts Gem.bindir'`.
+
 ### Commandes utiles
 
 - Build web iOS avec la bonne configuration Capacitor :
