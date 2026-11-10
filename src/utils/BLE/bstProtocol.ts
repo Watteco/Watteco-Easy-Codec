@@ -1,4 +1,5 @@
-import { BleClient } from '@capacitor-community/bluetooth-le';
+import { BleClient, BluetoothLe } from '@capacitor-community/bluetooth-le';
+import { Capacitor } from '@capacitor/core';
 import {
   BST_COMMAND_CHAR_UUID,
   BST_OSA_CHALLENGE_CHAR_UUID,
@@ -16,12 +17,20 @@ export const BST_PROTOCOL_VERSION = 0x01;
 export const BST_COMMAND_CONFIRMATION = 0xa5;
 export const BST_COMMAND_TIMEOUT_MS = 10_000;
 const BST_OSA_RETRY_DELAY_MS = 750;
+const BST_BOND_TIMEOUT_MS = 15_000;
+
+type BluetoothLeWithBondRemoval = typeof BluetoothLe & {
+  removeBond(options: { deviceId: string; timeout?: number }): Promise<void>;
+};
+
+const bluetoothLeWithBondRemoval = BluetoothLe as BluetoothLeWithBondRemoval;
 
 export const BST_OSA_GATT_PROFILE: OsaGattProfile = {
   serviceUuid: BST_SERVICE_UUID,
   challengeUuid: BST_OSA_CHALLENGE_CHAR_UUID,
   responseUuid: BST_OSA_RESPONSE_CHAR_UUID,
   statusUuid: BST_OSA_STATUS_CHAR_UUID,
+  checkExistingSession: false,
 };
 
 export const BST_TARGETS = [
@@ -93,6 +102,35 @@ export function buildBstCommand(target: number): Uint8Array {
 }
 
 const delay = (milliseconds: number) => new Promise<void>(resolve => setTimeout(resolve, milliseconds));
+
+async function establishBstEncryptedLink(
+  deviceId: string,
+  onLog: (line: string) => void,
+): Promise<void> {
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') {
+    onLog('[BST] Explicit bonding unavailable on this platform; encrypted access will trigger pairing');
+    return;
+  }
+
+  const alreadyBonded = await BleClient.isBonded(deviceId);
+  if (alreadyBonded) {
+    onLog('[BST] Removing stale Android bond retained from a previous BST boot');
+    await bluetoothLeWithBondRemoval.removeBond({
+      deviceId,
+      timeout: BST_BOND_TIMEOUT_MS,
+    });
+    if (await BleClient.isBonded(deviceId)) {
+      throw new Error('Android retained the stale BST bond after removal');
+    }
+    onLog('[BST] Previous Android BST bond removed');
+  }
+
+  onLog('[BST] Starting Android pairing before protected GATT operations');
+  await BleClient.createBond(deviceId, { timeout: BST_BOND_TIMEOUT_MS });
+  const bonded = await BleClient.isBonded(deviceId);
+  if (!bonded) throw new Error('Android pairing completed without a bonded state');
+  onLog('[BST] Android pairing complete; encrypted link confirmed');
+}
 
 async function authenticateBst(
   deviceId: string,
@@ -178,7 +216,9 @@ export async function openBstSession(
     const initialBytes = toUint8ArrayFromBleValue(initialRaw);
     if (!initialBytes) throw new Error('Unable to decode BST status');
     const initialStatus = parseBstStatus(initialBytes);
+    onLog(`[BST] Initial status ${toSpacedHex(initialBytes)}`);
     onStatus(initialStatus);
+    await establishBstEncryptedLink(deviceId, onLog);
 
     return {
       initialStatus,

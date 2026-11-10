@@ -154,7 +154,7 @@
             <div slot="start" class="device-source-icon">
               <ion-icon :icon="bluetoothOutline" color="primary" aria-hidden="true" />
               <span
-                v-if="kmsAccess.hasPrivilegedAccess(dev.devEui)"
+                v-if="kmsAccess.hasKmsPrivilege(dev.devEui)"
                 class="kms-access-badge"
                 role="img"
                 :aria-label="localize('@kmsPrivilegedSensor')"

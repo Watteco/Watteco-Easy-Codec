@@ -14,6 +14,7 @@ export type OsaGattProfile = {
   challengeUuid: string;
   responseUuid: string;
   statusUuid: string;
+  checkExistingSession?: boolean;
 };
 
 export const ADMIN_OSA_GATT_PROFILE: OsaGattProfile = {
@@ -136,26 +137,32 @@ export async function authenticateOsa(
   ]);
   if (!challengeChar || !responseChar || !statusChar) throw new Error('OSA characteristics not found');
 
-  try {
-    const currentStatusRaw = await BleClient.read(
-      deviceId,
-      statusChar.service,
-      statusChar.characteristic,
-    );
-    const currentStatus = toUint8ArrayFromBleValue(currentStatusRaw);
-    if (currentStatus?.length === 1 && currentStatus[0] === 0x02) {
-      onLog('OSA session already authenticated');
-      return;
+  if (profile.checkExistingSession !== false) {
+    try {
+      onLog('OSA reading AuthStatus before challenge');
+      const currentStatusRaw = await BleClient.read(
+        deviceId,
+        statusChar.service,
+        statusChar.characteristic,
+      );
+      const currentStatus = toUint8ArrayFromBleValue(currentStatusRaw);
+      if (currentStatus?.length === 1 && currentStatus[0] === 0x02) {
+        onLog('OSA session already authenticated');
+        return;
+      }
+    } catch (error: any) {
+      onLog(`OSA status check failed; starting challenge: ${error?.message ?? error}`);
     }
-  } catch (error: any) {
-    onLog(`OSA status check failed; starting challenge: ${error?.message ?? error}`);
   }
 
+  onLog('OSA reading AuthChal');
   const challengeRaw = await BleClient.read(deviceId, challengeChar.service, challengeChar.characteristic);
   const challenge = toUint8ArrayFromBleValue(challengeRaw);
   if (!challenge || challenge.length !== 16) throw new Error(`Invalid OSA challenge length: ${challenge?.length ?? 0}`);
+  onLog(`OSA AuthChal received (${challenge.length} bytes)`);
 
   const response = computeOsaResp(otaAppKey, devEui, challenge);
+  onLog('OSA writing AuthResp');
   await BleClient.write(
     deviceId,
     responseChar.service,
@@ -163,6 +170,7 @@ export async function authenticateOsa(
     new DataView(response.buffer, response.byteOffset, response.byteLength)
   );
 
+  onLog('OSA reading AuthStatus after response');
   const statusRaw = await BleClient.read(deviceId, statusChar.service, statusChar.characteristic);
   const status = toUint8ArrayFromBleValue(statusRaw);
   if (!status || status.length !== 1 || status[0] !== 0x02) {

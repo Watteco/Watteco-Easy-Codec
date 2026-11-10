@@ -38,6 +38,18 @@
           <span>{{ localize('@bstCommandAccepted') }}</span>
         </div>
 
+        <div
+          v-if="sessionClosed && !commandSucceeded"
+          class="bst-alert bst-alert--warning"
+          role="status"
+        >
+          <ion-icon :icon="warningOutline" aria-hidden="true" />
+          <span>
+            <strong>{{ localize('@bstConnectionClosed') }}</strong><br />
+            {{ localize('@bstConnectionClosedHint') }}
+          </span>
+        </div>
+
         <template v-if="status">
           <section class="bst-card">
             <div class="bst-card__header">
@@ -121,10 +133,31 @@
         </template>
 
         <ion-button expand="block" fill="outline" color="medium" @click="disconnect">
-          {{ localize('@bleSpecialModeDisconnect') }}
+          {{ localize(sessionClosed ? '@bstReturnToScan' : '@bleSpecialModeDisconnect') }}
         </ion-button>
       </main>
     </ion-content>
+
+    <div v-if="developerModeEnabled" class="bst-debug-stack">
+      <section v-show="debugVisible" class="bst-debug-panel" aria-label="BST debug logs">
+        <header class="bst-debug-header">
+          <strong>BST debug</strong>
+          <button type="button" @click="debugLogs = []">Clear</button>
+        </header>
+        <div class="bst-debug-lines">
+          <code v-for="(line, index) in debugLogs" :key="`${index}:${line}`">{{ line }}</code>
+          <span v-if="debugLogs.length === 0" class="bst-debug-empty">No events</span>
+        </div>
+      </section>
+      <button
+        type="button"
+        class="bst-debug-toggle"
+        :aria-expanded="debugVisible"
+        @click="debugVisible = !debugVisible"
+      >
+        {{ debugVisible ? '×' : 'DEV' }}
+      </button>
+    </div>
   </ion-page>
 </template>
 
@@ -151,11 +184,15 @@ import {
   optionsOutline,
   pulseOutline,
   shieldCheckmarkOutline,
+  warningOutline,
 } from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
 import { useBleDebugCredentials } from '@/composables/useBleDebugCredentials';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
-import { useKmsAccess } from '@/composables/useKmsAccess';
+import {
+  KMS_ACCESS_ENFORCEMENT_ENABLED,
+  useKmsAccess,
+} from '@/composables/useKmsAccess';
 import { useLanguage } from '@/composables/useLanguage';
 import { OsaKeyStore, type StoredOsaKey } from '@/plugins/osaKeyStore';
 import {
@@ -190,12 +227,16 @@ const languages = createBundledTranslations();
 const status = ref<BstStatus | null>(null);
 const session = ref<BstSession | null>(null);
 const credential = ref<StoredOsaKey | null>(null);
-const credentialSource = ref<'secure' | 'debug' | null>(null);
+const credentialSource = ref<'secure' | 'temporary' | null>(null);
 const selectedTarget = ref<number | null>(null);
 const loading = ref(false);
 const applying = ref(false);
 const errorMessage = ref('');
 const commandSucceeded = ref(false);
+const sessionClosed = ref(false);
+const bstConnectionObserved = ref(false);
+const debugVisible = ref(false);
+const debugLogs = ref<string[]>([]);
 const cachedDeviceName = ref('WS5F123456.BST');
 const cachedDevEui = ref('70B3D5E75F123456');
 
@@ -224,13 +265,11 @@ const blockingReasons = computed(() => {
 });
 const credentialAvailable = computed(() => credential.value !== null);
 const credentialMessageKey = computed(() => {
-  if (credentialSource.value === 'debug') return '@bstDebugCredentialAvailable';
+  if (credentialSource.value === 'temporary') return '@bstTemporaryCredentialAvailable';
   return credentialAvailable.value ? '@bstCredentialAvailable' : '@bstCredentialUnavailable';
 });
 const hasElevatedAccess = computed(() => (
-  developerModeEnabled.value
-  || debugPreviewEnabled.value
-  || kmsAccess.hasPrivilegedAccess(cachedDevEui.value)
+  debugPreviewEnabled.value || kmsAccess.hasPrivilegedAccess(cachedDevEui.value)
 ));
 const selectedTargetDefinition = computed(() => (
   availableTargets.value.find(target => target.id === selectedTarget.value)
@@ -242,6 +281,11 @@ const canExecute = computed(() => Boolean(
   && canSelectTarget(selectedTargetDefinition.value)
   && !applying.value
 ));
+
+function pushDebugLog(message: string) {
+  const timestamp = new Date().toLocaleTimeString([], { hour12: false });
+  debugLogs.value = [`${timestamp} ${message}`, ...debugLogs.value].slice(0, 200);
+}
 
 function hex(value: number): string {
   return `0x${value.toString(16).padStart(2, '0').toUpperCase()}`;
@@ -274,7 +318,7 @@ function setStatus(nextStatus: BstStatus) {
 
 async function loadCredential() {
   if (debugPreviewEnabled.value) return;
-  if (developerModeEnabled.value) {
+  if (!KMS_ACCESS_ENFORCEMENT_ENABLED) {
     const debugKey = debugOtaAppKeyHex.value.replace(/[^0-9a-f]/gi, '').toUpperCase();
     if (/^[0-9A-F]{32}$/.test(debugKey)) {
       credential.value = {
@@ -282,7 +326,8 @@ async function loadCredential() {
         keyHex: debugKey,
         expiresAt: Number.MAX_SAFE_INTEGER,
       };
-      credentialSource.value = 'debug';
+      credentialSource.value = 'temporary';
+      pushDebugLog('[BST] Temporary shared OSA key available; value hidden');
       return;
     }
   }
@@ -290,9 +335,11 @@ async function loadCredential() {
   try {
     credential.value = await OsaKeyStore.get({ devEui: cachedDevEui.value });
     credentialSource.value = 'secure';
+    pushDebugLog('[BST] Secure OSA credential available; value hidden');
   } catch {
     credential.value = null;
     credentialSource.value = null;
+    pushDebugLog('[BST] No OSA credential available');
   }
 }
 
@@ -320,15 +367,18 @@ async function initializeSession() {
   }
   cachedDeviceName.value = ble.getDeviceName(device);
   cachedDevEui.value = device.devEui;
+  bstConnectionObserved.value = true;
+  pushDebugLog(`[BST] Opening ${cachedDeviceName.value} (${device.deviceId})`);
   loading.value = true;
   try {
-    session.value = await openBstSession(device.deviceId, setStatus);
+    session.value = await openBstSession(device.deviceId, setStatus, pushDebugLog);
     if (session.value.initialStatus.version !== 1) {
       throw new Error(`Unsupported BST protocol version ${session.value.initialStatus.version}`);
     }
     await loadCredential();
   } catch (error: any) {
     errorMessage.value = error?.message ?? String(error);
+    pushDebugLog(`[BST] Session failed: ${errorMessage.value}`);
   } finally {
     loading.value = false;
   }
@@ -357,6 +407,7 @@ async function confirmAndExecute() {
 
   applying.value = true;
   errorMessage.value = '';
+  pushDebugLog(`[BST] Administrative action confirmed: target 0x${target.id.toString(16).padStart(2, '0')}`);
   try {
     const finalStatus = await activeSession.execute(
       target.id,
@@ -372,14 +423,17 @@ async function confirmAndExecute() {
       throw new Error(localize(localizationKey));
     }
     commandSucceeded.value = true;
+    pushDebugLog('[BST] Command accepted and persistent state read back');
   } catch (error: any) {
     errorMessage.value = error?.message ?? String(error);
+    pushDebugLog(`[BST] Command failed: ${errorMessage.value}`);
   } finally {
     applying.value = false;
   }
 }
 
 async function disconnect() {
+  pushDebugLog('[BST] Closing session on user request');
   await session.value?.close();
   session.value = null;
   if (ble.connected.value) await ble.disconnect();
@@ -389,10 +443,22 @@ async function disconnect() {
 watch(
   [() => ble.connectionPhase.value, () => ble.connectedDevice.value],
   ([phase, device]) => {
-    if (debugPreviewEnabled.value || commandSucceeded.value) return;
+    if (debugPreviewEnabled.value) return;
     const specialModeConnectionActive = device?.isSpecialMode
       && (phase === 'discovering' || phase === 'ready');
-    if (!specialModeConnectionActive) void router.replace('/ble-connect');
+    if (specialModeConnectionActive) return;
+    if (!bstConnectionObserved.value) {
+      void router.replace('/ble-connect');
+      return;
+    }
+
+    if (!sessionClosed.value) {
+      sessionClosed.value = true;
+      pushDebugLog('[BST] Connection closed by sensor; keeping page and logs visible');
+      const activeSession = session.value;
+      session.value = null;
+      void activeSession?.close();
+    }
   },
 );
 
@@ -467,6 +533,61 @@ onUnmounted(() => {
 .bst-alert ion-icon { flex: 0 0 auto; margin-top: 1px; font-size: 20px; }
 .bst-alert--error { border-color: rgba(var(--ion-color-danger-rgb), 0.25); color: var(--ion-color-danger-shade); background: rgba(var(--ion-color-danger-rgb), 0.08); }
 .bst-alert--success { border-color: rgba(var(--ion-color-success-rgb), 0.25); color: var(--ion-color-success-shade); background: rgba(var(--ion-color-success-rgb), 0.08); }
+.bst-alert--warning { border-color: rgba(var(--ion-color-warning-rgb), 0.25); color: var(--ion-color-warning-shade); background: rgba(var(--ion-color-warning-rgb), 0.09); }
+
+.bst-debug-stack {
+  position: fixed;
+  right: 10px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  z-index: 1000;
+  display: flex;
+  max-width: min(360px, calc(100vw - 20px));
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.bst-debug-panel {
+  box-sizing: border-box;
+  width: min(360px, calc(100vw - 20px));
+  max-height: min(310px, 42vh);
+  padding: 9px;
+  overflow: hidden;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 10px;
+  color: var(--app-text);
+  background: var(--app-surface);
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.22);
+}
+.bst-debug-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+.bst-debug-header strong { font-size: 0.8rem; }
+.bst-debug-header button {
+  padding: 3px 7px; border: 0; color: var(--ion-color-primary); background: transparent;
+  cursor: pointer; font: 650 0.72rem/1.2 inherit;
+}
+.bst-debug-lines {
+  display: grid;
+  max-height: min(260px, 35vh);
+  padding: 8px;
+  overflow: auto;
+  gap: 5px;
+  border-radius: 7px;
+  color: #e8eef7;
+  background: #17202c;
+}
+.bst-debug-lines code { font-size: 0.67rem; line-height: 1.35; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bst-debug-empty { color: #9ba8b8; font-size: 0.72rem; }
+.bst-debug-toggle {
+  min-width: 46px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(73, 78, 86, 0.92);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  font: 750 0.68rem/1.2 inherit;
+  letter-spacing: 0.06em;
+}
 
 @media (max-width: 420px) {
   .bst-shell { padding-inline: 12px; }

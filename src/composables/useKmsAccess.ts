@@ -1,6 +1,10 @@
 import { readonly, ref } from 'vue';
 import { formatDevEui } from '@/utils/BLE/deviceIdentity';
 
+// Current builds are restricted to the engineering team and test sensors.
+// Switch this on only when the real KMS authorization flow is connected.
+export const KMS_ACCESS_ENFORCEMENT_ENABLED = false;
+
 const privilegedDevEuis = ref<ReadonlySet<string>>(new Set());
 
 function normalizeDevEui(devEui?: string | null): string | null {
@@ -30,9 +34,15 @@ function addPrivilegedDevEui(devEui?: string | null): boolean {
   return true;
 }
 
-function hasPrivilegedAccess(devEui?: string | null): boolean {
+function hasKmsPrivilege(devEui?: string | null): boolean {
   const normalized = normalizeDevEui(devEui);
   return normalized !== null && privilegedDevEuis.value.has(normalized);
+}
+
+function hasPrivilegedAccess(devEui?: string | null): boolean {
+  const normalized = normalizeDevEui(devEui);
+  if (!normalized) return false;
+  return !KMS_ACCESS_ENFORCEMENT_ENABLED || hasKmsPrivilege(normalized);
 }
 
 export function useKmsAccess() {
@@ -41,6 +51,7 @@ export function useKmsAccess() {
     setPrivilegedDevEuis,
     clearPrivilegedDevEuis,
     addPrivilegedDevEui,
+    hasKmsPrivilege,
     hasPrivilegedAccess,
   };
 }
