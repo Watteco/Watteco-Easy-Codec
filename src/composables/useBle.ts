@@ -74,6 +74,7 @@ import { readAdminDeviceStatus } from '@/utils/BLE/adminStatus';
 import { buildCounterSetFrame } from '@/utils/BLE/counterCommands';
 import { createDiagnosticLogger } from '@/utils/diagnosticLogger';
 import { BST_SERVICE_UUID, normalizeUuid } from '@/utils/BLE/characteristics';
+import { removeBstAndroidBond } from '@/utils/BLE/bstProtocol';
 
 export type DeviceLike = {
   deviceId: string;
@@ -1306,6 +1307,19 @@ async function connectToSpecialModeDevice(device: DeviceLike): Promise<boolean> 
   });
 
   try {
+    try {
+      await removeBstAndroidBond(
+        device.deviceId,
+        line => diagnosticLogger.info(line, { deviceId: device.deviceId }),
+        'before BST connection',
+      );
+    } catch (error) {
+      diagnosticLogger.warn('BST pre-connection bond cleanup failed; continuing connection', {
+        deviceId: device.deviceId,
+        error,
+      });
+    }
+
     await BleClient.connect(device.deviceId, () => {
       diagnosticLogger.info('BST temporary connection closed', {
         deviceId: device.deviceId,
@@ -1319,6 +1333,16 @@ async function connectToSpecialModeDevice(device: DeviceLike): Promise<boolean> 
       pairing.value = false;
       osaAuthenticated.value = null;
       statusMessage.value = 'Device disconnected';
+      void removeBstAndroidBond(
+        device.deviceId,
+        line => diagnosticLogger.info(line, { deviceId: device.deviceId }),
+        'after BST disconnection',
+      ).catch(error => {
+        diagnosticLogger.warn('BST post-disconnection bond cleanup failed', {
+          deviceId: device.deviceId,
+          error,
+        });
+      });
     }, { timeout: RECONNECT_CONNECT_TIMEOUT_MS });
 
     if (connectionCanceled) {

@@ -24,6 +24,42 @@ type BluetoothLeWithBondRemoval = typeof BluetoothLe & {
 };
 
 const bluetoothLeWithBondRemoval = BluetoothLe as BluetoothLeWithBondRemoval;
+const bstBondCleanupOperations = new Map<string, Promise<void>>();
+
+export function removeBstAndroidBond(
+  deviceId: string,
+  onLog: (line: string) => void = () => undefined,
+  reason = 'BST cleanup',
+): Promise<void> {
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') {
+    return Promise.resolve();
+  }
+
+  const previous = bstBondCleanupOperations.get(deviceId) ?? Promise.resolve();
+  const operation = previous.catch(() => undefined).then(async () => {
+    if (!await BleClient.isBonded(deviceId)) {
+      onLog(`[BST] No Android bond to remove (${reason})`);
+      return;
+    }
+
+    onLog(`[BST] Removing Android bond (${reason})`);
+    await bluetoothLeWithBondRemoval.removeBond({
+      deviceId,
+      timeout: BST_BOND_TIMEOUT_MS,
+    });
+    if (await BleClient.isBonded(deviceId)) {
+      throw new Error(`Android retained the BST bond after ${reason}`);
+    }
+    onLog(`[BST] Android bond removed (${reason})`);
+  });
+
+  bstBondCleanupOperations.set(deviceId, operation);
+  return operation.finally(() => {
+    if (bstBondCleanupOperations.get(deviceId) === operation) {
+      bstBondCleanupOperations.delete(deviceId);
+    }
+  });
+}
 
 export const BST_OSA_GATT_PROFILE: OsaGattProfile = {
   serviceUuid: BST_SERVICE_UUID,
@@ -112,18 +148,7 @@ async function establishBstEncryptedLink(
     return;
   }
 
-  const alreadyBonded = await BleClient.isBonded(deviceId);
-  if (alreadyBonded) {
-    onLog('[BST] Removing stale Android bond retained from a previous BST boot');
-    await bluetoothLeWithBondRemoval.removeBond({
-      deviceId,
-      timeout: BST_BOND_TIMEOUT_MS,
-    });
-    if (await BleClient.isBonded(deviceId)) {
-      throw new Error('Android retained the stale BST bond after removal');
-    }
-    onLog('[BST] Previous Android BST bond removed');
-  }
+  await removeBstAndroidBond(deviceId, onLog, 'before BST pairing');
 
   onLog('[BST] Starting Android pairing before protected GATT operations');
   await BleClient.createBond(deviceId, { timeout: BST_BOND_TIMEOUT_MS });

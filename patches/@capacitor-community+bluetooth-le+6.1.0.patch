@@ -28,7 +28,10 @@ index 87e589a..671de84 100644
      private fun onDisconnect(deviceId: String) {
          try {
              notifyListeners("disconnected|${deviceId}", null)
-@@ -499,3 +518,18 @@ class BluetoothLe : Plugin() {
+@@ -496,6 +515,21 @@ class BluetoothLe : Plugin() {
+         }
+     }
+ 
 +    @PluginMethod
 +    fun removeBond(call: PluginCall) {
 +        val device = getOrCreateDevice(call) ?: return
@@ -96,19 +99,28 @@ index 87e589a..671de84 100644
              run {
                  if (response.success) {
 diff --git a/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt b/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
-index f09e6a0..c7b94c3 100644
+index f09e6a0..4f1fb82 100644
 --- a/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
 +++ b/node_modules/@capacitor-community/bluetooth-le/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
-@@ -71,6 +71,7 @@ class Device(
+@@ -71,6 +71,9 @@ class Device(
      private val timeoutQueue = ConcurrentLinkedQueue<TimeoutHandler>()
      private var bondStateReceiver: BroadcastReceiver? = null
      private var currentMtu = -1
 +    private var discoverServicesOnConnect = true
++    private var connectAttemptSequence = 0L
++    private var activeConnectKey: String? = null
  
      private lateinit var callbacksHandlerThread: HandlerThread
      private lateinit var callbacksHandler: Handler
-@@ -97,11 +98,16 @@ class Device(
+@@ -95,20 +98,32 @@ class Device(
+         override fun onConnectionStateChange(
+             gatt: BluetoothGatt, status: Int, newState: Int
          ) {
++            if (gatt !== bluetoothGatt) {
++                Logger.debug(TAG, "Ignoring stale GATT state callback status=$status state=$newState")
++                if (newState == BluetoothProfile.STATE_DISCONNECTED) gatt.close()
++                return
++            }
              if (newState == BluetoothProfile.STATE_CONNECTED) {
                  connectionState = STATE_CONNECTED
 -                // service discovery is required to use services
@@ -116,20 +128,49 @@ index f09e6a0..c7b94c3 100644
 -                val result = bluetoothGatt?.discoverServices()
 -                if (result != true) {
 -                    reject("connect", "Starting service discovery failed.")
++                Logger.debug(TAG, "GATT connected status=$status key=$activeConnectKey discover=$discoverServicesOnConnect")
 +                if (discoverServicesOnConnect) {
 +                    // service discovery is required to use services
 +                    Logger.debug(TAG, "Connected to GATT server. Starting service discovery.")
 +                    val result = bluetoothGatt?.discoverServices()
 +                    if (result != true) {
-+                        reject("connect", "Starting service discovery failed.")
++                        rejectActiveConnect("Starting service discovery failed.")
 +                    }
 +                } else {
 +                    Logger.debug(TAG, "Connected to GATT server without service discovery.")
-+                    resolve("connect", "Connected without service discovery.")
++                    resolveActiveConnect("Connected without service discovery.")
                  }
              } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                  connectionState = STATE_DISCONNECTED
-@@ -199,7 +205,8 @@ class Device(
++                rejectActiveConnect("Disconnected before connection completed (status=$status).")
+                 onDisconnect()
+-                bluetoothGatt?.close()
++                gatt.close()
+                 bluetoothGatt = null
+-                Logger.debug(TAG, "Disconnected from GATT server.")
++                Logger.debug(TAG, "Disconnected from GATT server status=$status.")
+                 cleanupCallbacksHandlerThread()
+                 resolve("disconnect", "Disconnected.")
+             }
+@@ -124,7 +139,7 @@ class Device(
+                 }
+             } else {
+                 reject("discoverServices", "Service discovery failed.")
+-                reject("connect", "Service discovery failed.")
++                rejectActiveConnect("Service discovery failed.")
+             }
+         }
+ 
+@@ -136,7 +151,7 @@ class Device(
+             } else {
+                 Logger.debug(TAG, "MTU change failed: $mtu")
+             }
+-            resolve("connect", "Connected.")
++            resolveActiveConnect("Connected.")
+         }
+ 
+         override fun onReadRemoteRssi(gatt: BluetoothGatt?, rssi: Int, status: Int) {
+@@ -199,7 +214,8 @@ class Device(
              if (status == BluetoothGatt.GATT_SUCCESS) {
                  resolve(key, "Characteristic successfully written.")
              } else {
@@ -139,7 +180,7 @@ index f09e6a0..c7b94c3 100644
              }
  
          }
-@@ -214,7 +221,7 @@ class Device(
+@@ -214,7 +230,7 @@ class Device(
              }
              Logger.verbose(TAG, "Using deprecated onCharacteristicChanged.")
              super.onCharacteristicChanged(gatt, characteristic)
@@ -148,7 +189,7 @@ index f09e6a0..c7b94c3 100644
              val data = characteristic.value
              if (data != null) {
                  val value = bytesToString(data)
-@@ -228,7 +235,7 @@ class Device(
+@@ -228,7 +244,7 @@ class Device(
          ) {
              Logger.verbose(TAG, "Using onCharacteristicChanged from API level 33.")
              super.onCharacteristicChanged(gatt, characteristic, data)
@@ -157,7 +198,7 @@ index f09e6a0..c7b94c3 100644
              val value = bytesToString(data)
              callbackMap[notifyKey]?.invoke(CallbackResponse(true, value))
          }
-@@ -280,9 +287,13 @@ class Device(
+@@ -280,9 +296,13 @@ class Device(
              super.onDescriptorWrite(gatt, descriptor, status)
              val key =
                  "writeDescriptor|${descriptor.characteristic.service.uuid}|${descriptor.characteristic.uuid}|${descriptor.uuid}"
@@ -171,7 +212,7 @@ index f09e6a0..c7b94c3 100644
                  reject(key, "Writing descriptor failed.")
              }
          }
-@@ -299,7 +310,9 @@ class Device(
+@@ -299,15 +319,23 @@ class Device(
       * - request MTU
       */
      fun connect(
@@ -180,9 +221,16 @@ index f09e6a0..c7b94c3 100644
 +        discoverServices: Boolean = true,
 +        callback: (CallbackResponse) -> Unit
      ) {
-         val key = "connect"
+-        val key = "connect"
++        activeConnectKey?.let { reject(it, "Connection superseded by a new attempt.") }
++        connectAttemptSequence += 1
++        val attemptId = connectAttemptSequence
++        val key = "connect|$attemptId"
++        activeConnectKey = key
          callbackMap[key] = callback
-@@ -308,6 +321,7 @@ class Device(
++        Logger.debug(TAG, "Starting ${if (discoverServices) "connect" else "connectWithoutDiscovery"} attempt=$attemptId timeout=$timeout")
+         if (isConnected()) {
+             resolve(key, "Already connected.")
              return
          }
          bluetoothGatt?.close()
@@ -190,7 +238,41 @@ index f09e6a0..c7b94c3 100644
          connectionState = STATE_CONNECTING
          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
              initializeCallbacksHandlerThread()
-@@ -382,3 +396,25 @@ class Device(
+@@ -328,11 +356,19 @@ class Device(
+                 context, false, gattCallback
+             )
+         }
+-        setConnectionTimeout(key, "Connection timeout.", bluetoothGatt, timeout)
++        setConnectionTimeout(key, attemptId, "Connection timeout.", bluetoothGatt, timeout)
+     }
+ 
+     private fun connectCallOngoing(): Boolean {
+-        return callbackMap.containsKey("connect")
++        return activeConnectKey?.let { callbackMap.containsKey(it) } == true
++    }
++
++    private fun resolveActiveConnect(value: String) {
++        activeConnectKey?.let { resolve(it, value) }
++    }
++
++    private fun rejectActiveConnect(value: String) {
++        activeConnectKey?.let { reject(it, value) }
+     }
+ 
+     fun isConnected(): Boolean {
+@@ -343,7 +379,7 @@ class Device(
+         Logger.debug(TAG, "requestMtu $mtu")
+         val result = bluetoothGatt?.requestMtu(mtu)
+         if (result != true) {
+-            reject("connect", "Starting requestMtu failed.")
++            rejectActiveConnect("Starting requestMtu failed.")
+         }
+     }
+ 
+@@ -379,6 +415,28 @@ class Device(
+         setTimeout(key, "Bonding timeout.", timeout)
+     }
+ 
 +    fun removeBond(timeout: Long, callback: (CallbackResponse) -> Unit) {
 +        val key = "removeBond"
 +        callbackMap[key] = callback
@@ -216,7 +298,7 @@ index f09e6a0..c7b94c3 100644
      private fun createBondStateReceiver() {
          if (bondStateReceiver == null) {
              bondStateReceiver = object : BroadcastReceiver() {
-@@ -410,6 +446,9 @@ class Device(
+@@ -410,6 +468,9 @@ class Device(
                              } else if (bondState == -1) {
                                  reject(key, "Creating bond failed.")
                              }
@@ -226,7 +308,7 @@ index f09e6a0..c7b94c3 100644
                          }
                      }
                  }
-@@ -486,13 +525,16 @@ class Device(
+@@ -486,13 +547,16 @@ class Device(
      fun read(
          serviceUUID: UUID,
          characteristicUUID: UUID,
@@ -244,7 +326,7 @@ index f09e6a0..c7b94c3 100644
          if (characteristic == null) {
              reject(key, "Characteristic not found.")
              return
-@@ -544,23 +586,28 @@ class Device(
+@@ -544,23 +608,28 @@ class Device(
      fun setNotifications(
          serviceUUID: UUID,
          characteristicUUID: UUID,
@@ -282,7 +364,7 @@ index f09e6a0..c7b94c3 100644
          val result = bluetoothGatt?.setCharacteristicNotification(characteristic, enable)
          if (result != true) {
              reject(key, "Setting notification failed.")
-@@ -606,6 +653,7 @@ class Device(
+@@ -606,6 +675,7 @@ class Device(
      fun readDescriptor(
          serviceUUID: UUID,
          characteristicUUID: UUID,
@@ -290,7 +372,7 @@ index f09e6a0..c7b94c3 100644
          descriptorUUID: UUID,
          timeout: Long,
          callback: (CallbackResponse) -> Unit
-@@ -613,7 +661,9 @@ class Device(
+@@ -613,7 +683,9 @@ class Device(
          val key = "readDescriptor|$serviceUUID|$characteristicUUID|$descriptorUUID"
          callbackMap[key] = callback
          val service = bluetoothGatt?.getService(serviceUUID)
@@ -301,6 +383,43 @@ index f09e6a0..c7b94c3 100644
          if (characteristic == null) {
              reject(key, "Characteristic not found.")
              return
+@@ -677,6 +749,7 @@ class Device(
+             timeoutQueue.popFirstMatch { it.key == key }?.handler?.removeCallbacksAndMessages(null)
+             callbackMap[key]?.invoke(CallbackResponse(true, value))
+             callbackMap.remove(key)
++            if (activeConnectKey == key) activeConnectKey = null
+         }
+     }
+ 
+@@ -686,6 +759,7 @@ class Device(
+             timeoutQueue.popFirstMatch { it.key == key }?.handler?.removeCallbacksAndMessages(null)
+             callbackMap[key]?.invoke(CallbackResponse(false, value))
+             callbackMap.remove(key)
++            if (activeConnectKey == key) activeConnectKey = null
+         }
+     }
+ 
+@@ -701,6 +775,7 @@ class Device(
+ 
+     private fun setConnectionTimeout(
+         key: String,
++        attemptId: Long,
+         message: String,
+         gatt: BluetoothGatt?,
+         timeout: Long,
+@@ -708,6 +783,12 @@ class Device(
+         val handler = Handler(Looper.getMainLooper())
+         timeoutQueue.add(TimeoutHandler(key, handler))
+         handler.postDelayed({
++            timeoutQueue.popFirstMatch { it.key == key }
++            if (activeConnectKey != key || connectAttemptSequence != attemptId || bluetoothGatt !== gatt) {
++                Logger.debug(TAG, "Ignoring stale connection timeout attempt=$attemptId key=$key")
++                return@postDelayed
++            }
++            Logger.debug(TAG, "Connection timeout expired attempt=$attemptId key=$key")
+             connectionState = STATE_DISCONNECTED
+             gatt?.disconnect()
+             gatt?.close()
 diff --git a/node_modules/@capacitor-community/bluetooth-le/dist/esm/bleClient.d.ts b/node_modules/@capacitor-community/bluetooth-le/dist/esm/bleClient.d.ts
 index ac13ee4..f74a293 100644
 --- a/node_modules/@capacitor-community/bluetooth-le/dist/esm/bleClient.d.ts
