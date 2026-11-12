@@ -48,6 +48,13 @@ describe('TimeSlider', () => {
 
     expect(vm.durationOptions[0]).toEqual({ unit: 'minutes', value: 1 });
     expect(vm.durationOptions.some((option: { unit: string }) => option.unit === 'seconds')).toBe(false);
+    expect(vm.inputPlaceholder).toBe('0h10');
+  });
+
+  it('only suggests seconds when they are accepted', () => {
+    const wrapper = mountSlider({ allowSeconds: true });
+
+    expect((wrapper.vm as any).inputPlaceholder).toBe('10s / 0h10');
   });
 
   it('keeps legacy numeric values in minutes', () => {
@@ -103,5 +110,6 @@ describe('TimeSlider', () => {
 
     expect(vm.durationOptions.every((option: { unit: string }) => option.unit === 'minutes')).toBe(true);
     expect(vm.displayValue).toBe('10h00');
+    expect(vm.inputPlaceholder).toBe('HHMM');
   });
 });

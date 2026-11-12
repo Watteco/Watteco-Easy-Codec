@@ -23,7 +23,7 @@
       v-else
       class="time-input"
       v-model="timeInputValue"
-      :placeholder="props.outputFormat === 'HHMM' ? 'HHMM' : '10s / 0h10'"
+      :placeholder="inputPlaceholder"
       @ionBlur="finishEditing"
       @keyup.enter="finishEditing"
       @ionInput="onInputChange"
@@ -83,6 +83,10 @@ const currentValue = ref(normalizeStorageValue(props.value));
 const timeInputValue = ref(formatTimeValue(currentValue.value));
 const isEditing = ref(false);
 const timeInputRef = ref(null);
+const inputPlaceholder = computed(() => {
+  if (props.outputFormat === 'HHMM') return 'HHMM';
+  return props.allowSeconds ? '10s / 0h10' : '0h10';
+});
 
 const effectiveMaximum = computed(() => (
   parseTimeValue(props.maxDuration ?? props.max)
