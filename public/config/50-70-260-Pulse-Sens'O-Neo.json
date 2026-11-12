@@ -38,44 +38,56 @@
         ]
     },
     "batch_params": {
-        "batch_P_params": {
-            "label": "@IndexLabel",
+        "batch_P1_params": {
+            "label": "@IndexLabel @InputLabel 1",
             "default_state": "true",
             "fields": {
                 "p1BatchEchant": {
                     "type": "timeVal",
                     "default_value": "60",
                     "min_value": "1",
-                    "max_value": "120",
-                    "step": "1",
+                    "max_value": "1440",
                     "depends_on": "gBatchEmission",
                     "HMI": {
                         "label": "@echantLabel @InputLabel 1",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
-                },
+                }
+            }
+        },
+        "batch_P2_params": {
+            "label": "@IndexLabel @InputLabel 2",
+            "default_state": "true",
+            "fields": {
                 "p2BatchEchant": {
                     "type": "timeVal",
                     "default_value": "60",
                     "min_value": "1",
-                    "max_value": "120",
-                    "step": "1",
+                    "max_value": "1440",
                     "depends_on": "gBatchEmission",
                     "HMI": {
                         "label": "@echantLabel @InputLabel 2",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
-                },
+                }
+            }
+        },
+        "batch_P3_params": {
+            "label": "@IndexLabel @InputLabel 3",
+            "default_state": "true",
+            "fields": {
                 "p3BatchEchant": {
                     "type": "timeVal",
                     "default_value": "60",
                     "min_value": "1",
-                    "max_value": "120",
-                    "step": "1",
+                    "max_value": "1440",
                     "depends_on": "gBatchEmission",
                     "HMI": {
                         "label": "@echantLabel @InputLabel 3",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 }
             }
@@ -88,12 +100,12 @@
                     "type": "timeVal",
                     "default_value": "60",
                     "min_value": "1",
-                    "max_value": "120",
-                    "step": "1",
+                    "max_value": "1440",
                     "depends_on": "gBatchEmission",
                     "HMI": {
                         "label": "@echantLabel @InputLabel 4",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 }
             }
@@ -106,12 +118,12 @@
                     "type": "timeVal",
                     "default_value": "60",
                     "min_value": "1",
-                    "max_value": "120",
-                    "step": "1",
+                    "max_value": "1440",
                     "depends_on": "gBatchEmission",
                     "HMI": {
                         "label": "@echantLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 }
             }
@@ -124,12 +136,12 @@
                     "type": "timeVal",
                     "default_value": "60",
                     "min_value": "1",
-                    "max_value": "120",
-                    "step": "1",
+                    "max_value": "1440",
                     "depends_on": "gBatchEmission",
                     "HMI": {
                         "label": "@echantLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 }
             }
@@ -142,12 +154,12 @@
                     "type": "timeVal",
                     "default_value": "60",
                     "min_value": "1",
-                    "max_value": "120",
-                    "step": "1",
+                    "max_value": "1440",
                     "depends_on": "gBatchEmission",
                     "HMI": {
                         "label": "@echantLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 }
             }
@@ -160,12 +172,12 @@
                     "type": "timeVal",
                     "default_value": "60",
                     "min_value": "1",
-                    "max_value": "120",
-                    "step": "1",
+                    "max_value": "1440",
                     "depends_on": "gBatchEmission",
                     "HMI": {
                         "label": "@echantLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 }
             }
@@ -195,7 +207,6 @@
                     "default_value": "240",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
                     "HMI": {
                         "label": "@emitLabel",
                         "visual_type": "timeSlider"
@@ -225,7 +236,6 @@
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
                     "HMI": {
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
@@ -242,7 +252,6 @@
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
                     "HMI": {
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
@@ -259,7 +268,6 @@
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
                     "HMI": {
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
@@ -276,7 +284,6 @@
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
                     "HMI": {
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
@@ -292,7 +299,6 @@
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "60",
-                    "step": "1",
                     "depends_on": "pMultiStateStandEmission",
                     "HMI": {
                         "label": "@measureLabel",
@@ -306,7 +312,6 @@
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
                     "HMI": {
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
@@ -351,7 +356,6 @@
                     "default_value": "10",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
                     "depends_on": "bStandEmission",
                     "HMI": {
                         "label": "@measureLabel",
@@ -363,7 +367,6 @@
                     "default_value": "1440",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
                     "HMI": {
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"

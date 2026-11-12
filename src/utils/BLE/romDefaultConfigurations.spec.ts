@@ -25,7 +25,7 @@ describe('updated Neo ROM default configurations', () => {
   });
 
   it('keeps Pulse SensO Neo input 4 optional and assigns it batch label 7', () => {
-    expect(pulseSensoNeoConfig.batch_params.batch_P_params.default_state).toBe('true');
+    expect(pulseSensoNeoConfig.batch_params.batch_P1_params.default_state).toBe('true');
     expect(pulseSensoNeoConfig.batch_params.batch_P4_params.default_state).toBe('false');
     expect(pulseSensoNeoConfig.batch_params.cfg_block).toContainEqual([
       '71 06 00 0F 1D 04 02 00 (p4BatchEchant) (gBatchEmission) 00 00 00 00 00 00 00 01 3C',

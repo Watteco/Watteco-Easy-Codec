@@ -167,7 +167,8 @@ Cela permet d'exposer les options standard dans l'UI sans les activer par défau
 Remarques:
 
 - Une valeur `timeVal` sans suffixe reste exprimée en minutes pour préserver la compatibilité des configurations existantes. Le suffixe `s` sélectionne explicitement les secondes (`10s`).
-- Avec `HMI.allow_seconds: true`, le slider utilise des pas d'une seconde sous la minute, puis le pas en minutes déclaré par `step`. Sans cette option, le champ reste strictement en minutes. `HMI.seconds_min` et `HMI.seconds_step` personnalisent la zone des secondes.
+- Avec `HMI.allow_seconds: true`, le slider utilise des pas d'une seconde sous la minute. Sans cette option, le champ reste strictement en minutes. `HMI.seconds_min` et `HMI.seconds_step` personnalisent la zone des secondes.
+- Pour les durées en minutes, le slider utilise par défaut des pas progressifs : 1 minute jusqu'à 1 heure, 5 minutes jusqu'à 6 heures, 15 minutes jusqu'à 12 heures, 30 minutes jusqu'à 24 heures, puis 1 heure. Le `step` déclaré reste la granularité minimale. Une configuration peut remplacer ce profil avec `HMI.time_steps`, sous la forme `[[0, 1], [60, 5], [360, 15]]`, où chaque paire contient le seuil en minutes et le pas à appliquer. La variante `timeSliderHHMM` conserve son pas fixe.
 - `step` règle les positions proposées par le slider, mais ne limite pas la saisie ni une valeur chargée depuis le capteur : toute valeur comprise entre `min_value` et `max_value` est conservée et ajoutée comme position ponctuelle du curseur.
 - `timeSliderHHMM` est une variante de `timeSlider` utilisée pour afficher et modifier des durées/horaires au format heures:minutes. Elle ne propose pas la zone en secondes.
 - `customValue` est utile pour une valeur fixe affichée mais non éditable.

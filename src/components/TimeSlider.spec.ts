@@ -96,6 +96,46 @@ describe('TimeSlider', () => {
     expect(vm.durationOptions[vm.currentIndex]).toEqual({ unit: 'minutes', value: 72 });
   });
 
+  it('uses progressively larger minute steps for long durations', () => {
+    const wrapper = mountSlider({ max: 1440, value: '60', allowSeconds: false });
+    const options = (wrapper.vm as any).durationOptions;
+
+    expect(options).toContainEqual({ unit: 'minutes', value: 59 });
+    expect(options).toContainEqual({ unit: 'minutes', value: 60 });
+    expect(options).not.toContainEqual({ unit: 'minutes', value: 61 });
+    expect(options).toContainEqual({ unit: 'minutes', value: 65 });
+    expect(options).toContainEqual({ unit: 'minutes', value: 360 });
+    expect(options).not.toContainEqual({ unit: 'minutes', value: 365 });
+    expect(options).toContainEqual({ unit: 'minutes', value: 375 });
+    expect(options).toContainEqual({ unit: 'minutes', value: 750 });
+    expect(options).toContainEqual({ unit: 'minutes', value: 1440 });
+  });
+
+  it('accepts a custom minute step profile', () => {
+    const wrapper = mountSlider({
+      max: 120,
+      value: '70',
+      allowSeconds: false,
+      timeSteps: [[0, 10], [70, 30]],
+    });
+    const options = (wrapper.vm as any).durationOptions;
+
+    expect(options).toContainEqual({ unit: 'minutes', value: 60 });
+    expect(options).toContainEqual({ unit: 'minutes', value: 70 });
+    expect(options).not.toContainEqual({ unit: 'minutes', value: 80 });
+    expect(options).toContainEqual({ unit: 'minutes', value: 100 });
+    expect(options).toContainEqual({ unit: 'minutes', value: 120 });
+  });
+
+  it('keeps the configured step as the minimum granularity', () => {
+    const wrapper = mountSlider({ max: 150, value: '60', step: 20, allowSeconds: false });
+    const minuteValues = (wrapper.vm as any).durationOptions
+      .filter((option: { unit: string }) => option.unit === 'minutes')
+      .map((option: { value: number }) => option.value);
+
+    expect(minuteValues).toEqual([1, 20, 40, 60, 80, 100, 120, 140, 150]);
+  });
+
   it('limits a dependent slider to a parent value expressed in seconds', () => {
     const wrapper = mountSlider({ value: '20s', maxDuration: '30s' });
     const vm = wrapper.vm as any;

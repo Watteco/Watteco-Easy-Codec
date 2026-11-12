@@ -66,6 +66,10 @@ const props = defineProps({
     type: [String, Number],
     default: 1,
   },
+  timeSteps: {
+    type: Array,
+    default: null,
+  },
   groupName: String,
   paramName: String,
   outputFormat: {
@@ -96,6 +100,44 @@ const effectiveMaximum = computed(() => (
 const effectiveMaximumSeconds = computed(() => timeValueToSeconds(
   formatTimeValueStorage(effectiveMaximum.value),
 ) ?? 0);
+
+const defaultMinuteSteps = [
+  [0, 1],
+  [60, 5],
+  [360, 15],
+  [720, 30],
+  [1440, 60],
+];
+
+const minuteSteps = computed(() => {
+  const configuredSteps = Array.isArray(props.timeSteps) ? props.timeSteps : [];
+  const normalizedSteps = configuredSteps
+    .filter(step => Array.isArray(step) && step.length >= 2)
+    .map(([from, step]) => [Number(from), Number(step)])
+    .filter(([from, step]) => Number.isFinite(from) && from >= 0 && Number.isFinite(step) && step >= 1)
+    .sort(([left], [right]) => left - right);
+  const steps = normalizedSteps.length > 0 ? normalizedSteps : defaultMinuteSteps;
+  if (steps[0][0] > 0) steps.unshift([0, Number(props.step) || 1]);
+  return steps;
+});
+
+const addMinuteOptions = (options, minimum, maximum) => {
+  const configuredStep = Math.max(1, Number(props.step) || 1);
+  options.push({ unit: 'minutes', value: minimum });
+
+  minuteSteps.value.forEach(([from, profileStep], index) => {
+    const nextFrom = minuteSteps.value[index + 1]?.[0] ?? Number.POSITIVE_INFINITY;
+    const intervalStart = Math.max(minimum, from);
+    const intervalEnd = Math.min(maximum + 1, nextFrom);
+    const step = configuredStep * Math.ceil(profileStep / configuredStep);
+    const firstValue = from + Math.ceil((intervalStart - from) / step) * step;
+    for (let value = firstValue; value < intervalEnd && value <= maximum; value += step) {
+      options.push({ unit: 'minutes', value });
+    }
+  });
+
+  options.push({ unit: 'minutes', value: maximum });
+};
 
 const durationOptions = computed(() => {
   if (props.outputFormat === 'HHMM') {
@@ -128,14 +170,8 @@ const durationOptions = computed(() => {
     configuredMaximumMinutes,
     Math.floor(effectiveMaximumSeconds.value / 60),
   );
-  const minuteStep = Math.max(1, Number(props.step) || 1);
   if (minimumMinutes <= maximumMinutes) {
-    options.push({ unit: 'minutes', value: minimumMinutes });
-    const firstStep = Math.ceil(minimumMinutes / minuteStep) * minuteStep;
-    for (let value = firstStep; value <= maximumMinutes; value += minuteStep) {
-      options.push({ unit: 'minutes', value });
-    }
-    options.push({ unit: 'minutes', value: maximumMinutes });
+    addMinuteOptions(options, minimumMinutes, maximumMinutes);
   }
 
   const selected = parseTimeValue(currentValue.value);
