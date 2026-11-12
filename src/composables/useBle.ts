@@ -73,8 +73,8 @@ import { getBleSignalLevel, type BleSignalLevel } from '@/utils/BLE/rssi';
 import { readAdminDeviceStatus } from '@/utils/BLE/adminStatus';
 import { buildCounterSetFrame } from '@/utils/BLE/counterCommands';
 import { createDiagnosticLogger } from '@/utils/diagnosticLogger';
-import { BST_SERVICE_UUID, normalizeUuid } from '@/utils/BLE/characteristics';
-import { removeBstAndroidBond } from '@/utils/BLE/bstProtocol';
+import { BBS_SERVICE_UUID, normalizeUuid } from '@/utils/BLE/characteristics';
+import { removeBbsAndroidBond } from '@/utils/BLE/bbsProtocol';
 
 export type DeviceLike = {
   deviceId: string;
@@ -1301,27 +1301,27 @@ async function connectToSpecialModeDevice(device: DeviceLike): Promise<boolean> 
   productReference.value = null;
   osaAuthenticated.value = null;
   statusMessage.value = `Connecting to ${device.name || device.deviceId}â€¦`;
-  diagnosticLogger.info('BST temporary connection started', {
+  diagnosticLogger.info('BBS temporary connection started', {
     deviceId: device.deviceId,
     deviceName: device.name,
   });
 
   try {
     try {
-      await removeBstAndroidBond(
+      await removeBbsAndroidBond(
         device.deviceId,
         line => diagnosticLogger.info(line, { deviceId: device.deviceId }),
-        'before BST connection',
+        'before BBS connection',
       );
     } catch (error) {
-      diagnosticLogger.warn('BST pre-connection bond cleanup failed; continuing connection', {
+      diagnosticLogger.warn('BBS pre-connection bond cleanup failed; continuing connection', {
         deviceId: device.deviceId,
         error,
       });
     }
 
     await BleClient.connect(device.deviceId, () => {
-      diagnosticLogger.info('BST temporary connection closed', {
+      diagnosticLogger.info('BBS temporary connection closed', {
         deviceId: device.deviceId,
         deviceName: device.name,
       });
@@ -1333,12 +1333,12 @@ async function connectToSpecialModeDevice(device: DeviceLike): Promise<boolean> 
       pairing.value = false;
       osaAuthenticated.value = null;
       statusMessage.value = 'Device disconnected';
-      void removeBstAndroidBond(
+      void removeBbsAndroidBond(
         device.deviceId,
         line => diagnosticLogger.info(line, { deviceId: device.deviceId }),
-        'after BST disconnection',
+        'after BBS disconnection',
       ).catch(error => {
-        diagnosticLogger.warn('BST post-disconnection bond cleanup failed', {
+        diagnosticLogger.warn('BBS post-disconnection bond cleanup failed', {
           deviceId: device.deviceId,
           error,
         });
@@ -1354,21 +1354,21 @@ async function connectToSpecialModeDevice(device: DeviceLike): Promise<boolean> 
     connectionPhase.value = 'discovering';
     const services = await BleClient.getServices(device.deviceId);
     const serviceUuids = new Set(services.map(service => normalizeUuid(service.uuid)));
-    if (!serviceUuids.has(BST_SERVICE_UUID)) {
-      throw new Error('BST service 8004 was not discovered');
+    if (!serviceUuids.has(BBS_SERVICE_UUID)) {
+      throw new Error('BBS service 8004 was not discovered');
     }
 
     connected.value = true;
     connectionPhase.value = 'ready';
     statusMessage.value = `Connected to ${device.name || device.deviceId}`;
-    diagnosticLogger.info('BST temporary connection ready', {
+    diagnosticLogger.info('BBS temporary connection ready', {
       deviceId: device.deviceId,
       deviceName: device.name,
     });
     return true;
   } catch (error: any) {
     statusMessage.value = 'Connection failed: ' + (error?.message ?? error);
-    diagnosticLogger.error('BST temporary connection failed', {
+    diagnosticLogger.error('BBS temporary connection failed', {
       deviceId: device.deviceId,
       deviceName: device.name,
       error,

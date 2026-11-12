@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
 
-// Temporary common key shared by the normal BLE debug workflow and BST tests.
+// Temporary common key shared by the normal BLE debug workflow and BBS tests.
 const debugOtaAppKeyHex = ref('2B7E151628AED2A6ABF7158809CF4F3C');
 const debugDevEuiHex = ref('');
 

@@ -42,14 +42,17 @@
             @ionChange="setConfirmationEnabled($event.detail.checked)"
           />
         </ion-item>
-        <ion-item button detail router-link="/diagnostic-report">
-          <ion-label>{{ localize('@diagnosticReport') }}</ion-label>
-        </ion-item>
         <ion-item button detail router-link="/kms/login">
           <ion-label>
             <strong>{{ localize('@kmsSettingsTitle') }}</strong>
             <p>{{ localize('@kmsDisconnected') }}</p>
           </ion-label>
+        </ion-item>
+        <ion-item button detail router-link="/diagnostic-report">
+          <ion-label>{{ localize('@diagnosticReport') }}</ion-label>
+        </ion-item>
+        <ion-item button detail router-link="/startup-recovery">
+          <ion-label>{{ localize('@startupRecoveryTitle') }}</ion-label>
         </ion-item>
         <ion-item
           :button="developerModeAvailable"

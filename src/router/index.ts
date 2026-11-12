@@ -30,6 +30,15 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/DiagnosticReportPage.vue')
   },
   {
+    path: '/startup-recovery',
+    name: 'StartupRecovery',
+    component: () => import('@/views/StartupRecoveryPage.vue'),
+    beforeEnter: (_to, _from, next) => {
+      if (!isNative) { next('/tabs/downlink'); return; }
+      next();
+    }
+  },
+  {
     path: '/kms/login',
     name: 'KmsLogin',
     component: () => import('@/views/KmsLoginPage.vue')

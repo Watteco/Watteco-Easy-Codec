@@ -310,16 +310,6 @@
         <ion-icon slot="start" :icon="key" />
         {{ localize('@bleAddSimulatedKmsSensor') }}
       </ion-button>
-      <ion-button
-        size="small"
-        fill="solid"
-        color="warning"
-        @click="router.push('/special-mode?preview=1')"
-        class="debug-corner-button"
-      >
-        <ion-icon slot="start" :icon="warningOutline" />
-        {{ localize('@blePreviewSpecialMode') }}
-      </ion-button>
       <ion-button size="small" fill="solid" color="medium" @click="proceed" class="debug-corner-button">
         {{ localize('@bleSkipDev') }}
       </ion-button>
@@ -359,7 +349,6 @@ import {
   searchOutline,
   key,
   settingsOutline,
-  warningOutline,
 } from 'ionicons/icons';
 import { useBle, type DeviceLike } from '@/composables/useBle';
 import axios from 'axios';
@@ -425,7 +414,10 @@ const wakeMenuVisible = ref(false);
 const debugToolsStorageKey = 'ble-connect-debug-tools-visible';
 const debugToolsVisible = ref(sessionStorage.getItem(debugToolsStorageKey) === 'true');
 const autoConnectPanelVisible = ref(false);
-const devEuiSuffix = ref('');
+const autoConnectDevEuiStorageKey = 'easycodec.bleAutoConnectDevEuiSuffix';
+const devEuiSuffix = ref(normalizeDevEuiSuffixInput(
+  localStorage.getItem(autoConnectDevEuiStorageKey) ?? undefined,
+));
 const autoConnectEnabled = ref(false);
 const targetedWorkflowActive = ref(false);
 const qrScanInProgress = ref(false);
@@ -435,9 +427,7 @@ type DisplayDevice = DeviceLike & { isSimulated?: boolean };
 const simulatedDevices = ref<DisplayDevice[]>([]);
 const nextSimulatedSensorNumber = ref(123456);
 const displayedDevices = computed<DisplayDevice[]>(() => {
-  // Special-mode devices are intentionally reachable only through the
-  // DevEUI-targeted workflow: their advertising window is too short for a
-  // reliable manual selection.
+  // BBS devices belong exclusively to the Startup and recovery workflow.
   const realDevices = ble.devices.value.filter(device => !device.isSpecialMode);
   const realDeviceNames = new Set(realDevices.map(device => device.name));
   const uniqueSimulatedDevices = simulatedDevices.value.filter(
@@ -471,6 +461,10 @@ const visibleStatusMessage = computed(() => (
   || visibleErrorMessage.value
   || (developerModeEnabled.value ? ble.statusMessage.value : '')
 ));
+
+watch(devEuiSuffix, (suffix) => {
+  localStorage.setItem(autoConnectDevEuiStorageKey, suffix);
+}, { flush: 'sync' });
 
 onMounted(async () => {
   await ble.initialize();
@@ -607,6 +601,8 @@ async function toggleTargetedConnection() {
 }
 
 async function onDeviceSelect(dev: DisplayDevice) {
+  if (dev.isSpecialMode) return;
+
   if (dev.isSimulated) {
     await ble.cancelScan();
     ble.setProductReference(dev.productReference);
@@ -626,8 +622,7 @@ async function onDeviceSelect(dev: DisplayDevice) {
   connecting.value = true;
   connectingDeviceId.value = dev.deviceId;
   try {
-    if (dev.isSpecialMode) await ble.connectToSpecialModeDevice(dev);
-    else await ble.connectToDevice(dev);
+    await ble.connectToDevice(dev);
   } finally {
     connecting.value = false;
     connectingDeviceId.value = '';

@@ -27,19 +27,20 @@ describe('Watteco BLE device identity', () => {
     expect(deriveDevEuiFromDeviceName('ws5f006763')).toBe('70B3D5E75F006763');
     expect(deriveDevEuiFromDeviceName('WS12345678')).toBe('70B3D5E712345678');
     expect(deriveDevEuiFromDeviceName('WS5F006763.OTA')).toBe('70B3D5E75F006763');
-    expect(deriveDevEuiFromDeviceName('WS5F006763.BST')).toBe('70B3D5E75F006763');
+    expect(deriveDevEuiFromDeviceName('WS5F006763.BBS')).toBe('70B3D5E75F006763');
   });
 
   it('recognizes special-mode names and matches them during a targeted scan', () => {
-    expect(isBleSpecialModeName('WS5F006763.BST')).toBe(true);
-    expect(isBleSpecialModeName('ws5f006763.bst')).toBe(true);
+    expect(isBleSpecialModeName('WS5F006763.BBS')).toBe(true);
+    expect(isBleSpecialModeName('ws5f006763.bbs')).toBe(true);
     expect(isBleSpecialModeName('WS5F006763')).toBe(false);
-    expect(isBleDiscoverableName('WS5F006763.BST')).toBe(true);
-    expect(isBleSensorOrOtaName('WS5F006763.BST')).toBe(false);
+    expect(isBleDiscoverableName('WS5F006763.BBS')).toBe(true);
+    expect(isBleSensorOrOtaName('WS5F006763.BBS')).toBe(false);
     expect(matchesTargetBleName('WS5F006763', 'WS5F006763')).toBe(true);
-    expect(matchesTargetBleName('WS5F006763.BST', 'WS5F006763')).toBe(true);
+    expect(matchesTargetBleName('WS5F006763.BBS', 'WS5F006763')).toBe(false);
+    expect(matchesTargetBleName('WS5F006763.BBS', 'WS5F006763.BBS')).toBe(true);
     expect(matchesTargetBleName('WS5F006763.OTA', 'WS5F006763')).toBe(false);
-    expect(matchesTargetBleName('WS5F006764.BST', 'WS5F006763')).toBe(false);
+    expect(matchesTargetBleName('WS5F006764.BBS', 'WS5F006763')).toBe(false);
   });
 
   it('recognizes OTA recovery loader names separately', () => {
