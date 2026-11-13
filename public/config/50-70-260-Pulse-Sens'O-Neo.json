@@ -208,6 +208,7 @@
                     "max_value": "1440",
                     "HMI": {
                         "label": "@emitLabel",
+                        "description": "@helpBatchEmission",
                         "visual_type": "timeSlider"
                     }
                 }
@@ -301,6 +302,7 @@
                     "depends_on": "pMultiStateStandEmission",
                     "HMI": {
                         "label": "@measureLabel",
+                        "description": "@helpMultiStateMeasurement",
                         "visual_type": "timeSlider",
                         "allow_seconds": true
                     }
@@ -313,6 +315,7 @@
                     "max_value": "1440",
                     "HMI": {
                         "label": "@emitMaxLabel",
+                        "description": "@helpMultiStateEmission",
                         "visual_type": "timeSlider"
                     }
                 }

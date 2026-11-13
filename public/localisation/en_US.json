@@ -1,5 +1,9 @@
 {
     "sensor": "Sensor",
+    "configurationFieldHelp": "Help for this setting",
+    "helpBatchEmission": "Sets the transmission period shared by the counters and input states configured in batch mode. The battery has its own transmission period.",
+    "helpMultiStateMeasurement": "Sets the measurement period for input states 1 to 4, used for state-change or pattern reporting.",
+    "helpMultiStateEmission": "Sets the maximum time between reports of input states 1 to 4, for state-change or pattern reporting.",
     "probe": "probe",
     "second": "second",
     "minute": "minute",

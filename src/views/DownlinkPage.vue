@@ -374,6 +374,12 @@
                       @update:value="onParamChange($event, 'general_params', groupName, paramName)"
                     />
 
+                    <configuration-field-help
+                      slot="end"
+                      :label="param.HMI?.label ?? ''"
+                      :help-label="localize('@configurationFieldHelp')"
+                      :descriptions="fieldHelp['general_params']?.[groupName]?.[paramName] ?? []"
+                    />
                   </ion-item>
                 </ion-card>
               </ul>
@@ -602,6 +608,12 @@
                       @update:value="onParamChange($event, 'modbus_params', groupName, paramName)"
                     />
 
+                    <configuration-field-help
+                      slot="end"
+                      :label="param.HMI?.label ?? ''"
+                      :help-label="localize('@configurationFieldHelp')"
+                      :descriptions="fieldHelp['modbus_params']?.[groupName]?.[paramName] ?? []"
+                    />
                   </ion-item>
                 </ion-card>
               </ul>
@@ -832,6 +844,12 @@
                       @update:value="onParamChange($event, 'batch_params', groupName, paramName)"
                     />
 
+                    <configuration-field-help
+                      slot="end"
+                      :label="param.HMI?.label ?? ''"
+                      :help-label="localize('@configurationFieldHelp')"
+                      :descriptions="fieldHelp['batch_params']?.[groupName]?.[paramName] ?? []"
+                    />
                   </ion-item>
                 </ion-card>
               </ul>
@@ -860,6 +878,12 @@
                     :time-steps="param.HMI?.time_steps"
                     @update:value="onParamChange($event, 'batch_params', 'global_params', paramName)"
                     @update:units="onToggleChange($event, 'batch_params', 'global_params', paramName)"
+                  />
+                  <configuration-field-help
+                    slot="end"
+                    :label="param.HMI?.label ?? ''"
+                    :help-label="localize('@configurationFieldHelp')"
+                    :descriptions="fieldHelp.batch_params?.global_params?.[paramName] ?? []"
                   />
                 </ion-item>
               </ion-card>
@@ -1080,6 +1104,12 @@
                       @update:value="onParamChange($event, 'standard_params', groupName, paramName)"
                     />
 
+                    <configuration-field-help
+                      slot="end"
+                      :label="param.HMI?.label ?? ''"
+                      :help-label="localize('@configurationFieldHelp')"
+                      :descriptions="fieldHelp['standard_params']?.[groupName]?.[paramName] ?? []"
+                    />
                   </ion-item>
                 </ion-card>
               </ul>
@@ -1295,6 +1325,12 @@
                       @update:value="onParamChange($event, 'configuration_params', groupName, paramName)"
                     />
 
+                    <configuration-field-help
+                      slot="end"
+                      :label="param.HMI?.label ?? ''"
+                      :help-label="localize('@configurationFieldHelp')"
+                      :descriptions="fieldHelp['configuration_params']?.[groupName]?.[paramName] ?? []"
+                    />
                   </ion-item>
                 </ion-card>
               </ul>
@@ -1510,6 +1546,12 @@
                       @update:value="onParamChange($event, 'commande_params', groupName, paramName)"
                     />
 
+                    <configuration-field-help
+                      slot="end"
+                      :label="param.HMI?.label ?? ''"
+                      :help-label="localize('@configurationFieldHelp')"
+                      :descriptions="fieldHelp['commande_params']?.[groupName]?.[paramName] ?? []"
+                    />
                   </ion-item>
                 </ion-card>
               </ul>
@@ -1837,6 +1879,8 @@ import { useBle } from '@/composables/useBle';
 import { useBleDebugCredentials, updateDebugDevEuiFromDeviceName } from '@/composables/useBleDebug';
 import { playSensorPageTransition } from '@/utils/sensorPageTransition';
 import TimeSlider from '@/components/TimeSlider.vue';
+import ConfigurationFieldHelp from '@/components/ConfigurationFieldHelp.vue';
+import { buildConfigurationFieldHelp } from '@/utils/configurationFieldHelp';
 import DoubleSlider from '@/components/DoubleSlider.vue';
 import CheckBox from '@/components/CheckBox.vue';
 import CustomValue from '@/components/CustomValue.vue';
@@ -2089,6 +2133,7 @@ const supportsReportingConfigurationRead = computed(() => (
 ));
 const pageInitialized = ref(false);
 const sensorConfig = ref<any | null>(null); // Dynamic configuration for the selected sensor
+const fieldHelp = computed(() => buildConfigurationFieldHelp(sensorConfig.value ?? {}));
 const allSavedConfigurations = ref<SavedConfiguration[]>(readSavedConfigurations());
 const selectedSavedConfigurationId = ref('');
 const savedConfigurationFileInput = ref<HTMLInputElement | null>(null);

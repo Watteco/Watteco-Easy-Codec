@@ -18,12 +18,6 @@
                   <strong>{{ bleDeviceName }}</strong>
                 </div>
                 <div class="status-item">
-                  <span>{{ localize('@toolsOsaAuthentication') }}</span>
-                  <strong :class="{ 'value-ok': deviceStatus.osaAuthenticated === true }">
-                    {{ osaAuthenticationLabel }}
-                  </strong>
-                </div>
-                <div class="status-item">
                   <span>{{ localize('@toolsJoinStatus') }}</span>
                   <strong :class="{ 'value-ok': status?.joined, 'value-error': status && !status.joined }">
                     {{ joinLabel }}
@@ -73,24 +67,15 @@
                   <strong>{{ deviceStatus.firmwareLongName || '—' }}</strong>
                 </div>
               </div>
-              <div class="status-actions">
-                <ion-button
-                  v-if="deviceStatus.osaAuthenticated !== true"
-                  size="small"
-                  fill="clear"
-                  :disabled="osaAuthenticating || deviceStatusLoading || deviceInformationLoading || !ble.connected.value"
-                  @click="authenticateForDeviceInformation"
-                >
-                  {{ osaAuthenticating ? localize('@toolsOsaAuthenticating') : localize('@toolsAuthenticate') }}
-                </ion-button>
+              <div v-if="developerModeEnabled" class="status-actions">
                 <ion-button
                   class="status-refresh-button"
                   size="small"
                   fill="clear"
-                  :disabled="deviceStatusLoading || deviceInformationLoading || !ble.connected.value"
-                  @click="refreshDeviceStatus"
+                  :disabled="deviceStatusLoading || !ble.connected.value"
+                  @click="refreshDeviceStatus(false)"
                 >
-                  {{ deviceStatusLoading || deviceInformationLoading
+                  {{ deviceStatusLoading
                     ? localize('@toolsRefreshing')
                     : localize('@toolsRefreshStatus') }}
                 </ion-button>
@@ -596,10 +581,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
-import { IonButton, IonCard, IonCardContent, IonContent, IonIcon, IonPage, onIonViewDidEnter } from '@ionic/vue';
+import { IonButton, IonCard, IonCardContent, IonContent, IonIcon, IonPage, onIonViewDidEnter, onIonViewDidLeave } from '@ionic/vue';
 import { chevronDownOutline, chevronForwardOutline, lockClosed, lockOpenOutline } from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
 import { useBleDebug } from '@/composables/useBleDebug';
@@ -615,6 +600,9 @@ import {
 import {
   isPlausibleSensorTime,
   readAdminDeviceStatus,
+  startAdminTimeMonitoring,
+  stopAdminTimeMonitoring,
+  type AdminTimeSubscription,
   type AdminDeviceStatus,
 } from '@/utils/BLE/adminStatus';
 import { presentAuthorizationDeniedAlert } from '@/utils/authorizationAlert';
@@ -805,6 +793,11 @@ let resolveAppRxResponses: (() => void) | undefined;
 let manualResponsePolicy: CustomAppFrameResponsePolicy | undefined;
 let manualResponseRequest: Uint8Array | undefined;
 let deviceInformationDeviceId: string | undefined;
+let adminTimeSubscription: AdminTimeSubscription | undefined;
+let adminTimeSubscriptionDeviceId: string | undefined;
+let adminTimeMonitoringRun = 0;
+let adminTimeStopping = Promise.resolve();
+let sensorToolsPageActive = false;
 let campaignCancelled = false;
 let campaignSequence = 0;
 let campaignDiagnosticSequence = 0;
@@ -840,12 +833,6 @@ const campaignStatus = computed(() => campaignMessage.value || (
     ? localize('@toolsCampaignComplete')
     : localize('@toolsCampaignReady')
 ));
-const osaAuthenticationLabel = computed(() => {
-  if (deviceStatus.value.osaAuthenticated === null) return localize('@toolsStatusUnknown');
-  return localize(deviceStatus.value.osaAuthenticated
-    ? '@toolsOsaAuthenticated'
-    : '@toolsOsaNotAuthenticated');
-});
 const sensorTimeIsPlausible = computed(() => isPlausibleSensorTime(deviceStatus.value.sensorTime));
 const deviceInformationRequiresAuthentication = computed(() => (
   deviceStatus.value.osaAuthenticated === false
@@ -1438,11 +1425,6 @@ async function refreshDeviceStatusAfterChallenge(): Promise<void> {
   await refreshDeviceStatus(false);
 }
 
-async function authenticateForDeviceInformation(): Promise<void> {
-  feedbackContext.value = 'commands';
-  if (await authenticateWithDebugCredentials(true)) await refreshDeviceInformation();
-}
-
 async function sendManualFrame(): Promise<void> {
   const deviceId = ble.connectedDevice.value?.deviceId;
   const frame = manualFrame.value;
@@ -1650,10 +1632,72 @@ function simulateCampaign() {
   feedbackContext.value = 'network-test';
 }
 
+async function stopDeviceStatusMonitoring(): Promise<void> {
+  adminTimeMonitoringRun += 1;
+  const subscription = adminTimeSubscription;
+  const deviceId = adminTimeSubscriptionDeviceId;
+  adminTimeSubscription = undefined;
+  adminTimeSubscriptionDeviceId = undefined;
+  const stopCurrentSubscription = async () => {
+    if (deviceId) {
+      await stopAdminTimeMonitoring(deviceId, subscription, line => console.debug(line));
+    }
+  };
+  adminTimeStopping = adminTimeStopping.then(stopCurrentSubscription, stopCurrentSubscription);
+  await adminTimeStopping;
+}
+
+async function initializeDeviceStatus(): Promise<void> {
+  const deviceId = ble.connectedDevice.value?.deviceId;
+  if (!ble.connected.value || !deviceId) return;
+  await stopDeviceStatusMonitoring();
+  const run = ++adminTimeMonitoringRun;
+  console.debug(`[ADMIN] Initializing status for ${deviceId}`);
+  let subscription: AdminTimeSubscription | undefined;
+  try {
+    subscription = await startAdminTimeMonitoring(
+      deviceId,
+      statusUpdate => {
+        if (ble.connectedDevice.value?.deviceId !== deviceId) return;
+        deviceStatus.value = { ...deviceStatus.value, ...statusUpdate };
+      },
+      line => console.debug(line),
+    );
+  } catch (error: any) {
+    console.error(`[ADMIN] Time monitoring initialization failed: ${error?.message ?? error}`);
+  }
+  if (run !== adminTimeMonitoringRun) {
+    console.debug('[ADMIN] Time monitoring cancelled by page or connection lifecycle');
+    await stopAdminTimeMonitoring(deviceId, subscription, line => console.debug(line));
+    return;
+  }
+  adminTimeSubscription = subscription;
+  adminTimeSubscriptionDeviceId = deviceId;
+  if (!ble.connected.value || ble.connectedDevice.value?.deviceId !== deviceId) {
+    console.debug('[ADMIN] Initial status read skipped because the device disconnected');
+    return;
+  }
+  await refreshDeviceStatus();
+}
+
 onIonViewDidEnter(() => {
+  sensorToolsPageActive = true;
   playSensorPageTransition('tools', '.sensor-tools-content');
   if (deviceInformationDeviceId !== ble.connectedDevice.value?.deviceId) clearDeviceInformation();
-  void refreshDeviceStatus(false);
+  void initializeDeviceStatus();
+});
+
+onIonViewDidLeave(() => {
+  sensorToolsPageActive = false;
+  void stopDeviceStatusMonitoring();
+});
+
+watch(() => ble.connected.value, connected => {
+  if (connected) {
+    if (sensorToolsPageActive) void initializeDeviceStatus();
+    return;
+  }
+  void stopDeviceStatusMonitoring();
 });
 
 onMounted(async () => {
@@ -1675,6 +1719,7 @@ onBeforeUnmount(() => {
   cancelCampaign();
   finishManualResponseCollection();
   void stopAppRxMonitoring(appRxSubscription, line => console.debug(line));
+  void stopDeviceStatusMonitoring();
 });
 </script>
 
@@ -2063,12 +2108,9 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
 
 .status-actions {
   display: flex;
-  justify-content: space-between;
-  gap: 6px;
+  justify-content: flex-end;
   margin: 10px 0 -8px;
 }
-
-.status-refresh-button { margin-left: auto; }
 
 .field-label {
   display: block;

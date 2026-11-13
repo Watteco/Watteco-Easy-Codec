@@ -1,5 +1,9 @@
 {
     "sensor": "Capteur",
+    "configurationFieldHelp": "Aide sur ce paramètre",
+    "helpBatchEmission": "Définit la période d'émission commune aux compteurs et aux états des entrées configurés en mode batch. La batterie possède sa propre période d'émission.",
+    "helpMultiStateMeasurement": "Définit la période de mesure des états des entrées 1 à 4, utilisée pour le report sur variation d'état ou sur pattern.",
+    "helpMultiStateEmission": "Définit le délai maximal entre deux reports des états des entrées 1 à 4, en mode variation d'état ou pattern.",
     "probe": "sonde",
     "second": "seconde",
     "minute": "minute",

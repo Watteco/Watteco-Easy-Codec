@@ -17,7 +17,18 @@ export type AdminDeviceStatus = {
   osaAuthenticated: boolean | null;
 };
 
+export type AdminTimeStatus = Pick<AdminDeviceStatus, 'sensorTime' | 'runningTimeSeconds'>;
+
+export type AdminTimeSubscription = {
+  service: string;
+  characteristics: string[];
+};
+
 const MIN_PLAUSIBLE_SENSOR_TIME = Date.UTC(2020, 0, 1);
+
+function formatTimestampForLog(value: number | null): string {
+  return value === null ? 'unavailable' : `${new Date(value).toISOString()} (${value / 1_000})`;
+}
 
 export function isPlausibleSensorTime(value: number | null | undefined): value is number {
   return typeof value === 'number'
@@ -99,9 +110,123 @@ export async function readAdminDeviceStatus(
     read(OSA_STATUS_CHAR_UUID),
   ]);
   const firmwareLongName = decodeFirmwareLongName(firmwareLongNameRaw);
-  const sensorTime = decodeUnixTime(unixTimeRaw) ?? decodeDateTime(dateTimeRaw);
+  const unixTime = decodeUnixTime(unixTimeRaw);
+  const dateTime = decodeDateTime(dateTimeRaw);
+  const sensorTime = unixTime ?? dateTime;
   const runningTimeSeconds = decodeRunningTime(runningTimeRaw);
   const osaAuthenticated = decodeOsaAuthenticated(authStatusRaw);
+  onLog(`[ADMIN] READ UnixTS = ${formatTimestampForLog(unixTime)}`);
+  onLog(`[ADMIN] READ DateTime = ${formatTimestampForLog(dateTime)}`);
+  onLog(`[ADMIN] READ RunningTime = ${runningTimeSeconds ?? 'unavailable'} s`);
   onLog('[ADMIN] Device status refreshed');
   return { firmwareLongName, sensorTime, runningTimeSeconds, osaAuthenticated };
+}
+
+export async function startAdminTimeMonitoring(
+  deviceId: string,
+  onStatusChange: (status: Partial<AdminTimeStatus>) => void,
+  onLog: (line: string) => void,
+): Promise<AdminTimeSubscription | undefined> {
+  onLog('[ADMIN] Time monitoring start requested');
+  let services;
+  try {
+    services = await BleClient.getServices(deviceId);
+  } catch (error: any) {
+    onLog(`[ADMIN] Time monitoring service discovery failed: ${error?.message ?? error}`);
+    return undefined;
+  }
+  const service = services.find(candidate => normalizeUuid(candidate.uuid) === OSA_ADMIN_SERVICE_UUID);
+  if (!service) {
+    onLog('[ADMIN] Administration service 8001 is unavailable');
+    return undefined;
+  }
+
+  const findNotifiableCharacteristic = (uuids: string[]) => uuids
+    .map(uuid => service.characteristics?.find(candidate => normalizeUuid(candidate.uuid) === uuid))
+    .find(characteristic => characteristic?.properties.notify || characteristic?.properties.indicate);
+  const timeCharacteristic = findNotifiableCharacteristic([
+    ADMIN_UNIX_TIME_CHAR_UUID,
+    DATE_TIME_CHAR_UUID,
+  ]);
+  const runningTimeCharacteristic = findNotifiableCharacteristic([ADMIN_RUNNING_TIME_CHAR_UUID]);
+  const subscriptions: string[] = [];
+
+  const subscribe = async (
+    characteristic: NonNullable<typeof timeCharacteristic>,
+    processValue: (value: unknown) => void,
+    label: string,
+  ): Promise<void> => {
+    try {
+      let firstNotificationReceived = false;
+      await BleClient.startNotifications(
+        deviceId,
+        service.uuid,
+        characteristic.uuid,
+        value => {
+          if (!firstNotificationReceived) {
+            firstNotificationReceived = true;
+            onLog(`[ADMIN] ${label} first notification received`);
+          }
+          processValue(value);
+        },
+      );
+      subscriptions.push(characteristic.uuid);
+      onLog(`[ADMIN] ${label} notifications enabled`);
+    } catch (error: any) {
+      onLog(`[ADMIN] ${label} notification failed: ${error?.message ?? error}`);
+    }
+  };
+
+  if (timeCharacteristic) {
+    const usingUnixTime = normalizeUuid(timeCharacteristic.uuid) === ADMIN_UNIX_TIME_CHAR_UUID;
+    const decodeTime = usingUnixTime ? decodeUnixTime : decodeDateTime;
+    const timeLabel = usingUnixTime ? 'UnixTS' : 'DateTime';
+    await subscribe(
+      timeCharacteristic,
+      value => {
+        const sensorTime = decodeTime(value);
+        onLog(`[ADMIN] NOTIFY ${timeLabel} = ${formatTimestampForLog(sensorTime)}`);
+        onStatusChange({ sensorTime });
+      },
+      timeLabel,
+    );
+  } else {
+    onLog('[ADMIN] Sensor time notifications unavailable');
+  }
+
+  if (runningTimeCharacteristic) {
+    await subscribe(
+      runningTimeCharacteristic,
+      value => {
+        const runningTimeSeconds = decodeRunningTime(value);
+        onLog(`[ADMIN] NOTIFY RunningTime = ${runningTimeSeconds ?? 'invalid'} s`);
+        onStatusChange({ runningTimeSeconds });
+      },
+      'Running time',
+    );
+  } else {
+    onLog('[ADMIN] Running time notifications unavailable');
+  }
+
+  onLog(`[ADMIN] Time monitoring ${subscriptions.length > 0
+    ? `active (${subscriptions.length} characteristic(s))`
+    : 'inactive'}`);
+  return subscriptions.length > 0
+    ? { service: service.uuid, characteristics: subscriptions }
+    : undefined;
+}
+
+export async function stopAdminTimeMonitoring(
+  deviceId: string,
+  subscription: AdminTimeSubscription | undefined,
+  onLog?: (line: string) => void,
+): Promise<void> {
+  if (!subscription) return;
+  for (const characteristic of subscription.characteristics) {
+    try {
+      await BleClient.stopNotifications(deviceId, subscription.service, characteristic);
+    } catch (error: any) {
+      onLog?.(`[ADMIN] Stop notification failed: ${error?.message ?? error}`);
+    }
+  }
 }

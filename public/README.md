@@ -176,6 +176,22 @@ Remarques:
 
 ## Exemples utiles
 
+### Aide sur les champs de configuration
+
+Le bouton (i) ouvre les descriptions associées au champ, sans afficher les trames. Les commentaires de `cfg_block` sont associés par placeholders exacts, y compris les valeurs doubles suffixées `1`/`2`, puis dédupliqués. Les trames fixes sans placeholder ne sont pas associées automatiquement à un champ.
+
+Pour remplacer ces descriptions (paramètre global, commentaire trop générique, association ambiguë), ajoutez une clé localisée dans `HMI.description` :
+
+```json
+"HMI": {
+    "label": "@emitLabel",
+    "visual_type": "timeSlider",
+    "description": "@helpBatchEmission"
+}
+```
+
+La description explicite prend priorité sur tous les commentaires automatiques. Une chaîne vide masque volontairement l'aide. Sans description disponible, aucun bouton n'est affiché. Les clés doivent exister en français et en anglais.
+
 ### Dropdown
 
 ```json
