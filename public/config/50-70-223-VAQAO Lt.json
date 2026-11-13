@@ -57,8 +57,9 @@
                     "type": "timeVal",
                     "default_value": "10",
                     "min_value": "1",
-                    "max_value": "60",
+                    "max_value": "1440",
                     "HMI": {
+                        "description": "@helpBatchTemperatureHumidityCO2",
                         "label": "@echantLabel",
                         "visual_type": "timeSlider"
                     },
@@ -74,8 +75,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
                     "HMI": {
+                        "description": "@helpBatchCO2EnvironmentEmission",
                         "label": "@emitLabel",
                         "visual_type": "timeSlider"
                     }
@@ -100,10 +101,10 @@
                     "min_value": "1",
                     "max_value": "60",
                     "HMI": {
+                        "description": "@helpTemperatureThresholdMeasurement",
                         "label": "@echantLabel",
                         "visual_type": "timeSlider"
-                    },
-                    "depends_on": "tStandEmission"
+                    }
                 },
                 "tNotification": {
                     "type": "hex2B",
@@ -130,10 +131,10 @@
                     "min_value": "1",
                     "max_value": "60",
                     "HMI": {
+                        "description": "@helpHumidityThresholdMeasurement",
                         "label": "@echantLabel",
                         "visual_type": "timeSlider"
-                    },
-                    "depends_on": "hStandEmission"
+                    }
                 },
                 "hNotification": {
                     "type": "hex2B",
@@ -160,10 +161,10 @@
                     "min_value": "1",
                     "max_value": "60",
                     "HMI": {
+                        "description": "@helpCO2ThresholdMeasurement",
                         "label": "@echantLabel",
                         "visual_type": "timeSlider"
-                    },
-                    "depends_on": "cStandEmission"
+                    }
                 },
                 "cNotification": {
                     "type": "hex2B",
@@ -190,6 +191,7 @@
                     "max_value": "1440",
                     "depends_on": "bStandEmission",
                     "HMI": {
+                        "description": "@helpBatteryMeasurement",
                         "label": "@echantLabel",
                         "visual_type": "timeSlider"
                     }
@@ -200,6 +202,7 @@
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
+                        "description": "@helpBatteryEmission",
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
                     }

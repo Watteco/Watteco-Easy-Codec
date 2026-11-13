@@ -138,6 +138,7 @@
                     "min_value": "0",
                     "max_value": "247",
                     "HMI": {
+                        "description": "@helpModbusSlave",
                         "label": "@modbusSlaveAddress",
                         "visual_type": "numInput"
                     }
@@ -156,6 +157,7 @@
                         ["16", "0x10 - @writeMultipleRegisters"]
                     ],
                     "HMI": {
+                        "description": "@helpModbusFunction",
                         "label": "@modbusFunctionCode",
                         "visual_type": "dropdown"
                     }
@@ -166,6 +168,7 @@
                     "min_value": "0",
                     "max_value": "65535",
                     "HMI": {
+                        "description": "@helpModbusStartAddress",
                         "label": "@modbusStartAddress",
                         "visual_type": "numInput"
                     }
@@ -176,6 +179,7 @@
                     "min_value": "1",
                     "max_value": "125",
                     "HMI": {
+                        "description": "@helpModbusRegisterCount",
                         "label": "@modbusNumRegisters",
                         "visual_type": "numInput"
                     }
@@ -185,6 +189,7 @@
                     "default_value": "",
                     "placeholder": "Hex value (e.g. 1234)",
                     "HMI": {
+                        "description": "@helpModbusWriteData",
                         "label": "@modbusDataToWrite",
                         "visual_type": "textInput"
                     }
@@ -200,6 +205,7 @@
                     "min_value": "0",
                     "max_value": "247",
                     "HMI": {
+                        "description": "@helpModbusSlave",
                         "label": "@modbusSlaveAddress",
                         "visual_type": "numInput"
                     }
@@ -218,6 +224,7 @@
                         ["16", "0x10 - @writeMultipleRegisters"]
                     ],
                     "HMI": {
+                        "description": "@helpModbusFunction",
                         "label": "@modbusFunctionCode",
                         "visual_type": "dropdown"
                     }
@@ -228,6 +235,7 @@
                     "min_value": "0",
                     "max_value": "65535",
                     "HMI": {
+                        "description": "@helpModbusStartAddress",
                         "label": "@modbusStartAddress",
                         "visual_type": "numInput"
                     }
@@ -238,6 +246,7 @@
                     "min_value": "1",
                     "max_value": "125",
                     "HMI": {
+                        "description": "@helpModbusRegisterCount",
                         "label": "@modbusNumRegisters",
                         "visual_type": "numInput"
                     }
@@ -247,6 +256,7 @@
                     "default_value": "",
                     "placeholder": "Hex value (e.g. 1234)",
                     "HMI": {
+                        "description": "@helpModbusWriteData",
                         "label": "@modbusDataToWrite",
                         "visual_type": "textInput"
                     }
@@ -262,6 +272,7 @@
                     "min_value": "0",
                     "max_value": "247",
                     "HMI": {
+                        "description": "@helpModbusSlave",
                         "label": "@modbusSlaveAddress",
                         "visual_type": "numInput"
                     }
@@ -280,6 +291,7 @@
                         ["16", "0x10 - @writeMultipleRegisters"]
                     ],
                     "HMI": {
+                        "description": "@helpModbusFunction",
                         "label": "@modbusFunctionCode",
                         "visual_type": "dropdown"
                     }
@@ -290,6 +302,7 @@
                     "min_value": "0",
                     "max_value": "65535",
                     "HMI": {
+                        "description": "@helpModbusStartAddress",
                         "label": "@modbusStartAddress",
                         "visual_type": "numInput"
                     }
@@ -300,6 +313,7 @@
                     "min_value": "1",
                     "max_value": "125",
                     "HMI": {
+                        "description": "@helpModbusRegisterCount",
                         "label": "@modbusNumRegisters",
                         "visual_type": "numInput"
                     }
@@ -309,6 +323,7 @@
                     "default_value": "",
                     "placeholder": "Hex value (e.g. 1234)",
                     "HMI": {
+                        "description": "@helpModbusWriteData",
                         "label": "@modbusDataToWrite",
                         "visual_type": "textInput"
                     }
@@ -324,6 +339,7 @@
                     "min_value": "0",
                     "max_value": "247",
                     "HMI": {
+                        "description": "@helpModbusSlave",
                         "label": "@modbusSlaveAddress",
                         "visual_type": "numInput"
                     }
@@ -342,6 +358,7 @@
                         ["16", "0x10 - @writeMultipleRegisters"]
                     ],
                     "HMI": {
+                        "description": "@helpModbusFunction",
                         "label": "@modbusFunctionCode",
                         "visual_type": "dropdown"
                     }
@@ -352,6 +369,7 @@
                     "min_value": "0",
                     "max_value": "65535",
                     "HMI": {
+                        "description": "@helpModbusStartAddress",
                         "label": "@modbusStartAddress",
                         "visual_type": "numInput"
                     }
@@ -362,6 +380,7 @@
                     "min_value": "1",
                     "max_value": "125",
                     "HMI": {
+                        "description": "@helpModbusRegisterCount",
                         "label": "@modbusNumRegisters",
                         "visual_type": "numInput"
                     }
@@ -371,6 +390,7 @@
                     "default_value": "",
                     "placeholder": "Hex value (e.g. 1234)",
                     "HMI": {
+                        "description": "@helpModbusWriteData",
                         "label": "@modbusDataToWrite",
                         "visual_type": "textInput"
                     }
@@ -386,6 +406,7 @@
                     "min_value": "0",
                     "max_value": "247",
                     "HMI": {
+                        "description": "@helpModbusSlave",
                         "label": "@modbusSlaveAddress",
                         "visual_type": "numInput"
                     }
@@ -404,6 +425,7 @@
                         ["16", "0x10 - @writeMultipleRegisters"]
                     ],
                     "HMI": {
+                        "description": "@helpModbusFunction",
                         "label": "@modbusFunctionCode",
                         "visual_type": "dropdown"
                     }
@@ -414,6 +436,7 @@
                     "min_value": "0",
                     "max_value": "65535",
                     "HMI": {
+                        "description": "@helpModbusStartAddress",
                         "label": "@modbusStartAddress",
                         "visual_type": "numInput"
                     }
@@ -424,6 +447,7 @@
                     "min_value": "1",
                     "max_value": "125",
                     "HMI": {
+                        "description": "@helpModbusRegisterCount",
                         "label": "@modbusNumRegisters",
                         "visual_type": "numInput"
                     }
@@ -433,6 +457,7 @@
                     "default_value": "",
                     "placeholder": "Hex value (e.g. 1234)",
                     "HMI": {
+                        "description": "@helpModbusWriteData",
                         "label": "@modbusDataToWrite",
                         "visual_type": "textInput"
                     }
@@ -448,6 +473,7 @@
                     "min_value": "0",
                     "max_value": "247",
                     "HMI": {
+                        "description": "@helpModbusSlave",
                         "label": "@modbusSlaveAddress",
                         "visual_type": "numInput"
                     }
@@ -466,6 +492,7 @@
                         ["16", "0x10 - @writeMultipleRegisters"]
                     ],
                     "HMI": {
+                        "description": "@helpModbusFunction",
                         "label": "@modbusFunctionCode",
                         "visual_type": "dropdown"
                     }
@@ -476,6 +503,7 @@
                     "min_value": "0",
                     "max_value": "65535",
                     "HMI": {
+                        "description": "@helpModbusStartAddress",
                         "label": "@modbusStartAddress",
                         "visual_type": "numInput"
                     }
@@ -486,6 +514,7 @@
                     "min_value": "1",
                     "max_value": "125",
                     "HMI": {
+                        "description": "@helpModbusRegisterCount",
                         "label": "@modbusNumRegisters",
                         "visual_type": "numInput"
                     }
@@ -495,6 +524,7 @@
                     "default_value": "",
                     "placeholder": "Hex value (e.g. 1234)",
                     "HMI": {
+                        "description": "@helpModbusWriteData",
                         "label": "@modbusDataToWrite",
                         "visual_type": "textInput"
                     }
@@ -510,6 +540,7 @@
                     "min_value": "0",
                     "max_value": "247",
                     "HMI": {
+                        "description": "@helpModbusSlave",
                         "label": "@modbusSlaveAddress",
                         "visual_type": "numInput"
                     }
@@ -528,6 +559,7 @@
                         ["16", "0x10 - @writeMultipleRegisters"]
                     ],
                     "HMI": {
+                        "description": "@helpModbusFunction",
                         "label": "@modbusFunctionCode",
                         "visual_type": "dropdown"
                     }
@@ -538,6 +570,7 @@
                     "min_value": "0",
                     "max_value": "65535",
                     "HMI": {
+                        "description": "@helpModbusStartAddress",
                         "label": "@modbusStartAddress",
                         "visual_type": "numInput"
                     }
@@ -548,6 +581,7 @@
                     "min_value": "1",
                     "max_value": "125",
                     "HMI": {
+                        "description": "@helpModbusRegisterCount",
                         "label": "@modbusNumRegisters",
                         "visual_type": "numInput"
                     }
@@ -557,6 +591,7 @@
                     "default_value": "",
                     "placeholder": "Hex value (e.g. 1234)",
                     "HMI": {
+                        "description": "@helpModbusWriteData",
                         "label": "@modbusDataToWrite",
                         "visual_type": "textInput"
                     }
@@ -572,6 +607,7 @@
                     "min_value": "0",
                     "max_value": "247",
                     "HMI": {
+                        "description": "@helpModbusSlave",
                         "label": "@modbusSlaveAddress",
                         "visual_type": "numInput"
                     }
@@ -590,6 +626,7 @@
                         ["16", "0x10 - @writeMultipleRegisters"]
                     ],
                     "HMI": {
+                        "description": "@helpModbusFunction",
                         "label": "@modbusFunctionCode",
                         "visual_type": "dropdown"
                     }
@@ -600,6 +637,7 @@
                     "min_value": "0",
                     "max_value": "65535",
                     "HMI": {
+                        "description": "@helpModbusStartAddress",
                         "label": "@modbusStartAddress",
                         "visual_type": "numInput"
                     }
@@ -610,6 +648,7 @@
                     "min_value": "1",
                     "max_value": "125",
                     "HMI": {
+                        "description": "@helpModbusRegisterCount",
                         "label": "@modbusNumRegisters",
                         "visual_type": "numInput"
                     }
@@ -619,6 +658,7 @@
                     "default_value": "",
                     "placeholder": "Hex value (e.g. 1234)",
                     "HMI": {
+                        "description": "@helpModbusWriteData",
                         "label": "@modbusDataToWrite",
                         "visual_type": "textInput"
                     }
@@ -634,6 +674,7 @@
                     "min_value": "0",
                     "max_value": "247",
                     "HMI": {
+                        "description": "@helpModbusSlave",
                         "label": "@modbusSlaveAddress",
                         "visual_type": "numInput"
                     }
@@ -652,6 +693,7 @@
                         ["16", "0x10 - @writeMultipleRegisters"]
                     ],
                     "HMI": {
+                        "description": "@helpModbusFunction",
                         "label": "@modbusFunctionCode",
                         "visual_type": "dropdown"
                     }
@@ -662,6 +704,7 @@
                     "min_value": "0",
                     "max_value": "65535",
                     "HMI": {
+                        "description": "@helpModbusStartAddress",
                         "label": "@modbusStartAddress",
                         "visual_type": "numInput"
                     }
@@ -672,6 +715,7 @@
                     "min_value": "1",
                     "max_value": "125",
                     "HMI": {
+                        "description": "@helpModbusRegisterCount",
                         "label": "@modbusNumRegisters",
                         "visual_type": "numInput"
                     }
@@ -681,6 +725,7 @@
                     "default_value": "",
                     "placeholder": "Hex value (e.g. 1234)",
                     "HMI": {
+                        "description": "@helpModbusWriteData",
                         "label": "@modbusDataToWrite",
                         "visual_type": "textInput"
                     }
@@ -696,6 +741,7 @@
                     "min_value": "0",
                     "max_value": "247",
                     "HMI": {
+                        "description": "@helpModbusSlave",
                         "label": "@modbusSlaveAddress",
                         "visual_type": "numInput"
                     }
@@ -714,6 +760,7 @@
                         ["16", "0x10 - @writeMultipleRegisters"]
                     ],
                     "HMI": {
+                        "description": "@helpModbusFunction",
                         "label": "@modbusFunctionCode",
                         "visual_type": "dropdown"
                     }
@@ -724,6 +771,7 @@
                     "min_value": "0",
                     "max_value": "65535",
                     "HMI": {
+                        "description": "@helpModbusStartAddress",
                         "label": "@modbusStartAddress",
                         "visual_type": "numInput"
                     }
@@ -734,6 +782,7 @@
                     "min_value": "1",
                     "max_value": "125",
                     "HMI": {
+                        "description": "@helpModbusRegisterCount",
                         "label": "@modbusNumRegisters",
                         "visual_type": "numInput"
                     }
@@ -743,6 +792,7 @@
                     "default_value": "",
                     "placeholder": "Hex value (e.g. 1234)",
                     "HMI": {
+                        "description": "@helpModbusWriteData",
                         "label": "@modbusDataToWrite",
                         "visual_type": "textInput"
                     }
@@ -776,8 +826,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "5",
                     "HMI": {
+                        "description": "@helpModbusRequestPeriod",
                         "label": "@readLabel",
                         "visual_type": "timeSlider"
                     }
@@ -792,8 +842,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "5",
                     "HMI": {
+                        "description": "@helpModbusRequestPeriod",
                         "label": "@readLabel",
                         "visual_type": "timeSlider"
                     }
@@ -808,8 +858,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "5",
                     "HMI": {
+                        "description": "@helpModbusRequestPeriod",
                         "label": "@readLabel",
                         "visual_type": "timeSlider"
                     }
@@ -824,8 +874,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "5",
                     "HMI": {
+                        "description": "@helpModbusRequestPeriod",
                         "label": "@readLabel",
                         "visual_type": "timeSlider"
                     }
@@ -840,8 +890,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "5",
                     "HMI": {
+                        "description": "@helpModbusRequestPeriod",
                         "label": "@readLabel",
                         "visual_type": "timeSlider"
                     }
@@ -856,8 +906,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "5",
                     "HMI": {
+                        "description": "@helpModbusRequestPeriod",
                         "label": "@readLabel",
                         "visual_type": "timeSlider"
                     }
@@ -872,8 +922,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "5",
                     "HMI": {
+                        "description": "@helpModbusRequestPeriod",
                         "label": "@readLabel",
                         "visual_type": "timeSlider"
                     }
@@ -888,8 +938,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "5",
                     "HMI": {
+                        "description": "@helpModbusRequestPeriod",
                         "label": "@readLabel",
                         "visual_type": "timeSlider"
                     }
@@ -904,8 +954,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "5",
                     "HMI": {
+                        "description": "@helpModbusRequestPeriod",
                         "label": "@readLabel",
                         "visual_type": "timeSlider"
                     }
@@ -920,8 +970,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "5",
                     "HMI": {
+                        "description": "@helpModbusRequestPeriod",
                         "label": "@readLabel",
                         "visual_type": "timeSlider"
                     }
@@ -936,8 +986,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "5",
                     "HMI": {
+                        "description": "@helpModbusGroupedPeriod",
                         "label": "@readLabel",
                         "visual_type": "timeSlider"
                     }
@@ -955,6 +1005,7 @@
                     "max_value": "1440",
                     "depends_on": "pStandEmission",
                     "HMI": {
+                        "description": "@helpPowerMeasurement",
                         "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     }
@@ -965,6 +1016,7 @@
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
+                        "description": "@helpPowerEmission",
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
                     }

@@ -121,6 +121,25 @@ describe('reporting configuration parsing', () => {
     });
   });
 
+  it.each([pulseLiteConfig, hygroTempConfig])('reads seconds and day-long input recordings in single-input Neo configuration %#', (config) => {
+    const seconds = parseReportingConfigurations(config, [
+      frame('11 09 000F 00 1D 0402 00 000A 85A0 00000000 00000001 04'),
+      frame('11 09 000F 00 11 0055 00 0005 85A0 0001 1C'),
+      frame('11 09 8005 00 00 0000 19 000A 85A0 0001'),
+    ]);
+    expect(seconds.unsupportedValues).toEqual([]);
+    expect(seconds.unmatchedFrames).toEqual([]);
+    expect(seconds.fieldValues).toMatchObject({
+      pBatchEchant: '10s', sBatchEchant: '5s', gBatchEmission: '1440',
+      pMultiStateStandEchant: '10s',
+    });
+    const daily = parseReportingConfigurations(config, [
+      frame('11 09 000F 00 1D 0402 00 85A0 85A0 00000000 00000001 04'),
+    ]);
+    expect(daily.unsupportedValues).toEqual([]);
+    expect(daily.fieldValues.pBatchEchant).toBe('1440');
+  });
+
   it('does not silently choose between duplicated placeholders', () => {
     const result = parseReportingConfigurations(pulseLiteConfig, [
       frame('11 09 000F 00 00 0402 23 800A 85A0 00000000'),

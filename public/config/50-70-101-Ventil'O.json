@@ -29,9 +29,9 @@
         "cfg_block": [
             ["11 50 00 50 02 03 (removeCurrentConfig)", "@cfgCommentRemoveConfig"],
             ["11 05 8004 0000 08 (confirmed)", "@cfgCommentConfirmed"],
-			["11 05 80 08 00 04 21 00 01","dfde"],
-			["11 05 80 08 00 05 21 00 03","dfde"],
-			["11 05 80 08 00 06 23 00 00 03 E8","dfde"]
+			["11 05 80 08 00 04 21 00 01","@cfgCommentPressureSamples"],
+			["11 05 80 08 00 05 21 00 03","@cfgCommentPressureConfirmationSamples"],
+			["11 05 80 08 00 06 23 00 00 03 E8","@cfgCommentPressureSamplingPeriod"]
         ]
     },
     "batch_params": {
@@ -44,8 +44,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
                     "HMI": {
+                        "description": "@helpPressureBatchPeriod",
                         "label": "@emitLabel",
                         "visual_type": "timeSlider"
                     }
@@ -54,9 +54,9 @@
         },
         "cfg_block": [
 		
-            ["11 06 80 08 15 01 00 00 (gBatchEmission) (gBatchEmission) 00 00 00 01 03", "Measure Mean"],
-            ["11 06 80 08 15 01 01 00 (gBatchEmission) (gBatchEmission) 00 00 00 01 0B", "Measure Minimal"],
-            ["11 06 80 08 15 01 02 00 (gBatchEmission) (gBatchEmission) 00 00 00 01 13", "Measure Maximal"]
+            ["11 06 80 08 15 01 00 00 (gBatchEmission) (gBatchEmission) 00 00 00 01 03", "@cfgCommentPressureMean"],
+            ["11 06 80 08 15 01 01 00 (gBatchEmission) (gBatchEmission) 00 00 00 01 0B", "@cfgCommentPressureMinimum"],
+            ["11 06 80 08 15 01 02 00 (gBatchEmission) (gBatchEmission) 00 00 00 01 13", "@cfgCommentPressureMaximum"]
         ]
     }
 }

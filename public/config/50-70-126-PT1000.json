@@ -41,10 +41,10 @@
                     "type": "timeVal",
                     "default_value": "10",
                     "min_value": "1",
-                    "max_value": "60",
-                    "step": "1",
+                    "max_value": "1440",
                     "depends_on": "gBatchEmission",
                     "HMI": {
+                        "description": "@helpBatchTemperature",
                         "label": "@echantLabel",
                         "visual_type": "timeSlider"
                     }
@@ -59,10 +59,8 @@
                 "bBatchEchant": {
                     "type": "timeVal",
                     "default_value": "1440",
-                    "default_unit": "1",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "30",
                     "HMI": {
                         "label": "@echantLabel",
                         "visual_type": "timeSlider"
@@ -77,8 +75,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
                     "HMI": {
+                        "description": "@helpBatchTemperatureEmission",
                         "label": "@emitLabel",
                         "visual_type": "timeSlider"
                     }
@@ -102,6 +100,7 @@
                     "max_value": "120",
                     "depends_on": "tStandEmission",
                     "HMI": {
+                        "description": "@helpTemperatureMeasurement",
                         "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     }
@@ -112,6 +111,7 @@
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
+                        "description": "@helpTemperatureEmission",
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
                     }
@@ -119,8 +119,8 @@
                 "tNotification": {
                     "type": "hex2B",
                     "default_value": "1 55",
-                    "min_value": "1",
-                    "max_value": "55",
+                    "min_value": "0",
+                    "max_value": "240",
                     "HMI": {
                         "label": "@thresholdLabel",
                         "visual_type": "doubleSlider",
@@ -140,6 +140,7 @@
                     "max_value": "1440",
                     "depends_on": "bStandEmission",
                     "HMI": {
+                        "description": "@helpBatteryMeasurement",
                         "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     }
@@ -150,6 +151,7 @@
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
+                        "description": "@helpBatteryEmission",
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
                     }

@@ -42,10 +42,10 @@
                     "type": "timeVal",
                     "default_value": "10",
                     "min_value": "1",
-                    "max_value": "60",
-                    "step": "1",
+                    "max_value": "1440",
                     "depends_on": "gBatchEmission",
                     "HMI": {
+                        "description": "@helpBatchTemperature",
                         "label": "@echantLabel @forEp 1",
                         "visual_type": "timeSlider"
                     }
@@ -54,10 +54,10 @@
                     "type": "timeVal",
                     "default_value": "10",
                     "min_value": "1",
-                    "max_value": "60",
-                    "step": "1",
+                    "max_value": "1440",
                     "depends_on": "gBatchEmission",
                     "HMI": {
+                        "description": "@helpBatchTemperature",
                         "label": "@echantLabel @forEp 2",
                         "visual_type": "timeSlider"
                     }
@@ -72,10 +72,8 @@
                 "bBatchEchant": {
                     "type": "timeVal",
                     "default_value": "1440",
-                    "default_unit": "1",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "30",
                     "HMI": {
                         "label": "@echantLabel",
                         "visual_type": "timeSlider"
@@ -90,8 +88,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
                     "HMI": {
+                        "description": "@helpBatchTwoProbesEmission",
                         "label": "@emitLabel",
                         "visual_type": "timeSlider"
                     }
@@ -115,6 +113,7 @@
                     "max_value": "60",
                     "depends_on": "tStandEmissionEp1",
                     "HMI": {
+                        "description": "@helpTemperatureMeasurement",
                         "label": "@measureLabel @forEp 1",
                         "visual_type": "timeSlider"
                     }
@@ -125,6 +124,7 @@
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
+                        "description": "@helpTemperatureEmission",
                         "label": "@emitMaxLabel @forEp 1",
                         "visual_type": "timeSlider"
                     }
@@ -148,6 +148,7 @@
                     "max_value": "60",
                     "depends_on": "tStandEmissionEp2",
                     "HMI": {
+                        "description": "@helpTemperatureMeasurement",
                         "label": "@measureLabel @forEp 2",
                         "visual_type": "timeSlider"
                     }
@@ -158,6 +159,7 @@
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
+                        "description": "@helpTemperatureEmission",
                         "label": "@emitMaxLabel @forEp 2",
                         "visual_type": "timeSlider"
                     }
@@ -186,6 +188,7 @@
                     "max_value": "1440",
                     "depends_on": "bStandEmission",
                     "HMI": {
+                        "description": "@helpBatteryMeasurement",
                         "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     }
@@ -196,6 +199,7 @@
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
+                        "description": "@helpBatteryEmission",
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
                     }
