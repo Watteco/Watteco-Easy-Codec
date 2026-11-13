@@ -47,7 +47,8 @@
                     "HMI": {
                         "description": "@helpBatchTemperature",
                         "label": "@echantLabel @forEp 1",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "tBatchEchant2": {
@@ -59,7 +60,8 @@
                     "HMI": {
                         "description": "@helpBatchTemperature",
                         "label": "@echantLabel @forEp 2",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 }
             }
@@ -115,7 +117,8 @@
                     "HMI": {
                         "description": "@helpTemperatureMeasurement",
                         "label": "@measureLabel @forEp 1",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "tStandEmissionEp1": {
@@ -150,7 +153,8 @@
                     "HMI": {
                         "description": "@helpTemperatureMeasurement",
                         "label": "@measureLabel @forEp 2",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "tStandEmissionEp2": {

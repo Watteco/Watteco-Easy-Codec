@@ -1,4 +1,4 @@
-# Guide Dev — Créer un fichier de configuration Easy Codec (version simple)
+# Guide Dev - Créer un fichier de configuration Easy Codec (version simple)
 
 Ce guide aide à créer un fichier JSON de configuration quand vous connaissez le capteur et sa configuration par défaut sous forme de trames, mais pas l'outil.
 

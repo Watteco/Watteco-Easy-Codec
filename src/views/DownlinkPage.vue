@@ -128,6 +128,27 @@
                 {{ localize('@importConfiguration') }}
               </ion-button>
               <ion-button
+                class="saved-config-action--export"
+                size="small"
+                fill="outline"
+                :disabled="!selectedSavedConfiguration"
+                @click="exportSelectedConfiguration"
+              >
+                <ion-icon slot="start" :icon="pushOutline" />
+                {{ localize('@exportConfiguration') }}
+              </ion-button>
+              <ion-button
+                class="saved-config-action--delete"
+                size="small"
+                fill="outline"
+                color="danger"
+                :disabled="!selectedSavedConfiguration"
+                @click="confirmDeleteSelectedConfiguration"
+              >
+                <ion-icon slot="start" :icon="trashOutline" />
+                {{ localize('@deleteConfiguration') }}
+              </ion-button>
+              <ion-button
                 class="saved-config-action--more"
                 size="small"
                 fill="outline"
@@ -1807,6 +1828,18 @@
     />
   </div>
 
+  <ThemeSwitcher
+    v-if="!ble.isNative.value"
+    :theme-mode="themeMode"
+    :label="localize('@darkMode')"
+    :option-labels="{
+      off: localize('@themeOff'),
+      on: localize('@themeOn'),
+      system: localize('@themeSystem'),
+    }"
+    @update:theme-mode="setThemeMode"
+  />
+
   <div v-if="developerModeEnabled && ble.isNative.value" class="app-frame-debug-corner">
     <div v-show="appFrameDebugVisible" class="app-frame-debug-panel">
       <div class="app-frame-debug-header">
@@ -1896,7 +1929,9 @@ import SensorImage from '@/components/SensorImage.vue';
 import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.vue';
 import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
 import { useLanguage } from '@/composables/useLanguage';
+import { useTheme } from '@/composables/useTheme';
 import { createBundledTranslations } from '@/utils/localization';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
@@ -2026,6 +2061,7 @@ type SensorStateConfig = Record<
 >;
 
 const { currentLanguage, changeLanguage } = useLanguage();
+const { themeMode, setThemeMode } = useTheme();
 
 const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 
@@ -3603,7 +3639,6 @@ const generateFramesForGroup = (bigGroupName: string, groupName: string | number
         } else if (frame.includes(`(${globalParamName})`)) {
           const frameValue = convertToHexFrameValue(globalParam.selectedValue, globalParam);
           frame = replaceInFrame(frame, globalParamName, frameValue, globalParam.enabled);
-          includeFrame = true;
         }
       });
 
@@ -4226,6 +4261,7 @@ ion-content {
 }
 
 .saved-config-action--more {
+  display: none;
   flex: 0 0 auto;
 }
 
@@ -4258,7 +4294,15 @@ ion-content {
 
   .saved-config-action--save { grid-area: save; }
   .saved-config-action--import { grid-area: import; }
-  .saved-config-action--more { grid-area: more; }
+  .saved-config-action--export,
+  .saved-config-action--delete {
+    display: none;
+  }
+
+  .saved-config-action--more {
+    display: block;
+    grid-area: more;
+  }
 }
 
 #sensor-card ion-select {

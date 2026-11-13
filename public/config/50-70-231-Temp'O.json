@@ -60,7 +60,8 @@
                     "HMI": {
                         "description": "@helpBatchTemperature",
                         "label": "@echantLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 }
             }
@@ -115,7 +116,8 @@
                     "HMI": {
                         "description": "@helpTemperatureMeasurement",
                         "label": "@measureLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "tStandEmission": {

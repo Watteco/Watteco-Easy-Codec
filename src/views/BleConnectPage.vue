@@ -329,6 +329,17 @@
   <div v-if="!ble.isNative.value" class="language-switcher">
     <LanguageSwitcher :current-language="currentLanguage" @update:language="changeLanguage" />
   </div>
+  <ThemeSwitcher
+    v-if="!ble.isNative.value"
+    :theme-mode="themeMode"
+    :label="localize('@darkMode')"
+    :option-labels="{
+      off: localize('@themeOff'),
+      on: localize('@themeOn'),
+      system: localize('@themeSystem'),
+    }"
+    @update:theme-mode="setThemeMode"
+  />
   </ion-page>
 </template>
 
@@ -353,8 +364,10 @@ import {
 import { useBle, type DeviceLike } from '@/composables/useBle';
 import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
 import LeadingEllipsisText from '@/components/LeadingEllipsisText.vue';
 import { useLanguage } from '@/composables/useLanguage';
+import { useTheme } from '@/composables/useTheme';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import { useKmsAccess } from '@/composables/useKmsAccess';
 import type { LanguageCode, Translations } from '@/types/localization';
@@ -379,6 +392,7 @@ import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
 
 const { currentLanguage, changeLanguage } = useLanguage();
+const { themeMode, setThemeMode } = useTheme();
 const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 
 const generateCacheBuster = () => `?v=${new Date().getTime()}`;

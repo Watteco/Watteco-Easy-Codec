@@ -46,7 +46,8 @@
                     "HMI": {
                         "description": "@helpBatchTemperatureHumidity",
                         "label": "@echantLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 }
             }
@@ -102,7 +103,8 @@
                     "HMI": {
                         "description": "@helpTemperatureMeasurement",
                         "label": "@measureLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "tStandEmission": {
@@ -142,7 +144,8 @@
                     "HMI": {
                         "description": "@helpHumidityMeasurement",
                         "label": "@measureLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "hStandEmission": {

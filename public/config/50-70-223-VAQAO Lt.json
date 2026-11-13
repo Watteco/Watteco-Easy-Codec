@@ -61,7 +61,8 @@
                     "HMI": {
                         "description": "@helpBatchTemperatureHumidityCO2",
                         "label": "@echantLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     },
                     "depends_on": "gBatchEmission"
                 }
@@ -103,7 +104,8 @@
                     "HMI": {
                         "description": "@helpTemperatureThresholdMeasurement",
                         "label": "@echantLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "tNotification": {
@@ -133,7 +135,8 @@
                     "HMI": {
                         "description": "@helpHumidityThresholdMeasurement",
                         "label": "@echantLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "hNotification": {
@@ -163,7 +166,8 @@
                     "HMI": {
                         "description": "@helpCO2ThresholdMeasurement",
                         "label": "@echantLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "cNotification": {

@@ -57,21 +57,21 @@ http://ionicframework.com/docs/theming/ */
 	--ion-color-primary-rgb: 208,116,36;
 	--ion-color-primary-shade: #B76620;
 	--ion-color-primary-tint: #D8823A;
-	--ion-background-color: #14181F;
-	--ion-background-color-rgb: 20,24,31;
+	--ion-background-color: #1A1E24;
+	--ion-background-color-rgb: 26,30,36;
 	--ion-text-color: #F2F4F7;
 	--ion-text-color-rgb: 242,244,247;
 	--ion-item-background: transparent;
-	--ion-item-border-color: rgba(255, 255, 255, 0.09);
+	--ion-item-border-color: rgba(255, 255, 255, 0.11);
 
-	--app-page-background: #14181F;
-	--app-surface: #202631;
-	--app-surface-subtle: #292F39;
+	--app-page-background: #1A1E24;
+	--app-surface: #252B34;
+	--app-surface-subtle: #2E3540;
 	--app-text: #F2F4F7;
 	--app-text-secondary: #C3C9D1;
 	--app-text-muted: #A6AEB8;
 	--app-text-faint: #8F98A4;
-	--app-border: rgba(255, 255, 255, 0.09);
+	--app-border: rgba(255, 255, 255, 0.11);
 	--app-border-strong: #414955;
 	--app-chart-grid: #3A424E;
 	--app-card-shadow: 0 3px 14px rgba(0, 0, 0, 0.24);

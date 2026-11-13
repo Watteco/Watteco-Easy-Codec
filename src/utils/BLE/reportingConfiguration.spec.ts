@@ -153,7 +153,9 @@ describe('reporting configuration parsing', () => {
   });
 
   it('flags seconds when the field has not opted in', () => {
-    const result = parseReportingConfigurations(tempoNeo2RemoteProbesConfig, [
+    const config = structuredClone(tempoNeo2RemoteProbesConfig) as any;
+    config.batch_params.batch_T_params.fields.tBatchEchant.HMI.allow_seconds = false;
+    const result = parseReportingConfigurations(config, [
       frame('11 09 0402 00 15 0000 00 000A 803C 0000 000A 03'),
     ]);
 
@@ -168,9 +170,7 @@ describe('reporting configuration parsing', () => {
   });
 
   it('preserves seconds when the field explicitly opts in', () => {
-    const config = structuredClone(tempoNeo2RemoteProbesConfig) as any;
-    config.batch_params.batch_T_params.fields.tBatchEchant.HMI.allow_seconds = true;
-    const result = parseReportingConfigurations(config, [
+    const result = parseReportingConfigurations(tempoNeo2RemoteProbesConfig, [
       frame('11 09 0402 00 15 0000 00 000A 803C 0000 000A 03'),
     ]);
 

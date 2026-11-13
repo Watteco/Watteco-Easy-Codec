@@ -63,7 +63,8 @@
                     "HMI": {
                         "description": "@helpBatchTemperatureHumidityCO2Illuminance",
                         "label": "@echantLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     },
                     "depends_on": "gBatchEmission"
                 }
@@ -122,7 +123,8 @@
                     "HMI": {
                         "description": "@helpTemperatureThresholdMeasurement",
                         "label": "@measureLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "tNotification": {
@@ -152,7 +154,8 @@
                     "HMI": {
                         "description": "@helpHumidityThresholdMeasurement",
                         "label": "@measureLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "hNotification": {
@@ -182,7 +185,8 @@
                     "HMI": {
                         "description": "@helpCO2ThresholdMeasurement",
                         "label": "@measureLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "cNotification": {
@@ -210,7 +214,8 @@
                     "HMI": {
                         "description": "@helpIlluminanceMeasurement",
                         "label": "@measureLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "iStandEmission": {

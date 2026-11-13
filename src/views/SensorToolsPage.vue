@@ -62,6 +62,10 @@
                   <span>{{ localize('@toolsSensorTime') }}</span>
                   <strong>{{ formatDate(deviceStatus.sensorTime) }}</strong>
                 </div>
+                <div class="status-item status-item--mobile-time">
+                  <span>{{ localize('@toolsMobileTime') }}</span>
+                  <strong>{{ formatDate(mobileTime) }}</strong>
+                </div>
                 <div v-if="developerModeEnabled" class="status-item status-item--firmware">
                   <span>{{ localize('@toolsFirmwareLongName') }}</span>
                   <strong>{{ deviceStatus.firmwareLongName || '—' }}</strong>
@@ -775,6 +779,7 @@ const deviceStatus = ref<DeviceStatus>({
 });
 const deviceStatusLoading = ref(false);
 const deviceInformationLoading = ref(false);
+const mobileTime = ref(Date.now());
 const osaAuthenticating = ref(false);
 const manualFrameHex = ref('11 00 80 04 00 04');
 const manualFrameInput = ref<HTMLTextAreaElement | null>(null);
@@ -798,6 +803,7 @@ let adminTimeSubscriptionDeviceId: string | undefined;
 let adminTimeMonitoringRun = 0;
 let adminTimeStopping = Promise.resolve();
 let sensorToolsPageActive = false;
+let mobileTimeInterval: ReturnType<typeof setInterval> | undefined;
 let campaignCancelled = false;
 let campaignSequence = 0;
 let campaignDiagnosticSequence = 0;
@@ -1680,8 +1686,23 @@ async function initializeDeviceStatus(): Promise<void> {
   await refreshDeviceStatus();
 }
 
+function startMobileClock(): void {
+  mobileTime.value = Date.now();
+  if (mobileTimeInterval !== undefined) clearInterval(mobileTimeInterval);
+  mobileTimeInterval = setInterval(() => {
+    mobileTime.value = Date.now();
+  }, 1_000);
+}
+
+function stopMobileClock(): void {
+  if (mobileTimeInterval === undefined) return;
+  clearInterval(mobileTimeInterval);
+  mobileTimeInterval = undefined;
+}
+
 onIonViewDidEnter(() => {
   sensorToolsPageActive = true;
+  startMobileClock();
   playSensorPageTransition('tools', '.sensor-tools-content');
   if (deviceInformationDeviceId !== ble.connectedDevice.value?.deviceId) clearDeviceInformation();
   void initializeDeviceStatus();
@@ -1689,6 +1710,7 @@ onIonViewDidEnter(() => {
 
 onIonViewDidLeave(() => {
   sensorToolsPageActive = false;
+  stopMobileClock();
   void stopDeviceStatusMonitoring();
 });
 
@@ -1715,6 +1737,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  stopMobileClock();
   stopDeleteRepeat();
   cancelCampaign();
   finishManualResponseCollection();

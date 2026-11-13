@@ -60,7 +60,8 @@
                     "HMI": {
                         "description": "@helpBatchThreeCounters",
                         "label": "@echantLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 }
             }
@@ -168,7 +169,8 @@
                     "HMI": {
                         "description": "@helpThreeStateMeasurement",
                         "label": "@measureLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
 		

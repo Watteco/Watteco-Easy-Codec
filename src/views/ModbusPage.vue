@@ -130,15 +130,28 @@
         @update:language="changeLanguage"
       />
     </div>
+    <ThemeSwitcher
+      v-if="!Capacitor.isNativePlatform()"
+      :theme-mode="themeMode"
+      :label="localize('@darkMode')"
+      :option-labels="{
+        off: localize('@themeOff'),
+        on: localize('@themeOn'),
+        system: localize('@themeSystem'),
+      }"
+      @update:theme-mode="setThemeMode"
+    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
 import axios from 'axios';
 import { Capacitor } from '@capacitor/core';
 import { useLanguage } from '@/composables/useLanguage';
+import { useTheme } from '@/composables/useTheme';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { createBundledTranslations } from '@/utils/localization';
 import {
@@ -235,6 +248,7 @@ const copyFrame = async () => {
 
 // Language related code
 const { currentLanguage, changeLanguage } = useLanguage();
+const { themeMode, setThemeMode } = useTheme();
 const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 
 // Import language files

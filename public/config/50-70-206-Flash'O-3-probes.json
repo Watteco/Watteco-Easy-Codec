@@ -59,7 +59,8 @@
                     "HMI": {
                         "description": "@helpBatchThreeCounters",
                         "label": "@echantLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 }
             }

@@ -1007,7 +1007,8 @@
                     "HMI": {
                         "description": "@helpPowerMeasurement",
                         "label": "@measureLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "pStandEmission": {
