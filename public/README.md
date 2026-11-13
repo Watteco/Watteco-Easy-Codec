@@ -1,4 +1,4 @@
-# Guide Dev — Créer un fichier de configuration Easy Codec (version simple)
+# Guide Dev - Créer un fichier de configuration Easy Codec (version simple)
 
 Ce guide aide à créer un fichier JSON de configuration quand vous connaissez le capteur et sa configuration par défaut sous forme de trames, mais pas l'outil.
 
@@ -30,6 +30,9 @@ Objectif: partir d'une configuration par défaut sous forme de trames hexadécim
 
 ```json
 {
+    "capabilities": {
+        "reporting_configuration_read": true
+    },
     "general_params": {
         "remove_config": {},
         "confirmed": {},
@@ -43,9 +46,33 @@ Objectif: partir d'une configuration par défaut sous forme de trames hexadécim
     "standard_params": {
         "standard_X_params": {},
         "cfg_block": []
-    }
+    },
+    "blob_only_configurations": []
 }
 ```
+
+La propriété racine optionnelle `capabilities.reporting_configuration_read` affiche l'action BLE permettant de lire la configuration de reporting courante et de la reporter dans l'interface. Activez-la uniquement lorsque les trames `batch_params` et `standard_params` du capteur sont prises en charge et testées par le parseur de configuration.
+
+### Configurations supplémentaires réservées au BLOB
+
+La propriété racine optionnelle `blob_only_configurations` permet d'ajouter des configurations fixes qui ne créent aucun champ dans l'interface et ne sont jamais envoyées via `APP_TX`.
+
+Chaque sous-tableau représente une configuration distincte. Renseignez les trames sans leur octet de longueur et sans ajouter vous-même les séparateurs `00` ou le marqueur final `FF` :
+
+```json
+"blob_only_configurations": [
+    [
+        "11 50 00 50 02 03",
+        "15 11 02 0050 FB1E 41 0D 01 1E 05 0014 00FA 0014 007D 003C"
+    ],
+    [
+        "11 50 00 50 02 03",
+        "71 06 000F 1D 0402 00 803C 80F0 00000000 00000001 14"
+    ]
+]
+```
+
+Lorsqu'au moins une trame générée est envoyée par BLOB, ces configurations sont toujours ajoutées à sa suite. L'application insère un séparateur `00` avant chacune d'elles, ajoute les longueurs des trames et termine le BLOB par `FF`.
 
 ## Méthode pas à pas
 
@@ -126,7 +153,7 @@ Cela permet d'exposer les options standard dans l'UI sans les activer par défau
 
 | Type | Visual type conseillé | Usage | Conversion trame |
 |------|------------------------|-------|------------------|
-| `timeVal` | `timeSlider`, `timeSliderHHMM` | Temps (minutes ou HH:MM) | Décimal → hexa sur 2 octets avec offset 32768 (ex: 08 : 10 → 08 0A) |
+| `timeVal` | `timeSlider`, `timeSliderHHMM` | Durée en secondes/minutes, ou horaire HH:MM | Le bit de poids fort sélectionne l'unité : `10s` → `000A`, `10` minutes → `800A` |
 | `hex[x]B` | `doubleSlider`, `slider` ou `numInput` | Entier sur x octets | Décimal → hexa sur x octets (ex: hex2B, 21 → 0015) |
 | `bool` | `checkbox` | Booléen | true/false → 01/00 |
 | `float` | `slider` (ou `numInput`) | Décimal | IEEE 754 simple précision (4 octets, 8 chars hexa) |
@@ -134,14 +161,36 @@ Cela permet d'exposer les options standard dans l'UI sans les activer par défau
 | `string` | `textInput` ou `customValue` | Texte libre ou valeur fixe | Selon contenu |
 | `frame` | `customFrame` | Trame fixe non éditable | Injectée telle quelle |
 | `dropdown` | `dropdown` | Choix listé | Valeur choisie injectée |
+| `hex2B` | `pattern` | Pattern binaire MultiBinary (`Val Gap`) | Deux valeurs sur 2 octets via les placeholders suffixés `1` et `2` |
+| `hex2B` | `occurrences` | Occurrences haute et basse d'un pattern | Deux valeurs sur 2 octets via les placeholders suffixés `1` et `2` |
 
 Remarques:
 
-- `timeSliderHHMM` est une variante de `timeSlider` utilisée pour afficher et modifier des durées/horaires au format heures:minutes.
+- Une valeur `timeVal` sans suffixe reste exprimée en minutes pour préserver la compatibilité des configurations existantes. Le suffixe `s` sélectionne explicitement les secondes (`10s`).
+- Avec `HMI.allow_seconds: true`, le slider utilise des pas d'une seconde sous la minute. Sans cette option, le champ reste strictement en minutes. `HMI.seconds_min` et `HMI.seconds_step` personnalisent la zone des secondes.
+- Pour les durées en minutes, le slider utilise par défaut des pas progressifs : 1 minute jusqu'à 1 heure, 5 minutes jusqu'à 6 heures, 15 minutes jusqu'à 12 heures, 30 minutes jusqu'à 24 heures, puis 1 heure. Le `step` déclaré reste la granularité minimale. Une configuration peut remplacer ce profil avec `HMI.time_steps`, sous la forme `[[0, 1], [60, 5], [360, 15]]`, où chaque paire contient le seuil en minutes et le pas à appliquer. La variante `timeSliderHHMM` conserve son pas fixe.
+- `step` règle les positions proposées par le slider, mais ne limite pas la saisie ni une valeur chargée depuis le capteur : toute valeur comprise entre `min_value` et `max_value` est conservée et ajoutée comme position ponctuelle du curseur.
+- `timeSliderHHMM` est une variante de `timeSlider` utilisée pour afficher et modifier des durées/horaires au format heures:minutes. Elle ne propose pas la zone en secondes.
 - `customValue` est utile pour une valeur fixe affichée mais non éditable.
 - Pour `float`, utilisez en général `precision` et `step` (ex: `2` et `0.01`).
 
 ## Exemples utiles
+
+### Aide sur les champs de configuration
+
+Le bouton (i) ouvre les descriptions associées au champ, sans afficher les trames. Les commentaires de `cfg_block` sont associés par placeholders exacts, y compris les valeurs doubles suffixées `1`/`2`, puis dédupliqués. Les trames fixes sans placeholder ne sont pas associées automatiquement à un champ.
+
+Pour remplacer ces descriptions (paramètre global, commentaire trop générique, association ambiguë), ajoutez une clé localisée dans `HMI.description` :
+
+```json
+"HMI": {
+    "label": "@emitLabel",
+    "visual_type": "timeSlider",
+    "description": "@helpBatchEmission"
+}
+```
+
+La description explicite prend priorité sur tous les commentaires automatiques. Une chaîne vide masque volontairement l'aide. Sans description disponible, aucun bouton n'est affiché. Les clés doivent exister en français et en anglais.
 
 ### Dropdown
 
@@ -193,6 +242,58 @@ Remarques:
 }
 ```
 
+### Pattern binaire MultiBinary
+
+Le `visual_type` `pattern` affiche une entrée à trois états pour chaque bit :
+
+- ignorée ;
+- attendue à `0` ;
+- attendue à `1`.
+
+La valeur du champ est stockée sous la forme décimale `Val Gap`. Un bit à `1` dans `Gap` fait participer l'entrée correspondante au pattern ; lorsqu'elle participe, le même bit dans `Val` indique la valeur attendue. L'entrée 1 correspond au bit 0. Par exemple, `5 263` représente `[X0XXXXX101]` sur 10 entrées.
+
+```json
+"multiStatePattern": {
+    "type": "hex2B",
+    "default_value": "0 0",
+    "bit_count": 4,
+    "allow_empty": true,
+    "HMI": {
+        "label": "@patternLabel",
+        "visual_type": "pattern"
+    }
+}
+```
+
+- `bit_count` définit le nombre d'entrées affichées, de 1 à 16.
+- `allow_empty` est optionnel et vaut `false` par défaut. Avec `true`, `Gap = 0` est présenté comme un état valide de reporting périodique. Sans cette option, l'interface avertit qu'au moins une entrée doit participer au pattern.
+- `allow_empty` ne déclenche pas la logique MultiBinary et ne choisit aucune trame : il adapte uniquement la présentation du pattern vide.
+
+Dans une trame, les placeholders suffixés donnent accès aux deux valeurs :
+
+```json
+"... F1 (multiStatePattern1) (multiStatePattern2) ..."
+```
+
+### Occurrences d'un pattern
+
+Le `visual_type` `occurrences` expose les deux compteurs du mode threshold : le nombre de mesures consécutives correspondant au pattern, puis le nombre de mesures consécutives différentes avant report.
+
+```json
+"multiStatePatternOccurrences": {
+    "type": "hex2B",
+    "default_value": "1 1",
+    "min_value": "1",
+    "max_value": "65535",
+    "HMI": {
+        "label": "@patternOccurrencesLabel",
+        "visual_type": "occurrences"
+    }
+}
+```
+
+Comme pour `pattern`, les deux valeurs sont référencées dans la trame avec les suffixes `1` et `2`.
+
 ## Cas de logique entre champs
 
 ### 1) Checkbox inversée (`inverted`)
@@ -240,6 +341,25 @@ Types supportés:
 ]
 ```
 
+### 4) Reporting MultiBinary standard et pattern dans un même groupe
+
+Easy Codec combine automatiquement les deux interfaces lorsqu'un même groupe contient :
+
+- un champ `HMI.visual_type: "pattern"` référencé par une trame de `cfg_block` ;
+- un champ booléen `checkbox` référencé par une autre trame standard du groupe.
+
+Le nom des champs, le produit et les octets fixes de la trame ne sont pas imposés. La liaison est détectée à partir des placeholders. Les périodes de mesure et d'émission peuvent être partagées en utilisant les mêmes placeholders dans les deux trames.
+
+Le choix de la trame devient alors :
+
+| État | Trame générée |
+|------|---------------|
+| Checkbox « sur variation » cochée | Trame standard avec notification sur variation ; le pattern est masqué |
+| Checkbox décochée et `Gap = 0` | Trame standard sans notification sur variation, pour le reporting périodique |
+| Checkbox décochée et `Gap != 0` | Trame pattern ; les occurrences sont affichées si elles sont référencées par cette trame |
+
+Si aucune trame ne référence le champ `pattern`, aucune combinaison n'est activée et les composants conservent leur comportement indépendant. Un champ `pattern` peut donc être utilisé seul ; dans ce cas, omettez généralement `allow_empty`.
+
 ## Paramètres d'affichage de section
 
 - `default_state`: active/désactive au chargement (`"true"` / `"false"`)
@@ -261,6 +381,8 @@ Types supportés:
 | `dropdown` | `dropdown` | ![dropDown](img/readme-ui/dropDown.png) |
 | `frame` | `customFrame` | N/A |
 | `string` (fixe) | `customValue` | N/A |
+| `hex2B` | `pattern` | N/A |
+| `hex2B` | `occurrences` | N/A |
 
 Astuce: gardez des noms de fichiers d'images stables pour éviter de retoucher la doc à chaque update UI.
 

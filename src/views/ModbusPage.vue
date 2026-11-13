@@ -124,22 +124,36 @@
         </ion-card>
       </div>
     </ion-content>
-    <div class="language-switcher">
+    <div v-if="!Capacitor.isNativePlatform()" class="language-switcher">
       <LanguageSwitcher 
         :current-language="currentLanguage"
         @update:language="changeLanguage"
       />
     </div>
+    <ThemeSwitcher
+      v-if="!Capacitor.isNativePlatform()"
+      :theme-mode="themeMode"
+      :label="localize('@darkMode')"
+      :option-labels="{
+        off: localize('@themeOff'),
+        on: localize('@themeOn'),
+        system: localize('@themeSystem'),
+      }"
+      @update:theme-mode="setThemeMode"
+    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
-// @ts-nocheck
 import { ref, onMounted, computed, watch } from 'vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
 import axios from 'axios';
-import { isLanguageCode } from '@/types/localization';
+import { Capacitor } from '@capacitor/core';
+import { useLanguage } from '@/composables/useLanguage';
+import { useTheme } from '@/composables/useTheme';
 import type { LanguageCode, Translations } from '@/types/localization';
+import { createBundledTranslations } from '@/utils/localization';
 import {
   IonPage,
   IonContent,
@@ -165,7 +179,7 @@ const writeData = ref('');
 const isLittleEndian = ref(false);
 const generatedFrame = ref('');
 
-const endpointMapping = {
+const endpointMapping: Partial<Record<number, string>> = {
   0: '11',
   1: '31',
   2: '51',
@@ -181,9 +195,14 @@ const endpointMapping = {
 watch(
   [endpoint, slaveAddress, functionCode, startAddress, numRegisters, writeData, isLittleEndian],
   () => {
-    let frame = [];
+    const frame = [];
     // Add endpoint prefix
-    const endpointPrefix = `${endpointMapping[endpoint.value]} 05 8007 0000 41 06`;
+    const mappedEndpoint = endpointMapping[endpoint.value];
+    if (mappedEndpoint === undefined) {
+      generatedFrame.value = '';
+      return;
+    }
+    const endpointPrefix = `${mappedEndpoint} 05 8007 0000 41 06`;
     frame.push(endpointPrefix);
     
     frame.push(parseInt(slaveAddress.value.toString()).toString(16).padStart(2, '0'));
@@ -198,7 +217,7 @@ watch(
     else if (['0x05', '0x06'].includes(functionCode.value) && writeData.value) {
       let data = parseInt(writeData.value, 16).toString(16).padStart(4, '0');
       if (isLittleEndian.value) {
-        data = data.match(/.{2}/g).reverse().join('');
+        data = (data.match(/.{2}/g) ?? []).reverse().join('');
       }
       frame.push(data);
     }
@@ -208,7 +227,7 @@ watch(
       if (writeData.value) {
         let data = parseInt(writeData.value, 16).toString(16).padStart(4, '0');
         if (isLittleEndian.value) {
-          data = data.match(/.{2}/g).reverse().join('');
+          data = (data.match(/.{2}/g) ?? []).reverse().join('');
         }
         frame.push(data);
       }
@@ -228,8 +247,9 @@ const copyFrame = async () => {
 };
 
 // Language related code
-const currentLanguage = ref<LanguageCode>('en');
-const languages = ref<Record<LanguageCode, Translations>>({ en: {}, fr: {} });
+const { currentLanguage, changeLanguage } = useLanguage();
+const { themeMode, setThemeMode } = useTheme();
+const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 
 // Import language files
 import enUS from '/localisation/en_US.json?url';
@@ -260,19 +280,8 @@ const localize = (key: string): string => {
   return currentLang[translationKey] || key;
 };
 
-// Change language function
-const changeLanguage = (language: LanguageCode) => {
-  currentLanguage.value = language;
-};
-
-// Load localizations on mount
 onMounted(() => {
-  loadLocalizationFiles().then(() => {
-    const browserLanguage = navigator.language.split('-')[0];
-    if (isLanguageCode(browserLanguage)) {
-      currentLanguage.value = browserLanguage;
-    }
-  });
+  loadLocalizationFiles();
 });
 
 const functionCodeOptions = computed(() => [

@@ -59,10 +59,12 @@
                     "type": "timeVal",
                     "default_value": "10",
                     "min_value": "1",
-                    "max_value": "60",
+                    "max_value": "1440",
                     "HMI": {
+                        "description": "@helpBatchTemperatureHumidityCO2Illuminance",
                         "label": "@echantLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     },
                     "depends_on": "gBatchEmission"
                 }
@@ -91,8 +93,8 @@
                     "default_value": "60",
                     "min_value": "1",
                     "max_value": "1440",
-                    "step": "1",
                     "HMI": {
+                        "description": "@helpBatchVAQAOPlusEmission",
                         "label": "@emitLabel",
                         "visual_type": "timeSlider"
                     }
@@ -119,10 +121,11 @@
                     "min_value": "1",
                     "max_value": "60",
                     "HMI": {
+                        "description": "@helpTemperatureThresholdMeasurement",
                         "label": "@measureLabel",
-                        "visual_type": "timeSlider"
-                    },
-                    "depends_on": "tStandEmission"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
+                    }
                 },
                 "tNotification": {
                     "type": "hex2B",
@@ -149,10 +152,11 @@
                     "min_value": "1",
                     "max_value": "60",
                     "HMI": {
+                        "description": "@helpHumidityThresholdMeasurement",
                         "label": "@measureLabel",
-                        "visual_type": "timeSlider"
-                    },
-                    "depends_on": "hStandEmission"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
+                    }
                 },
                 "hNotification": {
                     "type": "hex2B",
@@ -179,10 +183,11 @@
                     "min_value": "1",
                     "max_value": "60",
                     "HMI": {
+                        "description": "@helpCO2ThresholdMeasurement",
                         "label": "@measureLabel",
-                        "visual_type": "timeSlider"
-                    },
-                    "depends_on": "cStandEmission"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
+                    }
                 },
                 "cNotification": {
                     "type": "hex2B",
@@ -207,8 +212,10 @@
                     "max_value": "60",
                     "depends_on": "iStandEmission",
                     "HMI": {
+                        "description": "@helpIlluminanceMeasurement",
                         "label": "@measureLabel",
-                        "visual_type": "timeSlider"
+                        "visual_type": "timeSlider",
+                        "allow_seconds": true
                     }
                 },
                 "iStandEmission": {
@@ -217,6 +224,7 @@
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
+                        "description": "@helpIlluminanceEmission",
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
                     }
@@ -226,6 +234,7 @@
                     "default_value": "100 2000",
                     "min_value": "1",
                     "max_value": "60000",
+                    "step": "1",
                     "HMI": {
                         "label": "@thresholdLabel",
                         "visual_type": "doubleSlider",
@@ -245,6 +254,7 @@
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
+                        "description": "@helpOccupancyEmission",
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
                     }
@@ -271,6 +281,7 @@
                     "max_value": "1440",
                     "depends_on": "bStandEmission",
                     "HMI": {
+                        "description": "@helpBatteryMeasurement",
                         "label": "@measureLabel",
                         "visual_type": "timeSlider"
                     }
@@ -281,6 +292,7 @@
                     "min_value": "1",
                     "max_value": "1440",
                     "HMI": {
+                        "description": "@helpBatteryEmission",
                         "label": "@emitMaxLabel",
                         "visual_type": "timeSlider"
                     }

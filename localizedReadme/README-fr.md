@@ -17,7 +17,7 @@
 </p>
 <p align="center">
     <img alt="Browser Support badge" title="Works in all modern browsers" src="https://img.shields.io/badge/browser-modern-brightgreen?style=for-the-badge&logo=googlechrome&logoColor=white"/>
-    <img alt="Platform badge" title="Application Web" src="https://img.shields.io/badge/plateforme-Web-orange?style=for-the-badge&logo=ionic"/>
+    <img alt="Platforms badge" title="Available on Web, Android, and iOS" src="https://img.shields.io/badge/platforms-Web%20|%20Android%20|%20iOS-orange?style=for-the-badge&logo=ionic"/>
 </p>
 
 
@@ -93,7 +93,7 @@ actuellement construit pour le chemin `/EasyCodec/` et doit être servi en
 HTTP(S) : l'ouverture directe du fichier `index.html` n'est pas prise en
 charge.
 
-Consultez le [guide d'installation et d'hébergement local](installation-locale.md)
+Consultez le [guide d'installation et d'hébergement local](../docs/local-installation.md)
 pour les prérequis, le développement, le déploiement en production, l'accès
 réseau, le fonctionnement hors connexion et la mise à jour des configurations.
 

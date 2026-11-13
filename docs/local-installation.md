@@ -1,7 +1,5 @@
 # Local installation and hosting
 
-[→ Version française](../localizedReadme/installation-locale.md)
-
 This guide covers the current **web application**.
 
 ## 1. Choose the intended usage
@@ -20,7 +18,7 @@ Opening `dist/index.html` directly from the filesystem is not supported.
 To work from the source code:
 
 - Git;
-- Node.js 18 or later;
+- Node.js 20 or later;
 - npm;
 - access to the npm registry for the initial dependency installation.
 

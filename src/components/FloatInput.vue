@@ -10,7 +10,7 @@
       :value="currentValue"
       pin="false"
       snaps="true"
-      color="primary"
+      :ticks="showTicks"
       @ionChange="onRangeChange"
       @ionInput="onRangeInput"
     ></ion-range>
@@ -39,6 +39,7 @@
 
 <script setup>
 import { ref, watch, computed, nextTick } from 'vue';
+import { useRangeTicks } from '@/composables/useRangeTicks';
 
 const props = defineProps({
   label: String,
@@ -75,6 +76,11 @@ const currentMax = ref(props.max);
 const isEditing = ref(false);
 const inputValue = ref('');
 const floatInputRef = ref(null);
+const showTicks = useRangeTicks(
+  () => currentMin.value,
+  () => currentMax.value,
+  () => props.step,
+);
 const emit = defineEmits(['update:value']);
 
 // Format the display value with the correct number of decimal places
@@ -242,24 +248,34 @@ watch(() => props.value, (newValue) => {
 .slider-container {
   display: flex;
   align-items: center;
+  gap: 8px;
   width: 100%;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .float-range {
   flex: 1;
-  --padding-end: 12px;
+  min-width: 0;
+  --bar-height: 5px;
+  --bar-border-radius: 999px;
+  --bar-background: rgba(var(--ion-color-primary-rgb), 0.2);
+  --bar-background-active: var(--ion-color-primary);
+  --knob-size: 28px;
+  --padding-start: 4px;
+  --padding-end: 4px;
 }
 
 .float-chip, .float-input {
   --background: var(--ion-color-primary);
   --color: white;
-  width: 90px;
-  justify-content: space-around;
-  border-radius: 10px;
-  --border-radius: 10px;
-  margin: 4px;
+  width: 86px;
+  justify-content: center;
+  border-radius: 999px;
+  --border-radius: 999px;
+  margin: 0;
   flex-shrink: 0;
+  font-weight: 700;
+  box-shadow: 0 3px 9px rgba(var(--ion-color-primary-rgb), 0.22);
 }
 
 .float-input {
@@ -309,7 +325,7 @@ ion-range::part(pin)::before {
 
 @media (max-width: 600px) {
   .float-chip, .float-input {
-    width: 80px;
+    width: 76px;
     font-size: 0.8rem;
   }
 

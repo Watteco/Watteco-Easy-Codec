@@ -27,10 +27,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  base: '/EasyCodec/',
+  base: process.env.CAPACITOR_BUILD === 'true' ? '/' : '/EasyCodec/',
   test: {
     globals: true,
-    environment: 'jsdom'
+    environment: 'jsdom',
+    include: ['src/**/*.spec.ts'],
   }
 })
-console.log(process.env.VITE_BASE_URL)

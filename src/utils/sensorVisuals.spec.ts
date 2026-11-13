@@ -1,0 +1,119 @@
+import { describe, expect, it } from 'vitest';
+import {
+  compareSensorCardLabels,
+  getSensorCardLabel,
+  getSensorDisplayDecimals,
+  getSensorVisual,
+} from '@/utils/sensorVisuals';
+
+const localize = (key: string): string => ({
+  '@batteryLevelLabel': 'Battery level',
+  '@counterLabel': 'Counter',
+  '@humidityLabel': 'Humidity',
+  '@temperatureLabel': 'Temperature',
+}[key] ?? key);
+
+describe('sensorVisuals', () => {
+  it('exposes the configured battery history scale', () => {
+    expect(getSensorVisual(39)).toMatchObject({
+      history: true,
+      historyMin: 0,
+      historyMax: 100,
+      historyOnlyOnChange: false,
+      priority: 0,
+    });
+  });
+
+  it('only deduplicates counter history values', () => {
+    expect(getSensorVisual(54).historyOnlyOnChange).toBe(true);
+    expect(getSensorVisual(39).historyOnlyOnChange).toBe(false);
+    expect(getSensorVisual(49).historyOnlyOnChange).toBe(false);
+    expect(getSensorVisual(249).historyOnlyOnChange).toBe(false);
+  });
+
+  it('selects the accent for the active color scheme', () => {
+    const lightVisual = getSensorVisual(39);
+    const darkVisual = getSensorVisual(39, true);
+
+    expect(lightVisual.accent).toBe(lightVisual.lightAccent);
+    expect(darkVisual.accent).toBe(darkVisual.darkAccent);
+    expect(darkVisual.accent).not.toBe(lightVisual.accent);
+  });
+
+  it('caps the displayed precision when configured', () => {
+    const temperatureVisual = getSensorVisual(249);
+
+    expect(temperatureVisual.maxDecimals).toBe(1);
+    expect(getSensorDisplayDecimals(2, temperatureVisual)).toBe(1);
+    expect(getSensorDisplayDecimals(0, temperatureVisual)).toBe(0);
+    expect(getSensorDisplayDecimals(3, getSensorVisual(54))).toBe(3);
+  });
+
+  it('classifies digital input states for their specialized card', () => {
+    expect(getSensorVisual(175)).toMatchObject({
+      category: 'state',
+      history: false,
+      labelKey: '@PulseStateLabel',
+      priority: 10,
+      numbered: true,
+    });
+  });
+
+  it('exposes the display priority configured for each card family', () => {
+    expect(getSensorVisual(8).priority).toBeGreaterThan(getSensorVisual(49).priority ?? 0);
+    expect(getSensorVisual(49).priority).toBeGreaterThan(getSensorVisual(54).priority ?? 0);
+    expect(getSensorVisual(54).priority).toBeGreaterThan(getSensorVisual(175).priority ?? 0);
+    expect(getSensorVisual(175).priority).toBeGreaterThan(getSensorVisual(39).priority ?? 0);
+  });
+
+  it('uses the short label configured for a card type', () => {
+    expect(getSensorCardLabel(
+      'disposable_battery_voltage',
+      'Disposable battery voltage',
+      getSensorVisual(39),
+      localize,
+    )).toBe('Battery level');
+  });
+
+  it('suffixes numbered measurements with their instance number', () => {
+    expect(getSensorCardLabel(
+      'index_2',
+      'Pulse counter index 2',
+      getSensorVisual(57),
+      localize,
+    )).toBe('Counter 2');
+
+    expect(getSensorCardLabel(
+      'temperature_1',
+      'Temperature sensor 1',
+      getSensorVisual(257),
+      localize,
+    )).toBe('Temperature 1');
+  });
+
+  it('hides the instance number when a card family has only one entry', () => {
+    expect(getSensorCardLabel(
+      'index_1',
+      'Pulse counter index 1',
+      getSensorVisual(54),
+      localize,
+      false,
+    )).toBe('Counter');
+  });
+
+  it('sorts numbered card labels by their numeric instance', () => {
+    const labels = ['Counter 1', 'Counter 10', 'Counter 2'];
+
+    expect(labels.sort((left, right) => compareSensorCardLabels(left, right, 'en')))
+      .toEqual(['Counter 1', 'Counter 2', 'Counter 10']);
+  });
+
+  it('does not invent a suffix for an unnumbered measurement', () => {
+    expect(getSensorCardLabel(
+      'index',
+      'Pulse counter index',
+      getSensorVisual(54),
+      localize,
+    )).toBe('Counter');
+  });
+});

@@ -1,0 +1,2291 @@
+import { ref, readonly } from 'vue';
+import { Capacitor } from '@capacitor/core';
+import {
+  BleClient,
+  BluetoothLe,
+  ScanMode,
+  type ScanResult,
+} from '@capacitor-community/bluetooth-le';
+import {
+  appendBlobOnlyConfigurations,
+  buildConfigurationBlob,
+  formatConfigurationBlob,
+  toSpacedHex,
+  uploadConfigurationBlob,
+} from '@/utils/BLE/blob';
+import {
+  readAppRx,
+  readOutputConfigurationFrames,
+  readOutputFrameHexes,
+  startAppRxMonitoring,
+  stopAppRxMonitoring,
+  takeFirstConfigurationFrameEntries,
+  takeFirstConfigurationFrames,
+  writeAppTx,
+  type AppRxSubscription,
+  type ConfigurationFrame,
+  type ConfigurationFrameResult,
+  type CurrentConfigurationSendResult,
+} from '@/utils/BLE/appFrames';
+import {
+  APP_FRAME_FALLBACK_DELAY_MS,
+  getAppFrameResponseErrorAttributeId,
+  getAppFrameResponseRule,
+  getAppFrameResponseStatus,
+  isSuccessfulAppFrameResponse,
+  matchesAppFrameResponse,
+  prepareCustomAppTxRequest,
+} from '@/utils/BLE/appFrameResponseRules';
+import { authenticateOsa } from '@/utils/BLE/osa';
+import { readProductId as readProductIdFromBle } from '@/utils/BLE/configReader';
+import { decodeAdvertisedProductId } from '@/utils/BLE/advertising';
+import {
+  BLE_SENSOR_NAME_PREFIX,
+  deriveDevEuiFromDeviceName,
+  isBleDiscoverableName,
+  isBleOtaLoaderName,
+  isBleSpecialModeName,
+  matchesTargetBleName,
+} from '@/utils/BLE/deviceIdentity';
+import {
+  MEASUREMENT_SOURCE_TO_ID,
+  pollMeasurementMonitoring,
+  startMeasurementMonitoring,
+  stopMeasurementMonitoring,
+  type BleMeasurementSubscription,
+} from '@/utils/BLE/measurements';
+import {
+  getProductDisplayName,
+  getProductMeasurements,
+  resolveAvailableProductReference,
+} from '@/utils/productMeasurements';
+import { getSensorVisual } from '@/utils/sensorVisuals';
+import {
+  startLoraLinkMonitoring,
+  stopLoraLinkMonitoring,
+  readLoraLinkStatus as readLoraLinkStatusFromBle,
+  sendLoraLinkTest as sendLoraLinkTestCommand,
+  type LoraLinkStatus,
+  type LoraLinkTestOptions,
+  type LoraLinkSubscription,
+} from '@/utils/BLE/loraLink';
+import { getBleSignalLevel, type BleSignalLevel } from '@/utils/BLE/rssi';
+import { readAdminDeviceStatus } from '@/utils/BLE/adminStatus';
+import { buildCounterSetFrame } from '@/utils/BLE/counterCommands';
+import { createDiagnosticLogger } from '@/utils/diagnosticLogger';
+import { BBS_SERVICE_UUID, normalizeUuid } from '@/utils/BLE/characteristics';
+import { removeBbsAndroidBond } from '@/utils/BLE/bbsProtocol';
+
+export type DeviceLike = {
+  deviceId: string;
+  name?: string;
+  uuids?: readonly string[];
+  advertisedProductId?: string;
+  productReference?: string;
+  productName?: string;
+  devEui?: string;
+  isOtaLoader?: boolean;
+  isSpecialMode?: boolean;
+};
+
+export type BleConnectionPhase = 'idle' | 'connecting' | 'discovering' | 'ready';
+
+export type BleWakeDiagnostic = {
+  deviceId: string;
+  deviceName: string;
+  advertisementAt: number;
+  connectionStartedAt?: number;
+  connectedAt?: number;
+  disconnectRequestedAt?: number;
+  disconnectedAt?: number;
+  error?: string;
+};
+
+type MeasurementHistoryPoint = {
+  timestamp: number;
+  value: number;
+};
+
+/* ------------------------------------------------------------------ */
+/*  Constants                                                          */
+/* ------------------------------------------------------------------ */
+const MAX_CHUNK_SIZE = 20;   // BLE MTU-safe write size
+const MAX_RETRIES = 5;
+const MAX_CONNECT_ATTEMPTS = 2;
+const MAX_AUTO_SCAN_ATTEMPTS = 30;
+const SCAN_TIMEOUT_MS = 5000;
+// Normal-mode sensors advertise every 2 minutes. Leave enough time to catch
+// the next advertisement, including a small scheduling margin.
+const RECONNECT_TIMEOUT_MS = 130000;
+const RECONNECT_CONNECT_TIMEOUT_MS = 10000;
+const RECONNECT_RETRY_DELAY_MS = 1000;
+const RESTART_DISCONNECT_TIMEOUT_MS = 10000;
+const RESTART_DISCONNECT_POLL_INTERVAL_MS = 100;
+const BOND_TIMEOUT_MS = 15000;
+const WAKE_CONNECT_TIMEOUT_MS = 3000;
+const FLUSH_INTERVAL_MS = 1000;
+const INTER_FRAME_DELAY_MS = 500;
+const INTER_CHUNK_DELAY_MS = 10;
+const MAX_MEASUREMENT_HISTORY_POINTS = 20;
+const BLE_RSSI_POLL_INTERVAL_MS = 2000;
+const COUNTER_RESPONSE_TIMEOUT_MS = 3000;
+const BONDED_DEVICES_STORAGE_KEY = 'easycodec.androidBondedDevices';
+const BONDING_ENABLED = true; // set to true to enable bonding on connect
+const diagnosticLogger = createDiagnosticLogger('ble');
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+function hexToBytes(hex: string): Uint8Array {
+  return new Uint8Array(hex.match(/.{1,2}/g)?.map(b => parseInt(b, 16)) ?? []);
+}
+
+function toHex(buf: Uint8Array): string {
+  return Array.from(buf).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
+/* ------------------------------------------------------------------ */
+/*  Singleton state (shared across all components)                     */
+/* ------------------------------------------------------------------ */
+const isNative = ref(Capacitor.isNativePlatform());
+const bleInitialized = ref(false);
+const scanning = ref(false);
+const connected = ref(false);
+const connectionPhase = ref<BleConnectionPhase>('idle');
+const devices = ref<DeviceLike[]>([]);
+const connectedDevice = ref<DeviceLike | undefined>(undefined);
+// Kept after an unexpected disconnect so the current page can reconnect
+// without sending the user back through device discovery.
+const lastConnectedDevice = ref<DeviceLike | undefined>(undefined);
+const statusMessage = ref('');
+const eventsLog = ref<string[]>([]);
+const wakeDiagnostics = ref<BleWakeDiagnostic[]>([]);
+const wakingSensor = ref(false);
+const configurationFrameLogs = ref<string[]>([]);
+const counterFrameLogs = ref<string[]>([]);
+const sending = ref(false);
+const osaAuthenticating = ref(false);
+const osaAuthenticated = ref<boolean | null>(null);
+const pairing = ref(false);
+const connecting = ref(false);
+const reconnecting = ref(false);
+const bondedDevices = ref<string[]>([]);
+const productReference = ref<string | null>(null);
+const loraWanJoined = ref<boolean | null>(null);
+const loraLinkAvailable = ref<boolean | null>(null);
+const loraLinkTestAvailable = ref<boolean | null>(null);
+const loraLinkStatus = ref<LoraLinkStatus | null>(null);
+const measurementValues = ref<Record<string, number | boolean | string>>({});
+const measurementHistory = ref<Record<string, MeasurementHistoryPoint[]>>({});
+const counterUpdateInProgress = ref(false);
+const bleRssi = ref<number | null>(null);
+const bleSignalLevel = ref<BleSignalLevel | null>(null);
+let measurementHistoryDeviceId: string | undefined;
+
+const receivedFrames = ref<string[]>([]);
+
+const pending: Uint8Array[] = [];
+let flushing = false;
+let flushTimer: ReturnType<typeof setInterval> | undefined;
+let scanTimeoutId: ReturnType<typeof setTimeout> | undefined;
+let scanResolve: (() => void) | undefined;
+let initialized = false;
+let autoScanCanceled = false;
+let connectionCanceled = false;
+let connectingDevice: DeviceLike | undefined;
+let reconnectCanceled = false;
+let reconnectScanActive = false;
+let reconnectScanTimeoutId: ReturnType<typeof setTimeout> | undefined;
+let reconnectScanResolve: ((found: boolean) => void) | undefined;
+let bleRssiTimer: ReturnType<typeof setTimeout> | undefined;
+let bleRssiDeviceId: string | undefined;
+let bleRssiReadInProgress = false;
+let visibilityListenerRegistered = false;
+let wakeScanGeneration = 0;
+let wakeQueuePromise: Promise<void> | undefined;
+const wakeQueue: Array<{
+  device: DeviceLike;
+  diagnostic: BleWakeDiagnostic;
+  generation: number;
+}> = [];
+const wakeQueuedDeviceIds = new Set<string>();
+type ExpectedDisconnectReason = 'request' | 'restart';
+const expectedDisconnectReasons = new Map<string, ExpectedDisconnectReason>();
+
+type BluetoothLeWithFastConnect = typeof BluetoothLe & {
+  connectWithoutDiscovery(options: { deviceId: string; timeout?: number }): Promise<void>;
+};
+
+const bluetoothLeWithFastConnect = BluetoothLe as BluetoothLeWithFastConnect;
+
+function isDocumentVisible() {
+  return typeof document === 'undefined' || document.visibilityState !== 'hidden';
+}
+
+function clearBleRssiTimer() {
+  if (!bleRssiTimer) return;
+  clearTimeout(bleRssiTimer);
+  bleRssiTimer = undefined;
+}
+
+function scheduleBleRssiRead(delayMs = BLE_RSSI_POLL_INTERVAL_MS) {
+  clearBleRssiTimer();
+  if (!bleRssiDeviceId || !connected.value || !isDocumentVisible()) return;
+  bleRssiTimer = setTimeout(() => {
+    bleRssiTimer = undefined;
+    void readBleRssi();
+  }, delayMs);
+}
+
+async function readBleRssi() {
+  const deviceId = bleRssiDeviceId;
+  if (!deviceId || !connected.value || connectedDevice.value?.deviceId !== deviceId) return;
+
+  if (bleRssiReadInProgress || sending.value || osaAuthenticating.value || pairing.value) {
+    scheduleBleRssiRead();
+    return;
+  }
+
+  bleRssiReadInProgress = true;
+  try {
+    const reading = Math.round(await BleClient.readRssi(deviceId));
+    if (Number.isFinite(reading) && bleRssiDeviceId === deviceId && connected.value) {
+      bleRssi.value = reading;
+      bleSignalLevel.value = getBleSignalLevel(reading);
+    }
+  } catch {
+    // A transient RSSI read failure must not affect the BLE connection state.
+  } finally {
+    bleRssiReadInProgress = false;
+    if (bleRssiDeviceId === deviceId) scheduleBleRssiRead();
+  }
+}
+
+function startBleRssiMonitoring(deviceId: string) {
+  clearBleRssiTimer();
+  bleRssi.value = null;
+  bleSignalLevel.value = null;
+  bleRssiDeviceId = deviceId;
+  scheduleBleRssiRead(0);
+}
+
+function stopBleRssiMonitoring() {
+  clearBleRssiTimer();
+  bleRssiDeviceId = undefined;
+  bleRssi.value = null;
+  bleSignalLevel.value = null;
+}
+
+function registerVisibilityListener() {
+  if (visibilityListenerRegistered || typeof document === 'undefined') return;
+  visibilityListenerRegistered = true;
+  document.addEventListener('visibilitychange', () => {
+    if (isDocumentVisible()) scheduleBleRssiRead(0);
+    else clearBleRssiTimer();
+  });
+}
+
+function recordScanResult(
+  result: ScanResult,
+  useFilters: boolean,
+  enqueueWake = true,
+): DeviceLike | undefined {
+  const advertisementAt = Date.now();
+  const name = result.localName ?? result.device.name;
+  if (useFilters && !isBleDiscoverableName(name)) return undefined;
+
+  const advertisedProductId = decodeAdvertisedProductId(result.manufacturerData) ?? undefined;
+  const advertisedProductReference = resolveAvailableProductReference(advertisedProductId) ?? undefined;
+  const advertisedProductName = getProductDisplayName(advertisedProductReference) ?? undefined;
+  const index = devices.value.findIndex(device => device.deviceId === result.device.deviceId);
+  const previous = index >= 0 ? devices.value[index] : undefined;
+  const device: DeviceLike = {
+    ...previous,
+    ...result.device,
+    name: name ?? previous?.name,
+    uuids: previous?.uuids ?? result.uuids ?? result.device.uuids,
+    advertisedProductId: advertisedProductId ?? previous?.advertisedProductId,
+    productReference: advertisedProductReference ?? previous?.productReference,
+    productName: advertisedProductName ?? previous?.productName,
+    devEui: deriveDevEuiFromDeviceName(name) ?? previous?.devEui,
+    isOtaLoader: isBleOtaLoaderName(name),
+    isSpecialMode: isBleSpecialModeName(name),
+  };
+
+  if (index < 0) {
+    devices.value = [...devices.value, device];
+  } else if (
+    previous?.name !== device.name
+    || previous?.advertisedProductId !== device.advertisedProductId
+    || previous?.productReference !== device.productReference
+    || previous?.productName !== device.productName
+    || previous?.devEui !== device.devEui
+    || previous?.isOtaLoader !== device.isOtaLoader
+    || previous?.isSpecialMode !== device.isSpecialMode
+  ) {
+    devices.value = devices.value.map((current, currentIndex) => (
+      currentIndex === index ? device : current
+    ));
+  }
+
+  if (enqueueWake && !device.isOtaLoader && !device.isSpecialMode) {
+    enqueueSensorWake(device, advertisementAt);
+  }
+  return device;
+}
+
+function updateWakeDiagnostic(
+  diagnostic: BleWakeDiagnostic,
+  changes: Partial<BleWakeDiagnostic>,
+) {
+  Object.assign(diagnostic, changes);
+}
+
+function clearWakeDiagnostics() {
+  wakeDiagnostics.value = [];
+}
+
+function beginWakeScanSession() {
+  wakeScanGeneration += 1;
+  wakeQueue.length = 0;
+  wakeQueuedDeviceIds.clear();
+  clearWakeDiagnostics();
+}
+
+async function cancelWakeQueueAndWait() {
+  wakeScanGeneration += 1;
+  wakeQueue.length = 0;
+  wakeQueuedDeviceIds.clear();
+  await wakeQueuePromise;
+}
+
+function enqueueSensorWake(device: DeviceLike, advertisementAt: number) {
+  if (
+    !isNative.value
+    || connected.value
+    || connecting.value
+    || reconnecting.value
+    || wakeQueuedDeviceIds.has(device.deviceId)
+  ) return;
+
+  wakeQueuedDeviceIds.add(device.deviceId);
+  const diagnostic: BleWakeDiagnostic = {
+    deviceId: device.deviceId,
+    deviceName: device.name ?? device.deviceId,
+    advertisementAt,
+  };
+  wakeDiagnostics.value.unshift(diagnostic);
+  if (wakeDiagnostics.value.length > 100) wakeDiagnostics.value.pop();
+  wakeQueue.push({ device, diagnostic, generation: wakeScanGeneration });
+  processWakeQueue();
+}
+
+function processWakeQueue() {
+  if (wakeQueuePromise) return;
+
+  wakeQueuePromise = (async () => {
+    wakingSensor.value = true;
+    try {
+      while (wakeQueue.length > 0) {
+        const item = wakeQueue.shift();
+        if (!item || item.generation !== wakeScanGeneration || connected.value) continue;
+
+        const { device, diagnostic } = item;
+        updateWakeDiagnostic(diagnostic, { connectionStartedAt: Date.now() });
+        let linkEstablished = false;
+        try {
+          await bluetoothLeWithFastConnect.connectWithoutDiscovery({
+            deviceId: device.deviceId,
+            timeout: WAKE_CONNECT_TIMEOUT_MS,
+          });
+          linkEstablished = true;
+          updateWakeDiagnostic(diagnostic, { connectedAt: Date.now() });
+          updateWakeDiagnostic(diagnostic, { disconnectRequestedAt: Date.now() });
+          await BluetoothLe.disconnect({ deviceId: device.deviceId });
+          updateWakeDiagnostic(diagnostic, { disconnectedAt: Date.now() });
+        } catch (error: any) {
+          updateWakeDiagnostic(diagnostic, { error: error?.message ?? String(error) });
+          if (linkEstablished) {
+            try {
+              await BluetoothLe.disconnect({ deviceId: device.deviceId });
+              updateWakeDiagnostic(diagnostic, { disconnectedAt: Date.now() });
+            } catch {
+              // The original wake failure is the useful diagnostic.
+            }
+          }
+        }
+      }
+    } finally {
+      wakingSensor.value = false;
+    }
+  })().finally(() => {
+    wakeQueuePromise = undefined;
+    if (wakeQueue.length > 0) processWakeQueue();
+  });
+}
+
+let targetDeviceId: string | undefined;
+let targetServiceUuid: string | undefined;
+let targetCharUuid: string | undefined;
+let targetNotifyCharUuid: string | undefined;
+let measurementSubscriptions: BleMeasurementSubscription[] = [];
+let loraLinkSubscription: LoraLinkSubscription | undefined;
+
+/* ---- log helper ---- */
+function log(msg: string) {
+  const ts = new Date().toLocaleTimeString();
+  eventsLog.value.unshift(`${ts} ${msg}`);
+  if (eventsLog.value.length > 200) eventsLog.value.pop();
+  if (/\b(?:error|failed|failure)\b/i.test(msg)) diagnosticLogger.warn(msg);
+  else diagnosticLogger.debug(msg);
+}
+
+function logConfigurationFrame(msg: string) {
+  const ts = new Date().toLocaleTimeString();
+  configurationFrameLogs.value.unshift(`${ts} ${msg}`);
+  if (configurationFrameLogs.value.length > 100) configurationFrameLogs.value.pop();
+  log(msg);
+}
+
+function clearConfigurationFrameLogs() {
+  configurationFrameLogs.value = [];
+}
+
+function logCounterFrame(msg: string) {
+  const ts = new Date().toLocaleTimeString();
+  counterFrameLogs.value.unshift(`${ts} ${msg}`);
+  if (counterFrameLogs.value.length > 100) counterFrameLogs.value.pop();
+  log(msg);
+}
+
+function clearCounterFrameLogs() {
+  counterFrameLogs.value = [];
+}
+
+async function disconnectBleDevice(deviceId: string) {
+  expectedDisconnectReasons.set(deviceId, 'request');
+  try {
+    await BleClient.disconnect(deviceId);
+  } catch (error) {
+    expectedDisconnectReasons.delete(deviceId);
+    throw error;
+  }
+  setTimeout(() => {
+    if (expectedDisconnectReasons.get(deviceId) === 'request') {
+      expectedDisconnectReasons.delete(deviceId);
+    }
+  }, 5000);
+}
+
+function expectDeviceRestart(deviceId: string) {
+  expectedDisconnectReasons.set(deviceId, 'restart');
+  diagnosticLogger.info('BLE device restart requested; disconnect expected', { deviceId });
+  setTimeout(() => {
+    if (expectedDisconnectReasons.get(deviceId) === 'restart') {
+      expectedDisconnectReasons.delete(deviceId);
+      diagnosticLogger.warn('Expected BLE restart disconnect was not observed', { deviceId });
+    }
+  }, 30000);
+}
+
+function cancelExpectedDeviceRestart(deviceId: string) {
+  if (expectedDisconnectReasons.get(deviceId) === 'restart') {
+    expectedDisconnectReasons.delete(deviceId);
+  }
+}
+
+function prepareMeasurementHistory(deviceId: string) {
+  if (measurementHistoryDeviceId === deviceId) return;
+  measurementHistory.value = {};
+  measurementHistoryDeviceId = deviceId;
+}
+
+function appendMeasurementHistory(measurementId: string, value: number, onlyOnChange = false) {
+  const points = measurementHistory.value[measurementId] ?? [];
+  if (onlyOnChange && Object.is(points.at(-1)?.value, value)) return;
+  measurementHistory.value = {
+    ...measurementHistory.value,
+    [measurementId]: [
+      ...points,
+      { timestamp: Date.now(), value },
+    ].slice(-MAX_MEASUREMENT_HISTORY_POINTS),
+  };
+}
+
+function clearMeasurementHistory() {
+  measurementHistory.value = {};
+  measurementHistoryDeviceId = undefined;
+}
+
+function isAndroidNativePlatform() {
+  return isNative.value && Capacitor.getPlatform() === 'android';
+}
+
+function loadBondedDevicesFromStorage() {
+  if (!isAndroidNativePlatform()) return;
+  try {
+    const raw = localStorage.getItem(BONDED_DEVICES_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    bondedDevices.value = Array.isArray(parsed)
+      ? parsed.filter((deviceId): deviceId is string => typeof deviceId === 'string')
+      : [];
+  } catch (e) {
+    console.warn('Failed to load bonded devices from storage:', e);
+    bondedDevices.value = [];
+  }
+}
+
+function persistBondedDevices() {
+  if (!isAndroidNativePlatform()) return;
+  try {
+    localStorage.setItem(BONDED_DEVICES_STORAGE_KEY, JSON.stringify(bondedDevices.value));
+  } catch (e) {
+    console.warn('Failed to persist bonded devices:', e);
+  }
+}
+
+function rememberBondedDevice(deviceId: string) {
+  if (!isAndroidNativePlatform()) return;
+  if (bondedDevices.value.includes(deviceId)) return;
+  bondedDevices.value = [...bondedDevices.value, deviceId];
+  persistBondedDevices();
+}
+
+function forgetBondedDevice(deviceId: string) {
+  if (!isAndroidNativePlatform()) return;
+  if (!bondedDevices.value.includes(deviceId)) return;
+  bondedDevices.value = bondedDevices.value.filter(id => id !== deviceId);
+  persistBondedDevices();
+}
+
+function hasRememberedBond(deviceId: string) {
+  return bondedDevices.value.includes(deviceId);
+}
+
+function clearConnectionTarget() {
+  targetDeviceId = undefined;
+  targetServiceUuid = undefined;
+  targetCharUuid = undefined;
+  targetNotifyCharUuid = undefined;
+}
+
+function handleBondInvalidation(deviceId: string, reason: string) {
+  forgetBondedDevice(deviceId);
+  log(`BOND RESET ${deviceId} ${reason}`);
+  statusMessage.value = 'Secure pairing needs to be refreshed';
+}
+
+function isLikelyBondIssue(error: unknown) {
+  const message = String((error as any)?.message ?? error ?? '').toLowerCase();
+  return [
+    'authentication',
+    'encrypt',
+    'bond',
+    'pair',
+    'insufficient',
+    'gatt',
+    '133',
+  ].some(token => message.includes(token));
+}
+
+function isAttApplicationError(error: unknown): boolean {
+  const message = String((error as any)?.message ?? error ?? '');
+  const lower = message.toLowerCase();
+  if (/gatt|bonding|authentication|encryption/.test(lower)) return false;
+
+  const match = message.match(/(?:application\s+error|error)\s+(?:0x)?([0-9a-f]{2}|\d{2,3})/i);
+  if (!match) return false;
+
+  const parsed = match[1].toLowerCase().startsWith('0x')
+    ? parseInt(match[1], 16)
+    : Number(match[1]);
+
+  return Number.isFinite(parsed) && parsed >= 0x80 && parsed <= 0xff;
+}
+
+function getAttErrorCode(error: unknown): string | null {
+  const message = String((error as any)?.message ?? error ?? '');
+  const match = message.match(/(?:application\s+error|error)\s+(0x[0-9a-f]{2}|[0-9a-f]{2}|\d{2,3})/i);
+  if (!match) return null;
+  const raw = match[1];
+  if (raw.toLowerCase().startsWith('0x')) return raw.toLowerCase();
+  if (/^[0-9a-f]{2}$/i.test(raw)) return `0x${raw.toLowerCase()}`;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  return `0x${n.toString(16).padStart(2, '0')}`;
+}
+
+function extractBleErrorCode(error: unknown): string | null {
+  const err = error as any;
+  const candidates = [
+    err?.code,
+    err?.errorCode,
+    err?.status,
+    err?.nativeErrorCode,
+    err?.androidErrorCode,
+    err?.cause?.code,
+    err?.cause?.errorCode,
+    err?.cause?.status,
+  ];
+
+  for (const value of candidates) {
+    if (value === undefined || value === null) continue;
+    if (typeof value === 'number' && Number.isFinite(value)) return `0x${value.toString(16).toLowerCase()}`;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (/^0x[0-9a-f]+$/i.test(trimmed)) return trimmed.toLowerCase();
+      if (/^[0-9]+$/.test(trimmed)) return `0x${Number(trimmed).toString(16).toLowerCase()}`;
+    }
+  }
+
+  const message = String((error as any)?.message ?? error ?? '');
+  const attCode = getAttErrorCode(error);
+  if (attCode) return attCode;
+
+  const hexMatch = message.match(/0x([0-9a-f]{2,4})/i);
+  if (hexMatch) return `0x${hexMatch[1].toLowerCase()}`;
+
+  const decimalMatch = message.match(/(?:error|status|code)\s*[:=]?\s*(\d{1,5})/i);
+  if (decimalMatch) {
+    const value = Number(decimalMatch[1]);
+    if (Number.isFinite(value)) return `0x${value.toString(16).toLowerCase()}`;
+  }
+
+  return null;
+}
+
+function debugBleWriteError(stage: 'write' | 'writeWithoutResponse' | 'frame', frameHex: string, error: unknown, attempt?: number) {
+  const code = extractBleErrorCode(error);
+  const message = String((error as any)?.message ?? error ?? 'Unknown BLE error');
+  console.debug('[BLE_WRITE_ERROR]', {
+    stage,
+    attempt,
+    frameHex,
+    code,
+    message,
+    raw: error,
+  });
+}
+
+async function isDeviceBonded(deviceId: string): Promise<boolean> {
+  if (!BONDING_ENABLED) return false;
+  if (!isAndroidNativePlatform()) return false;
+  try {
+    const isBonded = await BleClient.isBonded(deviceId);
+    if (isBonded) rememberBondedDevice(deviceId);
+    else forgetBondedDevice(deviceId);
+    return isBonded;
+  } catch (e) {
+    console.warn('Bond state check failed:', e);
+    if (hasRememberedBond(deviceId)) {
+      log(`KNOWN BOND ${deviceId}`);
+    }
+    return false;
+  }
+}
+
+async function ensureBonded(deviceId: string, force = false): Promise<boolean> {
+  if (!BONDING_ENABLED) return false;
+  if (!isAndroidNativePlatform()) return false;
+
+  if (!force) {
+    if (hasRememberedBond(deviceId)) {
+      statusMessage.value = 'Reusing secure pairing…';
+    }
+    const alreadyBonded = await isDeviceBonded(deviceId);
+    if (alreadyBonded) return false;
+  }
+
+  pairing.value = true;
+  statusMessage.value = force ? 'Refreshing secure pairing…' : 'Pairing device…';
+
+  try {
+    await BleClient.createBond(deviceId, { timeout: BOND_TIMEOUT_MS });
+    rememberBondedDevice(deviceId);
+    statusMessage.value = 'Secure pairing completed';
+    return true;
+  } catch (e: any) {
+    forgetBondedDevice(deviceId);
+    statusMessage.value = 'Pairing failed: ' + (e?.message ?? e);
+    throw e;
+  } finally {
+    pairing.value = false;
+  }
+}
+
+/* ================================================================== */
+/*  Init                                                               */
+/* ================================================================== */
+async function initialize() {
+  if (!isNative.value) return;
+  if (initialized) return;
+  initialized = true;
+  diagnosticLogger.info('BLE initialization started');
+  try {
+    await BleClient.initialize();
+    loadBondedDevicesFromStorage();
+    bleInitialized.value = true;
+    statusMessage.value = 'BLE initialized';
+    flushTimer = setInterval(() => flushPending(), FLUSH_INTERVAL_MS);
+    registerVisibilityListener();
+    diagnosticLogger.info('BLE initialization completed');
+  } catch (e) {
+    console.error('BLE init failed:', e);
+    diagnosticLogger.error('BLE initialization failed', { error: e });
+    statusMessage.value = 'BLE not available';
+  }
+}
+
+/* ================================================================== */
+/*  Scan                                                               */
+/* ================================================================== */
+async function startScan(useFilters = true) {
+  if (!bleInitialized.value) { statusMessage.value = 'BLE not ready'; return; }
+  await cancelWakeQueueAndWait();
+  beginWakeScanSession();
+  devices.value = [];
+  scanning.value = true;
+  statusMessage.value = 'Scanning…';
+  diagnosticLogger.info('BLE scan started', { useFilters, timeoutMs: SCAN_TIMEOUT_MS });
+
+  // Promise that resolves when this scan attempt ends (via stopScan)
+  const prom = new Promise<void>((resolve) => { scanResolve = resolve; });
+
+  try {
+    const options: any = {
+      // A later advertisement can complete the name or manufacturer data.
+      // The native WS5 filter keeps unrelated duplicate traffic off the bridge.
+      allowDuplicates: true,
+      scanMode: ScanMode.SCAN_MODE_LOW_LATENCY,
+    };
+    if (useFilters) options.namePrefix = BLE_SENSOR_NAME_PREFIX;
+    await BleClient.requestLEScan(options, (result: ScanResult) => {
+      recordScanResult(result, useFilters);
+    });
+    scanTimeoutId = setTimeout(() => stopScan(), SCAN_TIMEOUT_MS);
+  } catch (e: any) {
+    statusMessage.value = 'Scan failed: ' + (e?.message ?? e);
+    diagnosticLogger.error('BLE scan failed', { useFilters, error: e });
+    scanning.value = false;
+    if (scanResolve) { scanResolve(); scanResolve = undefined; }
+  }
+
+  return prom;
+}
+
+async function stopScan() {
+  if (!scanning.value) return;
+  try { await BleClient.stopLEScan(); } catch { /* ignore stop scan errors */ }
+  if (scanTimeoutId) { clearTimeout(scanTimeoutId); scanTimeoutId = undefined; }
+  scanning.value = false;
+  statusMessage.value = `Found ${devices.value.length} device(s)`;
+  diagnosticLogger.info('BLE scan stopped', { deviceCount: devices.value.length });
+  if (scanResolve) { scanResolve(); scanResolve = undefined; }
+}
+
+async function startAutoScan(useFilters = true, maxAttempts = MAX_AUTO_SCAN_ATTEMPTS) {
+  if (!bleInitialized.value) { statusMessage.value = 'BLE not ready'; return; }
+  if (scanning.value) return; // already scanning
+  await cancelWakeQueueAndWait();
+  beginWakeScanSession();
+  devices.value = [];
+  autoScanCanceled = false;
+  scanning.value = true;
+  statusMessage.value = 'Auto-scanning…';
+  diagnosticLogger.info('BLE auto-scan started', { useFilters, maxAttempts });
+
+  const attemptDuration = SCAN_TIMEOUT_MS;
+  const totalDuration = Math.max(1, maxAttempts) * attemptDuration;
+  let attempts = 0;
+  let scanFailed = false;
+
+  try {
+    const options: any = {
+      // A later advertisement can complete the name or manufacturer data.
+      // The native WS5 filter keeps unrelated duplicate traffic off the bridge.
+      allowDuplicates: true,
+      scanMode: ScanMode.SCAN_MODE_LOW_LATENCY,
+    };
+    if (useFilters) options.namePrefix = BLE_SENSOR_NAME_PREFIX;
+
+    await BleClient.requestLEScan(options, async (result: ScanResult) => {
+      recordScanResult(result, useFilters);
+      // stop early when we detected at least one device
+      /*if (devices.value.length > 0 && scanning.value) {
+        try { await stopScan(); } catch { /* ignore stop scan errors  }
+      }*/
+    });
+
+    // update attempt counter periodically to avoid UI flicker
+    const attemptTimer = setInterval(() => {
+      attempts++;
+      if (attempts >= maxAttempts) return;
+      statusMessage.value = `Auto-scanning… (attempt ${attempts}/${maxAttempts})`;
+    }, attemptDuration);
+
+    // stop after total duration unless canceled or devices found
+    scanTimeoutId = setTimeout(async () => {
+      try { await stopScan(); } catch { /* ignore stop scan errors */ }
+    }, totalDuration);
+
+    // wait until scan stops (stopScan resolves scanResolve)
+    await new Promise<void>((resolve) => { scanResolve = resolve; });
+
+    clearInterval(attemptTimer);
+  } catch (e: any) {
+    scanFailed = true;
+    const resolveScan = scanResolve;
+    scanResolve = undefined;
+    resolveScan?.();
+    statusMessage.value = 'Auto-scan failed: ' + (e?.message ?? e);
+    diagnosticLogger.error('BLE auto-scan failed', { useFilters, maxAttempts, error: e });
+  } finally {
+    if (scanTimeoutId) { clearTimeout(scanTimeoutId); scanTimeoutId = undefined; }
+    scanning.value = false;
+    if (!scanFailed) {
+      statusMessage.value = `Found ${devices.value.length} device(s) after ${Math.min(attempts || 1, maxAttempts)} attempt(s)`;
+      diagnosticLogger.info('BLE auto-scan completed', {
+        deviceCount: devices.value.length,
+        attempts: Math.min(attempts || 1, maxAttempts),
+      });
+    }
+    autoScanCanceled = false;
+  }
+}
+
+async function startTargetedScan(targetDeviceName: string): Promise<DeviceLike | undefined> {
+  if (!bleInitialized.value) {
+    statusMessage.value = 'BLE not ready';
+    return undefined;
+  }
+  if (scanning.value) return undefined;
+
+  await cancelWakeQueueAndWait();
+  beginWakeScanSession();
+  devices.value = [];
+  autoScanCanceled = false;
+  scanning.value = true;
+  const normalizedTarget = targetDeviceName.trim().toUpperCase();
+  statusMessage.value = `Waiting for ${normalizedTarget}…`;
+  diagnosticLogger.info('BLE targeted scan started', {
+    targetDeviceName: normalizedTarget,
+    timeoutMs: MAX_AUTO_SCAN_ATTEMPTS * SCAN_TIMEOUT_MS,
+  });
+
+  let targetDevice: DeviceLike | undefined;
+  let scanFailed = false;
+  const scanFinished = new Promise<void>((resolve) => { scanResolve = resolve; });
+
+  try {
+    await BleClient.requestLEScan({
+      allowDuplicates: true,
+      namePrefix: BLE_SENSOR_NAME_PREFIX,
+      scanMode: ScanMode.SCAN_MODE_LOW_LATENCY,
+    }, (result: ScanResult) => {
+      // Reserve advertising windows for the requested connection instead of
+      // consuming them with the diagnostic wake queue.
+      const device = recordScanResult(result, true, false);
+      if (!device || !matchesTargetBleName(device.name, normalizedTarget) || targetDevice) return;
+      targetDevice = device;
+      diagnosticLogger.info('BLE targeted device found', {
+        deviceId: device.deviceId,
+        deviceName: device.name,
+      });
+      void stopScan();
+    });
+
+    scanTimeoutId = setTimeout(() => {
+      void stopScan();
+    }, MAX_AUTO_SCAN_ATTEMPTS * SCAN_TIMEOUT_MS);
+    await scanFinished;
+  } catch (e: any) {
+    scanFailed = true;
+    const resolveScan = scanResolve;
+    scanResolve = undefined;
+    resolveScan?.();
+    statusMessage.value = 'Auto-scan failed: ' + (e?.message ?? e);
+    diagnosticLogger.error('BLE targeted scan failed', {
+      targetDeviceName: normalizedTarget,
+      error: e,
+    });
+  } finally {
+    if (scanTimeoutId) {
+      clearTimeout(scanTimeoutId);
+      scanTimeoutId = undefined;
+    }
+    scanning.value = false;
+    if (!scanFailed && !targetDevice && !autoScanCanceled) {
+      statusMessage.value = `Device ${normalizedTarget} not found`;
+    }
+    autoScanCanceled = false;
+  }
+
+  return targetDevice;
+}
+
+async function cancelScan() {
+  autoScanCanceled = true;
+  await cancelWakeQueueAndWait();
+  await stopScan();
+}
+
+/* ================================================================== */
+/*  Connect / Disconnect                                               */
+/* ================================================================== */
+async function connectToDeviceUntil(
+  device: DeviceLike,
+  connectionDeadline?: number,
+  isCanceled?: () => boolean
+) {
+  stopBleRssiMonitoring();
+  if (connectedDevice.value?.deviceId !== device.deviceId) productReference.value = null;
+  prepareMeasurementHistory(device.deviceId);
+  await stopMeasurementMonitoring(device.deviceId, measurementSubscriptions, log);
+  await stopLoraLinkMonitoring(device.deviceId, loraLinkSubscription, log);
+  measurementValues.value = {};
+  measurementSubscriptions = [];
+  loraLinkSubscription = undefined;
+  loraWanJoined.value = null;
+  loraLinkAvailable.value = null;
+  loraLinkTestAvailable.value = null;
+  loraLinkStatus.value = null;
+  osaAuthenticated.value = null;
+  statusMessage.value = hasRememberedBond(device.deviceId)
+    ? `Reconnecting to ${device.name || device.deviceId}…`
+    : `Connecting to ${device.name || device.deviceId}…`;
+  clearConnectionTarget();
+  for (let attempt = 1; attempt <= MAX_CONNECT_ATTEMPTS; attempt++) {
+    if (isCanceled?.()) return;
+    const retryingInvalidBond = attempt > 1;
+    const attemptStartedAt = Date.now();
+    diagnosticLogger.info('BLE connection attempt started', {
+      deviceId: device.deviceId,
+      deviceName: device.name,
+      attempt,
+      bonded: hasRememberedBond(device.deviceId),
+    });
+    try {
+      if (isAndroidNativePlatform()) {
+        await ensureBonded(device.deviceId, retryingInvalidBond);
+      }
+      if (isCanceled?.()) return;
+
+      const connectionOptions = connectionDeadline === undefined
+        ? undefined
+        : { timeout: Math.max(1, connectionDeadline - Date.now()) };
+      await BleClient.connect(device.deviceId, () => {
+        const expectedReason = expectedDisconnectReasons.get(device.deviceId);
+        expectedDisconnectReasons.delete(device.deviceId);
+        const disconnectContext = {
+          deviceId: device.deviceId,
+          deviceName: device.name,
+          connectionPhase: connectionPhase.value,
+        };
+        if (expectedReason === 'restart') {
+          diagnosticLogger.info('BLE device disconnected for expected restart', disconnectContext);
+        } else if (expectedReason === 'request') {
+          diagnosticLogger.info('BLE device disconnected on request', disconnectContext);
+        } else {
+          diagnosticLogger.warn('BLE device disconnected unexpectedly', disconnectContext);
+        }
+        stopBleRssiMonitoring();
+        void stopMeasurementMonitoring(device.deviceId, measurementSubscriptions, log);
+        measurementSubscriptions = [];
+        loraLinkSubscription = undefined;
+        loraWanJoined.value = null;
+        loraLinkAvailable.value = null;
+        loraLinkTestAvailable.value = null;
+        loraLinkStatus.value = null;
+        osaAuthenticated.value = null;
+        connected.value = false;
+        connectionPhase.value = (
+          (connecting.value && !connectionCanceled)
+          || (reconnecting.value && !reconnectCanceled)
+        ) ? 'connecting' : 'idle';
+        connectedDevice.value = undefined;
+        clearConnectionTarget();
+        pairing.value = false;
+        statusMessage.value = 'Device disconnected';
+      }, connectionOptions);
+
+      if (isCanceled?.()) {
+        try { await disconnectBleDevice(device.deviceId); } catch { /* ignore cancellation cleanup errors */ }
+        return;
+      }
+
+      connectedDevice.value = device;
+      lastConnectedDevice.value = device;
+      connectionPhase.value = 'discovering';
+
+      const productId = await readProductIdFromBle(device.deviceId, log);
+      productReference.value = resolveAvailableProductReference(productId?.text);
+      if (productId?.text && productReference.value) {
+        log(`ProductID ${productId.text} selected as ${productReference.value}`);
+      } else {
+        log('ProductID unavailable; no product selected automatically');
+      }
+
+      try {
+        const historyOnlyOnChangeIds = new Set(getProductMeasurements(productReference.value)
+          .filter(measurement => getSensorVisual(measurement.measId).historyOnlyOnChange)
+          .map(measurement => measurement.id));
+        measurementSubscriptions = await startMeasurementMonitoring(
+          device.deviceId,
+          (sample) => {
+            const measurementId = sample.measurementId ?? MEASUREMENT_SOURCE_TO_ID[sample.sourceId];
+            if (!measurementId) {
+              log(`[MEAS] Unknown source 0x${sample.sourceId.toString(16).padStart(4, '0')}`);
+              return;
+            }
+            measurementValues.value = {
+              ...measurementValues.value,
+              [measurementId]: sample.value,
+            };
+            if (typeof sample.value === 'number') {
+              appendMeasurementHistory(
+                measurementId,
+                sample.value,
+                historyOnlyOnChangeIds.has(measurementId)
+              );
+            }
+          },
+          log
+        );
+      } catch (error: any) {
+        log(`[MEAS] Discovery failed: ${error?.message ?? error}`);
+      }
+
+      try {
+        loraLinkSubscription = await startLoraLinkMonitoring(
+          device.deviceId,
+          status => {
+            loraLinkStatus.value = status;
+            loraWanJoined.value = status.joined;
+          },
+          log
+        );
+        loraLinkAvailable.value = loraLinkSubscription !== undefined;
+        loraLinkTestAvailable.value = loraLinkSubscription?.testAvailable ?? false;
+      } catch (error: any) {
+        loraLinkAvailable.value = false;
+        loraLinkTestAvailable.value = false;
+        log(`[LORA] Discovery failed: ${error?.message ?? error}`);
+      }
+
+      if (isAndroidNativePlatform()) {
+        rememberBondedDevice(device.deviceId);
+      }
+      statusMessage.value = `Connected to ${device.name || device.deviceId}`;
+
+      try {
+        const services = await BleClient.getServices(device.deviceId);
+        let foundService: any;
+        let foundChar: any;
+
+        for (const s of services) {
+          if (s.uuid?.toLowerCase().includes('fe60')) { foundService = s; break; }
+        }
+        if (!foundService) {
+          for (const s of services) {
+            if (s.characteristics) {
+              const w = s.characteristics.find((c: any) =>
+                c.properties && (c.properties.write || c.properties.writeWithoutResponse));
+              if (w) { foundService = s; foundChar = w; break; }
+            }
+          }
+        }
+        if (foundService && !foundChar && foundService.characteristics) {
+          foundChar = foundService.characteristics.find((c: any) =>
+            c.properties && (c.properties.write || c.properties.writeWithoutResponse));
+        }
+        // Look for a notify/indicate characteristic in the same service
+        let notifyChar: any;
+        if (foundService?.characteristics) {
+          notifyChar = foundService.characteristics.find((c: any) =>
+            c.properties && (c.properties.notify || c.properties.indicate));
+        }
+
+        if (foundService && foundChar) {
+          targetDeviceId = device.deviceId;
+          targetServiceUuid = foundService.uuid;
+          targetCharUuid = foundChar.uuid;
+          targetNotifyCharUuid = notifyChar?.uuid;
+
+          if (notifyChar) {
+            try {
+              await BleClient.startNotifications(
+                device.deviceId,
+                foundService.uuid,
+                notifyChar.uuid,
+                (value: DataView) => {
+                  const bytes = new Uint8Array(value.buffer);
+                  const hex = toHex(bytes);
+                  log(`NOTIF ${hex}`);
+                  receivedFrames.value = [hex, ...receivedFrames.value].slice(0, 50);
+                }
+              );
+              statusMessage.value += ' (ready, notifications on)';
+            } catch (ne) {
+              console.warn('startNotifications failed:', ne);
+              diagnosticLogger.warn('BLE notifications could not be started', {
+                deviceId: device.deviceId,
+                error: ne,
+              });
+              statusMessage.value += ' (ready, notifications failed)';
+            }
+          } else {
+            statusMessage.value += ' (ready)';
+          }
+        } else {
+          console.warn('No writable HMI characteristic found');
+          diagnosticLogger.warn('No writable HMI characteristic found', { deviceId: device.deviceId });
+          statusMessage.value += ' (no writable char)';
+        }
+      } catch (e) {
+        console.warn('Service discovery failed:', e);
+        diagnosticLogger.warn('BLE service discovery failed', { deviceId: device.deviceId, error: e });
+      }
+
+      if (isCanceled?.()) {
+        await stopMeasurementMonitoring(device.deviceId, measurementSubscriptions, log);
+        measurementSubscriptions = [];
+        await stopLoraLinkMonitoring(device.deviceId, loraLinkSubscription, log);
+        loraLinkSubscription = undefined;
+        loraWanJoined.value = null;
+        loraLinkAvailable.value = null;
+        loraLinkTestAvailable.value = null;
+        loraLinkStatus.value = null;
+        try { await disconnectBleDevice(device.deviceId); } catch { /* ignore cancellation cleanup errors */ }
+        connectedDevice.value = undefined;
+        clearConnectionTarget();
+        return;
+      }
+
+      // Mark the session ready only once its services and notifications are
+      // prepared. The dashboard is already visible in its loading state.
+      if (!isCanceled?.() && connectedDevice.value?.deviceId === device.deviceId) {
+        connected.value = true;
+        connectionPhase.value = 'ready';
+        startBleRssiMonitoring(device.deviceId);
+        void refreshOsaAuthenticationStatus();
+        diagnosticLogger.info('BLE connection ready', {
+          deviceId: device.deviceId,
+          deviceName: device.name,
+          productReference: productReference.value,
+          attempt,
+          durationMs: Date.now() - attemptStartedAt,
+          notifications: Boolean(targetNotifyCharUuid),
+        });
+      }
+      return;
+    } catch (e: any) {
+      diagnosticLogger.warn('BLE connection attempt failed', {
+        deviceId: device.deviceId,
+        deviceName: device.name,
+        attempt,
+        durationMs: Date.now() - attemptStartedAt,
+        error: e,
+      });
+      if (isAndroidNativePlatform() && attempt < MAX_CONNECT_ATTEMPTS && (hasRememberedBond(device.deviceId) || isLikelyBondIssue(e))) {
+        handleBondInvalidation(device.deviceId, e?.message ?? String(e));
+        try { await disconnectBleDevice(device.deviceId); } catch { /* ignore retry cleanup errors */ }
+        clearConnectionTarget();
+        connected.value = false;
+        connectionPhase.value = 'connecting';
+        connectedDevice.value = undefined;
+        continue;
+      }
+      statusMessage.value = 'Connection failed: ' + (e?.message ?? e);
+      connectionPhase.value = 'connecting';
+      return;
+    }
+  }
+}
+
+async function connectToDevice(device: DeviceLike): Promise<boolean> {
+  if (connected.value) return true;
+  if (connecting.value) return false;
+
+  // Device discovery and the targeted connection scan cannot run at the same
+  // time on the native BLE stack.
+  await cancelScan();
+  connectionCanceled = false;
+  connectingDevice = device;
+  connecting.value = true;
+  connectionPhase.value = 'connecting';
+  const connectionStartedAt = Date.now();
+  diagnosticLogger.info('BLE connection workflow started', {
+    deviceId: device.deviceId,
+    deviceName: device.name,
+  });
+
+  try {
+    const connectionDeadline = Date.now() + RECONNECT_TIMEOUT_MS;
+
+    // Keep the fast path for a sensor that is still in the advertising window
+    // in which it was discovered.
+    await connectToDeviceUntil(
+      device,
+      Date.now() + RECONNECT_CONNECT_TIMEOUT_MS,
+      () => connectionCanceled,
+    );
+    if (connected.value) return true;
+
+    // Normal-mode sensors only advertise once every 120 seconds. Listen for
+    // the next window, then retry the GATT connection while the sensor is awake.
+    while (!connectionCanceled && Date.now() < connectionDeadline) {
+      const deviceIsAdvertising = await waitForTargetAdvertisement(
+        device,
+        connectionDeadline,
+        () => connectionCanceled,
+      );
+      if (connectionCanceled) return false;
+
+      if (deviceIsAdvertising) {
+        await connectToDeviceUntil(
+          device,
+          Date.now() + RECONNECT_CONNECT_TIMEOUT_MS,
+          () => connectionCanceled,
+        );
+        if (connected.value) return true;
+      }
+
+      const remainingTime = connectionDeadline - Date.now();
+      if (remainingTime > 0) {
+        await delay(Math.min(RECONNECT_RETRY_DELAY_MS, remainingTime));
+      }
+    }
+
+    if (!connectionCanceled) {
+      statusMessage.value = 'Connection failed: timeout';
+      diagnosticLogger.error('BLE connection workflow timed out', {
+        deviceId: device.deviceId,
+        deviceName: device.name,
+        durationMs: Date.now() - connectionStartedAt,
+      });
+    }
+    return false;
+  } finally {
+    finishReconnectScan(false);
+    if (reconnectScanActive) {
+      reconnectScanActive = false;
+      try { await BleClient.stopLEScan(); } catch { /* ignore connection scan cleanup errors */ }
+    }
+    if (connectionCanceled) {
+      statusMessage.value = 'Connection canceled';
+      diagnosticLogger.info('BLE connection workflow canceled', {
+        deviceId: device.deviceId,
+        durationMs: Date.now() - connectionStartedAt,
+      });
+    }
+    if (!connected.value) connectionPhase.value = 'idle';
+    connecting.value = false;
+    connectingDevice = undefined;
+  }
+}
+
+async function connectToSpecialModeDevice(device: DeviceLike): Promise<boolean> {
+  if (!device.isSpecialMode) return false;
+  if (connected.value) return connectedDevice.value?.deviceId === device.deviceId;
+  if (connecting.value) return false;
+
+  await cancelScan();
+  connectionCanceled = false;
+  connectingDevice = device;
+  connecting.value = true;
+  connectionPhase.value = 'connecting';
+  stopBleRssiMonitoring();
+  clearConnectionTarget();
+  productReference.value = null;
+  osaAuthenticated.value = null;
+  statusMessage.value = `Connecting to ${device.name || device.deviceId}â€¦`;
+  diagnosticLogger.info('BBS temporary connection started', {
+    deviceId: device.deviceId,
+    deviceName: device.name,
+  });
+
+  try {
+    try {
+      await removeBbsAndroidBond(
+        device.deviceId,
+        line => diagnosticLogger.info(line, { deviceId: device.deviceId }),
+        'before BBS connection',
+      );
+    } catch (error) {
+      diagnosticLogger.warn('BBS pre-connection bond cleanup failed; continuing connection', {
+        deviceId: device.deviceId,
+        error,
+      });
+    }
+
+    await BleClient.connect(device.deviceId, () => {
+      diagnosticLogger.info('BBS temporary connection closed', {
+        deviceId: device.deviceId,
+        deviceName: device.name,
+      });
+      connected.value = false;
+      connectionPhase.value = 'idle';
+      if (connectedDevice.value?.deviceId === device.deviceId) {
+        connectedDevice.value = undefined;
+      }
+      pairing.value = false;
+      osaAuthenticated.value = null;
+      statusMessage.value = 'Device disconnected';
+      void removeBbsAndroidBond(
+        device.deviceId,
+        line => diagnosticLogger.info(line, { deviceId: device.deviceId }),
+        'after BBS disconnection',
+      ).catch(error => {
+        diagnosticLogger.warn('BBS post-disconnection bond cleanup failed', {
+          deviceId: device.deviceId,
+          error,
+        });
+      });
+    }, { timeout: RECONNECT_CONNECT_TIMEOUT_MS });
+
+    if (connectionCanceled) {
+      try { await disconnectBleDevice(device.deviceId); } catch { /* cancellation cleanup */ }
+      return false;
+    }
+
+    connectedDevice.value = device;
+    connectionPhase.value = 'discovering';
+    const services = await BleClient.getServices(device.deviceId);
+    const serviceUuids = new Set(services.map(service => normalizeUuid(service.uuid)));
+    if (!serviceUuids.has(BBS_SERVICE_UUID)) {
+      throw new Error('BBS service 8004 was not discovered');
+    }
+
+    connected.value = true;
+    connectionPhase.value = 'ready';
+    statusMessage.value = `Connected to ${device.name || device.deviceId}`;
+    diagnosticLogger.info('BBS temporary connection ready', {
+      deviceId: device.deviceId,
+      deviceName: device.name,
+    });
+    return true;
+  } catch (error: any) {
+    statusMessage.value = 'Connection failed: ' + (error?.message ?? error);
+    diagnosticLogger.error('BBS temporary connection failed', {
+      deviceId: device.deviceId,
+      deviceName: device.name,
+      error,
+    });
+    try { await disconnectBleDevice(device.deviceId); } catch { /* connection may not exist */ }
+    connected.value = false;
+    connectedDevice.value = undefined;
+    connectionPhase.value = 'idle';
+    return false;
+  } finally {
+    connecting.value = false;
+    connectingDevice = undefined;
+  }
+}
+
+async function cancelConnect() {
+  if (!connecting.value) return;
+
+  connectionCanceled = true;
+  connectionPhase.value = 'idle';
+  finishReconnectScan(false);
+
+  if (reconnectScanActive) {
+    reconnectScanActive = false;
+    try { await BleClient.stopLEScan(); } catch { /* ignore connection scan cancellation errors */ }
+  }
+
+  if (connectingDevice) {
+    try { await disconnectBleDevice(connectingDevice.deviceId); } catch { /* ignore pending connection cancellation errors */ }
+  }
+  statusMessage.value = 'Connection canceled';
+}
+
+async function disconnect() {
+  stopBleRssiMonitoring();
+  if (!connectedDevice.value) return;
+  const disconnectedDevice = connectedDevice.value;
+  diagnosticLogger.info('BLE disconnection requested', {
+    deviceId: disconnectedDevice.deviceId,
+    deviceName: disconnectedDevice.name,
+  });
+  await stopMeasurementMonitoring(
+    connectedDevice.value.deviceId,
+    measurementSubscriptions,
+    log
+  );
+  measurementSubscriptions = [];
+  await stopLoraLinkMonitoring(connectedDevice.value.deviceId, loraLinkSubscription, log);
+  loraLinkSubscription = undefined;
+  loraWanJoined.value = null;
+  loraLinkAvailable.value = null;
+  loraLinkTestAvailable.value = null;
+  loraLinkStatus.value = null;
+  osaAuthenticated.value = null;
+  try {
+    await disconnectBleDevice(connectedDevice.value.deviceId);
+  } catch (e) {
+    console.error('Disconnect error:', e);
+    diagnosticLogger.warn('BLE disconnection failed', { deviceId: disconnectedDevice.deviceId, error: e });
+  }
+  connected.value = false;
+  connectionPhase.value = 'idle';
+  connectedDevice.value = undefined;
+  clearMeasurementHistory();
+  clearConnectionTarget();
+  pairing.value = false;
+  statusMessage.value = 'Disconnected';
+  diagnosticLogger.info('BLE disconnection completed', { deviceId: disconnectedDevice.deviceId });
+}
+
+async function pollAllMeasurements(): Promise<number> {
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) return 0;
+  return pollMeasurementMonitoring(deviceId, log);
+}
+
+async function setCounterValue(
+  endpoint: number,
+  value: number,
+  osaKeyHex: string,
+  devEuiHex: string,
+): Promise<Uint8Array> {
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) throw new Error('Not connected to a BLE device');
+  if (counterUpdateInProgress.value) throw new Error('Another counter update is already running');
+
+  const frame = buildCounterSetFrame(endpoint, value);
+  if (!frame) throw new Error('Invalid counter endpoint or value');
+
+  counterUpdateInProgress.value = true;
+  let subscription: AppRxSubscription | undefined;
+  let response: Uint8Array | undefined;
+  let resolveResponse: ((frame: Uint8Array | undefined) => void) | undefined;
+  const responsePromise = new Promise<Uint8Array | undefined>((resolve) => {
+    resolveResponse = resolve;
+  });
+  const logCounter = (line: string) => logCounterFrame(`[COUNTER EP${endpoint}] ${line}`);
+
+  try {
+    if (osaAuthenticated.value !== true) {
+      osaAuthenticating.value = true;
+      logCounter('OSA authentication required; starting challenge');
+      try {
+        await authenticateOsa(deviceId, osaKeyHex, devEuiHex, logCounter);
+        osaAuthenticated.value = true;
+        logCounter('OSA authentication confirmed');
+      } catch (error) {
+        osaAuthenticated.value = false;
+        throw error;
+      } finally {
+        osaAuthenticating.value = false;
+      }
+    }
+    logCounter(`Set requested: ${value}`);
+    subscription = await startAppRxMonitoring(deviceId, (received) => {
+      if (response) return;
+      response = received;
+      resolveResponse?.(received);
+    }, logCounter);
+    await writeAppTx(deviceId, frame, logCounter);
+
+    if (subscription.notifications) {
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      const timeoutPromise = new Promise<undefined>((resolve) => {
+        timeoutId = setTimeout(() => resolve(undefined), COUNTER_RESPONSE_TIMEOUT_MS);
+      });
+      response = await Promise.race([responsePromise, timeoutPromise]);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    } else {
+      await delay(250);
+      response = await readAppRx(deviceId, subscription);
+      logCounter(`[APP RX] ${toSpacedHex(response)}`);
+    }
+
+    if (!response) {
+      logCounter(`No AppRx response after ${COUNTER_RESPONSE_TIMEOUT_MS} ms`);
+      throw new Error('The sensor did not confirm the counter update');
+    }
+    logCounter(`Update confirmed; polling measurements`);
+  } catch (error: any) {
+    logCounter(`Update failed: ${error?.message ?? error}`);
+    throw error;
+  } finally {
+    osaAuthenticating.value = false;
+    await stopAppRxMonitoring(subscription, logCounter);
+    counterUpdateInProgress.value = false;
+  }
+
+  const polled = await pollMeasurementMonitoring(deviceId, logCounter);
+  logCounter(`Measurement poll completed (${polled} characteristic(s))`);
+  return response;
+}
+
+function finishReconnectScan(found: boolean) {
+  if (reconnectScanTimeoutId) {
+    clearTimeout(reconnectScanTimeoutId);
+    reconnectScanTimeoutId = undefined;
+  }
+  const resolve = reconnectScanResolve;
+  reconnectScanResolve = undefined;
+  resolve?.(found);
+}
+
+async function waitForTargetAdvertisement(
+  device: DeviceLike,
+  deadline: number,
+  isCanceled: () => boolean,
+): Promise<boolean> {
+  const remainingTime = deadline - Date.now();
+  if (isCanceled() || remainingTime <= 0) return false;
+
+  statusMessage.value = `Waiting for ${device.name || device.deviceId}…`;
+  const resultPromise = new Promise<boolean>((resolve) => {
+    reconnectScanResolve = resolve;
+    reconnectScanTimeoutId = setTimeout(() => finishReconnectScan(false), remainingTime);
+  });
+
+  try {
+    await BleClient.requestLEScan({
+      // The sensor only needs to be reported once: the first advertisement is
+      // enough to trigger the next GATT connection attempt. Filtering by its
+      // exact advertised name keeps unrelated BLE traffic on the native side
+      // instead of flooding the WebView during the (potentially long) wait.
+      ...(device.name ? { name: device.name } : {}),
+      allowDuplicates: false,
+      scanMode: ScanMode.SCAN_MODE_LOW_LATENCY,
+    }, (result: ScanResult) => {
+      if (result.device.deviceId === device.deviceId) {
+        log(`RECONNECT FOUND ${device.deviceId}`);
+        finishReconnectScan(true);
+      }
+    });
+    reconnectScanActive = true;
+    if (isCanceled()) finishReconnectScan(false);
+    return await resultPromise;
+  } catch (error: any) {
+    log(`RECONNECT SCAN ERROR ${error?.message ?? error}`);
+    finishReconnectScan(false);
+    return false;
+  } finally {
+    finishReconnectScan(false);
+    if (reconnectScanActive) {
+      reconnectScanActive = false;
+      try { await BleClient.stopLEScan(); } catch { /* ignore reconnect scan cleanup errors */ }
+    }
+  }
+}
+
+async function cancelReconnect() {
+  if (!reconnecting.value) return;
+
+  reconnectCanceled = true;
+  connectionPhase.value = 'idle';
+  finishReconnectScan(false);
+
+  if (reconnectScanActive) {
+    reconnectScanActive = false;
+    try { await BleClient.stopLEScan(); } catch { /* ignore reconnect scan cancellation errors */ }
+  }
+
+  const deviceId = lastConnectedDevice.value?.deviceId;
+  if (deviceId) {
+    try { await disconnectBleDevice(deviceId); } catch { /* ignore pending connection cancellation errors */ }
+  }
+  statusMessage.value = 'Reconnection canceled';
+}
+
+async function reconnectToLastDevice(): Promise<boolean> {
+  if (connected.value) return true;
+  if (reconnecting.value) {
+    await cancelReconnect();
+    return false;
+  }
+
+  const device = lastConnectedDevice.value;
+  if (!device) {
+    statusMessage.value = 'No previously connected device';
+    return false;
+  }
+
+  reconnectCanceled = false;
+  reconnecting.value = true;
+  const reconnectStartedAt = Date.now();
+  diagnosticLogger.info('BLE reconnection workflow started', {
+    deviceId: device.deviceId,
+    deviceName: device.name,
+  });
+  try {
+    const reconnectDeadline = Date.now() + RECONNECT_TIMEOUT_MS;
+    do {
+      const deviceIsAdvertising = await waitForTargetAdvertisement(
+        device,
+        reconnectDeadline,
+        () => reconnectCanceled,
+      );
+      if (reconnectCanceled) return false;
+
+      if (!deviceIsAdvertising) {
+        const remainingTime = reconnectDeadline - Date.now();
+        if (remainingTime > 0) {
+          await delay(Math.min(RECONNECT_RETRY_DELAY_MS, remainingTime));
+        }
+        continue;
+      }
+
+      // If the advertisement arrives near the end of the scan window, still
+      // grant the actual GATT connection its complete timeout.
+      const connectionDeadline = Date.now() + RECONNECT_CONNECT_TIMEOUT_MS;
+      await connectToDeviceUntil(device, connectionDeadline, () => reconnectCanceled);
+      if (connected.value) {
+        diagnosticLogger.info('BLE reconnection workflow completed', {
+          deviceId: device.deviceId,
+          durationMs: Date.now() - reconnectStartedAt,
+        });
+        return true;
+      }
+
+      const remainingTime = reconnectDeadline - Date.now();
+      if (remainingTime > 0) {
+        await delay(Math.min(RECONNECT_RETRY_DELAY_MS, remainingTime));
+      }
+    } while (Date.now() < reconnectDeadline);
+
+    diagnosticLogger.warn('BLE reconnection workflow timed out', {
+      deviceId: device.deviceId,
+      durationMs: Date.now() - reconnectStartedAt,
+    });
+    return false;
+  } finally {
+    finishReconnectScan(false);
+    if (reconnectScanActive) {
+      reconnectScanActive = false;
+      try { await BleClient.stopLEScan(); } catch { /* ignore reconnect scan cleanup errors */ }
+    }
+    if (reconnectCanceled) statusMessage.value = 'Reconnection canceled';
+    if (!connected.value) connectionPhase.value = 'idle';
+    reconnecting.value = false;
+  }
+}
+
+async function reconnectAfterDeviceRestart(deviceId: string): Promise<boolean> {
+  const rememberedDevice = lastConnectedDevice.value;
+  if (!rememberedDevice || rememberedDevice.deviceId !== deviceId) {
+    statusMessage.value = 'Restarted device is no longer available for reconnection';
+    return false;
+  }
+
+  statusMessage.value = `Waiting for ${rememberedDevice.name || deviceId} to restart…`;
+  const disconnectDeadline = Date.now() + RESTART_DISCONNECT_TIMEOUT_MS;
+  while (
+    connected.value
+    && connectedDevice.value?.deviceId === deviceId
+    && Date.now() < disconnectDeadline
+  ) {
+    await delay(RESTART_DISCONNECT_POLL_INTERVAL_MS);
+  }
+
+  // A write-without-response can leave the native client looking connected
+  // even though the sensor has already restarted. Close that stale GATT link
+  // before starting the targeted advertisement scan.
+  if (connectedDevice.value?.deviceId === deviceId) {
+    await disconnect();
+  }
+
+  if (lastConnectedDevice.value?.deviceId !== deviceId) return false;
+  return reconnectToLastDevice();
+}
+
+/* ================================================================== */
+/*  Write-queue                                                        */
+/* ================================================================== */
+function enqueueHexFrames(hexArray: string[]) {
+  for (const hex of hexArray) {
+    const bytes = hexToBytes(hex);
+    pending.push(bytes);
+    log(`QUEUED ${toHex(bytes)}`);
+  }
+  setTimeout(() => flushPending(), 0);
+}
+
+async function flushPending() {
+  if (!targetDeviceId || !targetServiceUuid || !targetCharUuid) return;
+  if (pending.length === 0) return;
+  if (flushing) return;
+
+  flushing = true;
+  sending.value = true;
+  try {
+    while (pending.length > 0) {
+      const frame = pending.shift()!;
+      try {
+        await writeFrame(frame);
+        log(`ACK   ${toHex(frame)}`);
+      } catch (err: any) {
+        const code = extractBleErrorCode(err);
+        log(`ERROR ${toHex(frame)} ${err?.message ?? err}${code ? ` (code ${code})` : ''}`);
+        debugBleWriteError('frame', toHex(frame), err);
+      }
+      await delay(INTER_FRAME_DELAY_MS);
+    }
+  } finally {
+    flushing = false;
+    sending.value = false;
+  }
+}
+
+async function writeFrame(frame: Uint8Array) {
+  const chunks: Uint8Array[] = [];
+  for (let i = 0; i < frame.length; i += MAX_CHUNK_SIZE) {
+    chunks.push(frame.slice(i, i + MAX_CHUNK_SIZE));
+  }
+  for (const chunk of chunks) {
+    await writeChunkWithRetries(chunk);
+    await delay(INTER_CHUNK_DELAY_MS);
+  }
+}
+
+async function writeChunkWithRetries(chunk: Uint8Array) {
+  if (!targetDeviceId || !targetServiceUuid || !targetCharUuid) {
+    throw new Error('No target characteristic set');
+  }
+  let lastError: any;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt === 1 && await isDeviceBonded(targetDeviceId) === false) {
+      await ensureBonded(targetDeviceId);
+    }
+
+    try {
+      const dv = new DataView(chunk.buffer, chunk.byteOffset, chunk.byteLength);
+      await BleClient.write(targetDeviceId, targetServiceUuid, targetCharUuid, dv);
+      return;
+    } catch (e) {
+      lastError = e;
+      debugBleWriteError('write', toHex(chunk), lastError, attempt);
+
+      if (isAttApplicationError(lastError)) {
+        const errorCode = getAttErrorCode(lastError) ?? '0x??';
+        throw new Error(`ATT Application Error ${errorCode}: Command rejected by device (no retry)`);
+      }
+
+      try {
+        const dv = new DataView(chunk.buffer, chunk.byteOffset, chunk.byteLength);
+        await BleClient.writeWithoutResponse(targetDeviceId, targetServiceUuid, targetCharUuid, dv);
+        return;
+      } catch (e2) {
+        lastError = e2;
+        debugBleWriteError('writeWithoutResponse', toHex(chunk), lastError, attempt);
+      }
+
+      if (isAttApplicationError(lastError)) {
+        const errorCode = getAttErrorCode(lastError) ?? '0x??';
+        throw new Error(`ATT Application Error ${errorCode}: Command rejected by device (no retry)`);
+      }
+
+      if (attempt === 1 && (await isDeviceBonded(targetDeviceId) === false || hasRememberedBond(targetDeviceId) || isLikelyBondIssue(lastError))) {
+        handleBondInvalidation(targetDeviceId, (lastError as any)?.message ?? String(lastError));
+        await ensureBonded(targetDeviceId, true);
+        continue;
+      }
+    }
+    await delay(50 * attempt);
+  }
+  throw lastError ?? new Error('Write failed');
+}
+
+/* ================================================================== */
+/*  High-level: send frames from output area                           */
+/* ================================================================== */
+function getOutputFrameHexes(): string[] {
+  const outputArea = document.getElementById('outputArea');
+  if (!outputArea) return [];
+  return readOutputFrameHexes(outputArea);
+}
+
+function getOutputConfigurationFrames(): ConfigurationFrame[] {
+  const outputArea = document.getElementById('outputArea');
+  if (!outputArea) return [];
+  return readOutputConfigurationFrames(outputArea);
+}
+
+function getDefaultConfigurationPreview(
+  blobOnlyConfigurations: readonly (readonly string[])[] = [],
+): string[] {
+  const outputFrames = getOutputFrameHexes();
+  if (outputFrames.length === 0) return [];
+  const blobFrames = appendBlobOnlyConfigurations(outputFrames, blobOnlyConfigurations);
+  return formatConfigurationBlob(buildConfigurationBlob(blobFrames));
+}
+
+function getCurrentConfigurationPreview(): string[] {
+  return takeFirstConfigurationFrames(getOutputFrameHexes())
+    .map(frame => toSpacedHex(hexToBytes(frame)).toUpperCase());
+}
+
+async function sendOutputFrames(
+  osaKeyHex: string,
+  devEuiHex: string,
+  activateAfterCommit = true,
+  blobOnlyConfigurations: readonly (readonly string[])[] = [],
+): Promise<number> {
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) {
+    statusMessage.value = 'Not connected to a BLE device';
+    return -1;
+  }
+  const validFrames = getOutputFrameHexes();
+  if (validFrames.length === 0) {
+    statusMessage.value = 'No valid frames to send';
+    return 0;
+  }
+  const blobFrames = appendBlobOnlyConfigurations(validFrames, blobOnlyConfigurations);
+  if (sending.value) return 0;
+
+  sending.value = true;
+  osaAuthenticating.value = true;
+  statusMessage.value = 'Authenticating configuration transfer…';
+  let osaAuthenticated = false;
+  try {
+    await authenticateOsa(deviceId, osaKeyHex, devEuiHex, log);
+    osaAuthenticated = true;
+    setOsaAuthenticated(true);
+    osaAuthenticating.value = false;
+    statusMessage.value = `Sending ${blobFrames.length} configuration record(s)…`;
+    await uploadConfigurationBlob(deviceId, blobFrames, log, activateAfterCommit);
+    statusMessage.value = activateAfterCommit
+      ? 'Configuration committed; sensor is restarting'
+      : 'Configuration stored without activation';
+    return blobFrames.length;
+  } catch (error: any) {
+    const message = error?.message ?? String(error);
+    log(`BLOB ERROR ${message}`);
+    statusMessage.value = osaAuthenticated
+      ? `Configuration transfer failed: ${message}`
+      : 'Configuration authorization failed';
+    return osaAuthenticated ? -1 : -2;
+  } finally {
+    osaAuthenticating.value = false;
+    sending.value = false;
+  }
+}
+
+async function sendCurrentConfigurationFrames(
+  osaKeyHex: string,
+  devEuiHex: string,
+  onProgress?: (sent: number, total: number) => void,
+): Promise<CurrentConfigurationSendResult> {
+  clearConfigurationFrameLogs();
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) {
+    statusMessage.value = 'Not connected to a BLE device';
+    return { state: 'not-started', total: 0, processed: 0, frames: [] };
+  }
+  const currentConfigurationFrames = takeFirstConfigurationFrameEntries(
+    getOutputConfigurationFrames(),
+  );
+  if (currentConfigurationFrames.length === 0) {
+    statusMessage.value = 'No frames found before the first configuration separator';
+    return { state: 'not-started', total: 0, processed: 0, frames: [] };
+  }
+  if (sending.value) {
+    return {
+      state: 'not-started',
+      total: currentConfigurationFrames.length,
+      processed: 0,
+      frames: [],
+    };
+  }
+
+  sending.value = true;
+  onProgress?.(0, currentConfigurationFrames.length);
+  osaAuthenticating.value = true;
+  statusMessage.value = 'Authenticating configuration transfer…';
+  let osaAuthenticated = false;
+  let appRxSubscription: AppRxSubscription | undefined;
+  let receivedFrameHandler: ((frame: Uint8Array) => void) | undefined;
+  const frameResults: ConfigurationFrameResult[] = [];
+  const total = currentConfigurationFrames.length;
+
+  const finishFrame = (result: ConfigurationFrameResult) => {
+    frameResults.push(result);
+    onProgress?.(frameResults.length, total);
+  };
+
+  const pollForResponse = async (
+    request: Uint8Array,
+    subscription: AppRxSubscription,
+    timeoutMs: number,
+  ): Promise<Uint8Array | null> => {
+    const deadline = Date.now() + timeoutMs;
+    let lastLoggedHex = '';
+    while (Date.now() < deadline) {
+      await delay(100);
+      try {
+        const response = await readAppRx(deviceId, subscription);
+        const responseHex = toSpacedHex(response);
+        if (responseHex !== lastLoggedHex) {
+          logConfigurationFrame(`[APP RX] ${responseHex}`);
+          lastLoggedHex = responseHex;
+        }
+        if (matchesAppFrameResponse(request, response)) return response;
+      } catch (error: any) {
+        logConfigurationFrame(`[APP RX] Read failed: ${error?.message ?? error}`);
+      }
+    }
+    return null;
+  };
+  try {
+    await authenticateOsa(deviceId, osaKeyHex, devEuiHex, log);
+    osaAuthenticated = true;
+    setOsaAuthenticated(true);
+    osaAuthenticating.value = false;
+    try {
+      appRxSubscription = await startAppRxMonitoring(
+        deviceId,
+        frame => receivedFrameHandler?.(frame),
+        logConfigurationFrame,
+      );
+      logConfigurationFrame(
+        appRxSubscription.notifications
+          ? '[APP RX] Live notifications enabled'
+          : '[APP RX] Notifications unavailable; reading after each TX',
+      );
+    } catch (error: any) {
+      logConfigurationFrame(`[APP RX] Monitoring unavailable: ${error?.message ?? error}`);
+    }
+    statusMessage.value = `Applying ${currentConfigurationFrames.length} configuration frame(s)…`;
+    for (const [zeroBasedIndex, frame] of currentConfigurationFrames.entries()) {
+      const index = zeroBasedIndex + 1;
+      const request = hexToBytes(frame.hex);
+      const responseDefinition = getAppFrameResponseRule(request)?.response;
+      let notificationResponse: Promise<Uint8Array | null> | undefined;
+      let cancelNotificationWait: () => void = () => undefined;
+
+      if (responseDefinition && appRxSubscription?.notifications) {
+        notificationResponse = new Promise(resolve => {
+          let settled = false;
+          const finish = (response: Uint8Array | null) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timeoutId);
+            receivedFrameHandler = undefined;
+            resolve(response);
+          };
+          const timeoutId = setTimeout(() => finish(null), responseDefinition.timeoutMs);
+          receivedFrameHandler = response => {
+            if (matchesAppFrameResponse(request, response)) finish(response);
+          };
+          cancelNotificationWait = () => finish(null);
+        });
+      }
+
+      try {
+        await writeAppTx(deviceId, request, logConfigurationFrame);
+      } catch (error: any) {
+        cancelNotificationWait();
+        const message = error?.message ?? String(error);
+        finishFrame({
+          index,
+          total,
+          frame,
+          outcome: 'transport-error',
+          errorMessage: message,
+        });
+        throw error;
+      }
+
+      if (!responseDefinition) {
+        await delay(APP_FRAME_FALLBACK_DELAY_MS);
+        finishFrame({ index, total, frame, outcome: 'no-response-expected' });
+        continue;
+      }
+
+      let response: Uint8Array | null = null;
+      if (notificationResponse) {
+        response = await notificationResponse;
+      } else if (appRxSubscription) {
+        response = await pollForResponse(request, appRxSubscription, responseDefinition.timeoutMs);
+      } else {
+        await delay(responseDefinition.timeoutMs);
+      }
+      receivedFrameHandler = undefined;
+
+      if (!response) {
+        logConfigurationFrame(
+          `[APP RX] Timeout after ${responseDefinition.timeoutMs} ms for ${toSpacedHex(request)}`,
+        );
+        finishFrame({ index, total, frame, outcome: 'timeout' });
+        continue;
+      }
+
+      const status = getAppFrameResponseStatus(request, response);
+      const responseHex = toSpacedHex(response);
+      const errorAttributeId = getAppFrameResponseErrorAttributeId(request, response);
+      if (status !== null && isSuccessfulAppFrameResponse(request, response)) {
+        finishFrame({ index, total, frame, outcome: 'success', responseHex, status });
+        continue;
+      }
+
+      logConfigurationFrame(
+        `[APP RX] Device rejected frame ${index}/${total}${status === null ? '' : ` with status 0x${status.toString(16).padStart(2, '0')}`}`,
+      );
+      finishFrame({
+        index,
+        total,
+        frame,
+        outcome: 'device-error',
+        responseHex,
+        ...(status === null ? {} : { status }),
+        ...(errorAttributeId === null ? {} : { errorAttributeId }),
+        ...(status === null ? { errorMessage: 'Malformed application response' } : {}),
+      });
+    }
+
+    const partial = frameResults.some(result => (
+      result.outcome === 'device-error' || result.outcome === 'timeout'
+    ));
+    statusMessage.value = partial
+      ? 'Current configuration completed with errors'
+      : 'Current configuration applied';
+    return {
+      state: partial ? 'partial' : 'success',
+      total,
+      processed: frameResults.length,
+      frames: frameResults,
+    };
+  } catch (error: any) {
+    const message = error?.message ?? String(error);
+    logConfigurationFrame(`APP TX ERROR ${message}`);
+    statusMessage.value = osaAuthenticated
+      ? `Current configuration transfer failed: ${message}`
+      : 'Configuration authorization failed';
+    return {
+      state: osaAuthenticated ? 'failed' : 'authorization-denied',
+      total,
+      processed: frameResults.length,
+      frames: frameResults,
+      errorMessage: message,
+    };
+  } finally {
+    receivedFrameHandler = undefined;
+    await stopAppRxMonitoring(appRxSubscription, logConfigurationFrame);
+    osaAuthenticating.value = false;
+    sending.value = false;
+  }
+}
+
+export type CurrentReportingConfigurationReadResult = {
+  state: 'success' | 'failed' | 'authorization-denied' | 'not-started';
+  frames: Uint8Array[];
+  errorMessage?: string;
+};
+
+async function readCurrentReportingConfigurations(
+  osaKeyHex: string,
+  devEuiHex: string,
+): Promise<CurrentReportingConfigurationReadResult> {
+  clearConfigurationFrameLogs();
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) {
+    statusMessage.value = 'Not connected to a BLE device';
+    return { state: 'not-started', frames: [] };
+  }
+  if (sending.value) return { state: 'not-started', frames: [] };
+
+  // 0x03 requests both standard (0x01) and batch (0x02) report configurations.
+  const request = Uint8Array.of(0x11, 0x50, 0x00, 0x50, 0x09, 0x03, 0x00, 0x00);
+  const prepared = prepareCustomAppTxRequest(request);
+  const policy = prepared.responsePolicy;
+  const firstResponseTimeoutMs = policy.mode === 'multiple' || policy.mode === 'legacy'
+    ? policy.firstResponseTimeoutMs
+    : policy.mode === 'single'
+      ? policy.firstResponseTimeoutMs
+      : 2000;
+  const idleTimeoutMs = policy.mode === 'multiple' || policy.mode === 'legacy'
+    ? policy.idleTimeoutMs
+    : firstResponseTimeoutMs;
+
+  sending.value = true;
+  osaAuthenticating.value = true;
+  statusMessage.value = 'Authenticating configuration read...';
+  let osaAuthenticated = false;
+  let subscription: AppRxSubscription | undefined;
+  let collectionTimer: ReturnType<typeof setTimeout> | undefined;
+  let finishCollection: (() => void) | undefined;
+  const frames: Uint8Array[] = [];
+  const collectionComplete = new Promise<void>(resolve => { finishCollection = resolve; });
+  const resetCollectionTimer = (timeoutMs: number) => {
+    if (collectionTimer !== undefined) clearTimeout(collectionTimer);
+    collectionTimer = setTimeout(() => finishCollection?.(), timeoutMs);
+  };
+
+  try {
+    await authenticateOsa(deviceId, osaKeyHex, devEuiHex, log);
+    osaAuthenticated = true;
+    setOsaAuthenticated(true);
+    osaAuthenticating.value = false;
+    statusMessage.value = 'Reading reporting configurations...';
+
+    subscription = await startAppRxMonitoring(
+      deviceId,
+      frame => {
+        // The firmware capture timeout is sliding on every diverted ZCD frame,
+        // including unrelated autonomous reports. Mirror that behavior locally,
+        // while retaining only reporting-configuration responses for parsing.
+        resetCollectionTimer(idleTimeoutMs);
+        if (frame.length < 2 || frame[1] !== 0x09) return;
+        frames.push(new Uint8Array(frame));
+      },
+      logConfigurationFrame,
+    );
+    if (!subscription.notifications) {
+      throw new Error('AppRx notifications are required to collect reporting configurations');
+    }
+
+    await writeAppTx(deviceId, prepared.appTxFrame, logConfigurationFrame);
+    if (frames.length === 0) resetCollectionTimer(firstResponseTimeoutMs);
+    await collectionComplete;
+    if (frames.length === 0) {
+      const message = 'No reporting configuration response received';
+      statusMessage.value = message;
+      return { state: 'failed', frames, errorMessage: message };
+    }
+    statusMessage.value = `${frames.length} reporting configuration(s) received`;
+    return { state: 'success', frames };
+  } catch (error: any) {
+    const message = error?.message ?? String(error);
+    logConfigurationFrame(`CONFIG READ ERROR ${message}`);
+    statusMessage.value = osaAuthenticated
+      ? `Configuration read failed: ${message}`
+      : 'Configuration authorization failed';
+    return {
+      state: osaAuthenticated ? 'failed' : 'authorization-denied',
+      frames,
+      errorMessage: message,
+    };
+  } finally {
+    if (collectionTimer !== undefined) clearTimeout(collectionTimer);
+    finishCollection = undefined;
+    await stopAppRxMonitoring(subscription, logConfigurationFrame);
+    osaAuthenticating.value = false;
+    sending.value = false;
+  }
+}
+
+async function sendLoraLinkTest(options: LoraLinkTestOptions): Promise<void> {
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) throw new Error('Not connected to a BLE device');
+  await sendLoraLinkTestCommand(deviceId, options, log);
+}
+
+async function refreshLoraLinkStatus(): Promise<LoraLinkStatus> {
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) throw new Error('Not connected to a BLE device');
+  const status = await readLoraLinkStatusFromBle(deviceId, loraLinkSubscription, log);
+  loraLinkStatus.value = status;
+  loraWanJoined.value = status.joined;
+  return status;
+}
+
+function getDeviceName(device: DeviceLike): string {
+  return device.name || device.deviceId.substring(0, 8) + '…';
+}
+
+function setProductReference(value?: string | null) {
+  productReference.value = resolveAvailableProductReference(value);
+}
+
+function setOsaAuthenticated(value: boolean | null) {
+  osaAuthenticated.value = value;
+}
+
+async function refreshOsaAuthenticationStatus(): Promise<boolean | null> {
+  const deviceId = connectedDevice.value?.deviceId;
+  if (!connected.value || !deviceId) {
+    osaAuthenticated.value = null;
+    return null;
+  }
+
+  try {
+    const status = await readAdminDeviceStatus(deviceId, log);
+    osaAuthenticated.value = status.osaAuthenticated;
+  } catch (error: any) {
+    log(`[ADMIN] Authentication status unavailable: ${error?.message ?? error}`);
+    osaAuthenticated.value = null;
+  }
+  return osaAuthenticated.value;
+}
+
+/* ================================================================== */
+/*  Composable (returns singleton state)                               */
+/* ================================================================== */
+export function useBle() {
+  return {
+    receivedFrames:   readonly(receivedFrames),
+    configurationFrameLogs: readonly(configurationFrameLogs),
+    counterFrameLogs: readonly(counterFrameLogs),
+    isNative:        readonly(isNative),
+    bleInitialized:  readonly(bleInitialized),
+    scanning:        readonly(scanning),
+    connected:       readonly(connected),
+    connectionPhase: readonly(connectionPhase),
+    devices:         readonly(devices),
+    connectedDevice: readonly(connectedDevice),
+    lastConnectedDevice: readonly(lastConnectedDevice),
+    statusMessage,
+    eventsLog:       readonly(eventsLog),
+    wakeDiagnostics: readonly(wakeDiagnostics),
+    wakingSensor: readonly(wakingSensor),
+    sending:         readonly(sending),
+    osaAuthenticating: readonly(osaAuthenticating),
+    osaAuthenticated: readonly(osaAuthenticated),
+    pairing:         readonly(pairing),
+    connecting:      readonly(connecting),
+    reconnecting:    readonly(reconnecting),
+    bondedDevices:   readonly(bondedDevices),
+    productReference: readonly(productReference),
+    loraWanJoined: readonly(loraWanJoined),
+    loraLinkAvailable: readonly(loraLinkAvailable),
+    loraLinkTestAvailable: readonly(loraLinkTestAvailable),
+    loraLinkStatus: readonly(loraLinkStatus),
+    measurementValues: readonly(measurementValues),
+    measurementHistory: readonly(measurementHistory),
+    counterUpdateInProgress: readonly(counterUpdateInProgress),
+    bleRssi: readonly(bleRssi),
+    bleSignalLevel: readonly(bleSignalLevel),
+
+    initialize,
+    startScan,
+    startAutoScan,
+    startTargetedScan,
+    cancelScan,
+    stopScan,
+    clearWakeDiagnostics,
+    connectToDevice,
+    connectToSpecialModeDevice,
+    cancelConnect,
+    reconnectToLastDevice,
+    reconnectAfterDeviceRestart,
+    expectDeviceRestart,
+    cancelExpectedDeviceRestart,
+    cancelReconnect,
+    disconnect,
+    pollAllMeasurements,
+    setCounterValue,
+    clearMeasurementHistory,
+    getDefaultConfigurationPreview,
+    getCurrentConfigurationPreview,
+    clearConfigurationFrameLogs,
+    clearCounterFrameLogs,
+    sendOutputFrames,
+    sendCurrentConfigurationFrames,
+    readCurrentReportingConfigurations,
+    sendLoraLinkTest,
+    refreshLoraLinkStatus,
+    getDeviceName,
+    setProductReference,
+    setOsaAuthenticated,
+    refreshOsaAuthenticationStatus,
+  };
+}

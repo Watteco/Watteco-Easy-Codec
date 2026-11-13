@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'io.ionic.starter',
-  appName: 'Watteco Codec',
+  appId: 'wattecoDev.easycodec',
+  appName: 'Watteco Neo',
   webDir: 'dist'
 };
 

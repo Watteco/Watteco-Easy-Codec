@@ -2,7 +2,7 @@
   <ion-page>
     <ion-tabs>
       <ion-router-outlet></ion-router-outlet>
-      <ion-header>
+      <ion-header v-if="!isNativeApp">
         <ion-toolbar>
           <ion-img 
             id="watteco-logo" 
@@ -11,11 +11,11 @@
           <ion-title 
             size="large"
             id="watteco-title">
-              Easy Codec - BETA v{{ appVersion }}
+              {{ isNativeApp ? localize("@sensorConfigTitle") : `Easy Codec - BETA v${appVersion}` }}
           </ion-title>
         </ion-toolbar>
       </ion-header>
-      <ion-tab-bar v-if="!isInIframe" slot="bottom">
+      <ion-tab-bar v-if="!isInIframe && !isNativeApp" slot="bottom">
         <ion-tab-button tab="downlink" href="/tabs/downlink">
           <ion-icon :icon="arrowDownCircleOutline" />
         </ion-tab-button>
@@ -38,6 +38,18 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { appVersion } from '@/utils/appVersion';
+import { Capacitor } from '@capacitor/core';
+import axios from 'axios';
+import { useLanguage } from '@/composables/useLanguage';
+import type { LanguageCode, Translations } from '@/types/localization';
+import { createBundledTranslations } from '@/utils/localization';
+
+import enUS from '/localisation/en_US.json?url';
+import frFR from '/localisation/fr_FR.json?url';
+
+const isNativeApp = Capacitor.isNativePlatform();
+
 import { 
   IonTabBar, 
   IonTabButton, 
@@ -63,10 +75,15 @@ import {
 } from '@ionic/vue';
 import { arrowDownCircleOutline, arrowUpCircleOutline, batteryHalfOutline, serverOutline } from 'ionicons/icons';
 
-const appVersion = __APP_VERSION__;
-
 // Define a reactive variable for the logo's src
 const logoSrc = ref('');
+const { currentLanguage } = useLanguage();
+const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
+
+const localize = (key: string): string => {
+  if (!key.startsWith('@')) return key;
+  return languages.value[currentLanguage.value][key.substring(1)] ?? key;
+};
 
 const isInIframe = (() => {
   if (typeof window === 'undefined') {
@@ -80,8 +97,20 @@ const isInIframe = (() => {
   }
 })();
 
-onMounted(() => {
+onMounted(async () => {
   loadImage();
+
+  try {
+    const cacheBuster = `?v=${Date.now()}`;
+    const [enResponse, frResponse] = await Promise.all([
+      axios.get<Translations>(enUS + cacheBuster),
+      axios.get<Translations>(frFR + cacheBuster),
+    ]);
+    languages.value.en = enResponse.data;
+    languages.value.fr = frResponse.data;
+  } catch (error) {
+    console.error('Failed to load localization files:', error);
+  }
 });
 
 const loadImage = async () => {
@@ -99,11 +128,6 @@ const loadImage = async () => {
 :root {
   --ion-item-background: #00000000;
   --ion-item-border-color: #00000000;
-  --ion-background-color: #FFF7EE;
-}
-
-ion-tab-bar {
-  /*display: none;  Tabs are not used yet */
 }
 
 ion-toolbar {

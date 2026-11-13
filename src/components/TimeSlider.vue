@@ -4,13 +4,13 @@
   <div class="slider-container">
     <ion-range
       class="time-range"
-      :min="min"
-      :max="max"
-      :value="currentValue"
-      :step="step"
+      :min="rangeMin"
+      :max="rangeMax"
+      :value="currentIndex"
+      :step="1"
       pin="false"
       snaps="true"
-      color="primary"
+      :ticks="showTicks"
       @ionChange="onRangeChange"
       @ionInput="onRangeInput"
     ></ion-range>
@@ -23,7 +23,7 @@
       v-else
       class="time-input"
       v-model="timeInputValue"
-      :placeholder="props.outputFormat === 'HHMM' ? 'HHMM' : '0h00'"
+      :placeholder="inputPlaceholder"
       @ionBlur="finishEditing"
       @keyup.enter="finishEditing"
       @ionInput="onInputChange"
@@ -35,15 +35,41 @@
 
 <script setup>
 import { ref, watch, computed, nextTick } from 'vue';
-import { IonIcon } from '@ionic/vue';
+import { useRangeTicks } from '@/composables/useRangeTicks';
+import {
+  formatTimeValue,
+  formatTimeValueStorage,
+  parseTimeValue,
+  timeValueToSeconds,
+} from '@/utils/timeValue';
 
 // Props
 const props = defineProps({
   label: String,
-  min: Number,
-  max: Number,
-  value: Number,
-  step: Number,
+  min: [String, Number],
+  max: [String, Number],
+  value: [String, Number],
+  step: [String, Number],
+  maxDuration: {
+    type: [String, Number],
+    default: null,
+  },
+  allowSeconds: {
+    type: Boolean,
+    default: false,
+  },
+  secondsMin: {
+    type: [String, Number],
+    default: 1,
+  },
+  secondsStep: {
+    type: [String, Number],
+    default: 1,
+  },
+  timeSteps: {
+    type: Array,
+    default: null,
+  },
   groupName: String,
   paramName: String,
   outputFormat: {
@@ -52,63 +78,168 @@ const props = defineProps({
   }
 });
 
-const currentValue = ref(Number(props.value) || 0);
-const timeInputValue = ref(formatMinutesToTimeString(Number(props.value) || 0));
+const normalizeStorageValue = (value) => {
+  const parsed = parseTimeValue(value);
+  return parsed ? formatTimeValueStorage(parsed) : '0';
+};
+
+const currentValue = ref(normalizeStorageValue(props.value));
+const timeInputValue = ref(formatTimeValue(currentValue.value));
 const isEditing = ref(false);
 const timeInputRef = ref(null);
+const inputPlaceholder = computed(() => {
+  if (props.outputFormat === 'HHMM') return 'HHMM';
+  return props.allowSeconds ? '10s / 0h10' : '0h10';
+});
+
+const effectiveMaximum = computed(() => (
+  parseTimeValue(props.maxDuration ?? props.max)
+  ?? parseTimeValue(Number(props.max) || 0)
+  ?? { unit: 'minutes', value: 0 }
+));
+const effectiveMaximumSeconds = computed(() => timeValueToSeconds(
+  formatTimeValueStorage(effectiveMaximum.value),
+) ?? 0);
+
+const defaultMinuteSteps = [
+  [0, 1],
+  [60, 5],
+  [360, 15],
+  [720, 30],
+  [1440, 60],
+];
+
+const minuteSteps = computed(() => {
+  const configuredSteps = Array.isArray(props.timeSteps) ? props.timeSteps : [];
+  const normalizedSteps = configuredSteps
+    .filter(step => Array.isArray(step) && step.length >= 2)
+    .map(([from, step]) => [Number(from), Number(step)])
+    .filter(([from, step]) => Number.isFinite(from) && from >= 0 && Number.isFinite(step) && step >= 1)
+    .sort(([left], [right]) => left - right);
+  const steps = normalizedSteps.length > 0 ? normalizedSteps : defaultMinuteSteps;
+  if (steps[0][0] > 0) steps.unshift([0, Number(props.step) || 1]);
+  return steps;
+});
+
+const addMinuteOptions = (options, minimum, maximum) => {
+  const configuredStep = Math.max(1, Number(props.step) || 1);
+  options.push({ unit: 'minutes', value: minimum });
+
+  minuteSteps.value.forEach(([from, profileStep], index) => {
+    const nextFrom = minuteSteps.value[index + 1]?.[0] ?? Number.POSITIVE_INFINITY;
+    const intervalStart = Math.max(minimum, from);
+    const intervalEnd = Math.min(maximum + 1, nextFrom);
+    const step = configuredStep * Math.ceil(profileStep / configuredStep);
+    const firstValue = from + Math.ceil((intervalStart - from) / step) * step;
+    for (let value = firstValue; value < intervalEnd && value <= maximum; value += step) {
+      options.push({ unit: 'minutes', value });
+    }
+  });
+
+  options.push({ unit: 'minutes', value: maximum });
+};
+
+const durationOptions = computed(() => {
+  if (props.outputFormat === 'HHMM') {
+    const minimum = Number(props.min) || 0;
+    const maximum = Number(props.max) || 0;
+    const step = Math.max(1, Number(props.step) || 1);
+    const values = [minimum];
+    const firstStep = Math.ceil(minimum / step) * step;
+    for (let value = firstStep; value <= maximum; value += step) values.push(value);
+    values.push(maximum);
+    const selected = parseTimeValue(currentValue.value)?.value;
+    if (selected !== undefined && selected >= minimum && selected <= maximum) values.push(selected);
+    return [...new Set(values)].sort((left, right) => left - right)
+      .map(value => ({ unit: 'minutes', value }));
+  }
+
+  const options = [];
+  if (props.allowSeconds) {
+    const minimum = Math.max(0, Number(props.secondsMin) || 1);
+    const maximum = Math.min(59, effectiveMaximumSeconds.value);
+    const step = Math.max(1, Number(props.secondsStep) || 1);
+    for (let value = minimum; value <= maximum; value += step) {
+      options.push({ unit: 'seconds', value });
+    }
+  }
+
+  const minimumMinutes = Math.max(0, Number(props.min) || 0);
+  const configuredMaximumMinutes = Math.max(minimumMinutes, Number(props.max) || 0);
+  const maximumMinutes = Math.min(
+    configuredMaximumMinutes,
+    Math.floor(effectiveMaximumSeconds.value / 60),
+  );
+  if (minimumMinutes <= maximumMinutes) {
+    addMinuteOptions(options, minimumMinutes, maximumMinutes);
+  }
+
+  const selected = parseTimeValue(currentValue.value);
+  const selectedSeconds = timeValueToSeconds(currentValue.value);
+  if (selected && selectedSeconds !== null && selectedSeconds <= effectiveMaximumSeconds.value) {
+    options.push(selected);
+  }
+
+  const unique = new Map();
+  options.forEach(option => unique.set(`${option.unit}:${option.value}`, option));
+  return Array.from(unique.values()).sort((left, right) => {
+    const durationDifference = (left.unit === 'seconds' ? left.value : left.value * 60)
+      - (right.unit === 'seconds' ? right.value : right.value * 60);
+    if (durationDifference !== 0) return durationDifference;
+    return left.unit === 'seconds' ? -1 : 1;
+  });
+});
+
+const rangeMin = computed(() => 0);
+const rangeMax = computed(() => Math.max(0, durationOptions.value.length - 1));
+const currentIndex = computed(() => {
+  const selected = parseTimeValue(currentValue.value);
+  if (!selected || durationOptions.value.length === 0) return 0;
+  const exactIndex = durationOptions.value.findIndex(option => (
+    option.unit === selected.unit && option.value === selected.value
+  ));
+  if (exactIndex >= 0) return exactIndex;
+  const selectedSeconds = timeValueToSeconds(currentValue.value) ?? 0;
+  return durationOptions.value.reduce((nearestIndex, option, index) => {
+    const optionSeconds = option.unit === 'seconds' ? option.value : option.value * 60;
+    const nearest = durationOptions.value[nearestIndex];
+    const nearestSeconds = nearest.unit === 'seconds' ? nearest.value : nearest.value * 60;
+    return Math.abs(optionSeconds - selectedSeconds) < Math.abs(nearestSeconds - selectedSeconds)
+      ? index
+      : nearestIndex;
+  }, 0);
+});
+
+const showTicks = useRangeTicks(
+  () => rangeMin.value,
+  () => rangeMax.value,
+  () => 1,
+);
 
 const emit = defineEmits(['update:value']);
 
 const valueHours = computed(() => {
-  let validValue = Number(currentValue.value) || Number(props.value) || 0;
-
-  if (props.min === props.max) {
-    validValue = props.min;
-  }
-
-  return formatMinutesToTimeString(validValue);
+  return formatTimeValue(currentValue.value);
 });
 
 const displayValue = computed(() => {
   if (props.outputFormat === 'HHMM') {
-    return formatMinutesToTwoByteHHMM(Number(currentValue.value) || 0);
+    return formatMinutesToTwoByteHHMM(parseTimeValue(currentValue.value)?.value ?? 0);
   }
   return valueHours.value;
 });
 
 const onRangeChange = (event) => {
-  let newValue = event.detail.value;
-
-  const snappedValue = Math.max(
-    props.min,
-    Math.round(newValue / props.step) * props.step
-  );
-
-  if (snappedValue > props.max) {
-    newValue = props.max;
-  } else {
-    newValue = snappedValue;
-  }
-
+  const option = durationOptions.value[Math.round(event.detail.value)];
+  if (!option) return;
+  const newValue = formatTimeValueStorage(option);
   currentValue.value = newValue;
   emit('update:value', { newValue, groupName: props.groupName, paramName: props.paramName });
 };
 
 const onRangeInput = (event) => {
-  let newValue = event.detail.value;
-
-  const snappedValue = Math.max(
-    props.min,
-    Math.round(newValue / props.step) * props.step
-  );
-
-  if (snappedValue > props.max) {
-    newValue = props.max;
-  } else {
-    newValue = snappedValue;
-  }
-
-  currentValue.value = newValue;
+  const option = durationOptions.value[Math.round(event.detail.value)];
+  if (option) currentValue.value = formatTimeValueStorage(option);
 };
 
 const onInputChange = (event) => {
@@ -116,12 +247,6 @@ const onInputChange = (event) => {
     timeInputValue.value = event.target.value;
   }
 };
-
-function formatMinutesToTimeString(minutes) {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return `${hours}h${mins < 10 ? '0' : ''}${mins}`;
-}
 
 function parseTimeStringToMinutes(timeString) {
   if (!timeString) return 0;
@@ -140,28 +265,8 @@ function parseTimeStringToMinutes(timeString) {
     const totalMinutes = parseInt(cleanString, 10) || 0;
     return totalMinutes;
   }
-  
-  const normalized = cleanString.replace(/[^0-9h:]/g, '');
-  if (normalized.includes('h')) {
-    const parts = normalized.split('h');
-    hours = parseInt(parts[0]) || 0;
-    minutes = parseInt(parts[1]) || 0;
-  } else if (normalized.includes(':')) {
-    const parts = normalized.split(':');
-    hours = parseInt(parts[0]) || 0;
-    minutes = parseInt(parts[1]) || 0;
-  } else {
-    const totalMinutes = parseInt(normalized, 10) || 0;
-    hours = Math.floor(totalMinutes / 60);
-    minutes = totalMinutes % 60;
-    if (hours > 0) {
-      return totalMinutes;
-    } else {
-      return minutes;
-    }
-  }
-  
-  return hours * 60 + minutes;
+
+  return 0;
 }
 
 function formatMinutesToTwoByteHHMM(minutes) {
@@ -172,8 +277,8 @@ function formatMinutesToTwoByteHHMM(minutes) {
 
 const startEditing = async () => {
   timeInputValue.value = props.outputFormat === 'HHMM'
-    ? formatMinutesToTwoByteHHMM(Number(currentValue.value) || 0)
-    : formatMinutesToTimeString(currentValue.value);
+    ? formatMinutesToTwoByteHHMM(parseTimeValue(currentValue.value)?.value ?? 0)
+    : formatTimeValue(currentValue.value);
   isEditing.value = true;
   
   await nextTick();
@@ -196,25 +301,48 @@ const startEditing = async () => {
 const finishEditing = () => {
   if (!timeInputValue.value) {
     timeInputValue.value = props.outputFormat === 'HHMM'
-      ? formatMinutesToTwoByteHHMM(Number(currentValue.value) || 0)
-      : formatMinutesToTimeString(currentValue.value);
+      ? formatMinutesToTwoByteHHMM(parseTimeValue(currentValue.value)?.value ?? 0)
+      : formatTimeValue(currentValue.value);
     isEditing.value = false;
     return;
   }
   
-  const totalMinutes = parseTimeStringToMinutes(timeInputValue.value);
-  
-  let validMinutes = Math.max(props.min, Math.min(props.max, totalMinutes));
-  
-  validMinutes = Math.round(validMinutes / props.step) * props.step;
-  
-  currentValue.value = validMinutes;
+  let newValue;
+  if (props.outputFormat === 'HHMM') {
+    const totalMinutes = parseTimeStringToMinutes(timeInputValue.value);
+    let validMinutes = Math.max(props.min, Math.min(props.max, totalMinutes));
+    validMinutes = Math.max(Number(props.min), Math.min(Number(props.max), validMinutes));
+    newValue = String(validMinutes);
+  } else {
+    let parsed = parseTimeValue(timeInputValue.value);
+    if (!parsed) {
+      timeInputValue.value = formatTimeValue(currentValue.value);
+      isEditing.value = false;
+      return;
+    }
+    if (!props.allowSeconds && parsed.unit === 'seconds') {
+      parsed = { unit: 'minutes', value: Math.round(parsed.value / 60) };
+    }
+    const parsedSeconds = parsed.unit === 'seconds' ? parsed.value : parsed.value * 60;
+    if (parsedSeconds > effectiveMaximumSeconds.value) parsed = effectiveMaximum.value;
+    if (parsed.unit === 'seconds') {
+      const minimumSeconds = Math.max(0, Number(props.secondsMin) || 1);
+      parsed.value = Math.max(minimumSeconds, parsed.value);
+    } else {
+      const minimumMinutes = Math.max(0, Number(props.min) || 0);
+      const maximumMinutes = Math.floor(effectiveMaximumSeconds.value / 60);
+      parsed.value = Math.max(minimumMinutes, Math.min(maximumMinutes, parsed.value));
+    }
+    newValue = formatTimeValueStorage(parsed);
+  }
+
+  currentValue.value = newValue;
   timeInputValue.value = props.outputFormat === 'HHMM'
-    ? formatMinutesToTwoByteHHMM(validMinutes)
-    : formatMinutesToTimeString(validMinutes);
+    ? formatMinutesToTwoByteHHMM(parseTimeValue(newValue)?.value ?? 0)
+    : formatTimeValue(newValue);
   
   emit('update:value', { 
-    newValue: validMinutes, 
+    newValue,
     groupName: props.groupName, 
     paramName: props.paramName 
   });
@@ -224,18 +352,21 @@ const finishEditing = () => {
   }, 100);
 };
 
-watch(() => props.max, (newMax) => {
-  if (currentValue.value > newMax) {
-    currentValue.value = newMax;
-    emit('update:value', { newValue: newMax, groupName: props.groupName, paramName: props.paramName });
+watch([() => props.max, () => props.maxDuration], () => {
+  const currentSeconds = timeValueToSeconds(currentValue.value);
+  if (currentSeconds !== null && currentSeconds > effectiveMaximumSeconds.value) {
+    const newValue = formatTimeValueStorage(effectiveMaximum.value);
+    currentValue.value = newValue;
+    emit('update:value', { newValue, groupName: props.groupName, paramName: props.paramName });
   }
 });
 
 watch(() => props.value, (newValue) => {
-  const numericValue = Number(newValue) || 0;
-  currentValue.value = numericValue;
+  currentValue.value = normalizeStorageValue(newValue);
   if (!isEditing.value) {
-    timeInputValue.value = formatMinutesToTimeString(numericValue);
+    timeInputValue.value = props.outputFormat === 'HHMM'
+      ? formatMinutesToTwoByteHHMM(parseTimeValue(currentValue.value)?.value ?? 0)
+      : formatTimeValue(currentValue.value);
   }
 });
 </script>
@@ -257,24 +388,34 @@ watch(() => props.value, (newValue) => {
 .slider-container {
   display: flex;
   align-items: center;
+  gap: 8px;
   width: 100%;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .time-range {
   flex: 1;
-  --padding-end: 12px;
+  min-width: 0;
+  --bar-height: 5px;
+  --bar-border-radius: 999px;
+  --bar-background: rgba(var(--ion-color-primary-rgb), 0.2);
+  --bar-background-active: var(--ion-color-primary);
+  --knob-size: 28px;
+  --padding-start: 4px;
+  --padding-end: 4px;
 }
 
 .time-chip, .time-input {
   --background: var(--ion-color-primary);
   --color: white;
-  width: 90px;
-  justify-content: space-around;
-  border-radius: 10px;
-  --border-radius: 10px;
-  margin: 4px;
+  width: 86px;
+  justify-content: center;
+  border-radius: 999px;
+  --border-radius: 999px;
+  margin: 0;
   flex-shrink: 0;
+  font-weight: 700;
+  box-shadow: 0 3px 9px rgba(var(--ion-color-primary-rgb), 0.22);
 }
 
 .time-input {
@@ -313,7 +454,7 @@ ion-range::part(pin)::before {
 
 @media (max-width: 600px) {
   .time-chip, .time-input {
-    width: 80px;
+    width: 76px;
     font-size: 0.8rem;
   }
 

@@ -17,7 +17,7 @@
 </p>
 <p align="center">
     <img alt="Browser Support badge" title="Works in all modern browsers" src="https://img.shields.io/badge/browser-modern-brightgreen?style=for-the-badge&logo=googlechrome&logoColor=white"/>
-    <img alt="Platform badge" title="Web application" src="https://img.shields.io/badge/platform-Web-orange?style=for-the-badge&logo=ionic"/>
+    <img alt="Platforms badge" title="Available on Web, Android, and iOS" src="https://img.shields.io/badge/platforms-Web%20|%20Android%20|%20iOS-orange?style=for-the-badge&logo=ionic"/>
 </p>
 
 **Watteco Easy Codec** (working title) is an intuitive application designed to simplify the configuration and usage of Watteco IoT sensors. The main objective of this project is to offer a lightweight and user-friendly alternative to the existing online codec, focusing on essential features while modernizing the user interface.  
@@ -79,7 +79,20 @@ The project is currently hosted at: [Watteco Easy Codec](https://lora.watteco.fr
 ### Application version
 
 `package.json` is the source of the application version. Vite injects it into
-the header.
+the header and BLE Settings; Android reads it as its `versionName`.
+Development versions use `0.11.15-dev.4` and display as `v0.11.15d4`.
+
+- `npm run android:debug` increments the development suffix before building when
+  Git contains staged or unstaged changes, updating both `package.json` and
+  `package-lock.json`. A stable version starts
+  at `dev.0`; an existing `dev.N` becomes `dev.N+1`. After a successful build
+  and Android sync, the resulting version is printed again on the final line.
+- `npm run build:android:debug` builds the current version without incrementing it.
+- To set a release version, use `npm version 0.12.0 --no-git-tag-version`.
+- Test the increment script with `node --test scripts/increment-debug-version.test.mjs`.
+
+Android's numeric `versionCode` and the iOS bundle version settings remain managed
+separately in the native projects.
 
 ### Local Development and Hosting
 

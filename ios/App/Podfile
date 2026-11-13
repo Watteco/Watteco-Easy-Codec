@@ -1,0 +1,42 @@
+require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+platform :ios, '13.0'
+use_frameworks!
+
+# workaround to avoid Xcode caching of Pods that requires
+# Product -> Clean Build Folder after new Cordova plugins installed
+# Requires CocoaPods 1.6 or newer
+install! 'cocoapods', :disable_input_output_paths => true
+
+def capacitor_pods
+  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCommunityBluetoothLe', :path => '../../node_modules/@capacitor-community/bluetooth-le'
+  pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
+  pod 'CapacitorBarcodeScanner', :path => '../../node_modules/@capacitor/barcode-scanner'
+  pod 'CapacitorFilesystem', :path => '../../node_modules/@capacitor/filesystem'
+  pod 'CapacitorHaptics', :path => '../../node_modules/@capacitor/haptics'
+  pod 'CapacitorKeyboard', :path => '../../node_modules/@capacitor/keyboard'
+  pod 'CapacitorShare', :path => '../../node_modules/@capacitor/share'
+  pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
+end
+
+target 'App' do
+  capacitor_pods
+  # Add your Pods here
+end
+
+post_install do |installer|
+  assertDeploymentTarget(installer)
+end
+
+post_integrate do |installer|
+  # CocoaPods < 1.12.1 resolves archive framework symlinks relative to the
+  # script's working directory. Keep the upstream fix across cap sync / pod install.
+  # https://github.com/CocoaPods/CocoaPods/pull/11828
+  Dir.glob(File.join(installer.sandbox.root, 'Target Support Files', '*', '*-frameworks.sh')).each do |path|
+    script = File.read(path)
+    fixed_script = script.gsub('source="$(readlink "${source}")"', 'source="$(readlink -f "${source}")"')
+    File.write(path, fixed_script) if fixed_script != script
+  end
+end

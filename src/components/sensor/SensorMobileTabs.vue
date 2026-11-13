@@ -1,0 +1,271 @@
+<template>
+  <nav
+    id="sensor-mobile-tabs"
+    class="sensor-mobile-tabs"
+    :class="{ 'sensor-mobile-tabs--disabled': navigationDisabled }"
+    :style="{ '--sensor-tab-count': String(availablePages.length) }"
+    :aria-label="labels.navigation"
+    :aria-busy="navigationDisabled"
+  >
+    <span
+      class="sensor-mobile-tab-selection"
+      :style="selectionStyle"
+      aria-hidden="true"
+    ></span>
+    <button
+      type="button"
+      class="sensor-mobile-tab"
+      :class="{ 'sensor-mobile-tab--active': displayedActivePage === 'data' }"
+      :aria-current="activePage === 'data' ? 'page' : undefined"
+      :disabled="navigationDisabled"
+      @click="navigateTo('data')"
+    >
+      <ion-icon :icon="analyticsOutline" aria-hidden="true" />
+      <span>{{ labels.data }}</span>
+    </button>
+    <button
+      type="button"
+      class="sensor-mobile-tab"
+      :class="{ 'sensor-mobile-tab--active': displayedActivePage === 'config' }"
+      :aria-current="activePage === 'config' ? 'page' : undefined"
+      :disabled="navigationDisabled"
+      @click="navigateTo('config')"
+    >
+      <ion-icon :icon="optionsOutline" aria-hidden="true" />
+      <span>{{ labels.config }}</span>
+    </button>
+    <button
+      type="button"
+      class="sensor-mobile-tab"
+      :class="{ 'sensor-mobile-tab--active': displayedActivePage === 'tools' }"
+      :aria-current="activePage === 'tools' ? 'page' : undefined"
+      :disabled="navigationDisabled"
+      @click="navigateTo('tools')"
+    >
+      <ion-icon :icon="buildOutline" aria-hidden="true" />
+      <span>{{ labels.tools }}</span>
+    </button>
+  </nav>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { IonIcon } from '@ionic/vue';
+import { analyticsOutline, buildOutline, optionsOutline } from 'ionicons/icons';
+import { useLanguage } from '@/composables/useLanguage';
+import { useBle } from '@/composables/useBle';
+import {
+  cancelSensorPageTransition,
+  requestSensorPageTransition,
+  type SensorPage,
+} from '@/utils/sensorPageTransition';
+
+const route = useRoute();
+const router = useRouter();
+const ble = useBle();
+const { currentLanguage } = useLanguage();
+const activePage = computed<SensorPage>(() => (
+  route.path === '/sensor-data' ? 'data' : route.path === '/sensor-tools' ? 'tools' : 'config'
+));
+const displayedActivePage = ref<SensorPage>(activePage.value);
+const navigationPending = ref(false);
+const navigationDisabled = computed(() => ble.connectionPhase.value === 'discovering');
+const labels = computed(() => currentLanguage.value === 'fr'
+  ? { navigation: 'Navigation du capteur', data: 'Données', config: 'Configuration', tools: 'Outils' }
+  : { navigation: 'Sensor navigation', data: 'Data', config: 'Configuration', tools: 'Tools' });
+const availablePages = computed<SensorPage[]>(() => ['data', 'config', 'tools']);
+const selectionStyle = computed(() => ({
+  transform: `translate3d(${Math.max(0, availablePages.value.indexOf(displayedActivePage.value)) * 100}%, 0, 0)`,
+}));
+
+watch(activePage, page => {
+  displayedActivePage.value = page;
+});
+
+const navigateTo = async (page: SensorPage) => {
+  if (navigationDisabled.value || activePage.value === page || navigationPending.value) return;
+
+  navigationPending.value = true;
+  displayedActivePage.value = page;
+  requestSensorPageTransition(page);
+
+  try {
+    const destination = page === 'data'
+      ? '/sensor-data'
+      : page === 'tools' ? '/sensor-tools' : '/tabs/downlink';
+    await router.push(destination);
+  } catch (error) {
+    cancelSensorPageTransition();
+    displayedActivePage.value = activePage.value;
+    console.error('Sensor page navigation failed', error);
+  } finally {
+    navigationPending.value = false;
+  }
+};
+
+const blockedSwipeSelector = [
+  'a',
+  'button',
+  'input',
+  'select',
+  'textarea',
+  'ion-button',
+  'ion-checkbox',
+  'ion-input',
+  'ion-radio',
+  'ion-range',
+  'ion-segment',
+  'ion-segment-button',
+  'ion-select',
+  'ion-textarea',
+  'ion-toggle',
+  '.slider-container',
+  '.no-page-swipe',
+  '[contenteditable="true"]',
+  '[role="slider"]',
+].join(',');
+
+let touchStartX = 0;
+let touchStartY = 0;
+let touchStartedAt = 0;
+let trackingSwipe = false;
+
+const eventStartedInSwipeableContent = (event: TouchEvent) => {
+  let insideContent = false;
+
+  for (const target of event.composedPath()) {
+    if (!(target instanceof Element)) continue;
+    if (target.matches(blockedSwipeSelector)) return false;
+    if (target.matches('ion-content.native-with-sensor-navigation')) insideContent = true;
+  }
+
+  return insideContent;
+};
+
+const onTouchStart = (event: TouchEvent) => {
+  if (navigationDisabled.value || event.touches.length !== 1 || !eventStartedInSwipeableContent(event)) {
+    trackingSwipe = false;
+    return;
+  }
+
+  const touch = event.touches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+  touchStartedAt = performance.now();
+  trackingSwipe = true;
+};
+
+const onTouchEnd = (event: TouchEvent) => {
+  if (navigationDisabled.value || !trackingSwipe || event.changedTouches.length !== 1) return;
+  trackingSwipe = false;
+
+  const touch = event.changedTouches[0];
+  const deltaX = touch.clientX - touchStartX;
+  const deltaY = touch.clientY - touchStartY;
+  const elapsed = performance.now() - touchStartedAt;
+
+  if (elapsed > 700 || Math.abs(deltaX) < 60 || Math.abs(deltaX) < Math.abs(deltaY) * 1.35) return;
+
+  const currentIndex = availablePages.value.indexOf(activePage.value);
+  const nextIndex = currentIndex + (deltaX < 0 ? 1 : -1);
+  const nextPage = availablePages.value[nextIndex];
+  if (nextPage) void navigateTo(nextPage);
+};
+
+const cancelSwipe = () => {
+  trackingSwipe = false;
+};
+
+onMounted(() => {
+  document.addEventListener('touchstart', onTouchStart, { passive: true });
+  document.addEventListener('touchend', onTouchEnd, { passive: true });
+  document.addEventListener('touchcancel', cancelSwipe, { passive: true });
+});
+
+onUnmounted(() => {
+  document.removeEventListener('touchstart', onTouchStart);
+  document.removeEventListener('touchend', onTouchEnd);
+  document.removeEventListener('touchcancel', cancelSwipe);
+});
+</script>
+
+<style scoped>
+.sensor-mobile-tabs {
+  box-sizing: border-box;
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
+  display: grid;
+  grid-template-columns: repeat(var(--sensor-tab-count, 2), minmax(0, 1fr));
+  min-height: calc(62px + env(safe-area-inset-bottom));
+  padding: 5px 8px calc(5px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--app-nav-border);
+  background: var(--app-page-background);
+  box-shadow: var(--app-nav-shadow);
+}
+
+.sensor-mobile-tab-selection {
+  position: absolute;
+  top: 5px;
+  bottom: calc(5px + env(safe-area-inset-bottom));
+  left: 8px;
+  width: calc((100% - 16px) / var(--sensor-tab-count, 2));
+  pointer-events: none;
+  background: rgba(var(--ion-color-primary-rgb), 0.1);
+  border-radius: 10px;
+  transform: translate3d(0, 0, 0);
+  transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sensor-mobile-tab-selection::before {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 42px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--ion-color-primary);
+  content: '';
+  transform: translateX(-50%);
+}
+
+.sensor-mobile-tab {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 4px 8px;
+  color: var(--ion-color-medium-shade);
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: color 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sensor-mobile-tab ion-icon {
+  width: 23px;
+  height: 23px;
+}
+
+.sensor-mobile-tab--active {
+  color: var(--ion-color-primary);
+}
+
+.sensor-mobile-tabs--disabled .sensor-mobile-tab {
+  color: var(--ion-color-medium);
+  opacity: 0.48;
+}
+
+.sensor-mobile-tabs--disabled .sensor-mobile-tab-selection {
+  opacity: 0.35;
+}
+</style>
