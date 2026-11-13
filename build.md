@@ -15,6 +15,56 @@ npm run preview  # validation locale du build uniquement
 
 Le build web utilise actuellement le chemin de base `/EasyCodec/`.
 
+### Déploiement en production
+
+Le script PowerShell construit l'application, sauvegarde la production actuelle,
+puis synchronise `dist/` vers la destination configurée :
+
+```powershell
+.\deployToProd.ps1
+```
+
+Deux sauvegardes complètes sont conservées par défaut dans le dossier `backups`
+de la destination. La limite peut être ramenée à une sauvegarde :
+
+```powershell
+.\deployToProd.ps1 -MaxBackups 1
+```
+
+Le script compare également les dossiers `config/` et `localisation/` du serveur
+avec ceux du build. Le rapport est enregistré dans `server-overrides.txt` avec
+la sauvegarde afin de retrouver les fichiers modifiés directement en production.
+
+Pour consulter les sauvegardes disponibles :
+
+```powershell
+.\deployToProd.ps1 -ListBackups
+```
+
+La commande affiche la version du `package.json` local et, lorsqu'elle est
+connue, la version contenue dans chaque sauvegarde. Le script déploie un fichier
+`deployment.json` pour identifier précisément les versions lors des prochains
+backups et rollbacks.
+
+Pour restaurer la sauvegarde la plus récente :
+
+```powershell
+.\deployToProd.ps1 -Revert
+```
+
+Une sauvegarde précise peut être sélectionnée avec son identifiant :
+
+```powershell
+.\deployToProd.ps1 -Revert -BackupId "20261113-162045-000-before-v0.11.17"
+```
+
+Le build automatique peut être ignoré uniquement si le contenu actuel de `dist/`
+a déjà été validé :
+
+```powershell
+.\deployToProd.ps1 -SkipBuild
+```
+
 ## iOS / Capacitor
 
 La plateforme iOS est maintenant présente dans le projet.
