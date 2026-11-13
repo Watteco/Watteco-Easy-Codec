@@ -1924,6 +1924,7 @@ import type {
 import { presentAuthorizationDeniedAlert } from '@/utils/authorizationAlert';
 import { appVersion } from '@/utils/appVersion';
 import { encodeTimeValueHex, timeValueToSeconds } from '@/utils/timeValue';
+import { encodeHexFrameValue } from '@/utils/configurationFrameValue';
 import {
   CONFIGURATION_SECTION_NAMES,
   SAVED_CONFIGURATION_FORMAT,
@@ -2817,22 +2818,22 @@ const convertToHexFrameValue = (value: string, param:{
     return encodeTimeValueHex(value) ?? `-Error: ${value} is not a valid timeVal-`;
   }
 
+  if (param.type.startsWith('hex')) {
+    return encodeHexFrameValue(value, param.type, param.HMI?.multiplier);
+  }
+
   if (value.includes(" ")) {
     output = "";
     value.split(" ").forEach(function(item) {
-      const val = parseInt(item);
-      const out = convertToHexFrameValue(val.toString(), param);
+      const out = convertToHexFrameValue(item, param);
       output = `${output} ${out}`;
     });
     output = output.trim();
   } else {
     if (param.HMI.multiplier) {
-      value = (parseInt(value) * param.HMI.multiplier).toString();
+      value = (Number(value) * Number(param.HMI.multiplier)).toString();
     }
-    if (param.type.startsWith("hex")) {
-      const bytes = parseInt(param.type.replace("hex", ""), 10);
-      output = parseInt(value).toString(16).padStart(bytes * 2, '0');
-    } else if (param.type == "bool") {
+    if (param.type == "bool") {
       if (param.inverted === 'true') {
         // Inverted logic: true becomes 00, false becomes 01
         output = (value == "true") ? "00" : "01";
