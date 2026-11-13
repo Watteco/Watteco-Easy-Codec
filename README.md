@@ -1,5 +1,5 @@
 # Watteco Easy Codec
-[→ En Français](/localizedReadme/README-fr.md)
+[→ En Français](localizedReadme/README-fr.md)
 
 <p align="center">
     <a href="https://ionicframework.com/" target="_blank">
@@ -13,9 +13,6 @@
     </a>
     <a href="https://www.typescriptlang.org/" target="_blank">
         <img alt="TypeScript badge" title="Built with TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white"/>
-    </a>
-    <a href="https://electronjs.org/" target="_blank">
-        <img alt="Electron badge" title="Built with Electron!" src="https://img.shields.io/badge/Electron-4E44B6?style=for-the-badge&logo=electron&logoColor=white"/>
     </a>
 </p>
 <p align="center">
@@ -34,7 +31,7 @@
   - [Frameworks and Technologies](#frameworks-and-technologies)
   - [File Organization](#file-organization)
 - [Current State](#current-state)
-  - [Development Version](#development-version)
+  - [Local Development and Hosting](#local-development-and-hosting)
   - [Production Version](#production-version)
 - [Future Development](#future-development)
 
@@ -74,7 +71,8 @@ The project is currently hosted at: [Watteco Easy Codec](https://lora.watteco.fr
 
 ### File Organization
 - **Front-End**: Built with Ionic and Vue.js, following a modular architecture.
-- **Assets**: Configuration JSON files are stored in the `config` directory for an easy "adding a sensor" experience, without the need to rebuild the project.
+- **Assets**: Configuration JSON files are stored in `public/config/`. Once
+  deployed, they can be updated in `config/` without rebuilding the project.
 
 ## Current State
 
@@ -96,10 +94,23 @@ Development versions use `0.11.15-dev.4` and display as `v0.11.15d4`.
 Android's numeric `versionCode` and the iOS bundle version settings remain managed
 separately in the native projects.
 
-### Development Version
-The development version can be launched locally using `ionic serve` and currently supports:
-- Core configuration features.
-- Dynamic parameter loading.
+### Local Development and Hosting
+
+The development server can be started with:
+
+```shell
+npm ci
+npm run dev
+```
+
+The production build is a static web application that can also be hosted on a
+customer's local server or intranet. It is currently built for the
+`/EasyCodec/` URL path and must be served over HTTP(S); opening `index.html`
+directly is not supported.
+
+See the [local installation and hosting guide](docs/local-installation.md) for
+prerequisites, development, production deployment, LAN access, offline usage,
+and configuration updates.
 
 ### Production Version
 The functional web version is available at: [https://lora.watteco.fr/EasyCodec/](https://lora.watteco.fr/EasyCodec/). It is currently being tested with limited sensor support.

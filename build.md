@@ -1,22 +1,19 @@
-# Build notes
+# Notes de build
 
-## Browser / Web
+La procédure détaillée pour lancer, construire et héberger la version web se
+trouve dans le
+[guide d'installation et d'hébergement local](docs/local-installation.md).
 
-Pour lancer le projet dans le navigateur en mode développement :
+## Web
 
-- `npm run dev`
+```shell
+npm ci
+npm run dev      # serveur de développement
+npm run build    # build de production dans dist/
+npm run preview  # validation locale du build uniquement
+```
 
-Le serveur Vite affiche ensuite une URL locale à ouvrir dans le navigateur, généralement de type :
-
-- `http://localhost:5173/EasyCodec/`
-
-Pour faire un build web standard :
-
-- `npm run build`
-
-Pour prévisualiser localement le build web généré :
-
-- `npm run preview`
+Le build web utilise actuellement le chemin de base `/EasyCodec/`.
 
 ## iOS / Capacitor
 

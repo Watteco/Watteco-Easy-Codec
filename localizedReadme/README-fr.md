@@ -1,5 +1,5 @@
 # Watteco Easy Codec
-[→ In English](/README.md)
+[→ In English](../README.md)
 
 <p align="center">
     <a href="https://ionicframework.com/" target="_blank">
@@ -13,9 +13,6 @@
     </a>
     <a href="https://www.typescriptlang.org/" target="_blank">
         <img alt="TypeScript badge" title="Built with TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white"/>
-    </a>
-    <a href="https://electronjs.org/" target="_blank">
-        <img alt="Electron badge" title="Built with Electron!" src="https://img.shields.io/badge/Electron-4E44B6?style=for-the-badge&logo=electron&logoColor=white"/>
     </a>
 </p>
 <p align="center">
@@ -35,7 +32,7 @@
   - [Frameworks et Technologies](#frameworks-et-technologies)
   - [Organisation des Fichiers](#organisation-des-fichiers)
 - [État Actuel](#état-actuel)
-  - [Version Développement](#version-développement)
+  - [Développement et hébergement local](#développement-et-hébergement-local)
   - [Version Production](#version-production)
 - [Développement Futur](#développement-futur)
 
@@ -75,14 +72,30 @@ Le projet est actuellement hébergé à l'adresse suivante : [Watteco Easy Codec
 
 ### Organisation des Fichiers
 - **Front-End** : Basé sur Ionic et Vue.js, avec une architecture modulaire.
-- **Assets** : Les fichiers JSON de configuration nécessaires sont stockés dans un répertoire `config` pour un ajout simple de capteur sans rebuild du projet.
+- **Assets** : Les fichiers JSON de configuration sont stockés dans
+  `public/config/`. Après déploiement, ils peuvent être mis à jour dans
+  `config/` sans reconstruire le projet.
 
 ## État Actuel
 
-### Version Développement
-La version de développement peut être lancée localement avec `ionic serve` et prend en charge :
-- Les fonctionnalités principales de configuration.
-- Le chargement dynamique des paramètres.
+### Développement et hébergement local
+
+Le serveur de développement se lance avec :
+
+```shell
+npm ci
+npm run dev
+```
+
+Le build de production est une application web statique qui peut également
+être hébergée sur le serveur local ou l'intranet d'un client. Il est
+actuellement construit pour le chemin `/EasyCodec/` et doit être servi en
+HTTP(S) : l'ouverture directe du fichier `index.html` n'est pas prise en
+charge.
+
+Consultez le [guide d'installation et d'hébergement local](../docs/local-installation.md)
+pour les prérequis, le développement, le déploiement en production, l'accès
+réseau, le fonctionnement hors connexion et la mise à jour des configurations.
 
 ### Version Production
 La version web fonctionnelle est accessible via : [https://lora.watteco.fr/EasyCodec/](https://lora.watteco.fr/EasyCodec/). Elle est actuellement en cours de tests avec une prise en charge limitée de capteurs.
