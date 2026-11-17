@@ -58,9 +58,22 @@
                     {{ formatDeviceInformation(deviceStatus.pcbVersion) }}
                   </strong>
                 </div>
+                <div v-if="developerModeEnabled" class="status-item">
+                  <span>{{ localize('@toolsSensorTimeState') }}</span>
+                  <strong>{{ sensorTimeStateLabel }}</strong>
+                </div>
                 <div v-if="sensorTimeIsVisible" class="status-item status-item--sensor-time">
                   <span>{{ localize('@toolsSensorTime') }}</span>
-                  <strong>{{ formatDate(displayedSensorTime) }}</strong>
+                  <strong :class="{ 'value-estimated': sensorTimeIsEstimated }">
+                    {{ formatDate(displayedSensorTime) }}
+                    <ion-icon
+                      v-if="sensorTimeIsEstimated"
+                      class="sensor-time-warning"
+                      :icon="alertCircleOutline"
+                      :aria-label="localize('@toolsSensorTimeEstimated')"
+                      :title="localize('@toolsSensorTimeEstimated')"
+                    />
+                  </strong>
                 </div>
                 <div v-if="developerModeEnabled" class="status-item status-item--mobile-time">
                   <span>{{ localize('@toolsMobileTime') }}</span>
@@ -172,7 +185,6 @@
                     {{ localize('@toolsFirmwareUpdate') }}
                   </ion-button>
                   <ion-button
-                    v-if="developerModeEnabled"
                     expand="block"
                     :disabled="!canSendCommand"
                     @click="openOtaAppEui"
@@ -567,7 +579,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 import { IonButton, IonCard, IonCardContent, IonContent, IonIcon, IonPage, onIonViewDidEnter, onIonViewDidLeave } from '@ionic/vue';
-import { chevronDownOutline, chevronForwardOutline, lockClosed, lockOpenOutline } from 'ionicons/icons';
+import { alertCircleOutline, chevronDownOutline, chevronForwardOutline, lockClosed, lockOpenOutline } from 'ionicons/icons';
 import { useBle } from '@/composables/useBle';
 import { useBleDebug } from '@/composables/useBleDebug';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
@@ -580,6 +592,7 @@ import {
   type LoraLinkStatus,
 } from '@/utils/BLE/loraLink';
 import {
+  extrapolateSensorTime,
   isPlausibleSensorTime,
   readAdminDeviceStatus,
   startAdminTimeMonitoring,
@@ -747,6 +760,9 @@ const deviceStatus = ref<DeviceStatus>({
   manufacturer: undefined,
   pcbVersion: undefined,
   sensorTime: null,
+  sensorTimeState: null,
+  sensorTimeSyncAgeSeconds: null,
+  sensorTimeFormat: null,
   runningTimeSeconds: null,
   osaAuthenticated: null,
 });
@@ -815,9 +831,11 @@ const displayedSensorTime = computed(() => {
     developerModeEnabled.value
     || !ble.connected.value
     || sensorTimeReceivedAt.value === null
-    || !isPlausibleSensorTime(sensorTime)
   ) return sensorTime;
-  return sensorTime + Math.max(0, sensorClockNow.value - sensorTimeReceivedAt.value);
+  return extrapolateSensorTime(
+    sensorTime,
+    sensorClockNow.value - sensorTimeReceivedAt.value,
+  );
 });
 const sensorTimeIsVisible = computed(() => (
   isPlausibleSensorTime(displayedSensorTime.value)
@@ -825,6 +843,20 @@ const sensorTimeIsVisible = computed(() => (
     && typeof displayedSensorTime.value === 'number'
     && Number.isFinite(displayedSensorTime.value))
 ));
+const sensorTimeIsEstimated = computed(() => (
+  deviceStatus.value.sensorTimeState === 'estimated'
+  && isPlausibleSensorTime(displayedSensorTime.value)
+));
+const sensorTimeStateLabel = computed(() => {
+  const localizationKeys = {
+    legacy: '@toolsSensorTimeStateLegacy',
+    unknown: '@toolsSensorTimeStateUnknown',
+    estimated: '@toolsSensorTimeStateEstimated',
+    synchronized: '@toolsSensorTimeStateSynchronized',
+  } as const;
+  const state = deviceStatus.value.sensorTimeState;
+  return state === null ? '—' : localize(localizationKeys[state]);
+});
 const deviceInformationRequiresAuthentication = computed(() => (
   deviceStatus.value.osaAuthenticated === false
 ));
@@ -1267,7 +1299,10 @@ async function refreshDeviceStatus(includeDeviceInformation = true): Promise<voi
 function applyAdminStatus(statusUpdate: Partial<AdminDeviceStatus>): void {
   if ('sensorTime' in statusUpdate) {
     const receivedAt = Date.now();
-    sensorTimeReceivedAt.value = receivedAt;
+    sensorTimeReceivedAt.value = typeof statusUpdate.sensorTime === 'number'
+      && Number.isFinite(statusUpdate.sensorTime)
+      ? receivedAt
+      : null;
     sensorClockNow.value = receivedAt;
   }
   deviceStatus.value = { ...deviceStatus.value, ...statusUpdate };
@@ -1828,6 +1863,20 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
 .status-item--firmware strong,
 .status-item--sensor-time strong,
 .status-item--mobile-time strong { font-size: 0.78rem; font-weight: 600; }
+
+.status-item--sensor-time strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.status-item--sensor-time strong.value-estimated { color: var(--ion-color-warning-shade); }
+
+.sensor-time-warning {
+  flex: 0 0 auto;
+  font-size: 1rem;
+}
 
 .status-item .value-ok { color: var(--ion-color-success); }
 .status-item .value-auth-required {

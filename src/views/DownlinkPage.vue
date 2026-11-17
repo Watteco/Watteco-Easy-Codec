@@ -1134,7 +1134,9 @@
                       slot="end"
                       :label="param.HMI?.label ?? ''"
                       :help-label="localize('@configurationFieldHelp')"
-                      :descriptions="fieldHelp['standard_params']?.[groupName]?.[paramName] ?? []"
+                      :descriptions="param.HMI?.visual_type === 'occurrences'
+                        ? [...(fieldHelp['standard_params']?.[groupName]?.[paramName] ?? []), localize('@patternOccurrencesHelp')]
+                        : (fieldHelp['standard_params']?.[groupName]?.[paramName] ?? [])"
                     />
                   </ion-item>
                 </ion-card>

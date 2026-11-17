@@ -1,19 +1,6 @@
 <template>
   <div class="occurrence-input">
-    <div class="occurrence-heading">
-      <ion-label position="stacked">{{ label }}</ion-label>
-      <button
-        type="button"
-        class="occurrence-help-button"
-        :aria-label="localize('@patternOccurrencesHelpLabel')"
-        :aria-expanded="helpVisible"
-        @click="helpVisible = !helpVisible"
-      >i</button>
-    </div>
-
-    <p v-if="helpVisible" class="occurrence-help">
-      {{ localize('@patternOccurrencesHelp') }}
-    </p>
+    <ion-label position="stacked">{{ label }}</ion-label>
 
     <div class="occurrence-grid">
       <label class="occurrence-field occurrence-field--trigger">
@@ -46,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue';
+import { reactive, watch } from 'vue';
 
 const props = withDefaults(defineProps<{
   label?: string;
@@ -85,7 +72,6 @@ const parseOccurrences = (value?: string) => {
 };
 
 const occurrences = reactive(parseOccurrences(props.value));
-const helpVisible = ref(false);
 
 const updateOccurrence = (side: 'high' | 'low', event: CustomEvent<{ value: string | null }>) => {
   const rawValue = event.detail.value;
@@ -110,48 +96,6 @@ watch(
   display: grid;
   gap: 10px;
   width: 100%;
-}
-
-.occurrence-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.occurrence-help-button {
-  display: grid;
-  flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.28);
-  border-radius: 50%;
-  background: rgba(var(--ion-color-primary-rgb), 0.08);
-  color: var(--ion-color-primary);
-  font-family: inherit;
-  font-size: 0.75rem;
-  font-weight: 800;
-  font-style: italic;
-  line-height: 1;
-  cursor: pointer;
-  place-items: center;
-}
-
-.occurrence-help-button:focus-visible {
-  outline: 3px solid rgba(var(--ion-color-primary-rgb), 0.3);
-  outline-offset: 2px;
-}
-
-.occurrence-help {
-  margin: 0;
-  padding: 7px 9px;
-  border: 1px solid var(--app-border-strong);
-  border-radius: 9px;
-  background: var(--app-surface-subtle);
-  color: var(--app-text-secondary);
-  font-size: 0.72rem;
-  line-height: 1.3;
 }
 
 .occurrence-grid {
