@@ -56,8 +56,27 @@ describe('HexKeypad', () => {
     });
     vi.advanceTimersByTime(405);
     await backspace.trigger('pointerup', { pointerId: 1 });
+    await backspace.trigger('click');
 
     expect(wrapper.emitted('backspace')).toHaveLength(2);
+    expect(wrapper.emitted('focus-request')).toHaveLength(1);
+  });
+
+  it('waits for the click before emitting a short backspace', async () => {
+    const wrapper = mountKeypad();
+    const backspace = wrapper.get('[aria-label="Delete"]');
+
+    await backspace.trigger('pointerdown', {
+      pointerId: 1,
+      pointerType: 'touch',
+      clientX: 0,
+      clientY: 0,
+    });
+    await backspace.trigger('pointerup', { pointerId: 1 });
+    expect(wrapper.emitted('backspace')).toBeUndefined();
+
+    await backspace.trigger('click');
+    expect(wrapper.emitted('backspace')).toHaveLength(1);
   });
 
   it('can omit the space key for fixed-width hexadecimal values', () => {

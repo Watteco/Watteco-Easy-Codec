@@ -462,6 +462,7 @@
                 :system-keyboard-label="localize('@toolsSystemKeyboard')"
                 @insert="insertManualFrameText"
                 @backspace="deleteManualFrameBackward"
+                @focus-request="restoreManualFrameFocus"
                 @toggle-system-keyboard="toggleSystemKeyboard"
               />
 
@@ -885,6 +886,10 @@ function deleteManualFrameBackward(): void {
   const deletionStart = start === end ? start - 1 : start;
   manualFrameHex.value = `${manualFrameHex.value.slice(0, deletionStart)}${manualFrameHex.value.slice(end)}`;
   void restoreManualFrameSelection(deletionStart);
+}
+
+function restoreManualFrameFocus(): void {
+  void restoreManualFrameSelection(manualFrameSelectionStart.value);
 }
 
 async function toggleSystemKeyboard(): Promise<void> {

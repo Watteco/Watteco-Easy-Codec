@@ -78,6 +78,7 @@ withDefaults(defineProps<{
 const emit = defineEmits<{
   (event: 'insert', value: string): void;
   (event: 'backspace'): void;
+  (event: 'focus-request'): void;
   (event: 'toggle-system-keyboard'): void;
 }>();
 
@@ -87,6 +88,8 @@ let deletePointerId: number | undefined;
 let deletePointerStartX = 0;
 let deletePointerStartY = 0;
 let deleteRepeated = false;
+let suppressDeleteClick = false;
+let suppressDeleteClickReset: ReturnType<typeof setTimeout> | undefined;
 
 function stopDeleteRepeat(): void {
   if (deleteRepeatDelay) clearTimeout(deleteRepeatDelay);
@@ -99,6 +102,9 @@ function stopDeleteRepeat(): void {
 
 function startDeleteRepeat(event: PointerEvent): void {
   stopDeleteRepeat();
+  if (suppressDeleteClickReset) clearTimeout(suppressDeleteClickReset);
+  suppressDeleteClickReset = undefined;
+  suppressDeleteClick = false;
   if (event.pointerType === 'mouse' && event.button !== 0) return;
 
   deletePointerId = event.pointerId;
@@ -127,16 +133,37 @@ function moveDeleteRepeat(event: PointerEvent): void {
 
 function finishDeleteRepeat(event: PointerEvent): void {
   if (event.pointerId !== deletePointerId) return;
-  const shouldDeleteOnce = !deleteRepeated;
+  const wasRepeated = deleteRepeated;
   stopDeleteRepeat();
-  if (shouldDeleteOnce) emit('backspace');
+  if (!wasRepeated) return;
+
+  // A click is synthesized after pointerup. The repeated deletions have already
+  // been emitted, so ignore only that immediate click.
+  suppressDeleteClick = true;
+  suppressDeleteClickReset = setTimeout(() => {
+    suppressDeleteClick = false;
+    suppressDeleteClickReset = undefined;
+    emit('focus-request');
+  }, 0);
 }
 
-function handleDeleteKeyClick(event: MouseEvent): void {
-  if (event.detail === 0) emit('backspace');
+function handleDeleteKeyClick(): void {
+  if (suppressDeleteClick) {
+    suppressDeleteClick = false;
+    if (suppressDeleteClickReset) clearTimeout(suppressDeleteClickReset);
+    suppressDeleteClickReset = undefined;
+    emit('focus-request');
+    return;
+  }
+  // Emit after the click has completed so the consumer can restore its input
+  // focus without the button taking it back immediately afterwards.
+  emit('backspace');
 }
 
-onBeforeUnmount(stopDeleteRepeat);
+onBeforeUnmount(() => {
+  stopDeleteRepeat();
+  if (suppressDeleteClickReset) clearTimeout(suppressDeleteClickReset);
+});
 </script>
 
 <style scoped>
