@@ -37,7 +37,7 @@ function Get-NormalizedExistingPath {
         Stop-Deployment "$Description n'existe pas : $Path"
     }
 
-    return (Resolve-Path -LiteralPath $Path).Path
+    return (Resolve-Path -LiteralPath $Path).ProviderPath
 }
 
 function Test-PathInside {
@@ -62,7 +62,7 @@ function Assert-SafeDestination {
     $Separator = [IO.Path]::DirectorySeparatorChar
     $TrimmedDestination = $DestinationPath.TrimEnd($Separator, [IO.Path]::AltDirectorySeparatorChar)
     $DestinationRoot = [IO.Path]::GetPathRoot($DestinationPath).TrimEnd($Separator, [IO.Path]::AltDirectorySeparatorChar)
-    $RepositoryPath = (Resolve-Path -LiteralPath $PSScriptRoot).Path
+    $RepositoryPath = (Resolve-Path -LiteralPath $PSScriptRoot).ProviderPath
 
     if ([string]::IsNullOrWhiteSpace($TrimmedDestination) -or
         $TrimmedDestination.Equals($DestinationRoot, [StringComparison]::OrdinalIgnoreCase)) {
@@ -194,7 +194,7 @@ function Get-FileHashMap {
         return $Map
     }
 
-    $RootPrefix = (Resolve-Path -LiteralPath $Root).Path.TrimEnd(
+    $RootPrefix = (Resolve-Path -LiteralPath $Root).ProviderPath.TrimEnd(
         [IO.Path]::DirectorySeparatorChar,
         [IO.Path]::AltDirectorySeparatorChar
     ) + [IO.Path]::DirectorySeparatorChar
@@ -396,7 +396,7 @@ Assert-SafeDestination -DestinationPath $DestinationPath
 
 $BackupRoot = Join-Path $DestinationPath "backups"
 New-Item -ItemType Directory -Path $BackupRoot -Force | Out-Null
-$BackupRoot = (Resolve-Path -LiteralPath $BackupRoot).Path
+$BackupRoot = (Resolve-Path -LiteralPath $BackupRoot).ProviderPath
 
 $LegacyBackupDirectories = @(
     Get-ChildItem -LiteralPath $BackupRoot -Directory |
