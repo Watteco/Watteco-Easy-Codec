@@ -419,11 +419,11 @@ watch(() => props.value, (newValue) => {
 }
 
 .time-input {
-  --padding-end: 12px;
-  --padding-start: 12px;
+  --padding-end: 6px;
+  --padding-start: 6px;
   text-align: center;
   font-family: inherit;
-  font-size: inherit;
+  font-size: 0.75rem;
   min-height: unset;
   height: 32px;
   --highlight-color-focused: white;
@@ -456,6 +456,12 @@ ion-range::part(pin)::before {
   .time-chip, .time-input {
     width: 76px;
     font-size: 0.8rem;
+  }
+
+  .time-input {
+    --padding-end: 4px;
+    --padding-start: 4px;
+    font-size: 0.7rem;
   }
 
   ion-label {

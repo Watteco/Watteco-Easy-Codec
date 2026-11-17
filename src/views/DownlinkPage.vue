@@ -2680,6 +2680,12 @@ const findSensorImage = (config: SensorImageConfig | null | undefined): string =
 
 // Initialize default values for sensor parameters
 const initParams = () => {
+  const initializedParams: Array<{
+    bigGroupName: string;
+    groupName: string;
+    paramName: string;
+  }> = [];
+
   if (sensorConfig.value) {
     for (const bigGroupName of ['general_params', 'modbus_params', 'batch_params', 'standard_params', 'configuration_params', 'commande_params']) {
       const section = sensorConfig.value[bigGroupName];
@@ -2693,12 +2699,18 @@ const initParams = () => {
               param.selectedValue = param.selectedValue || param.default_value;
               param.isHours = false; // Default time state
               outputVals[paramName] = convertToHexFrameValue(param.selectedValue, param);
-              updateMaxValues(bigGroupName, groupName, paramName);
+              initializedParams.push({ bigGroupName, groupName, paramName });
             }
           }
         }
       }
     }
+
+    // Dependencies can point to fields initialized later in the configuration.
+    // Calculate dynamic limits only after every selected value is available.
+    initializedParams.forEach(({ bigGroupName, groupName, paramName }) => {
+      updateMaxValues(bigGroupName, groupName, paramName);
+    });
   }
   updateOutput(); // Refresh the output display
 };

@@ -138,8 +138,8 @@ ion-toolbar {
   --background: var(--ion-color-primary);
   --color: white;
   --min-height: 80px;
-  --padding-top: 20px;
-  --padding-bottom: 20px;
+  --padding-top: 18px;
+  --padding-bottom: 18px;
 }
 
 #config-card ion-label {
@@ -178,8 +178,8 @@ ion-range {
 @media (max-width: 600px) {
   ion-toolbar {
     --min-height: 60px;
-    --padding-top: 10px;
-    --padding-bottom: 10px;
+    --padding-top: 8px;
+    --padding-bottom: 8px;
   }
 
   #watteco-title {
