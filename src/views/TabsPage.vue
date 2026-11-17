@@ -13,6 +13,9 @@
             id="watteco-title">
               {{ isNativeApp ? localize("@sensorConfigTitle") : `Easy Codec - BETA v${appVersion}` }}
           </ion-title>
+          <div slot="end" class="web-update-action">
+            <web-update-button />
+          </div>
         </ion-toolbar>
       </ion-header>
       <ion-tab-bar v-if="!isInIframe && !isNativeApp" slot="bottom">
@@ -44,6 +47,7 @@ import axios from 'axios';
 import { useLanguage } from '@/composables/useLanguage';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { createBundledTranslations } from '@/utils/localization';
+import WebUpdateButton from '@/components/WebUpdateButton.vue';
 
 import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
@@ -161,6 +165,15 @@ ion-range {
   font-weight: bold;
 }
 
+.web-update-action {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  padding-right: 16px;
+  pointer-events: auto;
+}
+
 /* Add responsive styles for smartphones */
 @media (max-width: 600px) {
   ion-toolbar {
@@ -178,6 +191,10 @@ ion-range {
     width: 70px;
     top: 18px;
     left: 10px;
+  }
+
+  .web-update-action {
+    padding-right: 10px;
   }
 
   ion-tab-button {

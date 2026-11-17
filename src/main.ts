@@ -11,6 +11,7 @@ import { initializeTheme } from './composables/useTheme';
 import { setStatusBarStyle } from './utils/statusBar';
 import { appVersion } from './utils/appVersion';
 import { createDiagnosticLogger, installGlobalDiagnosticHandlers } from './utils/diagnosticLogger';
+import { installWebUpdateChecks } from './composables/useWebUpdate';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/vue/css/core.css';
@@ -33,6 +34,7 @@ import '@ionic/vue/css/palettes/dark.class.css';
 import './theme/variables.css';
 
 initializeTheme();
+installWebUpdateChecks();
 
 const app = createApp(App)
   .use(IonicVue)

@@ -15,6 +15,13 @@ npm run preview  # validation locale du build uniquement
 
 Le build web utilise actuellement le chemin de base `/EasyCodec/`.
 
+Chaque build web génère aussi `version.json`. La version web vérifie ce fichier
+sans cache au chargement, au retour sur l'onglet et toutes les cinq minutes. Un
+numéro de version différent déclenche une seule tentative de rechargement
+automatique au démarrage. S'il apparaît pendant l'utilisation, un bouton de
+mise à jour permet de recharger l'application sans dépendre du cache de la page
+parente ou de son iframe.
+
 ### Déploiement en production
 
 Le script PowerShell construit l'application, sauvegarde la production actuelle,

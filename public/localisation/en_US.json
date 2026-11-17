@@ -816,5 +816,7 @@
     "cfgCommentaction_03_endpoint_0_entr_e_1_remove_report_comptage": "Action 03 endpoint 0 input 1 remove metering report",
     "cfgCommentaction_07_endpoint_1_entr_e_2_remove_report_comptage": "Action 07 endpoint 1 input 2 remove metering report",
     "ConfigTrameLabel" : "Mandatory Frames",
-    "sensorConfigTitle": "Sensor Configuration"
+    "sensorConfigTitle": "Sensor Configuration",
+    "webUpdateAvailable": "A new Easy Codec version is available",
+    "webUpdateAction": "Update"
 }
