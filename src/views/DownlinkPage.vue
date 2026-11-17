@@ -10,6 +10,7 @@
     <ion-content
       :fullscreen="true"
       :class="['sensor-config-content', { 'native-with-sensor-navigation': ble.isNative.value }]"
+      :aria-busy="sensorConfigLoading"
     >
       <ion-card v-show="false">
         <ion-range></ion-range>
@@ -81,7 +82,7 @@
                 label-placement="stacked"
                 :value="selectedSavedConfigurationId"
                 :placeholder="localize('@selectSavedConfiguration')"
-                @ionChange="selectedSavedConfigurationId = $event.detail.value"
+                @ionChange="onSavedConfigurationSelectionChange"
               >
                 <ion-select-option value="">{{ localize('@newConfiguration') }}</ion-select-option>
                 <ion-select-option
@@ -89,22 +90,21 @@
                   :key="configuration.id"
                   :value="configuration.id"
                 >
-                  {{ configuration.name }}
+                  {{ configuration.name }}{{ configuration.id === loadedSavedConfigurationId && isCurrentConfigurationModified ? ' *' : '' }}
                 </ion-select-option>
               </ion-select>
               <p v-else class="saved-config-empty">{{ localize('@noSavedConfiguration') }}</p>
 
               <ion-button
-                class="saved-config-action--load"
+                v-if="loadedSavedConfigurationId && isCurrentConfigurationModified"
+                class="saved-config-action--restore"
                 expand="block"
-                :disabled="!selectedSavedConfiguration"
-                :aria-label="selectedSavedConfiguration
-                  ? localize('@loadNamedConfiguration').replace('{name}', selectedSavedConfiguration.name)
-                  : localize('@selectConfigurationToLoad')"
-                @click="loadSelectedConfiguration"
+                fill="outline"
+                :aria-label="localize('@restoreNamedConfiguration').replace('{name}', loadedSavedConfiguration?.name ?? '')"
+                @click="restoreLoadedConfiguration"
               >
-                <ion-icon slot="start" :icon="checkmarkCircleOutline" />
-                {{ localize('@loadConfiguration') }}
+                <ion-icon slot="start" :icon="refreshOutline" />
+                {{ localize('@restoreConfiguration') }}
               </ion-button>
             </div>
 
@@ -127,16 +127,21 @@
                 <ion-icon slot="start" :icon="downloadOutline" />
                 {{ localize('@importConfiguration') }}
               </ion-button>
-              <ion-button
-                class="saved-config-action--export"
-                size="small"
-                fill="outline"
-                :disabled="!selectedSavedConfiguration"
-                @click="exportSelectedConfiguration"
+              <span
+                class="saved-config-export-hint"
+                :title="canExportCurrentConfiguration ? undefined : localize('@configurationUnsaved')"
               >
-                <ion-icon slot="start" :icon="pushOutline" />
-                {{ localize('@exportConfiguration') }}
-              </ion-button>
+                <ion-button
+                  class="saved-config-action--export"
+                  size="small"
+                  fill="outline"
+                  :disabled="!canExportCurrentConfiguration"
+                  @click="exportSelectedConfiguration"
+                >
+                  <ion-icon slot="start" :icon="pushOutline" />
+                  {{ localize('@exportConfiguration') }}
+                </ion-button>
+              </span>
               <ion-button
                 class="saved-config-action--delete"
                 size="small"
@@ -2173,12 +2178,17 @@ const sensorConfig = ref<any | null>(null); // Dynamic configuration for the sel
 const fieldHelp = computed(() => buildConfigurationFieldHelp(sensorConfig.value ?? {}));
 const allSavedConfigurations = ref<SavedConfiguration[]>(readSavedConfigurations());
 const selectedSavedConfigurationId = ref('');
+const loadedSavedConfigurationId = ref('');
+const loadedConfigurationSnapshot = ref('');
 const savedConfigurationFileInput = ref<HTMLInputElement | null>(null);
 const savedConfigurations = computed(() => allSavedConfigurations.value.filter(configuration => (
   configuration.product.configurationFile === selectedSensor.value
 )));
 const selectedSavedConfiguration = computed(() => savedConfigurations.value.find(
   configuration => configuration.id === selectedSavedConfigurationId.value,
+) ?? null);
+const loadedSavedConfiguration = computed(() => savedConfigurations.value.find(
+  configuration => configuration.id === loadedSavedConfigurationId.value,
 ) ?? null);
 const batchChecked = ref(false); // State of the batch mode checkbox
 const standardChecked = ref(false); // State of the standard mode checkbox
@@ -2237,6 +2247,8 @@ const FRAME_LONG_PRESS_DELAY_MS = 650;
 let frameLongPressTimer: ReturnType<typeof setTimeout> | undefined;
 let suppressSubcategoryHeaderClickUntil = 0;
 const sensorConfigLoaded = ref(false); // Add a new reactive variable to track the loading state
+const sensorConfigLoading = ref(false);
+let sensorConfigLoadSequence = 0;
 const sensorImage = ref(''); // Reactive variable to store the sensor image path
 const isEnforcingRelationships = ref(false);
 
@@ -2372,7 +2384,7 @@ const initializeExclusiveGroups = (bigGroupName: string) => {
 };
 
 // Initialize subcategoryVisible to show all subcategories by default
-watch(sensorConfig, async (newConfig) => {
+watch(sensorConfig, (newConfig) => {
   if (newConfig) {
     // Check if general_params has its own folded property
     if (
@@ -2382,24 +2394,7 @@ watch(sensorConfig, async (newConfig) => {
       generalVisible.value = !newConfig.general_params.folded;
     }
     
-    // Initialize subcategory visibility
-    Object.keys(newConfig).forEach(bigGroupName => {
-      if (typeof newConfig[bigGroupName] === 'object') {
-        Object.keys(newConfig[bigGroupName]).forEach(groupName => {
-          const group = newConfig[bigGroupName][groupName];
-
-          if (
-            typeof group === 'object' &&
-            Object.prototype.hasOwnProperty.call(group, 'folded')
-          ) {
-            subcategoryVisible.value[groupName] = !group.folded;
-          }
-        });
-      }
-    });
-    // Wait for the DOM to update
-    await nextTick();
-    
+    // Initialize every visibility flag before Vue renders the new configuration.
     ["batch_params", "modbus_params", "standard_params", "configuration_params", "commande_params", "general_params"].forEach(section => {
       if (newConfig[section]) {
         Object.keys(newConfig[section]).forEach(groupName => {
@@ -2511,22 +2506,8 @@ const loadAvailableProducts = async () => {
 
 // Triggered when a new sensor is selected
 const onSensorChange = async (event: SensorChangeEvent) => {
-  // Reset all states first
-  sensorConfig.value = null;
-  selectedSavedConfigurationId.value = '';
-  paramGroupChecked.value = {};
-  subcategoryVisible.value = {};
-  framesVisible.value = {};
-  framesCount.value = {};
-  sensorImage.value = '';
-  
-  // Wait for the DOM to update
-  await nextTick();
-  
   const selected = event.detail.value;
-  selectedSensor.value = selected;
-  resetCheckboxes();
-  await loadSensorConfig(selected);
+  return await loadSensorConfig(selected);
 };
 
 const selectNativeSensor = async (productReference = ble.productReference.value) => {
@@ -2627,24 +2608,42 @@ const initializeStates = (config: SensorStateConfig) => {
 
 // Load configuration for a specific sensor
 const loadSensorConfig = async (sensorFile: string) => {
-  try {
-    sensorConfigLoaded.value = false; // Set loading state to false before loading
-    const response = await axios.get(`${import.meta.env.BASE_URL}config/${sensorFile}.json` + generateCacheBuster());
-    const rawConfig = response.data;
+  const loadSequence = ++sensorConfigLoadSequence;
+  sensorConfigLoading.value = true;
 
-    // Apply localization to the configuration
-    sensorConfig.value = applyLocalization(rawConfig);
+  try {
+    const response = await axios.get(`${import.meta.env.BASE_URL}config/${sensorFile}.json` + generateCacheBuster());
+    if (loadSequence !== sensorConfigLoadSequence) return false;
+
+    // Prepare the next configuration before touching the rendered state. Vue then
+    // applies the reset and replacement in the same render cycle, avoiding a blank page.
+    const nextSensorConfig = applyLocalization(response.data);
+
+    selectedSavedConfigurationId.value = '';
+    loadedSavedConfigurationId.value = '';
+    loadedConfigurationSnapshot.value = '';
+    resetCheckboxes();
+    selectedSensor.value = sensorFile;
+    sensorConfig.value = nextSensorConfig;
 
     // Extract image path from config if available
-    sensorImage.value = findSensorImage(sensorConfig.value);
+    sensorImage.value = findSensorImage(nextSensorConfig);
 
     // Initialize states for checkboxes and fields
-    initializeStates(sensorConfig.value);
+    initializeStates(nextSensorConfig);
 
     initParams(); // Initialize other parameters
     sensorConfigLoaded.value = true; // Set loading state to true after loading
+    return true;
   } catch (error) {
-    console.error('Failed to load sensor config:', error);
+    if (loadSequence === sensorConfigLoadSequence) {
+      console.error('Failed to load sensor config:', error);
+    }
+    return false;
+  } finally {
+    if (loadSequence === sensorConfigLoadSequence) {
+      sensorConfigLoading.value = false;
+    }
   }
 };
 
@@ -3753,6 +3752,26 @@ const getSectionEnabledState = (): Partial<Record<ConfigurationSectionName, bool
   commande_params: commandeChecked.value,
 });
 
+const getCurrentConfigurationSnapshot = (): string => {
+  if (!sensorConfig.value) return '';
+  return JSON.stringify(captureConfigurationSections(
+    sensorConfig.value,
+    getSectionEnabledState(),
+    paramGroupChecked.value,
+  ));
+};
+
+const isCurrentConfigurationModified = computed(() => (
+  Boolean(loadedSavedConfigurationId.value)
+  && getCurrentConfigurationSnapshot() !== loadedConfigurationSnapshot.value
+));
+
+const canExportCurrentConfiguration = computed(() => (
+  Boolean(selectedSavedConfiguration.value)
+  && selectedSavedConfigurationId.value === loadedSavedConfigurationId.value
+  && !isCurrentConfigurationModified.value
+));
+
 const presentSavedConfigurationToast = async (
   message: string,
   color: 'success' | 'danger' = 'success',
@@ -3779,37 +3798,140 @@ const getDefaultConfigurationName = (): string => {
   const locale = currentLanguage.value === 'fr' ? 'fr-FR' : 'en-GB';
   const timestamp = new Intl.DateTimeFormat(locale, {
     dateStyle: 'short',
-    timeStyle: 'short',
+    timeStyle: 'medium',
   }).format(new Date());
   return `${timestamp} - ${sensorName}`.slice(0, 80);
 };
 
-const saveCurrentConfiguration = async () => {
-  if (!sensorConfig.value || !selectedSensor.value) return;
-  const selectedConfiguration = allSavedConfigurations.value.find(
-    configuration => configuration.id === selectedSavedConfigurationId.value,
-  );
+const normalizedConfigurationName = (name: string): string => name.trim().toLocaleLowerCase();
+
+const findSavedConfigurationByName = (
+  name: string,
+  excludedId?: string,
+): SavedConfiguration | undefined => {
+  const normalizedName = normalizedConfigurationName(name);
+  return savedConfigurations.value.find(configuration => (
+    configuration.id !== excludedId
+    && normalizedConfigurationName(configuration.name) === normalizedName
+  ));
+};
+
+const getUniqueConfigurationName = (name: string): string => {
+  const trimmedName = name.trim();
+  const existingNames = new Set(savedConfigurations.value.map(configuration => (
+    normalizedConfigurationName(configuration.name)
+  )));
+  if (!existingNames.has(normalizedConfigurationName(trimmedName))) return trimmedName;
+
+  let suffix = 1;
+  let candidate = '';
+  do {
+    const suffixText = ` (${suffix})`;
+    candidate = `${trimmedName.slice(0, 80 - suffixText.length)}${suffixText}`;
+    suffix += 1;
+  } while (existingNames.has(normalizedConfigurationName(candidate)));
+  return candidate;
+};
+
+const resolveConfigurationNameConflict = async (
+  existingConfiguration: SavedConfiguration,
+): Promise<'overwrite' | 'keep-both' | 'cancel'> => {
   const alert = await alertController.create({
-    header: localize(selectedConfiguration ? '@updateConfigurationTitle' : '@saveConfigurationTitle'),
-    inputs: [{
-      name: 'name',
-      type: 'text',
-      value: selectedConfiguration?.name ?? getDefaultConfigurationName(),
-      label: localize('@configurationName'),
-      placeholder: localize('@configurationNamePlaceholder'),
-      attributes: { maxlength: 80 },
-    }],
+    header: localize('@configurationNameConflictTitle'),
+    message: localize('@configurationNameConflictMessage').replace('{name}', existingConfiguration.name),
     buttons: [
       { text: localize('@cancel'), role: 'cancel' },
-      { text: localize('@confirm'), role: 'confirm' },
+      { text: localize('@keepBothConfigurations'), role: 'keep-both' },
+      { text: localize('@overwriteConfiguration'), role: 'destructive' },
     ],
   });
   await alert.present();
   const result = await alert.onDidDismiss();
-  if (result.role !== 'confirm') return;
+  if (result.role === 'destructive') return 'overwrite';
+  if (result.role === 'keep-both') return 'keep-both';
+  return 'cancel';
+};
 
-  const name = String(result.data?.values?.name ?? '').trim();
-  if (!name) return;
+const saveCurrentConfiguration = async () => {
+  if (!sensorConfig.value || !selectedSensor.value) return;
+  let selectedConfiguration: SavedConfiguration | undefined;
+  let name = '';
+
+  if (savedConfigurations.value.length > 0) {
+    const actionSheet = await actionSheetController.create({
+      header: localize('@saveConfigurationTitle'),
+      buttons: [
+        {
+          text: localize('@saveAsNewConfiguration'),
+          icon: saveOutline,
+          data: { action: 'new' },
+        },
+        ...savedConfigurations.value.map(configuration => ({
+          text: localize('@overwriteNamedConfiguration').replace('{name}', configuration.name),
+          data: { action: 'overwrite', configurationId: configuration.id },
+        })),
+        { text: localize('@cancel'), role: 'cancel' },
+      ],
+    });
+    await actionSheet.present();
+    const choice = await actionSheet.onDidDismiss();
+    if (choice.role === 'cancel' || !choice.data?.action) return;
+
+    if (choice.data.action === 'overwrite') {
+      selectedConfiguration = savedConfigurations.value.find(
+        configuration => configuration.id === choice.data.configurationId,
+      );
+      if (!selectedConfiguration) return;
+
+      const confirmation = await alertController.create({
+        header: localize('@overwriteConfigurationTitle'),
+        message: localize('@overwriteConfigurationMessage').replace('{name}', selectedConfiguration.name),
+        buttons: [
+          { text: localize('@cancel'), role: 'cancel' },
+          { text: localize('@overwriteConfiguration'), role: 'destructive' },
+        ],
+      });
+      await confirmation.present();
+      if ((await confirmation.onDidDismiss()).role !== 'destructive') return;
+      name = selectedConfiguration.name;
+    }
+  }
+
+  if (!selectedConfiguration) {
+    const alert = await alertController.create({
+      header: localize('@saveConfigurationTitle'),
+      inputs: [{
+        name: 'name',
+        type: 'text',
+        value: getDefaultConfigurationName(),
+        label: localize('@configurationName'),
+        placeholder: localize('@configurationNamePlaceholder'),
+        attributes: { maxlength: 80 },
+      }],
+      buttons: [
+        { text: localize('@cancel'), role: 'cancel' },
+        { text: localize('@confirm'), role: 'confirm' },
+      ],
+    });
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    if (result.role !== 'confirm') return;
+    name = String(result.data?.values?.name ?? '').trim();
+    if (!name) return;
+
+    const existingWithSameName = findSavedConfigurationByName(name);
+    if (existingWithSameName) {
+      const resolution = await resolveConfigurationNameConflict(existingWithSameName);
+      if (resolution === 'cancel') return;
+      if (resolution === 'overwrite') {
+        selectedConfiguration = existingWithSameName;
+        name = existingWithSameName.name;
+      } else {
+        name = getUniqueConfigurationName(name);
+      }
+    }
+  }
+
   const now = new Date().toISOString();
   const product = availableProducts.value.find(candidate => candidate.file === selectedSensor.value);
   const configuration: SavedConfiguration = {
@@ -3835,6 +3957,8 @@ const saveCurrentConfiguration = async () => {
   try {
     allSavedConfigurations.value = writeSavedConfiguration(configuration);
     selectedSavedConfigurationId.value = configuration.id;
+    loadedSavedConfigurationId.value = configuration.id;
+    loadedConfigurationSnapshot.value = getCurrentConfigurationSnapshot();
     await presentSavedConfigurationToast(localize('@configurationSaved'));
   } catch (error) {
     console.error('Failed to save configuration locally:', error);
@@ -3859,8 +3983,8 @@ const loadSelectedConfiguration = async () => {
   if (!saved) return;
 
   const savedId = saved.id;
-  await onSensorChange({ detail: { value: saved.product.configurationFile } });
-  if (!sensorConfig.value) return;
+  const sensorLoaded = await onSensorChange({ detail: { value: saved.product.configurationFile } });
+  if (!sensorLoaded || !sensorConfig.value) return;
 
   const reconciled = reconcileSavedConfiguration(saved, sensorConfig.value);
   CONFIGURATION_SECTION_NAMES.forEach(sectionName => {
@@ -3887,6 +4011,8 @@ const loadSelectedConfiguration = async () => {
 
   selectedSavedConfigurationId.value = savedId;
   updateOutput();
+  loadedSavedConfigurationId.value = savedId;
+  loadedConfigurationSnapshot.value = getCurrentConfigurationSnapshot();
   await presentSavedConfigurationToast(localize('@configurationLoaded'));
 
   if (configurationLoadReportCount(reconciled.report) > 0) {
@@ -3897,6 +4023,23 @@ const loadSelectedConfiguration = async () => {
     });
     await warning.present();
   }
+};
+
+const onSavedConfigurationSelectionChange = async (event: CustomEvent) => {
+  const configurationId = String(event.detail.value ?? '');
+  selectedSavedConfigurationId.value = configurationId;
+  if (!configurationId) {
+    loadedSavedConfigurationId.value = '';
+    loadedConfigurationSnapshot.value = '';
+    return;
+  }
+  await loadSelectedConfiguration();
+};
+
+const restoreLoadedConfiguration = async () => {
+  if (!loadedSavedConfigurationId.value) return;
+  selectedSavedConfigurationId.value = loadedSavedConfigurationId.value;
+  await loadSelectedConfiguration();
 };
 
 const configurationExportFilename = (configuration: SavedConfiguration): string => {
@@ -3988,6 +4131,7 @@ const shareConfigurationFile = async (
 };
 
 const exportSelectedConfiguration = async () => {
+  if (!canExportCurrentConfiguration.value) return;
   const selected = allSavedConfigurations.value.find(
     configuration => configuration.id === selectedSavedConfigurationId.value,
   );
@@ -4102,17 +4246,31 @@ const importConfigurationFile = async (event: Event) => {
       return;
     }
 
-    const idAlreadyExists = allSavedConfigurations.value.some(
-      configuration => configuration.id === parsed.id,
-    );
+    const existingWithSameName = findSavedConfigurationByName(parsed.name);
+    const nameConflictResolution = existingWithSameName
+      ? await resolveConfigurationNameConflict(existingWithSameName)
+      : null;
+    if (nameConflictResolution === 'cancel') return;
+
+    const overwriteExisting = nameConflictResolution === 'overwrite'
+      ? existingWithSameName
+      : undefined;
+    const idAlreadyExists = allSavedConfigurations.value.some(configuration => (
+      configuration.id === parsed.id
+    ));
     const imported: SavedConfiguration = {
       ...parsed,
-      id: idAlreadyExists ? createConfigurationId() : parsed.id,
+      id: overwriteExisting?.id ?? (idAlreadyExists ? createConfigurationId() : parsed.id),
+      name: nameConflictResolution === 'keep-both'
+        ? getUniqueConfigurationName(parsed.name)
+        : (overwriteExisting?.name ?? parsed.name),
+      createdAt: overwriteExisting?.createdAt ?? parsed.createdAt,
       updatedAt: new Date().toISOString(),
     };
     allSavedConfigurations.value = writeSavedConfiguration(imported);
     selectedSavedConfigurationId.value = imported.id;
     await presentSavedConfigurationToast(localize('@configurationImported'));
+    await loadSelectedConfiguration();
   } catch (error) {
     console.error('Failed to import configuration:', error);
     await presentConfigurationImportError('@configurationImportInvalid');
@@ -4140,6 +4298,10 @@ const confirmDeleteSelectedConfiguration = async () => {
   try {
     allSavedConfigurations.value = deleteSavedConfiguration(selected.id);
     selectedSavedConfigurationId.value = '';
+    if (loadedSavedConfigurationId.value === selected.id) {
+      loadedSavedConfigurationId.value = '';
+      loadedConfigurationSnapshot.value = '';
+    }
     await presentSavedConfigurationToast(localize('@configurationDeleted'));
   } catch (error) {
     console.error('Failed to delete local configuration:', error);
@@ -4252,13 +4414,13 @@ ion-content {
   font-size: 0.9rem;
 }
 
-.saved-config-action--load {
+.saved-config-action--restore {
   min-width: 0;
   margin: 0;
   font-weight: 750;
 }
 
-.saved-config-action--load::part(native) {
+.saved-config-action--restore::part(native) {
   padding-inline: 18px;
 }
 
@@ -4270,6 +4432,10 @@ ion-content {
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid var(--app-border);
+}
+
+.saved-config-export-hint {
+  display: inline-flex;
 }
 
 .saved-config-action--more {
@@ -4306,7 +4472,7 @@ ion-content {
 
   .saved-config-action--save { grid-area: save; }
   .saved-config-action--import { grid-area: import; }
-  .saved-config-action--export,
+  .saved-config-export-hint,
   .saved-config-action--delete {
     display: none;
   }
