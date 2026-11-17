@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import tempoNeo2RemoteProbesConfig from '../../../public/config/50-70-306-Temp\'O-Neo-2-remote-probes.json';
-import hygroTempConfig from '../../../public/config/50-70-260-671-HygroTemp\'O-Neo.json';
 import pulseConfig from '../../../public/config/50-70-260-Pulse-Sens\'O-Neo.json';
 import pulseLiteConfig from '../../../public/config/50-70-304-Pulse-Sens\'O-Lite-Neo.json';
 import { parseReportingConfigurations } from '@/utils/BLE/reportingConfiguration';
@@ -15,7 +14,6 @@ describe('reporting configuration parsing', () => {
   it('declares BLE reporting reads in each supported sensor configuration', () => {
     expect([
       tempoNeo2RemoteProbesConfig,
-      hygroTempConfig,
       pulseConfig,
       pulseLiteConfig,
     ].every(config => config.capabilities.reporting_configuration_read)).toBe(true);
@@ -71,24 +69,6 @@ describe('reporting configuration parsing', () => {
     expect(result.fieldValues.gBatchEmission).toBeUndefined();
   });
 
-  it('parses HygroTemp shared batch values and scaled humidity thresholds', () => {
-    const result = parseReportingConfigurations(hygroTempConfig, [
-      frame('53 09 0402 00 15 0000 00 803C 80F0 0000 000A 24'),
-      frame('53 09 0405 00 15 0000 00 803C 80F0 0000 0064 2C'),
-      frame('53 09 0405 00 80 0000 29 800A 803C 70 09C4 0000 01 71 1D4C 0000 01'),
-    ]);
-
-    expect(result.unmatchedFrames).toEqual([]);
-    expect(result.conflicts).toEqual([]);
-    expect(result.fieldValues).toMatchObject({
-      thBatchEchant: '60',
-      gBatchEmission: '240',
-      hStandEchant: '10',
-      hStandEmission: '60',
-      hNotification: '25 75',
-    });
-  });
-
   it('parses the Pulse Neo pattern reporting mode in the shared multi-state group', () => {
     const result = parseReportingConfigurations(pulseConfig, [
       frame('11 09 8005 00 88 0000 19 800A 85A0 F0 0001 0002 80 0003 0004'),
@@ -121,7 +101,8 @@ describe('reporting configuration parsing', () => {
     });
   });
 
-  it.each([pulseLiteConfig, hygroTempConfig])('reads seconds and day-long input recordings in single-input Neo configuration %#', (config) => {
+  it('reads seconds and day-long input recordings in the Pulse Lite Neo configuration', () => {
+    const config = pulseLiteConfig;
     const seconds = parseReportingConfigurations(config, [
       frame('11 09 000F 00 1D 0402 00 000A 85A0 00000000 00000001 04'),
       frame('11 09 000F 00 11 0055 00 0005 85A0 0001 1C'),

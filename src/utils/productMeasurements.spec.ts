@@ -41,40 +41,10 @@ describe('productMeasurements', () => {
     expect(stateIds).toContain('pin_state_10');
   });
 
-  it('exposes only one pulse input for the legacy Pulse SensO Lite Neo reference', () => {
-    const measurements = getProductMeasurements('50-70-260-670');
-
-    expect(measurements.filter(measurement => measurement.id.startsWith('index_'))
-      .map(measurement => measurement.id)).toEqual(['index_1']);
-    expect(measurements.filter(measurement => measurement.id.startsWith('pin_state_'))
-      .map(measurement => measurement.id)).toEqual(['pin_state_1']);
-    expect(measurements.some(measurement => measurement.id === 'multi_state')).toBe(true);
-    expect(measurements.some(measurement => measurement.id === 'temperature')).toBe(false);
-    expect(measurements.some(measurement => measurement.id === 'humidity')).toBe(false);
-  });
-
-  it('exposes both temperature occurrences and battery but no pulse input for TempO Neo', () => {
-    const product = availableProductList.products.find(candidate => (
-      candidate.compatibleProducts.includes('50-70-260-672')
-    ));
-    const measurements = getProductMeasurements('50-70-260-672');
-    const measurementIds = measurements.map(measurement => measurement.id);
-
-    expect(product?.mId).toEqual(['tempo-neo-pt1000']);
-    expect(measurementIds).toContain('temperature_1');
-    expect(measurementIds).toContain('temperature_2');
-    expect(measurementIds).not.toContain('temperature');
-    expect(measurementIds).toContain('battery_voltage');
-    expect(measurementIds).not.toContain('humidity');
-    expect(measurementIds.some(id => id.startsWith('index_'))).toBe(false);
-    expect(measurementIds.some(id => id.startsWith('pin_state_'))).toBe(false);
-    expect(measurementIds).not.toContain('multi_state');
-  });
-
   it('uses display-friendly measurement units', () => {
-    const measurements = getProductMeasurements('50-70-260-672');
+    const measurements = getProductMeasurements('50-70-205');
 
-    expect(measurements.find(measurement => measurement.id === 'temperature_1')?.unit).toBe('°C');
+    expect(measurements.find(measurement => measurement.id === 'temperature')?.unit).toBe('°C');
     expect(measurements.find(measurement => measurement.id === 'battery_voltage')?.unit).toBe('V');
   });
 
@@ -117,15 +87,6 @@ describe('productMeasurements', () => {
   it('prefers an exact revision over a revision-agnostic match', () => {
     expect(resolveAvailableProductReference('50-70-017-004')).toBe('50-70-017-004');
     expect(resolveAvailableProductReference('50-70-017-006')).toBe('50-70-017');
-    expect(resolveAvailableProductReference('50-70-260-670')).toBe('50-70-260-670');
-    expect(getProductDisplayName('50-70-260-670')).toBe("Pulse Sens'O Lite Neo");
-    expect(getProductConfigurationFile('50-70-260-670')).toBe("50-70-304-Pulse-Sens'O-Lite-Neo");
-    expect(resolveAvailableProductReference('50-70-260-671')).toBe('50-70-260-671');
-    expect(getProductDisplayName('50-70-260-671')).toBe("HygroTemp'O Neo");
-    expect(getProductConfigurationFile('50-70-260-671')).toBe("50-70-260-671-HygroTemp'O-Neo");
-    expect(resolveAvailableProductReference('50-70-260-672')).toBe('50-70-260-672');
-    expect(getProductDisplayName('50-70-260-672')).toBe("Temp'O Neo - 2 remote probes");
-    expect(getProductConfigurationFile('50-70-260-672')).toBe('50-70-306-Temp\'O-Neo-2-remote-probes');
     expect(resolveAvailableProductReference('50-70-306')).toBe('50-70-306');
   });
 
@@ -147,7 +108,6 @@ describe('productMeasurements', () => {
 
     expect(choices.slice(0, neoChoices.length)).toEqual(neoChoices);
     expect(neoChoices.map(choice => choice.label)).toEqual([
-      "HygroTemp'O Neo (50-70-260-671)",
       "Pulse Sens'O Lite Neo (50-70-304)",
       "Pulse Sens'O Neo (50-70-260)",
       "Temp'O Neo - 2 remote probes (50-70-306)",

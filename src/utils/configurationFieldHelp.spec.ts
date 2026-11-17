@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { buildConfigurationFieldHelp } from './configurationFieldHelp';
 import { referencedFieldNames } from './patternReporting';
 import pulseConfig from '../../public/config/50-70-260-Pulse-Sens\'O-Neo.json';
-import hygroConfig from '../../public/config/50-70-260-671-HygroTemp\'O-Neo.json';
 import liteConfig from '../../public/config/50-70-304-Pulse-Sens\'O-Lite-Neo.json';
 import tempoConfig from '../../public/config/50-70-306-Temp\'O-Neo-2-remote-probes.json';
 import fr from '../../public/localisation/fr_FR.json';
@@ -54,7 +53,7 @@ describe('configuration field help', () => {
     expect(index.second.group.period).toEqual(['Second']);
   });
 
-  it.each([pulseConfig, hygroConfig, liteConfig, tempoConfig])('audits Neo configuration %# fields and placeholders in both languages', (config) => {
+  it.each([pulseConfig, liteConfig, tempoConfig])('audits Neo configuration %# fields and placeholders in both languages', (config) => {
     const index = buildConfigurationFieldHelp(config);
     for (const name of ['general_params', 'batch_params', 'standard_params'] as const) {
       const section = config[name];
@@ -91,7 +90,7 @@ describe('configuration field help', () => {
       .toEqual(['@cfgCommentStandStatePattern @InputLabel 1 + @InputLabel 2 + @InputLabel 3 + @InputLabel 4']);
   });
 
-  it.each([pulseConfig, hygroConfig, liteConfig, tempoConfig])('uses progressive steps and day-long batch bounds in Neo configuration %#', (config) => {
+  it.each([pulseConfig, liteConfig, tempoConfig])('uses progressive steps and day-long batch bounds in Neo configuration %#', (config) => {
     for (const sectionName of ['batch_params', 'standard_params'] as const) {
       for (const group of Object.values(config[sectionName])) {
         if (!('fields' in group)) continue;

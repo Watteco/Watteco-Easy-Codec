@@ -3,7 +3,7 @@ import { parseVersionManifest } from './useWebUpdate';
 
 describe('web update manifest', () => {
   it('accepts a published version', () => {
-    expect(parseVersionManifest({ version: '0.11.18' })).toEqual({ version: '0.11.18' });
+    expect(parseVersionManifest({ version: '1.2.3' })).toEqual({ version: '1.2.3' });
   });
 
   it.each([
