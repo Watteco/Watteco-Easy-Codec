@@ -3,8 +3,18 @@
     class="sensor-mobile-header"
     :class="{ 'sensor-mobile-header--disconnected': effectiveStatus !== 'connected' }"
   >
+    <button
+      v-if="backTo"
+      type="button"
+      class="sensor-mobile-leading sensor-mobile-back"
+      :aria-label="effectiveBackLabel"
+      @click="navigateBack"
+    >
+      <ion-icon :icon="arrowBackOutline" aria-hidden="true" />
+    </button>
     <img
-      class="sensor-mobile-logo"
+      v-else
+      class="sensor-mobile-leading sensor-mobile-logo"
       :src="logoSrc"
       alt="Watteco"
       draggable="false"
@@ -142,6 +152,7 @@ import { useRouter } from 'vue-router';
 import { IonIcon, IonSpinner, alertController, toastController } from '@ionic/vue';
 import {
   alertCircleOutline,
+  arrowBackOutline,
   bluetoothOutline,
   closeOutline,
   lockClosed,
@@ -172,6 +183,8 @@ const props = defineProps<{
   batteryLevel?: number;
   loraWanStatus?: LoraWanStatus;
   bleSignalLevel?: BleSignalLevel;
+  backTo?: string;
+  backLabel?: string;
 }>();
 
 const router = useRouter();
@@ -179,6 +192,7 @@ const ble = useBle();
 const { confirmationEnabled, setConfirmationEnabled } = useSessionExitConfirmation();
 const isDisconnecting = ref(false);
 const logoSrc = `${import.meta.env.BASE_URL}img/icon.png`;
+const effectiveBackLabel = computed(() => props.backLabel ?? props.localize('@backLabel'));
 const finderShortcut = createSecretTapSequence({
   requiredTaps: 20,
   timeoutMs: 8_000,
@@ -189,6 +203,11 @@ const finderShortcut = createSecretTapSequence({
 
 const handleLogoTap = () => {
   finderShortcut.tap(ble.connected.value);
+};
+
+const navigateBack = async () => {
+  if (!props.backTo) return;
+  await router.replace(props.backTo);
 };
 
 onBeforeUnmount(finderShortcut.reset);
@@ -427,12 +446,33 @@ const disconnectAndGoBack = async () => {
   background: var(--ion-color-warning);
 }
 
-.sensor-mobile-logo {
+.sensor-mobile-leading {
+  box-sizing: border-box;
   width: 48px;
   height: 48px;
-  object-fit: cover;
   border: 1px solid #fff;
   border-radius: 9px;
+}
+
+.sensor-mobile-logo { object-fit: cover; }
+
+.sensor-mobile-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.sensor-mobile-back:active {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0.94);
+}
+
+.sensor-mobile-back ion-icon {
+  width: 26px;
+  height: 26px;
 }
 
 .sensor-mobile-identity {
@@ -662,7 +702,7 @@ const disconnectAndGoBack = async () => {
     padding-left: 10px;
   }
 
-  .sensor-mobile-logo {
+  .sensor-mobile-leading {
     width: 44px;
     height: 44px;
   }

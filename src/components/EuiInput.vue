@@ -12,7 +12,7 @@
         class="eui-input-field__input"
         :class="{ 'eui-input-field__input--full': !formattedPrefix }"
         type="text"
-        inputmode="text"
+        :inputmode="inputMode"
         :maxlength="maximumFormattedLength"
         autocomplete="off"
         autocapitalize="characters"
@@ -45,6 +45,7 @@ const props = withDefaults(defineProps<{
   byteLength?: number;
   placeholder?: string;
   disabled?: boolean;
+  inputMode?: 'text' | 'none';
 }>(), {
   modelValue: '',
   label: '',
@@ -52,6 +53,7 @@ const props = withDefaults(defineProps<{
   byteLength: 8,
   placeholder: '',
   disabled: false,
+  inputMode: 'text',
 });
 
 const emit = defineEmits<{

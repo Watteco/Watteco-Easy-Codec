@@ -81,6 +81,15 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/ota-app-eui',
+    name: 'OtaAppEui',
+    component: () => import('@/views/OtaAppEuiPage.vue'),
+    beforeEnter: (_to, _from, next) => {
+      if (!isNative) { next('/tabs/downlink'); return; }
+      next();
+    }
+  },
+  {
     path: '/ble-finder',
     name: 'BleFinder',
     component: () => import('@/views/BleSignalGaugePage.vue'),

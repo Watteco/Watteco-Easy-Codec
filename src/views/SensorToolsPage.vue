@@ -171,6 +171,17 @@
                   <ion-button expand="block" @click="router.push('/firmware-update')">
                     {{ localize('@toolsFirmwareUpdate') }}
                   </ion-button>
+                  <ion-button
+                    v-if="developerModeEnabled"
+                    expand="block"
+                    :disabled="!canSendCommand"
+                    @click="openOtaAppEui"
+                  >
+                    <ion-icon slot="start" :icon="lockIcon" />
+                    {{ osaAuthenticating
+                      ? localize('@toolsOsaAuthenticating')
+                      : localize('@toolsOtaAppEui') }}
+                  </ion-button>
                 </div>
                 <p
                   v-if="feedback && feedbackContext === 'commands'"
@@ -1487,6 +1498,12 @@ async function sendSensorReboot(): Promise<void> {
     commandSending.value = null;
     if (authenticationWasRequired) await refreshDeviceInformation();
   }
+}
+
+async function openOtaAppEui(): Promise<void> {
+  feedbackContext.value = 'commands';
+  if (!await authenticateWithDebugCredentials()) return;
+  await router.push('/ota-app-eui');
 }
 
 async function startCampaign() {
