@@ -76,24 +76,15 @@
 
         <section v-if="autoConnectPanelVisible" class="auto-connect-panel">
           <strong>{{ localize('@bleAutoConnectTitle') }}</strong>
-          <label class="dev-eui-input-label" for="auto-connect-dev-eui">
-            {{ localize('@bleDevEui') }}
-          </label>
-          <div class="dev-eui-input-row">
-            <span class="dev-eui-prefix">70:B3:D5:E7:</span>
-            <input
-              id="auto-connect-dev-eui"
-              :value="formattedDevEuiSuffix"
-              class="dev-eui-suffix-input"
-              type="text"
-              inputmode="text"
-              maxlength="23"
-              autocomplete="off"
-              autocapitalize="characters"
-              placeholder="5F:12:34:56"
-              :disabled="targetedWorkflowActive"
-              @input="onDevEuiSuffixInput"
-            />
+          <eui-input
+            v-model="devEuiSuffix"
+            input-id="auto-connect-dev-eui"
+            :label="localize('@bleDevEui')"
+            :fixed-prefix="WATTECO_DEV_EUI_PREFIX"
+            placeholder="5F:12:34:56"
+            :disabled="targetedWorkflowActive"
+            @input="qrScanMessage = ''"
+          >
             <ion-button
               class="qr-scan-button"
               fill="clear"
@@ -104,7 +95,7 @@
               <ion-spinner v-if="qrScanInProgress" name="crescent" />
               <ion-icon v-else :icon="qrCodeOutline" aria-hidden="true" />
             </ion-button>
-          </div>
+          </eui-input>
           <p class="qr-scan-hint">{{ localize('@bleQrScanHint') }}</p>
           <ion-button
             expand="block"
@@ -366,6 +357,7 @@ import axios from 'axios';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
 import LeadingEllipsisText from '@/components/LeadingEllipsisText.vue';
+import EuiInput from '@/components/EuiInput.vue';
 import { useLanguage } from '@/composables/useLanguage';
 import { useTheme } from '@/composables/useTheme';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
@@ -377,10 +369,9 @@ import {
   deriveBleDeviceNameFromDevEuiSuffix,
   deriveDevEuiFromDeviceName,
   formatDevEui,
-  formatDevEuiSuffix,
-  getFormattedDevEuiSuffixCaret,
   isBleSensorName,
   normalizeDevEuiSuffixInput,
+  WATTECO_DEV_EUI_PREFIX,
 } from '@/utils/BLE/deviceIdentity';
 import {
   recoveryDeviceFromOtaLoader,
@@ -452,7 +443,6 @@ const displayedDevices = computed<DisplayDevice[]>(() => {
 const applicationDevices = computed(() => displayedDevices.value.filter(device => !device.isOtaLoader));
 const otaLoaderDevices = computed(() => displayedDevices.value.filter(device => device.isOtaLoader));
 const showScanningIndicator = computed(() => ble.scanning.value);
-const formattedDevEuiSuffix = computed(() => formatDevEuiSuffix(devEuiSuffix.value));
 const targetBleName = computed(() => deriveBleDeviceNameFromDevEuiSuffix(devEuiSuffix.value));
 const validTargetBleName = computed(() => isBleSensorName(targetBleName.value ?? undefined));
 const scanPanelRaised = computed(() => (
@@ -540,16 +530,6 @@ async function toggleScan() {
 
 function toggleAutoConnectPanel() {
   autoConnectPanelVisible.value = !autoConnectPanelVisible.value;
-}
-
-function onDevEuiSuffixInput(event: Event) {
-  const input = event.target as HTMLInputElement;
-  const rawValue = input.value;
-  const caret = getFormattedDevEuiSuffixCaret(rawValue, input.selectionStart);
-  devEuiSuffix.value = normalizeDevEuiSuffixInput(rawValue);
-  qrScanMessage.value = '';
-  input.value = formattedDevEuiSuffix.value;
-  void nextTick(() => input.setSelectionRange(caret, caret));
 }
 
 async function scanSensorQrCode() {
@@ -749,58 +729,6 @@ watch(() => ble.connectionPhase.value, (phase) => {
   color: var(--ion-color-medium-shade);
   font-size: 0.8rem;
   line-height: 1.3;
-}
-
-.dev-eui-input-label {
-  display: block;
-  margin-bottom: 5px;
-  color: var(--ion-color-medium-shade);
-  font-size: 0.76rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.dev-eui-input-row {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  overflow: hidden;
-  font-family: monospace;
-  font-size: clamp(0.86rem, 3.8vw, 1.02rem);
-  font-weight: 700;
-  background: var(--app-page-background);
-  border: 1px solid rgba(var(--ion-color-medium-rgb), 0.42);
-  border-radius: 8px;
-}
-
-.dev-eui-prefix {
-  flex: 0 0 auto;
-  padding: 11px 0 11px 10px;
-  color: var(--ion-color-medium-shade);
-  white-space: nowrap;
-}
-
-.dev-eui-suffix-input {
-  box-sizing: border-box;
-  min-width: 0;
-  flex: 1 1 auto;
-  padding: 11px 8px 11px 0;
-  color: var(--ion-text-color);
-  font: inherit;
-  background: transparent;
-  border: 0;
-  outline: 0;
-  text-transform: uppercase;
-}
-
-.dev-eui-suffix-input::placeholder {
-  color: var(--ion-color-medium);
-  opacity: 0.55;
-}
-
-.dev-eui-input-row:focus-within {
-  border-color: var(--ion-color-primary);
-  box-shadow: 0 0 0 2px rgba(var(--ion-color-primary-rgb), 0.14);
 }
 
 .auto-connect-action {

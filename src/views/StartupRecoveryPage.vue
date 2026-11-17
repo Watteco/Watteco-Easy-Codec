@@ -14,21 +14,16 @@
         <section class="recovery-card">
           <p class="recovery-intro">{{ localize('@startupRecoveryIntro') }}</p>
 
-          <label class="dev-eui-label" for="bbs-dev-eui">{{ localize('@bleDevEui') }}</label>
-          <div class="dev-eui-row">
-            <span>70:B3:D5:E7:</span>
-            <input
-              id="bbs-dev-eui"
-              :value="formattedDevEuiSuffix"
-              type="text"
-              inputmode="text"
-              maxlength="23"
-              autocomplete="off"
-              autocapitalize="characters"
-              placeholder="5F:12:34:56"
-              :disabled="workflowActive"
-              @input="onDevEuiSuffixInput"
-            />
+          <eui-input
+            v-model="devEuiSuffix"
+            class="recovery-eui-input"
+            input-id="bbs-dev-eui"
+            :label="localize('@bleDevEui')"
+            :fixed-prefix="WATTECO_DEV_EUI_PREFIX"
+            placeholder="5F:12:34:56"
+            :disabled="workflowActive"
+            @input="message = ''"
+          >
             <ion-button
               class="qr-button"
               fill="clear"
@@ -39,7 +34,7 @@
               <ion-spinner v-if="qrScanInProgress" name="crescent" />
               <ion-icon v-else :icon="qrCodeOutline" aria-hidden="true" />
             </ion-button>
-          </div>
+          </eui-input>
           <p class="qr-hint">{{ localize('@bleQrScanHint') }}</p>
 
           <div class="recovery-instructions">
@@ -81,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonBackButton,
@@ -105,12 +100,12 @@ import {
 import { useBle } from '@/composables/useBle';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import { useLanguage } from '@/composables/useLanguage';
+import EuiInput from '@/components/EuiInput.vue';
 import { extractDevEuiFromQrPayload } from '@/utils/lorawanQr';
 import {
   deriveBleDeviceNameFromDevEuiSuffix,
-  formatDevEuiSuffix,
-  getFormattedDevEuiSuffixCaret,
   normalizeDevEuiSuffixInput,
+  WATTECO_DEV_EUI_PREFIX,
 } from '@/utils/BLE/deviceIdentity';
 import { createBundledTranslations } from '@/utils/localization';
 
@@ -131,7 +126,6 @@ const localize = (key: string): string => {
   return languages[currentLanguage.value][key.substring(1)] ?? key;
 };
 
-const formattedDevEuiSuffix = computed(() => formatDevEuiSuffix(devEuiSuffix.value));
 const targetBbsName = computed(() => {
   const normalName = deriveBleDeviceNameFromDevEuiSuffix(devEuiSuffix.value);
   return normalName ? `${normalName}.BBS` : null;
@@ -144,15 +138,6 @@ onUnmounted(() => {
   if (connecting.value) void ble.cancelConnect();
   else if (workflowActive.value) void ble.cancelScan();
 });
-
-function onDevEuiSuffixInput(event: Event) {
-  const input = event.target as HTMLInputElement;
-  const caret = getFormattedDevEuiSuffixCaret(input.value, input.selectionStart);
-  devEuiSuffix.value = normalizeDevEuiSuffixInput(input.value);
-  message.value = '';
-  input.value = formattedDevEuiSuffix.value;
-  void nextTick(() => input.setSelectionRange(caret, caret));
-}
 
 async function scanSensorQrCode() {
   if (qrScanInProgress.value || workflowActive.value) return;
@@ -249,15 +234,18 @@ async function toggleBbsConnection() {
   border-radius: 14px; background: var(--app-surface); box-shadow: var(--app-card-shadow);
 }
 .recovery-intro { margin: 0; color: var(--app-text); font-size: 0.92rem; line-height: 1.45; }
-.dev-eui-label { margin-bottom: -8px; color: var(--app-text-secondary); font-size: 0.73rem; font-weight: 750; text-transform: uppercase; }
-.dev-eui-row {
-  display: flex; min-width: 0; align-items: center; overflow: hidden; border: 1px solid var(--app-border);
-  border-radius: 9px; background: var(--app-page-background); font-family: monospace; font-size: clamp(0.84rem, 3.8vw, 1rem); font-weight: 700;
-}
-.dev-eui-row > span { flex: 0 0 auto; padding-left: 11px; color: var(--app-text-secondary); }
-.dev-eui-row input {
-  width: 100%; min-width: 0; padding: 12px 2px; border: 0; outline: 0; color: var(--app-text);
-  background: transparent; font: inherit; text-transform: uppercase;
+.recovery-eui-input {
+  --eui-input-gap: 6px;
+  --eui-input-label-color: var(--app-text-secondary);
+  --eui-input-label-size: 0.73rem;
+  --eui-input-label-weight: 750;
+  --eui-input-border-color: var(--app-border);
+  --eui-input-border-radius: 9px;
+  --eui-input-font-size: clamp(0.84rem, 3.8vw, 1rem);
+  --eui-input-prefix-color: var(--app-text-secondary);
+  --eui-input-prefix-padding: 12px 0 12px 11px;
+  --eui-input-padding: 12px 2px;
+  --eui-input-color: var(--app-text);
 }
 .qr-button { flex: 0 0 42px; width: 42px; min-height: 42px; margin: 0; --padding-start: 0; --padding-end: 0; }
 .qr-hint { margin: -8px 0 0; color: var(--app-text-secondary); font-size: 0.76rem; line-height: 1.35; }
