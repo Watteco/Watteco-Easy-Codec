@@ -58,11 +58,11 @@
                     {{ formatDeviceInformation(deviceStatus.pcbVersion) }}
                   </strong>
                 </div>
-                <div v-if="sensorTimeIsPlausible" class="status-item status-item--sensor-time">
+                <div v-if="sensorTimeIsVisible" class="status-item status-item--sensor-time">
                   <span>{{ localize('@toolsSensorTime') }}</span>
-                  <strong>{{ formatDate(deviceStatus.sensorTime) }}</strong>
+                  <strong>{{ formatDate(displayedSensorTime) }}</strong>
                 </div>
-                <div class="status-item status-item--mobile-time">
+                <div v-if="developerModeEnabled" class="status-item status-item--mobile-time">
                   <span>{{ localize('@toolsMobileTime') }}</span>
                   <strong>{{ formatDate(mobileTime) }}</strong>
                 </div>
@@ -780,6 +780,8 @@ const deviceStatus = ref<DeviceStatus>({
 const deviceStatusLoading = ref(false);
 const deviceInformationLoading = ref(false);
 const mobileTime = ref(Date.now());
+const sensorClockNow = ref(Date.now());
+const sensorTimeReceivedAt = ref<number | null>(null);
 const osaAuthenticating = ref(false);
 const manualFrameHex = ref('11 00 80 04 00 04');
 const manualFrameInput = ref<HTMLTextAreaElement | null>(null);
@@ -804,6 +806,7 @@ let adminTimeMonitoringRun = 0;
 let adminTimeStopping = Promise.resolve();
 let sensorToolsPageActive = false;
 let mobileTimeInterval: ReturnType<typeof setInterval> | undefined;
+let sensorClockInterval: ReturnType<typeof setInterval> | undefined;
 let campaignCancelled = false;
 let campaignSequence = 0;
 let campaignDiagnosticSequence = 0;
@@ -839,7 +842,22 @@ const campaignStatus = computed(() => campaignMessage.value || (
     ? localize('@toolsCampaignComplete')
     : localize('@toolsCampaignReady')
 ));
-const sensorTimeIsPlausible = computed(() => isPlausibleSensorTime(deviceStatus.value.sensorTime));
+const displayedSensorTime = computed(() => {
+  const sensorTime = deviceStatus.value.sensorTime;
+  if (
+    developerModeEnabled.value
+    || !ble.connected.value
+    || sensorTimeReceivedAt.value === null
+    || !isPlausibleSensorTime(sensorTime)
+  ) return sensorTime;
+  return sensorTime + Math.max(0, sensorClockNow.value - sensorTimeReceivedAt.value);
+});
+const sensorTimeIsVisible = computed(() => (
+  isPlausibleSensorTime(displayedSensorTime.value)
+  || (developerModeEnabled.value
+    && typeof displayedSensorTime.value === 'number'
+    && Number.isFinite(displayedSensorTime.value))
+));
 const deviceInformationRequiresAuthentication = computed(() => (
   deviceStatus.value.osaAuthenticated === false
 ));
@@ -1312,7 +1330,7 @@ async function refreshDeviceStatus(includeDeviceInformation = true): Promise<voi
   deviceStatusLoading.value = true;
   try {
     const adminStatus = await readAdminDeviceStatus(deviceId, line => console.debug(line));
-    deviceStatus.value = { ...deviceStatus.value, ...adminStatus };
+    applyAdminStatus(adminStatus);
     ble.setOsaAuthenticated(adminStatus.osaAuthenticated);
     if (adminStatus.osaAuthenticated !== true) clearDeviceInformation();
   } catch (error: any) {
@@ -1321,6 +1339,15 @@ async function refreshDeviceStatus(includeDeviceInformation = true): Promise<voi
     deviceStatusLoading.value = false;
   }
   if (includeDeviceInformation) await refreshDeviceInformation();
+}
+
+function applyAdminStatus(statusUpdate: Partial<AdminDeviceStatus>): void {
+  if ('sensorTime' in statusUpdate) {
+    const receivedAt = Date.now();
+    sensorTimeReceivedAt.value = receivedAt;
+    sensorClockNow.value = receivedAt;
+  }
+  deviceStatus.value = { ...deviceStatus.value, ...statusUpdate };
 }
 
 function receiveAppFrame(frame: Uint8Array): void {
@@ -1665,7 +1692,7 @@ async function initializeDeviceStatus(): Promise<void> {
       deviceId,
       statusUpdate => {
         if (ble.connectedDevice.value?.deviceId !== deviceId) return;
-        deviceStatus.value = { ...deviceStatus.value, ...statusUpdate };
+        applyAdminStatus(statusUpdate);
       },
       line => console.debug(line),
     );
@@ -1700,9 +1727,39 @@ function stopMobileClock(): void {
   mobileTimeInterval = undefined;
 }
 
+function startSensorClock(): void {
+  sensorClockNow.value = Date.now();
+  if (sensorClockInterval !== undefined) return;
+  sensorClockInterval = setInterval(() => {
+    sensorClockNow.value = Date.now();
+  }, 1_000);
+}
+
+function stopSensorClock(): void {
+  if (sensorClockInterval === undefined) return;
+  clearInterval(sensorClockInterval);
+  sensorClockInterval = undefined;
+}
+
+function updateStatusClocks(): void {
+  if (!sensorToolsPageActive) {
+    stopMobileClock();
+    stopSensorClock();
+    return;
+  }
+  if (developerModeEnabled.value) {
+    startMobileClock();
+    stopSensorClock();
+    return;
+  }
+  stopMobileClock();
+  if (ble.connected.value) startSensorClock();
+  else stopSensorClock();
+}
+
 onIonViewDidEnter(() => {
   sensorToolsPageActive = true;
-  startMobileClock();
+  updateStatusClocks();
   playSensorPageTransition('tools', '.sensor-tools-content');
   if (deviceInformationDeviceId !== ble.connectedDevice.value?.deviceId) clearDeviceInformation();
   void initializeDeviceStatus();
@@ -1710,16 +1767,21 @@ onIonViewDidEnter(() => {
 
 onIonViewDidLeave(() => {
   sensorToolsPageActive = false;
-  stopMobileClock();
+  updateStatusClocks();
   void stopDeviceStatusMonitoring();
 });
 
 watch(() => ble.connected.value, connected => {
+  updateStatusClocks();
   if (connected) {
     if (sensorToolsPageActive) void initializeDeviceStatus();
     return;
   }
   void stopDeviceStatusMonitoring();
+});
+
+watch(developerModeEnabled, () => {
+  updateStatusClocks();
 });
 
 onMounted(async () => {
@@ -1738,6 +1800,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   stopMobileClock();
+  stopSensorClock();
   stopDeleteRepeat();
   cancelCampaign();
   finishManualResponseCollection();
@@ -1835,7 +1898,8 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
 }
 
 .status-item--firmware strong,
-.status-item--sensor-time strong { font-size: 0.78rem; font-weight: 600; }
+.status-item--sensor-time strong,
+.status-item--mobile-time strong { font-size: 0.78rem; font-weight: 600; }
 
 .status-item .value-ok { color: var(--ion-color-success); }
 .status-item .value-auth-required {
