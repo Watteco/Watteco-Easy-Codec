@@ -27,6 +27,7 @@
                 interface="popover"
                 :label="localize('@sensor')"
                 :placeholder="localize('@sensorSelect')"
+                :value="selectedSensor"
                 @ionChange="onSensorChange"
               >
               <!-- Loop through categories and products -->
@@ -1880,6 +1881,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, onUnmounted, nextTick, provide } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { 
   IonTabBar, 
   IonTabButton, 
@@ -1943,6 +1945,14 @@ import { createBundledTranslations } from '@/utils/localization';
 import { useDeveloperMode } from '@/composables/useDeveloperMode';
 import type { LanguageCode, Translations } from '@/types/localization';
 import { getProductConfigurationFile, getProductDisplayName } from '@/utils/productMeasurements';
+import {
+  WEB_SENSOR_QUERY_KEY,
+  createEasyCodecSelectionMessage,
+  findProductByLinkIdentifier,
+  getEmbeddingParentOrigin,
+  getProductLinkIdentifier,
+  readProductLinkIdentifier,
+} from '@/utils/webProductLink';
 import {
   findPatternReportingContext,
   isPatternReportingFieldVisible,
@@ -2069,6 +2079,8 @@ type SensorStateConfig = Record<
 
 const { currentLanguage, changeLanguage } = useLanguage();
 const { themeMode, setThemeMode } = useTheme();
+const route = useRoute();
+const router = useRouter();
 
 const languages = ref<Record<LanguageCode, Translations>>(createBundledTranslations());
 
@@ -2480,7 +2492,7 @@ const applyLocalization = (config: any): any => {
 watch(currentLanguage, (newLang, oldLang) => {
   if (selectedSensor.value) {
     updateOutput();
-    onSensorChange({ detail: { value: selectedSensor.value } });
+    void loadSensorConfig(selectedSensor.value);
   } else {
     const outputArea = document.getElementById("outputArea");
     if (outputArea) outputArea.innerHTML = localize("@selectToStart");
@@ -2509,7 +2521,43 @@ const loadAvailableProducts = async () => {
 // Triggered when a new sensor is selected
 const onSensorChange = async (event: SensorChangeEvent) => {
   const selected = event.detail.value;
-  return await loadSensorConfig(selected);
+  const loaded = await loadSensorConfig(selected);
+  if (loaded) await publishWebProductSelection(selected);
+  return loaded;
+};
+
+const publishWebProductSelection = async (sensorFile: string): Promise<void> => {
+  if (isNativeApp) return;
+
+  const product = availableProducts.value.find(candidate => candidate.file === sensorFile);
+  if (!product) return;
+
+  const identifier = getProductLinkIdentifier(product);
+  if (readProductLinkIdentifier(route.query[WEB_SENSOR_QUERY_KEY]) !== identifier) {
+    await router.replace({
+      query: {
+        ...route.query,
+        [WEB_SENSOR_QUERY_KEY]: identifier,
+      },
+    });
+  }
+
+  if (typeof window === 'undefined' || window.parent === window) return;
+  const parentOrigin = getEmbeddingParentOrigin(document.referrer);
+  if (!parentOrigin) return;
+
+  window.parent.postMessage(createEasyCodecSelectionMessage(identifier), parentOrigin);
+};
+
+const selectWebSensorFromRoute = async (): Promise<void> => {
+  if (isNativeApp || !pageInitialized.value) return;
+
+  const identifier = readProductLinkIdentifier(route.query[WEB_SENSOR_QUERY_KEY]);
+  const product = findProductByLinkIdentifier(availableProducts.value, identifier);
+  if (!product || (selectedSensor.value === product.file && sensorConfig.value)) return;
+
+  const loaded = await loadSensorConfig(product.file);
+  if (loaded) await publishWebProductSelection(product.file);
 };
 
 const selectNativeSensor = async (productReference = ble.productReference.value) => {
@@ -2528,6 +2576,11 @@ const selectNativeSensor = async (productReference = ble.productReference.value)
 watch(ble.productReference, (productReference) => {
   void selectNativeSensor(productReference);
 });
+
+watch(
+  () => route.query[WEB_SENSOR_QUERY_KEY],
+  () => void selectWebSensorFromRoute(),
+);
 
 // Reset all checkboxes to their default states
 const resetCheckboxes = () => {
@@ -3101,7 +3154,8 @@ onMounted(async () => {
   }
 
   pageInitialized.value = true;
-  await selectNativeSensor();
+  if (isNativeApp) await selectNativeSensor();
+  else await selectWebSensorFromRoute();
 });
 
 // Remove the event listener when the component is unmounted
