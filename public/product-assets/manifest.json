@@ -1,0 +1,562 @@
+{
+  "50-70-099": {
+    "name": "Atm’O",
+    "description": "Mesures météorologiques",
+    "image": "product-assets/product-bb352b9bef36.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-099/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-099/pdf/en"
+    },
+    "support": "https://support.watteco.com/atmo/"
+  },
+  "50-70-071": {
+    "name": "Flash’O",
+    "description": "Lecture des impulsions lumineuses de compteurs",
+    "image": "product-assets/product-acecd0937fb7.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-071/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-071/pdf/en"
+    },
+    "support": "https://support.watteco.com/flasho/"
+  },
+  "50-70-206": {
+    "name": "Flash’O",
+    "description": "Lecture des impulsions lumineuses de compteurs",
+    "image": "product-assets/product-acecd0937fb7.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-206/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-206/pdf/en"
+    },
+    "support": "https://support.watteco.com/flasho/"
+  },
+  "50-70-205": {
+    "name": "Hygrotemp’O",
+    "description": "Température et humidité ambiantes",
+    "image": "product-assets/product-9da07148f452.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-205/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-205/pdf/en"
+    },
+    "support": "https://support.watteco.com/hygrotempo/"
+  },
+  "50-70-232": {
+    "name": "Hygrotemp’O",
+    "description": "Température et humidité ambiantes",
+    "image": "product-assets/product-9da07148f452.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-205/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-205/pdf/en"
+    },
+    "support": "https://support.watteco.com/hygrotempo/"
+  },
+  "50-70-247": {
+    "name": "Clim’O",
+    "description": "Température et humidité pour le bâtiment",
+    "image": "product-assets/product-371f541703cf.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-247/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-247/pdf/en"
+    },
+    "support": "https://support.watteco.com/climo/"
+  },
+  "50-70-016-005": {
+    "name": "IN’O",
+    "description": "Entrées et sorties tout-ou-rien",
+    "image": "product-assets/product-a8854a71ee67.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-016/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-016/pdf/en"
+    },
+    "support": "https://support.watteco.com/ino-2/"
+  },
+  "50-70-201": {
+    "name": "Inclin’O",
+    "description": "Inclinaison et surveillance de structures",
+    "image": "product-assets/product-861007f9cb2d.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-201/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-201/pdf/en"
+    },
+    "support": "https://support.watteco.com/inclino-r6163/"
+  },
+  "50-70-098": {
+    "name": "Intens’O",
+    "description": "Surveillance de courant électrique",
+    "image": "product-assets/product-0189b043d321.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-098/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-098/pdf/en"
+    },
+    "support": "https://support.watteco.com/intenso/"
+  },
+  "50-70-080": {
+    "name": "Modbus RS485",
+    "description": "Passerelle Modbus RTU vers LoRaWAN",
+    "image": "product-assets/product-7313e3fc243a.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-080/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-080/pdf/en"
+    },
+    "support": "https://support.watteco.com/modbus/"
+  },
+  "50-70-109": {
+    "name": "Modbus RS485",
+    "description": "Passerelle Modbus RTU vers LoRaWAN",
+    "image": "product-assets/product-7313e3fc243a.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-080/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-080/pdf/en"
+    },
+    "support": "https://support.watteco.com/modbus/"
+  },
+  "50-70-287": {
+    "name": "Modbus RS485 Field",
+    "description": "Interface terrain avec alimentation 12 V commutée",
+    "image": "product-assets/product-e7289651e842.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-287/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-287/pdf/en"
+    },
+    "support": "https://support.watteco.com/modbus/"
+  },
+  "50-70-141": {
+    "name": "Monit’O",
+    "description": "Surveillance de tension et de courant",
+    "image": "product-assets/product-e5ce255d4d2d.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-141/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-141/pdf/en"
+    },
+    "support": "https://support.watteco.com/monito/"
+  },
+  "50-70-225": {
+    "name": "Move’O Lite",
+    "description": "Détection de présence et suivi d’occupation",
+    "image": "product-assets/product-d1ba515b95ec.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-225/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-225/pdf/en"
+    },
+    "support": "https://support.watteco.com/moveo/"
+  },
+  "50-70-164": {
+    "name": "Temp’O Outdoor",
+    "description": "Température extérieure ou en local frigorifique",
+    "image": "product-assets/product-f4f45366d404.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-164/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-164/pdf/en"
+    },
+    "support": "https://support.watteco.com/outdoor-temperature/"
+  },
+  "50-70-268": {
+    "name": "Temp’O Outdoor + 1 sonde",
+    "description": "Température extérieure et déportée",
+    "image": "product-assets/product-fdd2845e9d97.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-268/pdf/fr",
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-027": {
+    "name": "Fil Pilote",
+    "description": "Pilotage de chauffage électrique",
+    "image": "product-assets/product-087505a4f357.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-027/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-027/pdf/en"
+    },
+    "support": "https://support.watteco.com/pilote-wire-lora-remote/"
+  },
+  "50-70-017": {
+    "name": "Press’O",
+    "description": "Interface de mesure de pression et de niveau",
+    "image": "product-assets/product-9d4dcaf1d3c1.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-017/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-017/pdf/en"
+    },
+    "support": "https://support.watteco.com/presso-3/"
+  },
+  "50-70-189": {
+    "name": "Press’O",
+    "description": "Interface de mesure de pression et de niveau",
+    "image": "product-assets/product-9d4dcaf1d3c1.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-017/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-017/pdf/en"
+    },
+    "support": "https://support.watteco.com/presso-3/"
+  },
+  "50-70-123": {
+    "name": "Pulse Sens’O • ATEX zone 1",
+    "description": "Comptage en atmosphère explosive",
+    "image": "product-assets/product-23dd32e104c1.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-123/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-123/pdf/en"
+    },
+    "support": "https://support.watteco.com/pulsesensoatexzone1/"
+  },
+  "50-70-228": {
+    "name": "Pulse Sens’O • ATEX zone 1",
+    "description": "Comptage en atmosphère explosive",
+    "image": "product-assets/product-23dd32e104c1.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-123/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-123/pdf/en"
+    },
+    "support": "https://support.watteco.com/pulsesensoatexzone1/"
+  },
+  "50-70-014": {
+    "name": "Pulse Sens'O",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-072": {
+    "name": "Pulse Sens'O",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-039": {
+    "name": "Pulse Sens'O",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-051": {
+    "name": "Pulse Sens'O",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-160": {
+    "name": "Pulse Sens'O",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-043-003": {
+    "name": "Temp’O • 1 sonde",
+    "description": "Température déportée",
+    "image": "product-assets/product-98552da05e10.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-043/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-043/pdf/en"
+    },
+    "support": "https://support.watteco.com/remote-temperature/"
+  },
+  "50-70-126": {
+    "name": "Temp’O • PT1000",
+    "description": "Interface de sondes de température PT1000",
+    "image": "product-assets/product-e15aa902b9f1.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-126/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-126/pdf/en"
+    },
+    "support": "https://support.watteco.com/pt1000/"
+  },
+  "50-70-288": {
+    "name": "Temp’O • PT1000",
+    "description": "Interface de sondes de température PT1000",
+    "image": "product-assets/product-e15aa902b9f1.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-288/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-288/pdf/en"
+    },
+    "support": "https://support.watteco.com/pt1000/"
+  },
+  "50-70-139": {
+    "name": "Temp'O - 2 remote probes",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-163": {
+    "name": "Temp'O - 2 remote probes",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-184": {
+    "name": "Temp'O - 2 remote probes",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-200": {
+    "name": "Hygrotemp’O • sonde déportée",
+    "description": "Température et humidité déportées",
+    "image": "product-assets/product-3955f022ae2e.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-200/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-200/pdf/en"
+    },
+    "support": "https://support.watteco.com/remot_th/"
+  },
+  "50-70-003": {
+    "name": "Smart Plug",
+    "description": "Commande et mesure des équipements branchés",
+    "image": "product-assets/product-6d14ec91c813.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-003/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-003/pdf/en"
+    },
+    "support": "https://support.watteco.com/smartplug/"
+  },
+  "50-70-231": {
+    "name": "Temp’O",
+    "description": "Température intérieure",
+    "image": "product-assets/product-9da07148f452.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-231/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-231/pdf/en"
+    },
+    "support": "https://support.watteco.com/hygrotempo/"
+  },
+  "50-70-053": {
+    "name": "TH",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-162": {
+    "name": "TH",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-045": {
+    "name": "TICs’O",
+    "description": "Téléinformation de compteurs électriques",
+    "image": "product-assets/product-49d3d1ba3bef.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-045/pdf/fr",
+      "en": null
+    },
+    "support": "https://support.watteco.com/tic/"
+  },
+  "50-70-124": {
+    "name": "Toran’O • ATEX zone 1",
+    "description": "Interface pour sondes et comptage",
+    "image": "product-assets/product-1ccc7fe0e951.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-124/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-124/pdf/en"
+    },
+    "support": "https://support.watteco.com/toranoatexzone1/"
+  },
+  "50-70-105": {
+    "name": "Triphas’O",
+    "description": "Mesure électrique triphasée",
+    "image": "product-assets/product-f9d10dfabbaa.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-105/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-105/pdf/en"
+    },
+    "support": "https://support.watteco.com/triphaso/"
+  },
+  "50-70-145": {
+    "name": "Triphas’O",
+    "description": "Mesure électrique triphasée",
+    "image": "product-assets/product-f9d10dfabbaa.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-105/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-105/pdf/en"
+    },
+    "support": "https://support.watteco.com/triphaso/"
+  },
+  "50-70-146": {
+    "name": "Triphas’O",
+    "description": "Mesure électrique triphasée",
+    "image": "product-assets/product-f9d10dfabbaa.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-105/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-105/pdf/en"
+    },
+    "support": "https://support.watteco.com/triphaso/"
+  },
+  "50-70-223": {
+    "name": "Vaqa’O Lite",
+    "description": "Qualité de l’air intérieur",
+    "image": "product-assets/product-6aea29bb2fc0.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-223/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-223/pdf/en"
+    },
+    "support": "https://support.watteco.com/vaqaolite/"
+  },
+  "50-70-251": {
+    "name": "Vaqa’O+ Lite",
+    "description": "Qualité de l’air intérieur",
+    "image": "product-assets/product-03682e0c17a7.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-251/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-251/pdf/en"
+    },
+    "support": "https://support.watteco.com/vaqaolite/"
+  },
+  "50-70-074": {
+    "name": "Vaqa’O+",
+    "description": "Qualité de l’air intérieur",
+    "image": "product-assets/product-cd645dcf64c6.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-074/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-074/pdf/en"
+    },
+    "support": "https://support.watteco.com/vaqao/"
+  },
+  "50-70-168": {
+    "name": "Vaqa’O",
+    "description": "Qualité de l’air intérieur",
+    "image": "product-assets/product-1fd7bef58104.webp",
+    "datasheets": {
+      "fr": null,
+      "en": "https://support.watteco.com/api/produits/50-70-168/pdf/en"
+    },
+    "support": "https://support.watteco.com/vaqao/"
+  },
+  "50-70-064": {
+    "name": "Ventil'O",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-101": {
+    "name": "Ventil'O",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-166": {
+    "name": "Ventil'O",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-236": {
+    "name": "Alt’O",
+    "description": "Hauteur d’eau par radar",
+    "image": "product-assets/product-b7fbb52535d2.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-236/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-236/pdf/en"
+    },
+    "support": "https://support.watteco.com/atmo-2/"
+  },
+  "50-70-260": {
+    "name": "Pulse Sens’O Neo",
+    "description": "Comptage impulsionnel et report d’état, 1 ou 4 entrées, accès BLE",
+    "image": "product-assets/product-c1de8b867069.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-260/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-260/pdf/en"
+    },
+    "support": null
+  },
+  "50-70-260-671": {
+    "name": "HygroTemp'O Neo",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-304": {
+    "name": "Pulse Sens’O Lite Neo",
+    "description": "Comptage impulsionnel et report d’état, 1 ou 4 entrées, accès BLE",
+    "image": "product-assets/product-c1de8b867069.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-304/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-304/pdf/en"
+    },
+    "support": null
+  },
+  "50-70-260-670": {
+    "name": "Pulse Sens’O Lite Neo",
+    "description": "Comptage impulsionnel et report d’état, 1 ou 4 entrées, accès BLE",
+    "image": "product-assets/product-c1de8b867069.webp",
+    "datasheets": {
+      "fr": "https://support.watteco.com/api/produits/50-70-304/pdf/fr",
+      "en": "https://support.watteco.com/api/produits/50-70-304/pdf/en"
+    },
+    "support": null
+  },
+  "50-70-306": {
+    "name": "Temp'O Neo - 2 remote probes",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  },
+  "50-70-260-672": {
+    "name": "Temp'O Neo - 2 remote probes",
+    "description": null,
+    "image": null,
+    "datasheets": {
+      "fr": null,
+      "en": null
+    },
+    "support": null
+  }
+}

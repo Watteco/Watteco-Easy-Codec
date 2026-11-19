@@ -22,24 +22,32 @@
     />
 
     <div v-if="effectiveStatus !== 'choose'" class="sensor-mobile-identity">
-      <strong>
-        <OverflowMarqueeText
-          :text="displayedProductName"
-          end-boundary-selector=".sensor-mobile-header-actions"
-          :layout-key="effectiveStatus"
-        />
-      </strong>
-      <span class="sensor-mobile-reference">
-        <SensorIdentityReference
-          v-if="displayedProductReference || displayedDevEui"
-          :product-reference="displayedProductReference"
-          :dev-eui="displayedDevEui"
-          :minimum-dev-eui-characters="6"
-          end-boundary-selector=".sensor-mobile-header-actions"
-          :layout-key="effectiveStatus"
-        />
-        <span v-else class="sensor-mobile-reference-fallback">{{ displayedDeviceName }}</span>
-      </span>
+      <button
+        type="button"
+        class="sensor-mobile-product-trigger"
+        :disabled="!displayedProductReference"
+        :aria-label="localize('@productInformationAction')"
+        @click="productInformationOpen = true"
+      >
+        <strong>
+          <OverflowMarqueeText
+            :text="displayedProductName"
+            end-boundary-selector=".sensor-mobile-header-actions"
+            :layout-key="effectiveStatus"
+          />
+        </strong>
+        <span class="sensor-mobile-reference">
+          <SensorIdentityReference
+            v-if="displayedProductReference || displayedDevEui"
+            :product-reference="displayedProductReference"
+            :dev-eui="displayedDevEui"
+            :minimum-dev-eui-characters="6"
+            end-boundary-selector=".sensor-mobile-header-actions"
+            :layout-key="effectiveStatus"
+          />
+          <span v-else class="sensor-mobile-reference-fallback">{{ displayedDeviceName }}</span>
+        </span>
+      </button>
       <span class="sensor-mobile-status">
         <ion-spinner
           v-if="isDisconnecting || effectiveStatus === 'loading'"
@@ -144,6 +152,15 @@
     </div>
   </header>
 
+  <ProductInformationModal
+    v-if="displayedProductReference"
+    :is-open="productInformationOpen"
+    :product-reference="displayedProductReference"
+    :dev-eui="displayedDevEui"
+    :localize="localize"
+    @dismiss="productInformationOpen = false"
+  />
+
 </template>
 
 <script setup lang="ts">
@@ -164,6 +181,7 @@ import { useBle } from '@/composables/useBle';
 import { useSessionExitConfirmation } from '@/composables/useSessionExitConfirmation';
 import OverflowMarqueeText from '@/components/OverflowMarqueeText.vue';
 import SensorIdentityReference from '@/components/sensor/SensorIdentityReference.vue';
+import ProductInformationModal from '@/components/sensor/ProductInformationModal.vue';
 import { getProductDisplayName, getProductMeasurements } from '@/utils/productMeasurements';
 import { getSensorVisual } from '@/utils/sensorVisuals';
 import { deriveDevEuiFromDeviceName } from '@/utils/BLE/deviceIdentity';
@@ -191,6 +209,7 @@ const router = useRouter();
 const ble = useBle();
 const { confirmationEnabled, setConfirmationEnabled } = useSessionExitConfirmation();
 const isDisconnecting = ref(false);
+const productInformationOpen = ref(false);
 const logoSrc = `${import.meta.env.BASE_URL}img/icon.png`;
 const effectiveBackLabel = computed(() => props.backLabel ?? props.localize('@backLabel'));
 const finderShortcut = createSecretTapSequence({
@@ -491,6 +510,28 @@ const disconnectAndGoBack = async () => {
   overflow: hidden;
   font-size: 1rem;
   white-space: nowrap;
+}
+
+.sensor-mobile-product-trigger {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  padding: 3px 5px;
+  margin: -3px -5px 0;
+  overflow: hidden;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+}
+
+.sensor-mobile-product-trigger:not(:disabled):active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.sensor-mobile-product-trigger:disabled {
+  opacity: 1;
 }
 
 .sensor-mobile-reference {

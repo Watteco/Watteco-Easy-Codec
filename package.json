@@ -1,10 +1,11 @@
 {
   "name": "watteco-codec",
   "private": true,
-  "version": "0.11.19-dev.0",
+  "version": "0.11.19-dev.6",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/check-product-assets.mjs",
     "build": "vue-tsc && vite build",
     "build:android": "cross-env CAPACITOR_BUILD=true npm run build",
     "build:android:debug": "cross-env CAPACITOR_BUILD=true VITE_ENABLE_BLE_DEBUG=true npm run build",
@@ -19,6 +20,7 @@
     "ios:debug": "node scripts/increment-debug-version.mjs && npm run build:ios:debug && npx cap copy ios && node scripts/print-app-version.mjs",
     "open:android": "npx cap open android",
     "preview": "vite preview",
+    "products:sync": "node scripts/sync-product-assets.mjs",
     "bacnet:meas-ids": "node scripts/get-product-meas-ids.mjs",
     "test:e2e": "cypress run",
     "test:unit": "vitest",
@@ -59,6 +61,7 @@
     "eslint-plugin-vue": "^9.9.0",
     "jsdom": "^22.1.0",
     "patch-package": "^8.0.1",
+    "sharp": "^0.35.5",
     "terser": "^5.4.0",
     "typescript": "^5.1.6",
     "vite": "~5.2.0",

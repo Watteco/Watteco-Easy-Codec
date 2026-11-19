@@ -856,6 +856,12 @@
     "ConfigTrameLabel" : "Trames obligatoires",
     "sensorConfigTitle": "Configuration du capteur",
     "webUpdateAvailable": "Une nouvelle version d'Easy Codec est disponible",
-    "webUpdateAction": "Mettre à jour"
+    "webUpdateAction": "Mettre à jour",
+    "productInformationAction": "Afficher les informations du produit",
+    "productInformationTitle": "Informations du produit",
+    "productDatasheetAction": "Ouvrir la fiche technique",
+    "productSupportAction": "Accéder au site de support",
+    "productResourcesUnavailable": "Aucune ressource produit n'est disponible.",
+    "devEuiLabel": "DevEUI"
 }
 

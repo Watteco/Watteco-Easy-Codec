@@ -855,5 +855,11 @@
     "ConfigTrameLabel" : "Mandatory Frames",
     "sensorConfigTitle": "Sensor Configuration",
     "webUpdateAvailable": "A new Easy Codec version is available",
-    "webUpdateAction": "Update"
+    "webUpdateAction": "Update",
+    "productInformationAction": "Show product information",
+    "productInformationTitle": "Product information",
+    "productDatasheetAction": "Open datasheet",
+    "productSupportAction": "Open support website",
+    "productResourcesUnavailable": "No product resources are available.",
+    "devEuiLabel": "DevEUI"
 }
