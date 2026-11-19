@@ -92,7 +92,8 @@
               aria-hidden="true"
             ></span>
             <span v-else class="sensor-mobile-status-unknown" aria-hidden="true">?</span>
-            <span>LoRaWAN</span>
+            <span class="sensor-mobile-lorawan-label">LoRaWAN</span>
+            <span class="sensor-mobile-lora-label" aria-hidden="true">LoRa</span>
           </span>
         </template>
         <span
@@ -647,6 +648,10 @@ const disconnectAndGoBack = async () => {
   text-overflow: ellipsis;
 }
 
+.sensor-mobile-lora-label {
+  display: none;
+}
+
 .sensor-mobile-battery {
   display: inline-flex;
   align-items: center;
@@ -755,6 +760,16 @@ const disconnectAndGoBack = async () => {
   .sensor-mobile-header-action {
     width: 40px;
     height: 40px;
+  }
+}
+
+@media (max-width: 340px) {
+  .sensor-mobile-lorawan-label {
+    display: none;
+  }
+
+  .sensor-mobile-lora-label {
+    display: inline;
   }
 }
 

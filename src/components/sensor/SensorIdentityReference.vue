@@ -33,7 +33,10 @@ const visibleDevEui = ref(props.devEui ?? '');
 let resizeObserver: ResizeObserver | null = null;
 let boundaryElement: Element | null = null;
 let animationFrame: number | null = null;
-const endSafetyMargin = 4;
+// Keep enough room for fractional glyph overhang and the integer rounding used
+// by scrollWidth on mobile browsers. Four pixels could still clip the last
+// DevEUI character on some viewport/font combinations.
+const endSafetyMargin = 8;
 
 const accessibleLabel = computed(() => (
   [props.productReference, props.devEui].filter(Boolean).join(separator)
