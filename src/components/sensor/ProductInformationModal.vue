@@ -140,13 +140,15 @@ const datasheetUrl = computed(() => (
 }
 
 .product-information-header h2 {
+  display: -webkit-box;
   min-width: 0;
   margin: 0;
   overflow: hidden;
   font-size: 1.25rem;
   font-weight: 500;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .product-information-close {
