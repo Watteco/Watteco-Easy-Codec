@@ -1,6 +1,11 @@
 apply plugin: 'com.android.application'
 
-def appPackage = new groovy.json.JsonSlurper().parse(file('../../package.json'))
+def jsonSlurper = new groovy.json.JsonSlurper()
+def appVersion = jsonSlurper.parse(file('../../app-version.json'))
+// Use the version of the assets copied by Capacitor, including in signed dev APKs.
+def bundledVersion = providers.fileContents(layout.projectDirectory.file('src/main/assets/public/version.json'))
+    .asText.map { jsonSlurper.parseText(it).versionName }
+    .getOrElse(appVersion.version)
 
 android {
     namespace "wattecoDev.easycodec"
@@ -9,8 +14,8 @@ android {
         applicationId "wattecoDev.easycodec"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName appPackage.version
+        versionCode appVersion.buildNumber
+        versionName bundledVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

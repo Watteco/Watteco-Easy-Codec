@@ -4,7 +4,19 @@ import legacy from '@vitejs/plugin-legacy'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import { defineConfig } from 'vite'
-import { version } from './package.json'
+import { version as webVersion } from './package.json'
+import mobileVersion from './app-version.json'
+
+const isCapacitorBuild = process.env.CAPACITOR_BUILD === 'true'
+const isDebugBuild = process.env.VITE_ENABLE_BLE_DEBUG === 'true'
+const nativeVersionName = isDebugBuild
+  ? `${mobileVersion.version}d${mobileVersion.devNumber}`
+  : mobileVersion.version
+const appVersion = isDebugBuild
+  ? nativeVersionName
+  : `${mobileVersion.version} (${mobileVersion.buildNumber})`
+const version = isCapacitorBuild ? appVersion : webVersion
+const versionManifest = isCapacitorBuild ? { version, versionName: nativeVersionName } : { version }
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -20,7 +32,7 @@ export default defineConfig({
         this.emitFile({
           type: 'asset',
           fileName: 'version.json',
-          source: JSON.stringify({ version }),
+          source: JSON.stringify(versionManifest),
         })
       },
     },
@@ -37,7 +49,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  base: process.env.CAPACITOR_BUILD === 'true' ? '/' : '/EasyCodec/',
+  base: isCapacitorBuild ? '/' : '/EasyCodec/',
   test: {
     globals: true,
     environment: 'jsdom',

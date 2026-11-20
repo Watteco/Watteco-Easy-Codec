@@ -1,6 +1,4 @@
-import { readFile } from 'node:fs/promises'
+﻿import { readAppVersion } from './app-version.mjs'
 
-const packageUrl = new URL('../package.json', import.meta.url)
-const manifest = JSON.parse(await readFile(packageUrl, 'utf8'))
-
-console.log(`\nDebug build done - v${(manifest.version).replace("-dev.", "d")}`)
+const { version, devNumber } = await readAppVersion()
+console.log('\nMobile debug assets ready: %sd%d', version, devNumber)
