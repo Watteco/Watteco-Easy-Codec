@@ -126,6 +126,7 @@
                       </ion-button>
                       <ion-button
                         class="split-command__toggle"
+                        expand="block"
                         :aria-label="localize('@toolsToggleRejoinDelay')"
                         :aria-expanded="rejoinOptionsVisible"
                         aria-controls="tools-rejoin-options"
@@ -181,10 +182,12 @@
                       ? localize('@toolsSendingCommand')
                       : localize('@toolsFactoryReset') }}
                   </ion-button>
-                  <ion-button expand="block" @click="router.push('/firmware-update')">
+                  <ion-button class="command-list__navigation" expand="block" @click="router.push('/firmware-update')">
                     {{ localize('@toolsFirmwareUpdate') }}
+                    <ion-icon slot="end" class="command-list__chevron" :icon="chevronForwardOutline" aria-hidden="true" />
                   </ion-button>
                   <ion-button
+                    class="command-list__navigation"
                     expand="block"
                     :disabled="!canSendCommand"
                     @click="openOtaAppEui"
@@ -193,6 +196,7 @@
                     {{ osaAuthenticating
                       ? localize('@toolsOsaAuthenticating')
                       : localize('@toolsOtaAppEui') }}
+                    <ion-icon slot="end" class="command-list__chevron" :icon="chevronForwardOutline" aria-hidden="true" />
                   </ion-button>
                 </div>
                 <p
@@ -1778,7 +1782,7 @@ onBeforeUnmount(() => {
 }
 
 .native-with-sensor-navigation {
-  --padding-top: calc(82px + env(safe-area-inset-top));
+  --padding-top: var(--sensor-mobile-header-height);
   --padding-bottom: calc(62px + env(safe-area-inset-bottom));
 }
 
@@ -2210,9 +2214,12 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
 .split-command {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 46px;
+  gap: 1px;
   overflow: hidden;
   border-radius: 4px;
-  box-shadow: 0 2px 4px rgb(0 0 0 / 12%);
+  box-shadow: 0 3px 1px -2px rgb(0 0 0 / 20%),
+    0 2px 2px 0 rgb(0 0 0 / 14%),
+    0 1px 5px 0 rgb(0 0 0 / 12%);
 }
 :global(.ios .split-command) {
   border-radius: 14px;
@@ -2225,7 +2232,6 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
 .split-command__toggle {
   --padding-start: 0;
   --padding-end: 0;
-  margin-left: 1px !important;
 }
 .split-command__toggle ion-icon { transition: transform 160ms ease; }
 .split-command__chevron--open { transform: rotate(180deg); }
@@ -2236,7 +2242,23 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
 }
 .rejoin-options .field-label { margin: 0; }
 .rejoin-options .field-hint { margin: -1px 0 2px; }
-.command-list ion-button { margin: 0; }
+.command-list ion-button {
+  height: 36px;
+  margin: 0;
+}
+.command-list ion-button.ios { height: 3.1em; }
+.command-list__navigation {
+  --padding-start: 2rem;
+  --padding-end: 2rem;
+}
+.command-list__chevron {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: -1rem;
+  margin: 0;
+  font-size: 1rem;
+  transform: translateY(-50%);
+}
 .toggle-row { margin: 14px 0; }
 .validation-error { margin: 8px 0 0; font-size: 0.76rem; }
 .feedback { margin: 18px 4px 0; text-align: center; }

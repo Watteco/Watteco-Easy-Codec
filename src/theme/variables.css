@@ -2,6 +2,7 @@
 http://ionicframework.com/docs/theming/ */
 
 :root {
+	--sensor-mobile-header-height: calc(82px + env(safe-area-inset-top));
 	--ion-color-primary: #f58211;
 	--ion-color-primary-rgb: 245,130,17;
 	--ion-color-primary-contrast: #ffffff;

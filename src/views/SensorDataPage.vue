@@ -705,7 +705,7 @@ const toggleDebugTools = () => {
 }
 
 .native-with-sensor-navigation {
-  --padding-top: calc(82px + env(safe-area-inset-top));
+  --padding-top: var(--sensor-mobile-header-height);
   --padding-bottom: calc(62px + env(safe-area-inset-bottom));
 }
 

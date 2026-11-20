@@ -609,7 +609,7 @@ async function onDeviceSelect(dev: DisplayDevice) {
     if (!recoveryDevice) return;
     await ble.cancelScan();
     saveFirmwareRecoveryDevice(recoveryDevice);
-    await router.push('/firmware-update');
+    await router.push({ name: 'FirmwareUpdate', query: { from: 'recovery' } });
     return;
   }
 

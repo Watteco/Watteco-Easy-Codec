@@ -61,5 +61,16 @@ describe('SensorMobileNavigation back variant', () => {
 
     expect(routerReplace).toHaveBeenCalledWith('/sensor-tools');
   });
+
+  it('shows the page title and back control without sensor actions', async () => {
+    const wrapper = mountNavigation({ title: 'Firmware update', backTo: '/ble-connect' });
+
+    expect(wrapper.get('h1').text()).toBe('Firmware update');
+    expect(wrapper.get('header').classes()).not.toContain('sensor-mobile-header--disconnected');
+    expect(wrapper.find('.sensor-mobile-identity').exists()).toBe(false);
+    expect(wrapper.find('.sensor-mobile-header-actions').exists()).toBe(false);
+    await wrapper.get('.sensor-mobile-back').trigger('click');
+    expect(routerReplace).toHaveBeenCalledWith('/ble-connect');
+  });
 });
 

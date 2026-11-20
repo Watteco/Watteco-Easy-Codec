@@ -1,13 +1,11 @@
 <template>
   <ion-page>
-    <ion-header>
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button :default-href="ble.connected.value ? '/sensor-tools' : '/ble-connect'" />
-        </ion-buttons>
-        <ion-title>{{ localize('@toolsFirmwareUpdate') }}</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <sensor-mobile-navigation
+      active-page="tools"
+      :title="localize('@toolsFirmwareUpdate')"
+      :back-to="backTo"
+      :localize="localize"
+    />
 
     <ion-content :fullscreen="true" class="firmware-update-content ion-padding">
       <main class="firmware-update-container">
@@ -144,18 +142,14 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import {
-  IonBackButton,
   IonButton,
-  IonButtons,
   IonContent,
-  IonHeader,
   IonIcon,
   IonPage,
   IonProgressBar,
   IonSpinner,
-  IonTitle,
-  IonToolbar,
 } from '@ionic/vue';
 import {
   bluetoothOutline,
@@ -168,6 +162,7 @@ import {
   folderOpenOutline,
 } from 'ionicons/icons';
 import axios from 'axios';
+import SensorMobileNavigation from '@/components/sensor/SensorMobileNavigation.vue';
 import { useBle } from '@/composables/useBle';
 import {
   updateDebugDevEuiFromDeviceName,
@@ -181,6 +176,7 @@ import enUS from '/localisation/en_US.json?url';
 import frFR from '/localisation/fr_FR.json?url';
 
 const ble = useBle();
+const route = useRoute();
 const enabled = ref(true);
 const recoveryDevice = ref(loadFirmwareRecoveryDevice());
 const { currentLanguage } = useLanguage();
@@ -205,6 +201,9 @@ const targetIsRecoveryLoader = computed(() => (
 ));
 const targetIsConnected = computed(() => (
   !targetIsRecoveryLoader.value && ble.connected.value
+));
+const backTo = computed(() => (
+  route.query.from !== 'recovery' && targetIsConnected.value ? '/sensor-tools' : '/ble-connect'
 ));
 const targetName = computed(() => (
   targetIsRecoveryLoader.value
@@ -282,6 +281,7 @@ onMounted(async () => {
 <style scoped>
 .firmware-update-content {
   --background: var(--app-page-background);
+  --padding-top: calc(var(--sensor-mobile-header-height) + var(--ion-padding, 16px));
 }
 
 .firmware-update-container {

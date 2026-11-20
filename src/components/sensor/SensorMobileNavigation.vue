@@ -1,7 +1,7 @@
 <template>
   <header
     class="sensor-mobile-header"
-    :class="{ 'sensor-mobile-header--disconnected': effectiveStatus !== 'connected' }"
+    :class="{ 'sensor-mobile-header--disconnected': usesWarningTone }"
   >
     <button
       v-if="backTo"
@@ -21,7 +21,8 @@
       @click="handleLogoTap"
     />
 
-    <div v-if="effectiveStatus !== 'choose'" class="sensor-mobile-identity">
+    <h1 v-if="title" class="sensor-mobile-title">{{ title }}</h1>
+    <div v-else-if="effectiveStatus !== 'choose'" class="sensor-mobile-identity">
       <button
         type="button"
         class="sensor-mobile-product-trigger"
@@ -120,7 +121,7 @@
       <strong>{{ localize('@noSensorConnected') }}</strong>
     </div>
 
-    <div class="sensor-mobile-header-actions">
+    <div v-if="!title" class="sensor-mobile-header-actions">
       <button
         type="button"
         class="sensor-mobile-header-action"
@@ -154,7 +155,7 @@
   </header>
 
   <ProductInformationModal
-    v-if="displayedProductReference"
+    v-if="!title && displayedProductReference"
     :is-open="productInformationOpen"
     :product-reference="displayedProductReference"
     :dev-eui="displayedDevEui"
@@ -204,6 +205,7 @@ const props = defineProps<{
   bleSignalLevel?: BleSignalLevel;
   backTo?: string;
   backLabel?: string;
+  title?: string;
 }>();
 
 const router = useRouter();
@@ -239,8 +241,9 @@ const actualStatus = computed<ConnectionStatus>(() => {
 });
 
 const effectiveStatus = computed(() => props.status ?? actualStatus.value);
-watch(effectiveStatus, status => {
-  setStatusBarStyle(status === 'connected' ? 'dark' : 'light');
+const usesWarningTone = computed(() => !props.title && effectiveStatus.value !== 'connected');
+watch(usesWarningTone, warning => {
+  setStatusBarStyle(warning ? 'light' : 'dark');
 }, { immediate: true });
 
 onBeforeUnmount(() => setStatusBarStyle('dark'));
@@ -452,8 +455,8 @@ const disconnectAndGoBack = async () => {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  height: calc(82px + env(safe-area-inset-top));
-  min-height: calc(82px + env(safe-area-inset-top));
+  height: var(--sensor-mobile-header-height);
+  min-height: var(--sensor-mobile-header-height);
   padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
   overflow: hidden;
   color: var(--ion-color-primary-contrast);
@@ -464,6 +467,14 @@ const disconnectAndGoBack = async () => {
 .sensor-mobile-header--disconnected {
   color: var(--ion-color-warning-contrast);
   background: var(--ion-color-warning);
+}
+
+.sensor-mobile-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .sensor-mobile-leading {

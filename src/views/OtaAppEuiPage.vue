@@ -290,7 +290,7 @@ watch(() => ble.connected.value, connected => {
 <style scoped>
 .ota-app-eui-content {
   --background: var(--app-page-background);
-  --padding-top: calc(82px + env(safe-area-inset-top));
+  --padding-top: var(--sensor-mobile-header-height);
 }
 
 .ota-app-eui-container {
