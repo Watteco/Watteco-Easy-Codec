@@ -2243,10 +2243,11 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
 .rejoin-options .field-label { margin: 0; }
 .rejoin-options .field-hint { margin: -1px 0 2px; }
 .command-list ion-button {
-  height: 36px;
+  min-height: 36px;
   margin: 0;
 }
-.command-list ion-button.ios { height: 3.1em; }
+.command-list ion-button.ios { min-height: 3.1em; }
+.command-list ion-button:not(.split-command__toggle)::part(native) { height: auto; }
 .command-list__navigation {
   --padding-start: 2rem;
   --padding-end: 2rem;
