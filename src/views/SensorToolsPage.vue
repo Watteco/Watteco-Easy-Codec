@@ -2212,12 +2212,17 @@ details[open] > .section-summary .section-chevron { transform: rotate(90deg); }
   grid-template-columns: minmax(0, 1fr) 46px;
   overflow: hidden;
   border-radius: 4px;
-  box-shadow: 0 3px 5px -1px rgb(0 0 0 / 20%), 0 6px 10px 0 rgb(0 0 0 / 14%);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 12%);
 }
-.split-command ion-button { --box-shadow: none; }
-.split-command__action { --border-radius: 4px 0 0 4px; }
+:global(.ios .split-command) {
+  border-radius: 14px;
+  box-shadow: none;
+}
+.split-command ion-button {
+  --border-radius: 0;
+  --box-shadow: none;
+}
 .split-command__toggle {
-  --border-radius: 0 4px 4px 0;
   --padding-start: 0;
   --padding-end: 0;
   margin-left: 1px !important;
