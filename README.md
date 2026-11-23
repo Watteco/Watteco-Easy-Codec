@@ -50,7 +50,7 @@
 ## Current Features
 
 ### Web Version
-The project is currently hosted at: [Watteco Easy Codec](https://lora.watteco.fr/EasyCodec/).
+The project is currently hosted at: [Watteco Easy Codec](https://support.watteco.com/Tools/EasyCodec/).
 
 #### Implemented Features:
 - **Simplified Interface**: A modern UI with dynamic sensor management.
@@ -105,7 +105,7 @@ npm run dev
 
 The production build is a static web application that can also be hosted on a
 customer's local server or intranet. It is currently built for the
-`/EasyCodec/` URL path and must be served over HTTP(S); opening `index.html`
+`/Tools/EasyCodec/` URL path and must be served over HTTP(S); opening `index.html`
 directly is not supported.
 
 See the [local installation and hosting guide](docs/local-installation.md) for
@@ -113,7 +113,7 @@ prerequisites, development, production deployment, LAN access, offline usage,
 and configuration updates.
 
 ### Production Version
-The functional web version is available at: [https://lora.watteco.fr/EasyCodec/](https://lora.watteco.fr/EasyCodec/). It is currently being tested with limited sensor support.
+The functional web version is available at: [https://support.watteco.com/Tools/EasyCodec/](https://support.watteco.com/Tools/EasyCodec/). It is currently being tested with limited sensor support.
 
 ## Future Development
 

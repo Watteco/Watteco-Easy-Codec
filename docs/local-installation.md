@@ -41,7 +41,7 @@ npm run dev
 The application is then available at:
 
 ```text
-http://localhost:5173/EasyCodec/
+http://localhost:5173/Tools/EasyCodec/
 ```
 
 Use `npm ci` for a reproducible installation based on `package-lock.json`.
@@ -54,7 +54,7 @@ policy blocks the `npm.ps1` wrapper.
 npm run dev -- --host 0.0.0.0
 ```
 
-Open `http://<host-ip>:5173/EasyCodec/` from the other machine. The operating
+Open `http://<host-ip>:5173/Tools/EasyCodec/` from the other machine. The operating
 system firewall must allow the port. This mode is intended for development and
 temporary demonstrations, not production hosting.
 
@@ -78,15 +78,15 @@ npm run preview
 Publish the **contents** of `dist/` with an HTTP(S) server under:
 
 ```text
-https://<server>/EasyCodec/
+https://<server>/Tools/EasyCodec/
 ```
 
-The current build has `/EasyCodec/` hard-coded as its Vite base path. The web
+The current build has `/Tools/EasyCodec/` hard-coded as its Vite base path. The web
 server must therefore:
 
-1. expose the static files under `/EasyCodec/`;
+1. expose the static files under `/Tools/EasyCodec/`;
 2. serve existing assets and JSON files directly;
-3. return `/EasyCodec/index.html` for application routes that do not match a
+3. return `/Tools/EasyCodec/index.html` for application routes that do not match a
    file or directory (SPA fallback).
 
 An Apache `.htaccess` implementing this fallback is copied into `dist/`. It
@@ -130,11 +130,11 @@ npm or from an internal package mirror/cache.
 ## 8. Deployment checklist
 
 - `npm run build` completes successfully.
-- The contents of `dist/` are published under `/EasyCodec/`.
-- `/EasyCodec/` loads over HTTP(S).
-- Direct navigation and refresh on `/EasyCodec/tabs/downlink` work.
-- `/EasyCodec/config/AvailableProductList.json` returns JSON.
-- `/EasyCodec/localisation/fr_FR.json` returns JSON.
+- The contents of `dist/` are published under `/Tools/EasyCodec/`.
+- `/Tools/EasyCodec/` loads over HTTP(S).
+- Direct navigation and refresh on `/Tools/EasyCodec/tabs/downlink` work.
+- `/Tools/EasyCodec/config/AvailableProductList.json` returns JSON.
+- `/Tools/EasyCodec/localisation/fr_FR.json` returns JSON.
 - The browser console contains no missing asset or JSON errors.
 
 Typical causes of a blank page are deployment at the wrong base path, missing

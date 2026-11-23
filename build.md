@@ -13,7 +13,7 @@ npm run build    # build de production dans dist/
 npm run preview  # validation locale du build uniquement
 ```
 
-Le build web utilise actuellement le chemin de base `/EasyCodec/`.
+Le build web utilise actuellement le chemin de base `/Tools/EasyCodec/`.
 
 Chaque build web génère aussi `version.json`. La version web vérifie ce fichier
 sans cache au chargement, au retour sur l'onglet et toutes les cinq minutes. Un
@@ -24,23 +24,39 @@ parente ou de son iframe.
 
 ### Déploiement en production
 
-Le script PowerShell construit l'application, sauvegarde la production actuelle,
-puis synchronise `dist/` vers la destination configurée :
+Le script PowerShell construit l'application, télécharge et sauvegarde la
+production actuelle localement, puis synchronise `dist/` sur l'hébergement OVH
+en SFTP :
 
 ```powershell
 .\deployToProd.ps1
 ```
 
-Deux sauvegardes complètes sont conservées par défaut dans le dossier `backups`
-de la destination. La limite peut être ramenée à une sauvegarde :
+Copier d'abord `deploy.config.example.ps1` vers `deploy.config.ps1`, puis y
+renseigner le mot de passe, l'empreinte SSH et, si nécessaire, le chemin de
+`WinSCPnet.dll`. Ce fichier local est ignoré par Git.
+
+Le script utilise le paquet d'automatisation WinSCP, qui doit contenir
+`WinSCPnet.dll` et `WinSCP.exe`. Il peut être installé normalement, extrait dans
+`tools/WinSCP/`, ou indiqué avec `$WinSCPPath` dans la configuration locale.
+
+Pour lire l'empreinte présentée par le serveur avant de la faire vérifier par
+l'administrateur :
+
+```powershell
+.\deployToProd.ps1 -ScanHostKey
+```
+
+Deux sauvegardes complètes sont conservées par défaut dans `.deploy-backups/`.
+Ce dossier local est également ignoré par Git. La limite peut être ramenée à
+une sauvegarde :
 
 ```powershell
 .\deployToProd.ps1 -MaxBackups 1
 ```
 
-Le script compare également les dossiers `config/` et `localisation/` du serveur
-avec ceux du build. Le rapport est enregistré dans `server-overrides.txt` avec
-la sauvegarde afin de retrouver les fichiers modifiés directement en production.
+Le script signale également les différences entre les dossiers `config/` et
+`localisation/` du serveur et ceux du build avant l'envoi.
 
 Pour consulter les sauvegardes disponibles :
 
@@ -48,10 +64,8 @@ Pour consulter les sauvegardes disponibles :
 .\deployToProd.ps1 -ListBackups
 ```
 
-La commande affiche la version du `package.json` local et, lorsqu'elle est
-connue, la version contenue dans chaque sauvegarde. Le script déploie un fichier
-`deployment.json` pour identifier précisément les versions lors des prochains
-backups et rollbacks.
+La commande affiche, lorsqu'elle est connue, la version contenue dans chaque
+sauvegarde. Le script déploie aussi un fichier `deployment.json`.
 
 Pour restaurer la sauvegarde la plus récente :
 
@@ -62,7 +76,7 @@ Pour restaurer la sauvegarde la plus récente :
 Une sauvegarde précise peut être sélectionnée avec son identifiant :
 
 ```powershell
-.\deployToProd.ps1 -Revert -BackupId "20261113-162045-000-before-v0.11.17"
+.\deployToProd.ps1 -Revert -BackupId "20261123-162045"
 ```
 
 Le build automatique peut être ignoré uniquement si le contenu actuel de `dist/`
@@ -155,12 +169,12 @@ Pour éviter les problèmes de `base path` sur Android, utiliser les scripts npm
 
 Le projet utilise une base Vite différente selon le contexte :
 
-- Web hébergé : `/EasyCodec/`
+- Web hébergé : `/Tools/EasyCodec/`
 - Build Capacitor Android : `/`
 
 Si on lance un build standard avant un `cap sync android`, les assets peuvent être générés avec un chemin du type :
 
-- `/EasyCodec/assets/...`
+- `/Tools/EasyCodec/assets/...`
 
 Alors que Capacitor Android attend :
 
@@ -168,7 +182,7 @@ Alors que Capacitor Android attend :
 
 Dans ce cas, l'application Android peut démarrer sur un écran vide avec des erreurs du type :
 
-- `Unable to open asset URL: https://localhost/EasyCodec/assets/...`
+- `Unable to open asset URL: https://localhost/Tools/EasyCodec/assets/...`
 
 ## Recommandation
 

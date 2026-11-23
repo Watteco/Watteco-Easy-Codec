@@ -1,648 +1,479 @@
-﻿# Enregistrer ce fichier en "UTF-8 with BOM" pour que les accents fonctionnent dans le terminal
-
-[CmdletBinding()]
-param(
+﻿param(
     [switch]$Revert,
     [switch]$ListBackups,
     [switch]$SkipBuild,
+    [switch]$ScanHostKey,
+    [switch]$ListRemote,
     [string]$BackupId,
-    [ValidateRange(1, 2)]
+    [ValidateRange(1, 20)]
     [int]$MaxBackups = 2
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+# L'installation Windows de WinSCP fournit une assembly .NET Framework qui
+# n'est pas compatible avec PowerShell 7. Sous Windows, relancer le script avec
+# Windows PowerShell 5.1 permet de conserver la commande de déploiement habituelle.
+if ($PSVersionTable.PSEdition -eq "Core" -and $env:WINDIR) {
+    $WindowsPowerShell = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
+    if (Test-Path -LiteralPath $WindowsPowerShell -PathType Leaf) {
+        $ForwardedArguments = [Collections.Generic.List[string]]::new()
+        foreach ($Entry in $PSBoundParameters.GetEnumerator()) {
+            if ($Entry.Value -is [Management.Automation.SwitchParameter]) {
+                if ($Entry.Value.IsPresent) {
+                    $ForwardedArguments.Add("-$($Entry.Key)")
+                }
+            } else {
+                $ForwardedArguments.Add("-$($Entry.Key)")
+                $ForwardedArguments.Add([string]$Entry.Value)
+            }
+        }
+
+        & $WindowsPowerShell `
+            -NoProfile `
+            -ExecutionPolicy Bypass `
+            -File $PSCommandPath `
+            @ForwardedArguments
+        exit $LASTEXITCODE
+    }
+}
+
 $ConfigFile = Join-Path $PSScriptRoot "deploy.config.ps1"
-$Source = Join-Path $PSScriptRoot "dist"
+$ExampleConfigFile = Join-Path $PSScriptRoot "deploy.config.example.ps1"
+$DistPath = Join-Path $PSScriptRoot "dist"
+$PackageFile = Join-Path $PSScriptRoot "package.json"
 
 function Stop-Deployment {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Message,
-        [int]$ExitCode = 1
-    )
-
-    Write-Error $Message -ErrorAction Continue
-    exit $ExitCode
+    param([string]$Message)
+    throw $Message
 }
 
-function Get-NormalizedExistingPath {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path,
-        [Parameter(Mandatory = $true)]
-        [string]$Description
-    )
-
-    if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
-        Stop-Deployment "$Description n'existe pas : $Path"
-    }
-
-    return (Resolve-Path -LiteralPath $Path).ProviderPath
+function Get-ConfiguredValue {
+    param([Parameter(Mandatory)][string]$Name, $DefaultValue = $null)
+    $Variable = Get-Variable -Name $Name -Scope Script -ErrorAction SilentlyContinue
+    if ($null -eq $Variable) { return $DefaultValue }
+    return $Variable.Value
 }
 
-function Test-PathInside {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Child,
-        [Parameter(Mandatory = $true)]
-        [string]$Parent
-    )
-
-    $Separator = [IO.Path]::DirectorySeparatorChar
-    $ParentPrefix = $Parent.TrimEnd($Separator, [IO.Path]::AltDirectorySeparatorChar) + $Separator
-    return $Child.StartsWith($ParentPrefix, [StringComparison]::OrdinalIgnoreCase)
-}
-
-function Assert-SafeDestination {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$DestinationPath
-    )
-
-    $Separator = [IO.Path]::DirectorySeparatorChar
-    $TrimmedDestination = $DestinationPath.TrimEnd($Separator, [IO.Path]::AltDirectorySeparatorChar)
-    $DestinationRoot = [IO.Path]::GetPathRoot($DestinationPath).TrimEnd($Separator, [IO.Path]::AltDirectorySeparatorChar)
-    $RepositoryPath = (Resolve-Path -LiteralPath $PSScriptRoot).ProviderPath
-
-    if ([string]::IsNullOrWhiteSpace($TrimmedDestination) -or
-        $TrimmedDestination.Equals($DestinationRoot, [StringComparison]::OrdinalIgnoreCase)) {
-        Stop-Deployment "La destination ne peut pas être la racine d'un disque : $DestinationPath"
-    }
-
-    if ($DestinationPath.Equals($RepositoryPath, [StringComparison]::OrdinalIgnoreCase) -or
-        (Test-PathInside -Child $DestinationPath -Parent $RepositoryPath)) {
-        Stop-Deployment "La destination ne peut pas être le dépôt ni un de ses sous-dossiers : $DestinationPath"
+function Assert-RequiredText {
+    param([string]$Name, [AllowNull()][object]$Value)
+    if ($null -eq $Value -or [string]::IsNullOrWhiteSpace([string]$Value)) {
+        Stop-Deployment "La variable `$$Name doit être renseignée dans $ConfigFile"
     }
 }
 
-function Invoke-Robocopy {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$From,
-        [Parameter(Mandatory = $true)]
-        [string]$To,
-        [string[]]$ExcludedDirectories = @()
-    )
+function Get-NormalizedRemotePath {
+    param([string]$Path)
+    Assert-RequiredText -Name "RemotePath" -Value $Path
+    $Normalized = $Path.Trim().Replace("\", "/").Trim("/")
+    $Parts = @($Normalized.Split("/") | Where-Object { $_ -ne "" })
+    if ($Normalized -eq "" -or $Parts -contains "." -or $Parts -contains "..") {
+        Stop-Deployment "Chemin distant refusé : '$Path'. Il doit désigner uniquement le dossier EasyCodec."
+    }
+    return $Normalized
+}
 
-    $Arguments = @(
-        $From,
-        $To,
-        "/MIR",
-        "/R:1",
-        "/W:1",
-        "/XJ",
-        "/NP",
-        "/XF", "thumbs.db", "desktop.ini"
-    )
+function Join-RemotePath {
+    param([string]$Parent, [string]$Child)
+    return "$($Parent.TrimEnd('/'))/$($Child.TrimStart('/'))"
+}
 
-    if ($ExcludedDirectories.Count -gt 0) {
-        $Arguments += "/XD"
-        $Arguments += $ExcludedDirectories
+function Get-RemoteSitePath {
+    param($Session)
+    return Join-RemotePath -Parent $Session.HomePath -Child $Script:RemotePath
+}
+
+function Resolve-WinSCPAssembly {
+    $ConfiguredPath = Get-ConfiguredValue -Name "WinSCPPath"
+    $Candidates = [Collections.Generic.List[string]]::new()
+    foreach ($BasePath in @($ConfiguredPath, $env:WINSCP_PATH)) {
+        if ([string]::IsNullOrWhiteSpace([string]$BasePath)) { continue }
+        if ([IO.Path]::GetExtension([string]$BasePath) -eq ".dll") {
+            $Candidates.Add([string]$BasePath)
+        } else {
+            if ($PSVersionTable.PSEdition -eq "Core") {
+                $Candidates.Add((Join-Path ([string]$BasePath) "netstandard2.0\WinSCPnet.dll"))
+            }
+            $Candidates.Add((Join-Path ([string]$BasePath) "WinSCPnet.dll"))
+        }
+    }
+    if ($PSVersionTable.PSEdition -eq "Core") {
+        $Candidates.Add((Join-Path $PSScriptRoot "tools\WinSCP\netstandard2.0\WinSCPnet.dll"))
+    }
+    $Candidates.Add((Join-Path $PSScriptRoot "tools\WinSCP\WinSCPnet.dll"))
+    if (${env:ProgramFiles(x86)}) {
+        $Candidates.Add((Join-Path ${env:ProgramFiles(x86)} "WinSCP\WinSCPnet.dll"))
+    }
+    if ($env:ProgramFiles) {
+        $Candidates.Add((Join-Path $env:ProgramFiles "WinSCP\WinSCPnet.dll"))
+    }
+    if ($env:LOCALAPPDATA) {
+        $Candidates.Add((Join-Path $env:LOCALAPPDATA "Programs\WinSCP\WinSCPnet.dll"))
     }
 
-    & robocopy @Arguments | Out-Host
-    return $LASTEXITCODE
+    $AssemblyPath = $Candidates | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) } | Select-Object -First 1
+    if (-not $AssemblyPath) {
+        Stop-Deployment @"
+WinSCPnet.dll est introuvable. Installez le paquet d'automatisation WinSCP, puis renseignez `$WinSCPPath dans $ConfigFile.
+Sous PowerShell 7, utilisez de préférence le dossier contenant netstandard2.0\WinSCPnet.dll.
+"@
+    }
+    $AssemblyDirectory = Split-Path -Parent $AssemblyPath
+    $ExecutableCandidates = @(
+        (Join-Path $AssemblyDirectory "WinSCP.exe"),
+        (Join-Path (Split-Path -Parent $AssemblyDirectory) "WinSCP.exe")
+    )
+    $Script:WinSCPExecutablePath = $ExecutableCandidates |
+        Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+        Select-Object -First 1
+    if (-not $Script:WinSCPExecutablePath) {
+        Stop-Deployment "WinSCP.exe est introuvable à côté de WinSCPnet.dll : $AssemblyPath"
+    }
+    Add-Type -Path $AssemblyPath
+    return $AssemblyPath
+}
+
+function New-SftpSessionOptions {
+    param([switch]$WithoutCredentials)
+    $Options = [WinSCP.SessionOptions]::new()
+    $Options.Protocol = [WinSCP.Protocol]::Sftp
+    $Options.HostName = $Script:SftpHost
+    $Options.PortNumber = $Script:SftpPort
+    $Options.UserName = $Script:SftpUserName
+    if (-not $WithoutCredentials) {
+        $Options.SecurePassword = ConvertTo-SecureString $Script:SftpPassword -AsPlainText -Force
+        $Options.SshHostKeyFingerprint = $Script:SshHostKeyFingerprint
+    }
+    return $Options
+}
+
+function Open-SftpSession {
+    $Session = [WinSCP.Session]::new()
+    $Session.ExecutablePath = $Script:WinSCPExecutablePath
+    try {
+        $Session.Open((New-SftpSessionOptions))
+        return $Session
+    } catch {
+        $Session.Dispose()
+        throw
+    }
+}
+
+function New-TransferOptions {
+    $Options = [WinSCP.TransferOptions]::new()
+    $Options.TransferMode = [WinSCP.TransferMode]::Binary
+    $Options.PreserveTimestamp = $true
+    return $Options
+}
+
+function Receive-RemoteSite {
+    param($Session, [string]$LocalPath)
+    New-Item -ItemType Directory -Path $LocalPath -Force | Out-Null
+    $RemoteSitePath = Get-RemoteSitePath -Session $Session
+    $Result = $Session.SynchronizeDirectories(
+        [WinSCP.SynchronizationMode]::Local,
+        $LocalPath,
+        $RemoteSitePath,
+        $true,
+        $true,
+        [WinSCP.SynchronizationCriteria]::Either,
+        (New-TransferOptions)
+    )
+    $Result.Check()
+}
+
+function Send-Site {
+    param($Session, [string]$LocalPath)
+    $RemoteSitePath = Get-RemoteSitePath -Session $Session
+    $Result = $Session.SynchronizeDirectories(
+        [WinSCP.SynchronizationMode]::Remote,
+        $LocalPath,
+        $RemoteSitePath,
+        $true,
+        $true,
+        [WinSCP.SynchronizationCriteria]::Either,
+        (New-TransferOptions)
+    )
+    $Result.Check()
+}
+
+function Get-RemoteVersion {
+    param($Session)
+    $TemporaryFile = Join-Path ([IO.Path]::GetTempPath()) "EasyCodec-version-$([guid]::NewGuid().ToString('N')).json"
+    try {
+        $RemoteVersionPath = Join-RemotePath -Parent (Get-RemoteSitePath -Session $Session) -Child "version.json"
+        $Result = $Session.GetFiles(
+            [WinSCP.RemotePath]::EscapeFileMask($RemoteVersionPath),
+            $TemporaryFile,
+            $false,
+            (New-TransferOptions)
+        )
+        $Result.Check()
+        return (Get-Content -LiteralPath $TemporaryFile -Raw | ConvertFrom-Json).version
+    } finally {
+        Remove-Item -LiteralPath $TemporaryFile -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Get-BackupEntries {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$BackupRootPath
-    )
-
-    if (-not (Test-Path -LiteralPath $BackupRootPath -PathType Container)) {
-        return @()
-    }
-
+    if (-not (Test-Path -LiteralPath $Script:BackupRoot -PathType Container)) { return @() }
     return @(
-        Get-ChildItem -LiteralPath $BackupRootPath -Directory |
+        Get-ChildItem -LiteralPath $Script:BackupRoot -Directory |
             Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName "site.zip") -PathType Leaf } |
-            Sort-Object Name
+            Sort-Object Name -Descending
     )
 }
 
 function Show-Backups {
-    param(
-        [Parameter(Mandatory = $true)]
-        [AllowEmptyCollection()]
-        [System.IO.DirectoryInfo[]]$Backups,
-        [Parameter(Mandatory = $true)]
-        [string]$PackageVersion
-    )
-
-    Write-Host "Version locale de package.json : v$PackageVersion"
-
+    $Backups = @(Get-BackupEntries)
     if ($Backups.Count -eq 0) {
-        Write-Host "Aucune sauvegarde disponible."
+        Write-Host "Aucune sauvegarde locale dans $Script:BackupRoot"
         return
     }
-
-    Write-Host ""
-    Write-Host "Sauvegardes disponibles :"
-
-    foreach ($Backup in ($Backups | Sort-Object Name -Descending)) {
+    Write-Host "Sauvegardes locales :"
+    foreach ($Backup in $Backups) {
         $ManifestPath = Join-Path $Backup.FullName "deployment.json"
-        $Details = ""
-
+        $Version = "inconnue"
         if (Test-Path -LiteralPath $ManifestPath -PathType Leaf) {
             try {
-                $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
-                $BackedUpVersion = if ([string]::IsNullOrWhiteSpace([string]$Manifest.backedUpVersion)) {
-                    "inconnue"
-                }
-                else {
-                    "v$($Manifest.backedUpVersion)"
-                }
-                $Details = " | version sauvegardée $BackedUpVersion | avant déploiement v$($Manifest.incomingVersion) | commit $($Manifest.incomingCommit)"
-            }
-            catch {
-                $Details = " | manifeste illisible"
-            }
+                $Version = (Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json).backedUpVersion
+                if ([string]::IsNullOrWhiteSpace([string]$Version)) { $Version = "inconnue" }
+            } catch { $Version = "manifeste illisible" }
         }
-
-        Write-Host "  $($Backup.Name)$Details"
+        Write-Host " - $($Backup.Name) (version $Version)"
     }
 }
 
 function Remove-OldBackups {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$BackupRootPath,
-        [Parameter(Mandatory = $true)]
-        [int]$MaximumCount
-    )
-
-    $Backups = @(Get-BackupEntries -BackupRootPath $BackupRootPath)
-
-    while ($Backups.Count -ge $MaximumCount) {
-        $Oldest = $Backups | Sort-Object Name | Select-Object -First 1
-        Write-Host "Suppression de la sauvegarde la plus ancienne : $($Oldest.Name)"
-        Remove-Item -LiteralPath $Oldest.FullName -Recurse -Force
-        $Backups = @(Get-BackupEntries -BackupRootPath $BackupRootPath)
+    $Backups = @(Get-BackupEntries)
+    if ($Backups.Count -lt $MaxBackups) { return }
+    $Backups | Select-Object -Skip ($MaxBackups - 1) | ForEach-Object {
+        Write-Host "Suppression de l'ancienne sauvegarde locale $($_.Name)"
+        Remove-Item -LiteralPath $_.FullName -Recurse -Force
     }
 }
 
 function Get-FileHashMap {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Root
-    )
-
+    param([string]$Root)
     $Map = @{}
-
-    if (-not (Test-Path -LiteralPath $Root -PathType Container)) {
-        return $Map
-    }
-
-    $RootPrefix = (Resolve-Path -LiteralPath $Root).ProviderPath.TrimEnd(
-        [IO.Path]::DirectorySeparatorChar,
-        [IO.Path]::AltDirectorySeparatorChar
-    ) + [IO.Path]::DirectorySeparatorChar
-
+    if (-not (Test-Path -LiteralPath $Root -PathType Container)) { return $Map }
+    $RootPrefix = (Resolve-Path -LiteralPath $Root).ProviderPath.TrimEnd("\") + "\"
     foreach ($File in Get-ChildItem -LiteralPath $Root -File -Recurse) {
-        $RelativePath = $File.FullName.Substring($RootPrefix.Length)
+        $RelativePath = $File.FullName.Substring($RootPrefix.Length).Replace("\", "/")
         $Map[$RelativePath] = (Get-FileHash -LiteralPath $File.FullName -Algorithm SHA256).Hash
     }
-
     return $Map
 }
 
-function Get-ServerConfigurationReport {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$BuildRoot,
-        [Parameter(Mandatory = $true)]
-        [string]$ServerRoot
-    )
-
-    $Lines = [Collections.Generic.List[string]]::new()
-    $Lines.Add("Comparaison des configurations avant déploiement")
-    $Lines.Add("Date : $((Get-Date).ToString('o'))")
-    $Lines.Add("")
-    $DifferenceCount = 0
-
+function Show-ConfigurationDifferences {
+    param([string]$BuildRoot, [string]$CurrentRoot)
     foreach ($Folder in @("config", "localisation")) {
-        $Lines.Add("[$Folder]")
-        $BuildMap = Get-FileHashMap -Root (Join-Path $BuildRoot $Folder)
-        $ServerMap = Get-FileHashMap -Root (Join-Path $ServerRoot $Folder)
-        $AllPaths = @($BuildMap.Keys + $ServerMap.Keys | Sort-Object -Unique)
-        $FolderDifferenceCount = 0
-
-        foreach ($RelativePath in $AllPaths) {
-            $InBuild = $BuildMap.ContainsKey($RelativePath)
-            $OnServer = $ServerMap.ContainsKey($RelativePath)
-
-            if ($OnServer -and -not $InBuild) {
-                $Lines.Add("SERVEUR UNIQUEMENT : $RelativePath")
-                $FolderDifferenceCount++
-                $DifferenceCount++
-            }
-            elseif ($InBuild -and -not $OnServer) {
-                $Lines.Add("BUILD UNIQUEMENT   : $RelativePath")
-                $FolderDifferenceCount++
-                $DifferenceCount++
-            }
-            elseif ($BuildMap[$RelativePath] -ne $ServerMap[$RelativePath]) {
-                $Lines.Add("CONTENU DIFFÉRENT  : $RelativePath")
-                $FolderDifferenceCount++
-                $DifferenceCount++
-            }
+        $BuildFiles = Get-FileHashMap -Root (Join-Path $BuildRoot $Folder)
+        $CurrentFiles = Get-FileHashMap -Root (Join-Path $CurrentRoot $Folder)
+        $AllFiles = @($BuildFiles.Keys + $CurrentFiles.Keys | Sort-Object -Unique)
+        foreach ($File in $AllFiles) {
+            $State = if (-not $BuildFiles.ContainsKey($File)) {
+                "uniquement sur le serveur"
+            } elseif (-not $CurrentFiles.ContainsKey($File)) {
+                "nouveau dans le build"
+            } elseif ($BuildFiles[$File] -ne $CurrentFiles[$File]) {
+                "différent"
+            } else { $null }
+            if ($State) { Write-Warning "$Folder/$File : $State" }
         }
-
-        if ($FolderDifferenceCount -eq 0) {
-            $Lines.Add("Aucune différence.")
-        }
-
-        $Lines.Add("")
     }
-
-    if ($DifferenceCount -gt 0) {
-        Write-Warning "$DifferenceCount différence(s) détectée(s) dans config/ et localisation/."
-    }
-    else {
-        Write-Host "Aucune différence de configuration détectée entre le serveur et le build."
-    }
-
-    foreach ($Line in $Lines) {
-        Write-Host $Line
-    }
-
-    return $Lines
 }
 
-function Backup-CurrentServerConfigurations {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$ServerRoot,
-        [Parameter(Mandatory = $true)]
-        [string]$BackupPath
+function New-ZipFromDirectory {
+    param([string]$SourcePath, [string]$ArchivePath)
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    if (Test-Path -LiteralPath $ArchivePath) { Remove-Item -LiteralPath $ArchivePath -Force }
+    [IO.Compression.ZipFile]::CreateFromDirectory(
+        $SourcePath,
+        $ArchivePath,
+        [IO.Compression.CompressionLevel]::Optimal,
+        $false
     )
+}
 
-    if (Test-Path -LiteralPath $BackupPath) {
-        Remove-Item -LiteralPath $BackupPath -Recurse -Force
-    }
-
+function New-LocalBackup {
+    param([string]$SnapshotPath, [string]$NewVersion)
+    New-Item -ItemType Directory -Path $Script:BackupRoot -Force | Out-Null
+    Remove-OldBackups
+    $Id = Get-Date -Format "yyyyMMdd-HHmmss"
+    $BackupPath = Join-Path $Script:BackupRoot $Id
     New-Item -ItemType Directory -Path $BackupPath -Force | Out-Null
-
-    foreach ($Folder in @("config", "localisation")) {
-        $FolderSource = Join-Path $ServerRoot $Folder
-        if (-not (Test-Path -LiteralPath $FolderSource -PathType Container)) {
-            continue
-        }
-
-        $FolderDestination = Join-Path $BackupPath $Folder
-        $ExitCode = Invoke-Robocopy -From $FolderSource -To $FolderDestination
-        if ($ExitCode -ge 8) {
-            throw "Échec de la sauvegarde de '$Folder'. Robocopy : $ExitCode"
-        }
+    $CurrentVersion = "inconnue"
+    $CurrentVersionFile = Join-Path $SnapshotPath "version.json"
+    if (Test-Path -LiteralPath $CurrentVersionFile -PathType Leaf) {
+        try { $CurrentVersion = (Get-Content -LiteralPath $CurrentVersionFile -Raw | ConvertFrom-Json).version }
+        catch { $CurrentVersion = "inconnue" }
     }
+    New-ZipFromDirectory -SourcePath $SnapshotPath -ArchivePath (Join-Path $BackupPath "site.zip")
+    $Manifest = [ordered]@{
+        id = $Id
+        createdAt = (Get-Date).ToString("o")
+        backedUpVersion = $CurrentVersion
+        targetVersion = $NewVersion
+        destination = "sftp://$($Script:SftpHost):$($Script:SftpPort)/$($Script:RemotePath)"
+    }
+    $Manifest | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $BackupPath "deployment.json") -Encoding utf8
+    return $BackupPath
 }
 
-function New-SiteBackupArchive {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$ServerRoot,
-        [Parameter(Mandatory = $true)]
-        [string]$BackupRootPath,
-        [Parameter(Mandatory = $true)]
-        [string]$ArchivePath
-    )
-
-    $ItemsToArchive = @(
-        Get-ChildItem -LiteralPath $ServerRoot -Force |
-            Where-Object { -not $_.FullName.Equals($BackupRootPath, [StringComparison]::OrdinalIgnoreCase) }
-    )
-
-    if ($ItemsToArchive.Count -eq 0) {
-        throw "La production ne contient aucun fichier à sauvegarder."
-    }
-
-    Compress-Archive `
-        -LiteralPath @($ItemsToArchive.FullName) `
-        -DestinationPath $ArchivePath `
-        -CompressionLevel Optimal `
-        -Force
-
-    if (-not (Test-Path -LiteralPath $ArchivePath -PathType Leaf) -or
-        (Get-Item -LiteralPath $ArchivePath).Length -eq 0) {
-        throw "L'archive de sauvegarde est absente ou vide."
-    }
-}
-
-function Restore-SiteBackupArchive {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$ArchivePath,
-        [Parameter(Mandatory = $true)]
-        [string]$DestinationPath,
-        [Parameter(Mandatory = $true)]
-        [string]$BackupRootPath
-    )
-
-    if (-not (Test-Path -LiteralPath $ArchivePath -PathType Leaf)) {
-        throw "Archive de sauvegarde introuvable : $ArchivePath"
-    }
-
-    $TemporaryRestorePath = Join-Path ([IO.Path]::GetTempPath()) "EasyCodec-restore-$([guid]::NewGuid().ToString('N'))"
-    New-Item -ItemType Directory -Path $TemporaryRestorePath -Force | Out-Null
-
+function Restore-Backup {
+    param($Session, [string]$ArchivePath)
+    $RestorePath = Join-Path ([IO.Path]::GetTempPath()) "EasyCodec-restore-$([guid]::NewGuid().ToString('N'))"
     try {
-        Expand-Archive -LiteralPath $ArchivePath -DestinationPath $TemporaryRestorePath -Force
-
-        if (-not (Test-Path -LiteralPath (Join-Path $TemporaryRestorePath "index.html") -PathType Leaf)) {
-            throw "L'archive de sauvegarde ne contient pas index.html."
-        }
-
-        return Invoke-Robocopy `
-            -From $TemporaryRestorePath `
-            -To $DestinationPath `
-            -ExcludedDirectories @($BackupRootPath)
-    }
-    finally {
-        if (Test-Path -LiteralPath $TemporaryRestorePath) {
-            Remove-Item -LiteralPath $TemporaryRestorePath -Recurse -Force -ErrorAction SilentlyContinue
-        }
+        Expand-Archive -LiteralPath $ArchivePath -DestinationPath $RestorePath -Force
+        Send-Site -Session $Session -LocalPath $RestorePath
+    } finally {
+        Remove-Item -LiteralPath $RestorePath -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 
 if (-not (Test-Path -LiteralPath $ConfigFile -PathType Leaf)) {
-    Stop-Deployment "Fichier de configuration introuvable : $ConfigFile`nCopiez deploy.config.example.ps1 vers deploy.config.ps1 puis renseignez la destination."
+    Stop-Deployment "Fichier de configuration introuvable : $ConfigFile`nCopiez $ExampleConfigFile vers deploy.config.ps1 puis renseignez les valeurs."
 }
-
 . $ConfigFile
 
-if ([string]::IsNullOrWhiteSpace($Destination)) {
-    Stop-Deployment "La variable `$Destination n'est pas définie dans $ConfigFile"
-}
+$Script:SftpHost = [string](Get-ConfiguredValue -Name "SftpHost")
+$Script:SftpPort = [int](Get-ConfiguredValue -Name "SftpPort" -DefaultValue 22)
+$Script:SftpUserName = [string](Get-ConfiguredValue -Name "SftpUserName")
+$Script:SftpPassword = [string](Get-ConfiguredValue -Name "SftpPassword")
+$Script:SshHostKeyFingerprint = [string](Get-ConfiguredValue -Name "SshHostKeyFingerprint")
+$Script:RemotePath = Get-NormalizedRemotePath -Path ([string](Get-ConfiguredValue -Name "RemotePath"))
+$Script:PublicBaseUrl = [string](Get-ConfiguredValue -Name "PublicBaseUrl")
+$ConfiguredBackupRoot = Get-ConfiguredValue -Name "BackupRoot"
+$Script:BackupRoot = if ([string]::IsNullOrWhiteSpace([string]$ConfiguredBackupRoot)) {
+    Join-Path $PSScriptRoot ".deploy-backups"
+} else { [IO.Path]::GetFullPath([string]$ConfiguredBackupRoot) }
 
-$PackagePath = Join-Path $PSScriptRoot "package.json"
-if (-not (Test-Path -LiteralPath $PackagePath -PathType Leaf)) {
-    Stop-Deployment "package.json est introuvable : $PackagePath"
-}
-
-$Package = Get-Content -LiteralPath $PackagePath -Raw | ConvertFrom-Json
-$Version = [string]$Package.version
-$Commit = "unknown"
-
-if ($null -ne (Get-Command git -ErrorAction SilentlyContinue)) {
-    $GitResult = & git -C $PSScriptRoot rev-parse --short HEAD 2>$null
-    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($GitResult)) {
-        $Commit = $GitResult.Trim()
-    }
-}
-
-$DestinationPath = Get-NormalizedExistingPath -Path $Destination -Description "Le dossier destination"
-Assert-SafeDestination -DestinationPath $DestinationPath
-
-$BackupRoot = Join-Path $DestinationPath "backups"
-New-Item -ItemType Directory -Path $BackupRoot -Force | Out-Null
-$BackupRoot = (Resolve-Path -LiteralPath $BackupRoot).ProviderPath
-
-$LegacyBackupDirectories = @(
-    Get-ChildItem -LiteralPath $BackupRoot -Directory |
-        Where-Object { -not (Test-Path -LiteralPath (Join-Path $_.FullName "site.zip") -PathType Leaf) }
-)
-
-if ($LegacyBackupDirectories.Count -gt 0) {
-    Write-Warning "$($LegacyBackupDirectories.Count) ancien(s) dossier(s) de sauvegarde ne sont pas gérés par la rotation automatique. Vérifiez-les avant de les supprimer manuellement."
-}
+Assert-RequiredText -Name "SftpHost" -Value $Script:SftpHost
+Assert-RequiredText -Name "SftpUserName" -Value $Script:SftpUserName
 
 if ($ListBackups) {
-    Show-Backups -Backups @(Get-BackupEntries -BackupRootPath $BackupRoot) -PackageVersion $Version
+    Show-Backups
+    exit 0
+}
+
+Resolve-WinSCPAssembly | Out-Null
+
+if ($ScanHostKey) {
+    $Session = [WinSCP.Session]::new()
+    $Session.ExecutablePath = $Script:WinSCPExecutablePath
+    try {
+        $Fingerprint = $Session.ScanFingerprint((New-SftpSessionOptions -WithoutCredentials), "SHA-256")
+        Write-Host "Empreinte présentée par le serveur :"
+        Write-Host $Fingerprint
+        Write-Host "Vérifiez-la auprès de l'administrateur avant de la copier dans `$SshHostKeyFingerprint."
+    } finally { $Session.Dispose() }
+    exit 0
+}
+
+Assert-RequiredText -Name "SftpPassword" -Value $Script:SftpPassword
+Assert-RequiredText -Name "SshHostKeyFingerprint" -Value $Script:SshHostKeyFingerprint
+
+if ($ListRemote) {
+    $Session = Open-SftpSession
+    try {
+        Write-Host "Dossier d'arrivée SFTP : $($Session.HomePath)"
+        Write-Host "Contenu du dossier d'arrivée :"
+        $Session.ListDirectory($Session.HomePath).Files |
+            Where-Object { $_.Name -notin @(".", "..") } |
+            ForEach-Object {
+                $Type = if ($_.IsDirectory) { "dossier" } else { "fichier" }
+                Write-Host " - $($_.Name) ($Type)"
+            }
+        $RemoteSitePath = Get-RemoteSitePath -Session $Session
+        $IndexPath = Join-RemotePath -Parent $RemoteSitePath -Child "index.html"
+        if ($Session.FileExists($IndexPath)) {
+            Write-Host "Site EasyCodec trouvé : $RemoteSitePath"
+        } else {
+            Write-Warning "Le dossier cible ne contient pas index.html : $RemoteSitePath"
+        }
+    } finally {
+        $Session.Dispose()
+    }
     exit 0
 }
 
 if ($Revert) {
-    $Backups = @(Get-BackupEntries -BackupRootPath $BackupRoot)
-
-    if ($Backups.Count -eq 0) {
-        Stop-Deployment "Aucune sauvegarde complète n'est disponible dans $BackupRoot"
-    }
-
-    Show-Backups -Backups $Backups -PackageVersion $Version
-
-    if ([string]::IsNullOrWhiteSpace($BackupId)) {
-        $SelectedBackup = $Backups | Sort-Object Name -Descending | Select-Object -First 1
-    }
-    else {
-        if ([IO.Path]::GetFileName($BackupId) -ne $BackupId) {
-            Stop-Deployment "BackupId doit être un nom de dossier simple."
-        }
-
-        $SelectedBackup = $Backups | Where-Object { $_.Name -eq $BackupId } | Select-Object -First 1
-        if ($null -eq $SelectedBackup) {
-            Stop-Deployment "Sauvegarde introuvable : $BackupId"
-        }
-    }
-
-    $SelectedArchive = Join-Path $SelectedBackup.FullName "site.zip"
-    $SelectedManifestPath = Join-Path $SelectedBackup.FullName "deployment.json"
-    $SelectedVersion = "inconnue"
-
-    if (Test-Path -LiteralPath $SelectedManifestPath -PathType Leaf) {
-        try {
-            $SelectedManifest = Get-Content -LiteralPath $SelectedManifestPath -Raw | ConvertFrom-Json
-            if (-not [string]::IsNullOrWhiteSpace([string]$SelectedManifest.backedUpVersion)) {
-                $SelectedVersion = "v$($SelectedManifest.backedUpVersion)"
-            }
-        }
-        catch {
-            $SelectedVersion = "inconnue"
-        }
-    }
-
-    Write-Host ""
-    Write-Warning "La production sera remplacée par la sauvegarde '$($SelectedBackup.Name)'."
-    Write-Host "Version qui sera restaurée : $SelectedVersion"
-    $Confirmation = Read-Host "Tapez 'revert' pour confirmer"
-    if ($Confirmation.Trim().ToLowerInvariant() -ne "revert") {
-        Write-Host "Restauration annulée."
-        exit 0
-    }
-
-    $RescuePath = Join-Path $SelectedBackup.FullName "server-config-before-revert"
-    Write-Host "Sauvegarde des configurations actuelles dans $RescuePath"
+    $Backups = @(Get-BackupEntries)
+    if ($Backups.Count -eq 0) { Stop-Deployment "Aucune sauvegarde locale à restaurer dans $Script:BackupRoot" }
+    $SelectedBackup = if ([string]::IsNullOrWhiteSpace($BackupId)) {
+        $Backups[0]
+    } else { $Backups | Where-Object Name -eq $BackupId | Select-Object -First 1 }
+    if (-not $SelectedBackup) { Stop-Deployment "Sauvegarde introuvable : $BackupId" }
+    $Confirmation = Read-Host "Restaurer $($SelectedBackup.Name) sur $($Script:RemotePath) ? Tapez OUI"
+    if ($Confirmation -ne "OUI") { Stop-Deployment "Restauration annulée." }
+    $Session = Open-SftpSession
     try {
-        Backup-CurrentServerConfigurations -ServerRoot $DestinationPath -BackupPath $RescuePath
-    }
-    catch {
-        Stop-Deployment $_.Exception.Message
-    }
-
-    Write-Host "Restauration de '$($SelectedBackup.Name)'..."
-    try {
-        $RestoreExitCode = Restore-SiteBackupArchive `
-            -ArchivePath $SelectedArchive `
-            -DestinationPath $DestinationPath `
-            -BackupRootPath $BackupRoot
-    }
-    catch {
-        Stop-Deployment $_.Exception.Message
-    }
-
-    if ($RestoreExitCode -ge 8) {
-        Stop-Deployment "Échec de la restauration. Robocopy : $RestoreExitCode" $RestoreExitCode
-    }
-
-    Write-Host "Restauration terminée avec succès."
+        Restore-Backup -Session $Session -ArchivePath (Join-Path $SelectedBackup.FullName "site.zip")
+        Write-Host "Restauration terminée : $($SelectedBackup.Name)"
+    } finally { $Session.Dispose() }
     exit 0
 }
 
-Write-Host ""
-Write-Host "ATTENTION : ce script va effectuer une synchronisation miroir vers la production."
-Write-Host "Les fichiers présents uniquement dans la destination seront supprimés."
-Write-Host "Une sauvegarde complète sera créée dans $BackupRoot."
-Write-Host "Nombre maximal de sauvegardes complètes : $MaxBackups"
-Write-Host ""
+if (-not (Test-Path -LiteralPath $PackageFile -PathType Leaf)) { Stop-Deployment "package.json est introuvable." }
+$Package = Get-Content -LiteralPath $PackageFile -Raw | ConvertFrom-Json
+$Version = [string]$Package.version
 
-$Confirmation = Read-Host "Êtes-vous sûr ? Tapez 'y' pour continuer"
-if ($Confirmation.Trim().ToLowerInvariant() -ne "y") {
-    Write-Host "Opération annulée."
+$Confirmation = Read-Host "Déployer la version $Version vers $($Script:RemotePath) ? Tapez OUI"
+if ($Confirmation -ne "OUI") {
+    Write-Host "Déploiement annulé."
     exit 0
 }
 
 if (-not $SkipBuild) {
-    Write-Host ""
-    Write-Host "Création du build de production..."
-
-    if ($null -eq (Get-Command npm.cmd -ErrorAction SilentlyContinue)) {
-        Stop-Deployment "npm.cmd est introuvable."
-    }
-
-    Push-Location $PSScriptRoot
-    try {
-        & npm.cmd run build
-        $BuildExitCode = $LASTEXITCODE
-    }
-    finally {
-        Pop-Location
-    }
-
-    if ($BuildExitCode -ne 0) {
-        Stop-Deployment "Échec du build de production. npm : $BuildExitCode" $BuildExitCode
-    }
+    Write-Host "Construction de la version $Version..."
+    & npm.cmd run build
+    if ($LASTEXITCODE -ne 0) { Stop-Deployment "Le build a échoué avec le code $LASTEXITCODE." }
+}
+if (-not (Test-Path -LiteralPath (Join-Path $DistPath "index.html") -PathType Leaf)) {
+    Stop-Deployment "Le dossier dist n'est pas prêt. Relancez sans -SkipBuild."
 }
 
-$SourcePath = Get-NormalizedExistingPath -Path $Source -Description "Le dossier source"
-
-if (-not (Test-Path -LiteralPath (Join-Path $SourcePath "index.html") -PathType Leaf)) {
-    Stop-Deployment "Le build ne contient pas index.html : $SourcePath"
-}
-
-if ($SourcePath.Equals($DestinationPath, [StringComparison]::OrdinalIgnoreCase) -or
-    (Test-PathInside -Child $SourcePath -Parent $DestinationPath)) {
-    Stop-Deployment "Le dossier source ne peut pas être identique à la destination ni se trouver à l'intérieur."
-}
-
-$CurrentDeploymentVersion = "unknown"
-$CurrentDeploymentCommit = "unknown"
-$CurrentDeploymentPath = Join-Path $DestinationPath "deployment.json"
-
-if (Test-Path -LiteralPath $CurrentDeploymentPath -PathType Leaf) {
-    try {
-        $CurrentDeployment = Get-Content -LiteralPath $CurrentDeploymentPath -Raw | ConvertFrom-Json
-        if (-not [string]::IsNullOrWhiteSpace([string]$CurrentDeployment.version)) {
-            $CurrentDeploymentVersion = [string]$CurrentDeployment.version
-        }
-        if (-not [string]::IsNullOrWhiteSpace([string]$CurrentDeployment.commit)) {
-            $CurrentDeploymentCommit = [string]$CurrentDeployment.commit
-        }
-    }
-    catch {
-        Write-Warning "Le fichier deployment.json actuellement en production est illisible. La version sauvegardée sera indiquée comme inconnue."
-    }
-}
-
-$IncomingDeployment = [ordered]@{
+$DeploymentManifest = [ordered]@{
     version = $Version
-    commit = $Commit
     deployedAt = (Get-Date).ToString("o")
+    commit = (& git rev-parse --short HEAD 2>$null)
 }
+$DeploymentManifest | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $DistPath "deployment.json") -Encoding utf8
 
-$IncomingDeployment |
-    ConvertTo-Json |
-    Set-Content -LiteralPath (Join-Path $SourcePath "deployment.json") -Encoding UTF8
-
-$ConfigurationReport = @(Get-ServerConfigurationReport -BuildRoot $SourcePath -ServerRoot $DestinationPath)
-
-Remove-OldBackups -BackupRootPath $BackupRoot -MaximumCount $MaxBackups
-
-$SafeVersion = $Version -replace '[^A-Za-z0-9._-]', '_'
-$Timestamp = Get-Date -Format "yyyyMMdd-HHmmss-fff"
-$NewBackupId = "$Timestamp-before-v$SafeVersion"
-$NewBackupRoot = Join-Path $BackupRoot $NewBackupId
-$NewBackupArchive = Join-Path $NewBackupRoot "site.zip"
-$NewBackupConfigurations = Join-Path $NewBackupRoot "server-config"
-
-New-Item -ItemType Directory -Path $NewBackupRoot -Force | Out-Null
-
-Write-Host ""
-Write-Host "Sauvegarde complète de la production vers :"
-Write-Host "  $NewBackupArchive"
-
+$SnapshotPath = Join-Path ([IO.Path]::GetTempPath()) "EasyCodec-current-$([guid]::NewGuid().ToString('N'))"
+$Session = $null
+$BackupPath = $null
 try {
-    Backup-CurrentServerConfigurations `
-        -ServerRoot $DestinationPath `
-        -BackupPath $NewBackupConfigurations
-
-    New-SiteBackupArchive `
-        -ServerRoot $DestinationPath `
-        -BackupRootPath $BackupRoot `
-        -ArchivePath $NewBackupArchive
-}
-catch {
-    Remove-Item -LiteralPath $NewBackupRoot -Recurse -Force -ErrorAction SilentlyContinue
-    Stop-Deployment $_.Exception.Message
-}
-
-$Manifest = [ordered]@{
-    backupId = $NewBackupId
-    createdAt = (Get-Date).ToString("o")
-    backedUpVersion = $CurrentDeploymentVersion
-    backedUpCommit = $CurrentDeploymentCommit
-    incomingVersion = $Version
-    incomingCommit = $Commit
-    destination = $DestinationPath
-}
-
-$Manifest |
-    ConvertTo-Json |
-    Set-Content -LiteralPath (Join-Path $NewBackupRoot "deployment.json") -Encoding UTF8
-
-$ConfigurationReport |
-    Set-Content -LiteralPath (Join-Path $NewBackupRoot "server-overrides.txt") -Encoding UTF8
-
-Write-Host ""
-Write-Host "Synchronisation miroir..."
-Write-Host "$SourcePath"
-Write-Host " -> $DestinationPath"
-
-$DeployExitCode = Invoke-Robocopy `
-    -From $SourcePath `
-    -To $DestinationPath `
-    -ExcludedDirectories @($BackupRoot)
-
-if ($DeployExitCode -ge 8) {
-    Write-Warning "Le déploiement a échoué. Restauration automatique de la sauvegarde en cours..."
-
+    $Session = Open-SftpSession
+    Write-Host "Téléchargement de la version actuellement en ligne..."
+    Receive-RemoteSite -Session $Session -LocalPath $SnapshotPath
+    if (-not (Test-Path -LiteralPath (Join-Path $SnapshotPath "index.html") -PathType Leaf)) {
+        Stop-Deployment "Aucun site EasyCodec valide trouvé dans $($Script:RemotePath). Déploiement interrompu pour éviter une mauvaise cible."
+    }
+    Show-ConfigurationDifferences -BuildRoot $DistPath -CurrentRoot $SnapshotPath
+    $BackupPath = New-LocalBackup -SnapshotPath $SnapshotPath -NewVersion $Version
+    Write-Host "Sauvegarde locale créée : $BackupPath"
+    Write-Host "Envoi de la version $Version vers $($Script:RemotePath)..."
     try {
-        $RollbackExitCode = Restore-SiteBackupArchive `
-            -ArchivePath $NewBackupArchive `
-            -DestinationPath $DestinationPath `
-            -BackupRootPath $BackupRoot
+        Send-Site -Session $Session -LocalPath $DistPath
+        $RemoteVersion = Get-RemoteVersion -Session $Session
+        if ($RemoteVersion -ne $Version) {
+            throw "La vérification distante retourne la version '$RemoteVersion' au lieu de '$Version'."
+        }
+    } catch {
+        Write-Warning "Le déploiement a échoué. Restauration automatique de la sauvegarde..."
+        Restore-Backup -Session $Session -ArchivePath (Join-Path $BackupPath "site.zip")
+        throw
     }
-    catch {
-        Stop-Deployment "Le déploiement et la restauration automatique ont échoué. Déploiement : $DeployExitCode. Restauration : $($_.Exception.Message)" $DeployExitCode
+    Write-Host "Déploiement terminé et vérifié."
+    Write-Host "Version : $Version"
+    Write-Host "Destination : sftp://$($Script:SftpHost):$($Script:SftpPort)/$($Script:RemotePath)"
+    if (-not [string]::IsNullOrWhiteSpace($Script:PublicBaseUrl)) {
+        Write-Host "URL : $($Script:PublicBaseUrl)"
     }
-
-    if ($RollbackExitCode -ge 8) {
-        Stop-Deployment "Le déploiement et la restauration automatique ont échoué. Déploiement : $DeployExitCode, restauration : $RollbackExitCode" $RollbackExitCode
-    }
-
-    Stop-Deployment "Le déploiement a échoué, mais la production précédente a été restaurée. Robocopy : $DeployExitCode" $DeployExitCode
+} finally {
+    if ($null -ne $Session) { $Session.Dispose() }
+    Remove-Item -LiteralPath $SnapshotPath -Recurse -Force -ErrorAction SilentlyContinue
 }
-
-Write-Host ""
-Write-Host "Déploiement de la version $Version terminé avec succès."
-Write-Host "Sauvegarde créée : $NewBackupId"
-exit 0

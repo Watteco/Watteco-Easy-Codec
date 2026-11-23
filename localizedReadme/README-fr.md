@@ -51,7 +51,7 @@
 ## Fonctionnalités Actuelles
 
 ### Version Web
-Le projet est actuellement hébergé à l'adresse suivante : [Watteco Easy Codec](https://lora.watteco.fr/EasyCodec/).
+Le projet est actuellement hébergé à l'adresse suivante : [Watteco Easy Codec](https://support.watteco.com/Tools/EasyCodec/).
 
 #### Fonctionnalités Implémentées :
 - **Interface Simplifiée** : Une UI modernisée avec une gestion dynamique des capteurs.
@@ -89,7 +89,7 @@ npm run dev
 
 Le build de production est une application web statique qui peut également
 être hébergée sur le serveur local ou l'intranet d'un client. Il est
-actuellement construit pour le chemin `/EasyCodec/` et doit être servi en
+actuellement construit pour le chemin `/Tools/EasyCodec/` et doit être servi en
 HTTP(S) : l'ouverture directe du fichier `index.html` n'est pas prise en
 charge.
 
@@ -98,7 +98,7 @@ pour les prérequis, le développement, le déploiement en production, l'accès
 réseau, le fonctionnement hors connexion et la mise à jour des configurations.
 
 ### Version Production
-La version web fonctionnelle est accessible via : [https://lora.watteco.fr/EasyCodec/](https://lora.watteco.fr/EasyCodec/). Elle est actuellement en cours de tests avec une prise en charge limitée de capteurs.
+La version web fonctionnelle est accessible via : [https://support.watteco.com/Tools/EasyCodec/](https://support.watteco.com/Tools/EasyCodec/). Elle est actuellement en cours de tests avec une prise en charge limitée de capteurs.
 
 ## Développement Futur
 
