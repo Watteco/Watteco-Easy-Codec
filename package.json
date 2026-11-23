@@ -1,7 +1,7 @@
 {
   "name": "watteco-codec",
   "private": true,
-  "version": "0.11.21",
+  "version": "0.11.22",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -42,6 +42,7 @@
     "axios": "^1.7.7",
     "caniuse-lite": "^1.0.30001778",
     "crypto-js": "^4.2.0",
+    "fflate": "^0.8.3",
     "ionicons": "^7.0.0",
     "vue": "^3.3.0",
     "vue-router": "^4.2.0"

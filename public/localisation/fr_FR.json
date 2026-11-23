@@ -724,6 +724,7 @@
     "configurationSaved": "Configuration enregistrée localement",
     "configurationSaveFailed": "La configuration n'a pas pu être enregistrée",
     "configurationLoaded": "Configuration chargée",
+    "sharedConfigurationInvalid": "Le lien de configuration est invalide ou n'est plus pris en charge.",
     "configurationDownloaded": "Téléchargé dans votre dossier Téléchargements : {name}",
     "configurationSavedToDocuments": "Enregistré dans Documents/Easy Codec : {name}",
     "configurationStoragePermissionDenied": "L'accès aux fichiers est nécessaire pour enregistrer la configuration",

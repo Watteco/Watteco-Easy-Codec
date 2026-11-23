@@ -8,6 +8,7 @@ export type LinkableProduct = {
 export type EasyCodecSelectionMessage = {
   type: typeof EASY_CODEC_SELECTION_MESSAGE_TYPE;
   sensor: string;
+  configuration?: string;
 };
 
 // Keep the public identifier strategy in one place. It currently follows the
@@ -30,9 +31,11 @@ export const findProductByLinkIdentifier = <Product extends LinkableProduct>(
 
 export const createEasyCodecSelectionMessage = (
   sensor: string,
+  configuration?: string | null,
 ): EasyCodecSelectionMessage => ({
   type: EASY_CODEC_SELECTION_MESSAGE_TYPE,
   sensor,
+  ...(configuration ? { configuration } : {}),
 });
 
 export const getEmbeddingParentOrigin = (referrer: string): string | null => {

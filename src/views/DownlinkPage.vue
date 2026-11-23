@@ -1954,6 +1954,12 @@ import {
   readProductLinkIdentifier,
 } from '@/utils/webProductLink';
 import {
+  buildSharedConfigurationHash,
+  decodeSharedConfiguration,
+  encodeSharedConfiguration,
+  readSharedConfigurationToken,
+} from '@/utils/sharedConfigurationLink';
+import {
   findPatternReportingContext,
   isPatternReportingFieldVisible,
   shouldIncludePatternReportingFrame,
@@ -2539,6 +2545,7 @@ const publishWebProductSelection = async (sensorFile: string): Promise<void> => 
         ...route.query,
         [WEB_SENSOR_QUERY_KEY]: identifier,
       },
+      hash: route.hash,
     });
   }
 
@@ -2546,7 +2553,10 @@ const publishWebProductSelection = async (sensorFile: string): Promise<void> => 
   const parentOrigin = getEmbeddingParentOrigin(document.referrer);
   if (!parentOrigin) return;
 
-  window.parent.postMessage(createEasyCodecSelectionMessage(identifier), parentOrigin);
+  window.parent.postMessage(createEasyCodecSelectionMessage(
+    identifier,
+    readSharedConfigurationToken(route.hash),
+  ), parentOrigin);
 };
 
 const selectWebSensorFromRoute = async (): Promise<void> => {
@@ -2554,10 +2564,11 @@ const selectWebSensorFromRoute = async (): Promise<void> => {
 
   const identifier = readProductLinkIdentifier(route.query[WEB_SENSOR_QUERY_KEY]);
   const product = findProductByLinkIdentifier(availableProducts.value, identifier);
-  if (!product || (selectedSensor.value === product.file && sensorConfig.value)) return;
-
-  const loaded = await loadSensorConfig(product.file);
-  if (loaded) await publishWebProductSelection(product.file);
+  if (product && !(selectedSensor.value === product.file && sensorConfig.value)) {
+    const loaded = await loadSensorConfig(product.file);
+    if (loaded) await publishWebProductSelection(product.file);
+  }
+  await applySharedConfigurationFromRoute();
 };
 
 const selectNativeSensor = async (productReference = ble.productReference.value) => {
@@ -3164,6 +3175,7 @@ onUnmounted(() => {
   cancelFrameLongPress();
   if (configurationSendSuccessTimer) clearTimeout(configurationSendSuccessTimer);
   if (configurationReadSuccessTimer) clearTimeout(configurationReadSuccessTimer);
+  if (sharedConfigurationUpdateTimer) clearTimeout(sharedConfigurationUpdateTimer);
 });
 
 // Calculate appropriate slider step sizes
@@ -3816,6 +3828,159 @@ const getCurrentConfigurationSnapshot = (): string => {
     paramGroupChecked.value,
   ));
 };
+
+const SHARED_CONFIGURATION_UPDATE_DELAY_MS = 400;
+let sharedConfigurationUpdateTimer: ReturnType<typeof setTimeout> | undefined;
+let sharedConfigurationLinkReady = false;
+let sharedConfigurationBeingApplied = false;
+let lastPublishedSharedConfigurationToken = '';
+let lastHandledSharedConfigurationToken = '';
+
+const buildCurrentSharedConfiguration = (): SavedConfiguration | null => {
+  if (!sensorConfig.value || !selectedSensor.value) return null;
+  return {
+    format: SAVED_CONFIGURATION_FORMAT,
+    schemaVersion: SAVED_CONFIGURATION_SCHEMA_VERSION,
+    id: 'shared',
+    name: 'Shared configuration',
+    createdAt: '',
+    updatedAt: '',
+    product: { configurationFile: selectedSensor.value },
+    sections: captureConfigurationSections(
+      sensorConfig.value,
+      getSectionEnabledState(),
+      paramGroupChecked.value,
+    ),
+  };
+};
+
+const publishSharedConfigurationLink = async (): Promise<void> => {
+  if (isNativeApp || sharedConfigurationBeingApplied || !sharedConfigurationLinkReady) return;
+  const configuration = buildCurrentSharedConfiguration();
+  if (!configuration) return;
+
+  const token = encodeSharedConfiguration(configuration);
+  const hash = buildSharedConfigurationHash(token);
+  lastPublishedSharedConfigurationToken = token;
+  if (route.hash !== hash) {
+    await router.replace({
+      query: {
+        ...route.query,
+        [WEB_SENSOR_QUERY_KEY]: selectedSensor.value,
+      },
+      hash,
+    });
+  }
+  await publishWebProductSelection(selectedSensor.value);
+};
+
+const scheduleSharedConfigurationLinkUpdate = (): void => {
+  if (isNativeApp || sharedConfigurationBeingApplied || !sharedConfigurationLinkReady) return;
+  if (sharedConfigurationUpdateTimer) clearTimeout(sharedConfigurationUpdateTimer);
+  sharedConfigurationUpdateTimer = setTimeout(() => {
+    sharedConfigurationUpdateTimer = undefined;
+    void publishSharedConfigurationLink();
+  }, SHARED_CONFIGURATION_UPDATE_DELAY_MS);
+};
+
+const applySharedConfigurationFromRoute = async (): Promise<void> => {
+  if (isNativeApp || !pageInitialized.value) return;
+  const token = readSharedConfigurationToken(route.hash);
+  if (!token) {
+    sharedConfigurationLinkReady = true;
+    scheduleSharedConfigurationLinkUpdate();
+    return;
+  }
+  if (
+    token === lastPublishedSharedConfigurationToken
+    || token === lastHandledSharedConfigurationToken
+  ) {
+    sharedConfigurationLinkReady = true;
+    return;
+  }
+
+  lastHandledSharedConfigurationToken = token;
+  const shared = decodeSharedConfiguration(
+    token,
+    readProductLinkIdentifier(route.query[WEB_SENSOR_QUERY_KEY]) || selectedSensor.value,
+  );
+  if (!shared) {
+    sharedConfigurationLinkReady = true;
+    await presentSavedConfigurationToast(localize('@sharedConfigurationInvalid'), 'danger');
+    return;
+  }
+
+  const product = findProductByLinkIdentifier(
+    availableProducts.value,
+    shared.product.configurationFile,
+  );
+  if (!product) {
+    sharedConfigurationLinkReady = true;
+    await presentSavedConfigurationToast(localize('@sharedConfigurationInvalid'), 'danger');
+    return;
+  }
+
+  sharedConfigurationBeingApplied = true;
+  try {
+    if (selectedSensor.value !== product.file || !sensorConfig.value) {
+      const loaded = await loadSensorConfig(product.file);
+      if (!loaded) {
+        await presentSavedConfigurationToast(localize('@sharedConfigurationInvalid'), 'danger');
+        return;
+      }
+    }
+
+    const reconciled = reconcileSavedConfiguration(shared, sensorConfig.value);
+    CONFIGURATION_SECTION_NAMES.forEach(sectionName => {
+      const section = reconciled.sections[sectionName];
+      if (section) applySectionEnabledState(sectionName, section.enabled);
+    });
+    CONFIGURATION_SECTION_NAMES.forEach(sectionName => {
+      const section = reconciled.sections[sectionName];
+      if (!section) return;
+      Object.entries(section.groups).forEach(([groupName, group]) => {
+        onParamGroupCheckedChange(
+          { detail: { checked: group.enabled } },
+          groupName,
+          sectionName,
+        );
+        Object.entries(group.values).forEach(([fieldName, value]) => {
+          onParamChange({ newValue: value }, sectionName, groupName, fieldName);
+        });
+      });
+    });
+
+    selectedSavedConfigurationId.value = '';
+    loadedSavedConfigurationId.value = '';
+    loadedConfigurationSnapshot.value = '';
+    updateOutput();
+    await publishWebProductSelection(product.file);
+
+    if (configurationLoadReportCount(reconciled.report) > 0) {
+      const warning = await alertController.create({
+        header: localize('@configurationLoadWarningTitle'),
+        message: localize('@configurationLoadWarning'),
+        buttons: [localize('@confirm')],
+      });
+      await warning.present();
+    }
+  } finally {
+    sharedConfigurationBeingApplied = false;
+    sharedConfigurationLinkReady = true;
+    scheduleSharedConfigurationLinkUpdate();
+  }
+};
+
+watch(
+  () => getCurrentConfigurationSnapshot(),
+  () => scheduleSharedConfigurationLinkUpdate(),
+  { flush: 'post' },
+);
+
+watch(
+  () => route.hash,
+  () => void applySharedConfigurationFromRoute(),
+);
 
 const isCurrentConfigurationModified = computed(() => (
   Boolean(loadedSavedConfigurationId.value)
