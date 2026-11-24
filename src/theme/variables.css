@@ -57,16 +57,16 @@ http://ionicframework.com/docs/theming/ */
 	--ion-color-primary-rgb: 208,116,36;
 	--ion-color-primary-shade: #B76620;
 	--ion-color-primary-tint: #D8823A;
-	--ion-background-color: #1A1E24;
-	--ion-background-color-rgb: 26,30,36;
+	--ion-background-color: #1D1F21;
+	--ion-background-color-rgb: 29,31,33;
 	--ion-text-color: #F2F4F7;
 	--ion-text-color-rgb: 242,244,247;
 	--ion-item-background: transparent;
 	--ion-item-border-color: rgba(255, 255, 255, 0.11);
 
-	--app-page-background: #1A1E24;
-	--app-surface: #252B34;
-	--app-surface-subtle: #2E3540;
+	--app-page-background: #1D1F21;
+	--app-surface: #262A2E;
+	--app-surface-subtle: #30353A;
 	--app-text: #F2F4F7;
 	--app-text-secondary: #C3C9D1;
 	--app-text-muted: #A6AEB8;
