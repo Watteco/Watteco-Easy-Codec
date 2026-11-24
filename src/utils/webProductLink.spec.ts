@@ -40,6 +40,11 @@ describe('webProductLink', () => {
       sensor: '50-70-080-Modbus',
       configuration: 'v1.abc',
     });
+    expect(createEasyCodecSelectionMessage('50-70-080-Modbus', null)).toEqual({
+      type: EASY_CODEC_SELECTION_MESSAGE_TYPE,
+      sensor: '50-70-080-Modbus',
+      configuration: '',
+    });
   });
 
   it('derives an exact HTTP origin from the embedding page', () => {

@@ -35,7 +35,7 @@ export const createEasyCodecSelectionMessage = (
 ): EasyCodecSelectionMessage => ({
   type: EASY_CODEC_SELECTION_MESSAGE_TYPE,
   sensor,
-  ...(configuration ? { configuration } : {}),
+  ...(configuration !== undefined ? { configuration: configuration ?? '' } : {}),
 });
 
 export const getEmbeddingParentOrigin = (referrer: string): string | null => {
