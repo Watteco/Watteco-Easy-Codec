@@ -21,14 +21,14 @@ export function parseVersionManifest(value: unknown): VersionManifest | undefine
   return { version: candidate.version };
 }
 
-function updateUrl(version: string): string {
-  const url = new URL(import.meta.env.BASE_URL, window.location.origin);
+export function buildWebUpdateUrl(currentUrl: string, version: string): string {
+  const url = new URL(currentUrl);
   url.searchParams.set('update', version);
-  return url.toString();
+  return url.href;
 }
 
 function reloadWithFreshEntryPoint(version: string) {
-  window.location.replace(updateUrl(version));
+  window.location.replace(buildWebUpdateUrl(window.location.href, version));
 }
 
 function previousUpdateAttempt(): string | null {
