@@ -1966,6 +1966,7 @@ import {
 } from '@/utils/webProductLink';
 import {
   buildSharedConfigurationHash,
+  copySharedConfigurationLink,
   decodeSharedConfiguration,
   encodeSharedConfiguration,
   readSharedConfigurationToken,
@@ -3894,15 +3895,36 @@ const buildCurrentConfigurationShareUrl = (): string | null => {
 };
 
 const copyCurrentConfigurationLink = async (): Promise<void> => {
-  const shareUrl = buildCurrentConfigurationShareUrl();
-  if (!shareUrl) return;
+  let shareUrl: string | null;
   try {
-    await navigator.clipboard.writeText(shareUrl);
-    await presentSavedConfigurationToast(localize('@configurationLinkCopied'));
+    shareUrl = buildCurrentConfigurationShareUrl();
   } catch (error) {
-    console.error('Failed to copy configuration link:', error);
+    console.error('Failed to generate configuration link:', error);
     await presentSavedConfigurationToast(localize('@configurationLinkCopyFailed'), 'danger');
+    return;
   }
+  if (!shareUrl) return;
+
+  if (await copySharedConfigurationLink(shareUrl)) {
+    await presentSavedConfigurationToast(localize('@configurationLinkCopied'));
+    return;
+  }
+
+  const alert = await alertController.create({
+    header: localize('@configurationLinkCopyFailed'),
+    message: localize('@configurationLinkCopyManually'),
+    inputs: [{
+      type: 'textarea',
+      value: shareUrl,
+      attributes: {
+        readonly: true,
+        'aria-label': localize('@copyDisplayedConfigurationLink'),
+        onFocus: (event: FocusEvent) => (event.currentTarget as HTMLTextAreaElement).select(),
+      },
+    }],
+    buttons: [{ text: localize('@closeLabel'), role: 'cancel' }],
+  });
+  await alert.present();
 };
 
 const applySharedConfigurationFromRoute = async (): Promise<void> => {

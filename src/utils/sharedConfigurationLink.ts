@@ -111,3 +111,34 @@ export const readSharedConfigurationToken = (hash: string): string | null => {
 export const buildSharedConfigurationHash = (token: string | null): string => (
   token ? `#${SHARED_CONFIGURATION_FRAGMENT_KEY}=${encodeURIComponent(token)}` : ''
 );
+
+export const copySharedConfigurationLink = async (url: string): Promise<boolean> => {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(url);
+      return true;
+    } catch {
+      // Embedded pages can be denied access to the Clipboard API.
+    }
+  }
+
+  if (typeof document.execCommand !== 'function') return false;
+  const previousFocus = document.activeElement;
+  const field = document.createElement('textarea');
+  field.value = url;
+  field.readOnly = true;
+  field.style.position = 'fixed';
+  field.style.opacity = '0';
+  document.body.append(field);
+
+  try {
+    field.focus({ preventScroll: true });
+    field.select();
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    field.remove();
+    if (previousFocus instanceof HTMLElement) previousFocus.focus({ preventScroll: true });
+  }
+};
