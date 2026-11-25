@@ -40,7 +40,7 @@
 
           <div class="firmware-form">
             <label class="file-picker">
-              <input type="file" accept=".bin,.hex,.ihex" @change="onFirmwareFile" />
+              <input type="file" @change="onFirmwareFile" />
               <span class="file-picker__icon">
                 <ion-icon :icon="documentOutline" aria-hidden="true" />
               </span>

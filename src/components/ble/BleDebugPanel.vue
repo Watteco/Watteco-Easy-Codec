@@ -72,10 +72,9 @@
       </div>
       <div class="firmware-dry-run">
         <label class="firmware-file-label">
-          Firmware (.bin/.hex)
+          Firmware (.bin/.hex/.ihex)
           <input
             type="file"
-            accept=".bin,.hex,.ihex"
             @change="$emit('firmware-file', ($event.target as HTMLInputElement).files?.[0] ?? null)"
           />
         </label>
