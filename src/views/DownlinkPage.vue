@@ -1958,6 +1958,7 @@ import type { LanguageCode, Translations } from '@/types/localization';
 import { getProductConfigurationFile, getProductDisplayName } from '@/utils/productMeasurements';
 import {
   WEB_SENSOR_QUERY_KEY,
+  buildWebConfigurationShareUrl,
   createEasyCodecSelectionMessage,
   findProductByLinkIdentifier,
   getEmbeddingParentOrigin,
@@ -2580,13 +2581,21 @@ const publishWebProductSelection = async (
 const selectWebSensorFromRoute = async (): Promise<void> => {
   if (isNativeApp || !pageInitialized.value) return;
 
+  const token = readSharedConfigurationToken(route.hash);
+  if (token) {
+    await applySharedConfigurationFromRoute(token);
+    return;
+  }
+
   const identifier = readProductLinkIdentifier(route.query[WEB_SENSOR_QUERY_KEY]);
   const product = findProductByLinkIdentifier(availableProducts.value, identifier);
   if (product && !(selectedSensor.value === product.file && sensorConfig.value)) {
+    const requestedPath = route.fullPath;
     const loaded = await loadSensorConfig(product.file);
-    if (loaded) await publishWebProductSelection(product.file, true);
+    if (loaded && route.fullPath === requestedPath) {
+      await publishWebProductSelection(product.file, true);
+    }
   }
-  await applySharedConfigurationFromRoute();
 };
 
 const selectNativeSensor = async (productReference = ble.productReference.value) => {
@@ -2607,7 +2616,7 @@ watch(ble.productReference, (productReference) => {
 });
 
 watch(
-  () => route.query[WEB_SENSOR_QUERY_KEY],
+  [() => route.query[WEB_SENSOR_QUERY_KEY], () => route.hash],
   () => void selectWebSensorFromRoute(),
 );
 
@@ -3847,7 +3856,6 @@ const getCurrentConfigurationSnapshot = (): string => {
 };
 
 let sharedConfigurationBeingApplied = false;
-let lastHandledSharedConfigurationToken = '';
 
 const buildCurrentSharedConfiguration = (): SavedConfiguration | null => {
   if (!sensorConfig.value || !selectedSensor.value) return null;
@@ -3873,25 +3881,12 @@ const buildCurrentConfigurationShareUrl = (): string | null => {
 
   const token = encodeSharedConfiguration(configuration);
   const hash = buildSharedConfigurationHash(token);
-  const directUrl = new URL(window.location.href);
-  directUrl.searchParams.set(WEB_SENSOR_QUERY_KEY, selectedSensor.value);
-  directUrl.hash = hash;
-
-  if (window.parent === window || !document.referrer) return directUrl.href;
-  try {
-    const parentUrl = new URL(document.referrer);
-    const isLoraContainer = parentUrl.pathname.replace(/\/+$/, '') === '/Lora'
-      || parentUrl.searchParams.get('tool') === 'easy-codec';
-    if (!isLoraContainer) return directUrl.href;
-
-    parentUrl.search = '';
-    parentUrl.searchParams.set('tool', 'easy-codec');
-    parentUrl.searchParams.set(WEB_SENSOR_QUERY_KEY, selectedSensor.value);
-    parentUrl.hash = hash;
-    return parentUrl.href;
-  } catch {
-    return directUrl.href;
-  }
+  return buildWebConfigurationShareUrl(
+    window.location.href,
+    configuration.product.configurationFile,
+    hash,
+    window.parent === window ? '' : document.referrer,
+  );
 };
 
 const copyCurrentConfigurationLink = async (): Promise<void> => {
@@ -3927,12 +3922,10 @@ const copyCurrentConfigurationLink = async (): Promise<void> => {
   await alert.present();
 };
 
-const applySharedConfigurationFromRoute = async (): Promise<void> => {
-  if (isNativeApp || !pageInitialized.value) return;
-  const token = readSharedConfigurationToken(route.hash);
-  if (!token || token === lastHandledSharedConfigurationToken || sharedConfigurationBeingApplied) return;
+const applySharedConfigurationFromRoute = async (token: string): Promise<void> => {
+  if (sharedConfigurationBeingApplied) return;
 
-  lastHandledSharedConfigurationToken = token;
+  const requestedPath = route.fullPath;
   const shared = decodeSharedConfiguration(
     token,
     readProductLinkIdentifier(route.query[WEB_SENSOR_QUERY_KEY]) || selectedSensor.value,
@@ -3955,6 +3948,7 @@ const applySharedConfigurationFromRoute = async (): Promise<void> => {
   try {
     if (selectedSensor.value !== product.file || !sensorConfig.value) {
       const loaded = await loadSensorConfig(product.file);
+      if (route.fullPath !== requestedPath) return;
       if (!loaded) {
         await presentSavedConfigurationToast(localize('@sharedConfigurationInvalid'), 'danger');
         return;
@@ -3985,7 +3979,7 @@ const applySharedConfigurationFromRoute = async (): Promise<void> => {
     loadedSavedConfigurationId.value = '';
     loadedConfigurationSnapshot.value = '';
     updateOutput();
-    await publishWebProductSelection(product.file, true);
+    await publishWebProductSelection(product.file);
 
     if (configurationLoadReportCount(reconciled.report) > 0) {
       const warning = await alertController.create({
@@ -3997,13 +3991,11 @@ const applySharedConfigurationFromRoute = async (): Promise<void> => {
     }
   } finally {
     sharedConfigurationBeingApplied = false;
+    if (route.fullPath !== requestedPath && readSharedConfigurationToken(route.hash)) {
+      void selectWebSensorFromRoute();
+    }
   }
 };
-
-watch(
-  () => route.hash,
-  () => void applySharedConfigurationFromRoute(),
-);
 
 const isCurrentConfigurationModified = computed(() => (
   Boolean(loadedSavedConfigurationId.value)

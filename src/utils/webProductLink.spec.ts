@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   EASY_CODEC_SELECTION_MESSAGE_TYPE,
+  buildWebConfigurationShareUrl,
   createEasyCodecSelectionMessage,
   findProductByLinkIdentifier,
   getEmbeddingParentOrigin,
@@ -54,5 +55,32 @@ describe('webProductLink', () => {
       .toBe('http://localhost:5173');
     expect(getEmbeddingParentOrigin('javascript:alert(1)')).toBeNull();
     expect(getEmbeddingParentOrigin('not a URL')).toBeNull();
+  });
+
+  it('uses the Lora portal even when the iframe only receives its origin', () => {
+    const url = buildWebConfigurationShareUrl(
+      'https://support.watteco.com/Tools/EasyCodec/tabs/downlink?sensor=old',
+      products[0].file,
+      '#config=v1.abc',
+      'https://lora.watteco.fr/',
+    );
+
+    const shareUrl = new URL(url);
+    expect(shareUrl.origin + shareUrl.pathname).toBe('https://lora.watteco.fr/Lora/');
+    expect(Object.fromEntries(shareUrl.searchParams)).toEqual({
+      tool: 'easy-codec',
+      sensor: products[0].file,
+      shared: '1',
+    });
+    expect(shareUrl.hash).toBe('#config=v1.abc');
+  });
+
+  it.each(['', 'https://example.test/'])('uses the direct link for referrer %j', referrer => {
+    expect(buildWebConfigurationShareUrl(
+      'https://support.watteco.com/Tools/EasyCodec/tabs/downlink?sensor=old#config=v1.old',
+      products[1].file,
+      '#config=v1.abc',
+      referrer,
+    )).toBe('https://support.watteco.com/Tools/EasyCodec/tabs/downlink?sensor=50-70-080-Modbus#config=v1.abc');
   });
 });

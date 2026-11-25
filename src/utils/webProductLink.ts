@@ -48,3 +48,32 @@ export const getEmbeddingParentOrigin = (referrer: string): string | null => {
     return null;
   }
 };
+
+export const buildWebConfigurationShareUrl = (
+  currentUrl: string,
+  sensor: string,
+  hash: string,
+  embeddingReferrer = '',
+): string => {
+  const directUrl = new URL(currentUrl);
+  directUrl.searchParams.set(WEB_SENSOR_QUERY_KEY, sensor);
+  directUrl.hash = hash;
+
+  if (!getEmbeddingParentOrigin(embeddingReferrer)) return directUrl.href;
+
+  const parentUrl = new URL(embeddingReferrer);
+  const isLoraHost = parentUrl.hostname === 'lora.watteco.fr';
+  const isLoraContainer = parentUrl.pathname.replace(/\/+$/, '') === '/Lora'
+    || parentUrl.searchParams.get('tool') === 'easy-codec';
+  if (!isLoraHost && !isLoraContainer) return directUrl.href;
+
+  parentUrl.pathname = '/Lora/';
+  parentUrl.search = '';
+  parentUrl.searchParams.set('tool', 'easy-codec');
+  parentUrl.searchParams.set(WEB_SENSOR_QUERY_KEY, sensor);
+  // The portal drops this parameter after restoring the configuration. Reopening
+  // the link then reloads the portal, even if the iframe's source still matches.
+  parentUrl.searchParams.set('shared', '1');
+  parentUrl.hash = hash;
+  return parentUrl.href;
+};
